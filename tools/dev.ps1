@@ -32,8 +32,20 @@ if (-not (Test-Path $Godot)) {
 
 function Invoke-Godot {
     param([string[]]$GodotArgs)
-    & $Godot --path $ProjectDir @GodotArgs
-    return $LASTEXITCODE
+    # Start-Process -Wait is used deliberately: PowerShell's `&` does not reliably
+    # wait for (or capture the exit code of) Godot's GUI-subsystem exe, which made
+    # the wrapper read output files before the engine had finished writing them.
+    # Godot's raw stdout/stderr (incl. harmless RID-leak noise it prints at exit)
+    # is routed to log files so the console stays clean; commands print their own
+    # summaries. Raw logs live in .dev/ if you need them.
+    $dev = Join-Path $ProjectDir '.dev'
+    if (-not (Test-Path $dev)) { New-Item -ItemType Directory -Path $dev | Out-Null }
+    $outLog = Join-Path $dev 'godot.out.log'
+    $errLog = Join-Path $dev 'godot.err.log'
+    $allArgs = @('--path', $ProjectDir) + $GodotArgs
+    $p = Start-Process -FilePath $Godot -ArgumentList $allArgs -Wait -PassThru -NoNewWindow `
+        -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+    return $p.ExitCode
 }
 
 # Resolve a Python console script (gdformat/gdlint) from the active interpreter.
@@ -53,13 +65,22 @@ function Get-PyScript([string]$name) {
 
 switch ($Command) {
     'validate' {
-        exit (Invoke-Godot @('--headless', '--script', 'res://tools/validate.gd'))
+        # Godot's GUI exe doesn't stream stdout to PowerShell, so read the log
+        # the validator writes and print it here.
+        $code = Invoke-Godot @('--headless', '--script', 'res://tools/validate.gd')
+        $log = Join-Path $ProjectDir '.dev/validate.log'
+        if (Test-Path $log) { Get-Content $log | Write-Host }
+        exit $code
     }
     'shot' {
         # No --headless: rendering to a PNG needs a real GPU context.
         $godotArgs = @('--script', 'res://tools/screenshot.gd', '--')
+        $out = if ($Rest -and $Rest.Count -ge 2) { $Rest[1] } else { '.dev/screenshot.png' }
         if ($Rest) { $godotArgs += $Rest }
-        exit (Invoke-Godot $godotArgs)
+        $code = Invoke-Godot $godotArgs
+        $abs = Join-Path $ProjectDir $out
+        if (Test-Path $abs) { Write-Host "Saved screenshot: $abs" } else { Write-Host "Screenshot not produced." }
+        exit $code
     }
     'run' {
         exit (Invoke-Godot @())
