@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MaterialType" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="1_gns6l"]
+
+[resource]
+script = ExtResource("1_gns6l")
+id = &"tan_linen_solid"
+display_name = "Tan Linen"
+fabric = 4
+cloth_color = Color(0.78431374, 0.7058824, 0.5411765, 1)
+pattern_color = Color(0.87058824, 0.8156863, 0.6901961, 1)
+weight_gsm = 200
+price_per_meter = 22
+roll_length_m = 18.0

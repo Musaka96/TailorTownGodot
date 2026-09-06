@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MaterialType" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="1_2k4eu"]
+
+[resource]
+script = ExtResource("1_2k4eu")
+id = &"navy_worsted_solid"
+display_name = "Navy Worsted"
+cloth_color = Color(0.105882354, 0.16470589, 0.2901961, 1)
+pattern_color = Color(0.9137255, 0.9254902, 0.9490196, 1)
+weight_gsm = 240
+super_number = 110
+price_per_meter = 28

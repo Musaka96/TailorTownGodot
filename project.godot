@@ -18,6 +18,14 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameState="*res://globals/game_state.gd"
+EventBus="*res://globals/event_bus.gd"
+Catalog="*res://globals/catalog.gd"
+UI="*res://ui/ui.tscn"
+McpBridgeGame="*res://mcp_bridge_game.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/mcp_bridge/plugin.cfg")
 
 [display]
 

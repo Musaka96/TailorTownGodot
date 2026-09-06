@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MaterialType" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="1_tnfne"]
+
+[resource]
+script = ExtResource("1_tnfne")
+id = &"grey_tweed_herringbone"
+display_name = "Grey Tweed Herringbone"
+fabric = 2
+pattern = 2
+cloth_color = Color(0.41960785, 0.43529412, 0.42745098, 1)
+pattern_color = Color(0.68235296, 0.69803923, 0.6901961, 1)
+weight_gsm = 340
+price_per_meter = 24
+roll_length_m = 15.0

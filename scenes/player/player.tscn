@@ -1,39 +1,61 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scenes/player/player.gd" id="1_8afob"]
+[ext_resource type="Script" path="res://scenes/player/player.gd" id="1_gmlin"]
+[ext_resource type="Script" path="res://entities/player/carry_slot.gd" id="2_lvxji"]
+[ext_resource type="Script" path="res://entities/player/interaction_controller.gd" id="3_p47bc"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_dovo2"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_75vfm"]
 radius = 0.4
 height = 1.8
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gmlin"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0owmy"]
 albedo_color = Color(0.2, 0.55, 0.9, 1)
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_lvxji"]
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_qek5x"]
 radius = 0.4
 height = 1.8
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p47bc"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5gtgg"]
 albedo_color = Color(0.95, 0.85, 0.25, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_75vfm"]
+[sub_resource type="BoxMesh" id="BoxMesh_h17s1"]
 size = Vector3(0.25, 0.25, 0.35)
 
-[node name="Player" type="CharacterBody3D" unique_id=825474469]
-script = ExtResource("1_8afob")
+[sub_resource type="SphereShape3D" id="SphereShape3D_je7p5"]
+radius = 1.6
 
-[node name="Collision" type="CollisionShape3D" parent="." unique_id=1330902968]
+[node name="Player" type="CharacterBody3D" unique_id=1925649693]
+script = ExtResource("1_gmlin")
+
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1951980486]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("CapsuleShape3D_dovo2")
+shape = SubResource("CapsuleShape3D_75vfm")
 
-[node name="Model" type="Node3D" parent="." unique_id=837770002]
+[node name="Model" type="Node3D" parent="." unique_id=863890246]
 
-[node name="Body" type="MeshInstance3D" parent="Model" unique_id=773198266]
+[node name="Body" type="MeshInstance3D" parent="Model" unique_id=814751920]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-material_override = SubResource("StandardMaterial3D_gmlin")
-mesh = SubResource("CapsuleMesh_lvxji")
+material_override = SubResource("StandardMaterial3D_0owmy")
+mesh = SubResource("CapsuleMesh_qek5x")
 
-[node name="Nose" type="MeshInstance3D" parent="Model" unique_id=694152721]
+[node name="Nose" type="MeshInstance3D" parent="Model" unique_id=1665578258]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.45)
-material_override = SubResource("StandardMaterial3D_p47bc")
-mesh = SubResource("BoxMesh_75vfm")
+material_override = SubResource("StandardMaterial3D_5gtgg")
+mesh = SubResource("BoxMesh_h17s1")
+
+[node name="Carry" type="Node3D" parent="." unique_id=882016158]
+script = ExtResource("2_lvxji")
+
+[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=168432933]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0.6)
+
+[node name="Interactor" type="Area3D" parent="." unique_id=1872781298]
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+script = ExtResource("3_p47bc")
+player_path = NodePath("..")
+
+[node name="@CollisionShape3D@4" type="CollisionShape3D" parent="Interactor" unique_id=822661281]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("SphereShape3D_je7p5")

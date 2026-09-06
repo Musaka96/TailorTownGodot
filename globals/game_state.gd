@@ -12,6 +12,10 @@ extends Node
 
 signal pause_toggled(is_paused: bool)
 
+## Set by modal UI (e.g. the shelf menu) to freeze player movement/interaction
+## without pausing the whole tree.
+var input_locked := false
+
 var is_paused := false:
 	set(value):
 		if value == is_paused:

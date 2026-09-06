@@ -21,13 +21,17 @@ extends CharacterBody3D
 
 # Read the gravity from Project Settings so it stays consistent with the rest of
 # the physics world instead of being a magic number.
+## The player's hands. Stations reach it as `actor.carry`.
+@onready var carry: CarrySlot = $Carry
 @onready var _gravity: float = ProjectSettings.get_setting(
 	"physics/3d/default_gravity", 9.8)
 @onready var _model: Node3D = $Model
 
 
 func _physics_process(delta: float) -> void:
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input := Vector2.ZERO
+	if not GameState.input_locked:
+		input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := _to_world_direction(input)
 
 	# Horizontal movement with smooth accel/decel on the XZ plane.
@@ -37,7 +41,7 @@ func _physics_process(delta: float) -> void:
 
 	# Vertical movement (gravity + jump).
 	if is_on_floor():
-		if Input.is_action_just_pressed("jump"):
+		if Input.is_action_just_pressed("jump") and not GameState.input_locked:
 			velocity.y = jump_velocity
 	else:
 		velocity.y -= _gravity * delta

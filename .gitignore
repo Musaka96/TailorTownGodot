@@ -16,3 +16,6 @@ Thumbs.db
 
 # Dev tooling scratch (screenshots, temp renders)
 .dev/
+
+# MCP: local, machine-specific (absolute path to the godot-mcp clone)
+.mcp.json

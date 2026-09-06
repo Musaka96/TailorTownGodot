@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MaterialType" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="1_qdcov"]
+
+[resource]
+script = ExtResource("1_qdcov")
+id = &"burgundy_mohair_birdseye"
+display_name = "Burgundy Mohair Birdseye"
+fabric = 3
+pattern = 6
+cloth_color = Color(0.36078432, 0.12156863, 0.16470589, 1)
+pattern_color = Color(0.7254902, 0.5411765, 0.57254905, 1)
+weight_gsm = 230
+super_number = 120
+price_per_meter = 38
+roll_length_m = 14.0

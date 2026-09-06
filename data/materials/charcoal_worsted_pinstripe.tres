@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MaterialType" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="1_v4y7a"]
+
+[resource]
+script = ExtResource("1_v4y7a")
+id = &"charcoal_worsted_pinstripe"
+display_name = "Charcoal Pinstripe Worsted"
+pattern = 1
+cloth_color = Color(0.2, 0.21176471, 0.23529412, 1)
+pattern_color = Color(0.7882353, 0.8, 0.8235294, 1)
+super_number = 120
+price_per_meter = 34
+roll_length_m = 18.0

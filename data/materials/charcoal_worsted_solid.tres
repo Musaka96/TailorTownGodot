@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MaterialType" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="1_h566x"]
+
+[resource]
+script = ExtResource("1_h566x")
+id = &"charcoal_worsted_solid"
+display_name = "Charcoal Worsted"
+cloth_color = Color(0.21176471, 0.22352941, 0.24705882, 1)
+pattern_color = Color(0.7176471, 0.7372549, 0.76862746, 1)
+super_number = 110
+price_per_meter = 28
