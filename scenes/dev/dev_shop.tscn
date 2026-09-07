@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1_5irp7"]
+[ext_resource type="PackedScene" path="res://scenes/world/shop_room.tscn" id="2_ifwcb"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_5l727"]
+[ext_resource type="Script" path="res://scenes/player/player.gd" id="4_fexkl"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="5_maqiy"]
+[ext_resource type="Script" path="res://scenes/camera/camera_rig.gd" id="6_ggq0k"]
+
+[node name="DevShop" type="Node3D" unique_id=197553252]
+process_mode = 3
+script = ExtResource("1_5irp7")
+
+[node name="ShopRoom" type="Node3D" parent="." unique_id=1507661624 instance=ExtResource("2_ifwcb")]
+
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1939422080 instance=ExtResource("3_5l727")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 4.5)
+script = ExtResource("4_fexkl")
+
+[node name="CameraRig" type="Node3D" parent="." unique_id=1061975554 instance=ExtResource("5_maqiy")]
+script = ExtResource("6_ggq0k")
+target_path = NodePath("../Player")
+
+[node name="DevProps" type="Node3D" parent="." unique_id=2631992]
