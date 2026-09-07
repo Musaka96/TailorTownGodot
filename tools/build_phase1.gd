@@ -170,41 +170,43 @@ func _build_ui_scene() -> void:
 
 	var dim := ColorRect.new()
 	dim.name = "Dim"
-	dim.color = Color(0, 0, 0, 0.55)
+	dim.color = Color(0, 0, 0, 0.5)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(dim)
 
+	# CenterContainer centers the auto-sized panel.
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(center)
+
 	var panel := PanelContainer.new()
 	panel.name = "Panel"
-	panel.anchor_left = 0.5
-	panel.anchor_top = 0.5
-	panel.anchor_right = 0.5
-	panel.anchor_bottom = 0.5
-	panel.offset_left = -390
-	panel.offset_top = -230
-	panel.offset_right = 390
-	panel.offset_bottom = 230
-	menu.add_child(panel)
+	panel.custom_minimum_size = Vector2(640, 0)
+	center.add_child(panel)
 
 	var margin := MarginContainer.new()
 	margin.name = "Margin"
 	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 22)
+		margin.add_theme_constant_override("margin_" + side, 8)
 	panel.add_child(margin)
 
 	var box := VBoxContainer.new()
 	box.name = "Box"
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 8)
 	margin.add_child(box)
 
 	var title := Label.new()
 	title.name = "Title"
-	title.add_theme_font_size_override("font_size", 20)
 	box.add_child(title)
+
+	var hint := Label.new()
+	hint.name = "Hint"
+	box.add_child(hint)
 
 	var list := VBoxContainer.new()
 	list.name = "List"
-	list.add_theme_constant_override("separation", 6)
+	list.add_theme_constant_override("separation", 8)
 	box.add_child(list)
 
 	_save(root, UI_SCENE)

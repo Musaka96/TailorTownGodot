@@ -1,15 +1,17 @@
 extends Control
 
-## Scrollable list of the rolls on a shelf. Shows each roll's name, how much
-## cloth is left, and its fabric/pattern. Scroll with W/S or ↑/↓, take with E,
-## close with Esc. Locks gameplay input while open.
+## Animal-Crossing-styled browse menu: a warm rounded panel listing each shelved
+## roll as a card with a layered material swatch, name, fabric/pattern, and a
+## "left" readout. Scroll with W/S or ↑/↓, take with E, close with Esc.
 
 var _shelf = null
 var _actor = null
 var _index := 0
 
-@onready var _title: Label = $Panel/Margin/Box/Title
-@onready var _list: VBoxContainer = $Panel/Margin/Box/List
+@onready var _panel: PanelContainer = $Center/Panel
+@onready var _title: Label = $Center/Panel/Margin/Box/Title
+@onready var _hint: Label = $Center/Panel/Margin/Box/Hint
+@onready var _list: VBoxContainer = $Center/Panel/Margin/Box/List
 
 
 func open(shelf, actor) -> void:
@@ -18,6 +20,7 @@ func open(shelf, actor) -> void:
 	_index = 0
 	GameState.input_locked = true
 	visible = true
+	_style()
 	_rebuild()
 
 
@@ -27,26 +30,71 @@ func close() -> void:
 	_shelf = null
 
 
+func _style() -> void:
+	_panel.add_theme_stylebox_override("panel", Style.panel())
+	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_font_size_override("font_size", 26)
+	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
+	_hint.add_theme_font_size_override("font_size", 15)
+	_list.add_theme_constant_override("separation", Style.S2)
+
+
 func _rebuild() -> void:
 	for child in _list.get_children():
 		child.queue_free()
 
 	var rolls: Array = _shelf.stored
-	for i in rolls.size():
-		var roll = rolls[i]
-		var mat = roll.material
-		var selected := i == _index
-		var row := Label.new()
-		row.text = "%s %s   —   %.1f / %.1f m   ·   %s" % [
-			(">" if selected else "  "),
-			mat.display_name,
-			roll.remaining_length_m, mat.roll_length_m,
-			mat.summary(),
-		]
-		row.modulate = Color(1, 1, 1) if selected else Color(0.7, 0.7, 0.72)
-		_list.add_child(row)
+	_title.text = "Shelf  ·  %d rolls" % rolls.size()
+	_hint.text = "W/S  scroll      E  take      Esc  close"
 
-	_title.text = "SHELF — %d rolls    ( W/S scroll · E take · Esc close )" % rolls.size()
+	for i in rolls.size():
+		_list.add_child(_make_card(rolls[i], i == _index))
+
+
+func _make_card(roll, selected: bool) -> Control:
+	var mat = roll.material
+
+	var card := PanelContainer.new()
+	if selected:
+		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.LEAF))
+	else:
+		card.add_theme_stylebox_override("panel", Style.card())
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", Style.S3)
+	card.add_child(row)
+
+	var swatch := MaterialSwatch.new()
+	swatch.setup(mat, roll.remaining_length_m)
+	row.add_child(swatch)
+
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", Style.S1)
+	row.add_child(col)
+
+	var name_label := Label.new()
+	name_label.text = mat.display_name
+	name_label.add_theme_color_override("font_color", Style.INK)
+	name_label.add_theme_font_size_override("font_size", 21)
+	col.add_child(name_label)
+
+	var sub := Label.new()
+	sub.text = mat.summary()
+	sub.add_theme_color_override("font_color", Style.INK_SOFT)
+	sub.add_theme_font_size_override("font_size", 15)
+	col.add_child(sub)
+
+	var frac: float = roll.remaining_length_m / maxf(mat.roll_length_m, 0.001)
+	var left := Label.new()
+	left.text = "%.1f / %.1f m left  (%d%%)" % [
+		roll.remaining_length_m, mat.roll_length_m, roundi(frac * 100.0)]
+	left.add_theme_color_override("font_color", Style.fill_color(frac).darkened(0.25))
+	left.add_theme_font_size_override("font_size", 15)
+	col.add_child(left)
+
+	return card
 
 
 func _unhandled_input(event: InputEvent) -> void:

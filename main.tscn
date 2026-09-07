@@ -7,13 +7,13 @@
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="5_4c57u"]
 [ext_resource type="Script" path="res://scenes/camera/camera_rig.gd" id="6_efxa6"]
 
-[node name="Main" type="Node3D" unique_id=239886464]
+[node name="Main" type="Node3D" unique_id=542021208]
 process_mode = 3
 script = ExtResource("1_7mycd")
 
-[node name="ShopRoom" type="Node3D" parent="." unique_id=930853733 instance=ExtResource("2_272bh")]
+[node name="ShopRoom" type="Node3D" parent="." unique_id=1732345063 instance=ExtResource("2_272bh")]
 
-[node name="Player" type="CharacterBody3D" parent="." unique_id=1925649693 instance=ExtResource("3_5vw27")]
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1891866560 instance=ExtResource("3_5vw27")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 4.5)
 script = ExtResource("4_kek77")
 
