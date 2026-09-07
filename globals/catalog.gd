@@ -7,13 +7,26 @@ extends Node
 
 const MATERIALS_DIR := "res://data/materials"
 
-var _materials: Dictionary = {}          # StringName -> MaterialType
+## The dress-code rulebook (occasion x style -> acceptable suits). Configurable at
+## res://data/dress_code.tres.
+var dress_code: DressCode
+
+var _materials: Dictionary = {}  # StringName -> MaterialType
 var _materials_ordered: Array[MaterialType] = []
 
 
 func _ready() -> void:
 	_load_materials()
-	print("Catalog: %d materials loaded." % _materials_ordered.size())
+	dress_code = load("res://data/dress_code.tres") as DressCode
+	if dress_code == null:
+		dress_code = DressCode.new()
+		push_warning("Catalog: no dress_code.tres — run tools/build_dress_code.gd")
+	print(
+		(
+			"Catalog: %d materials, %d dress rules."
+			% [_materials_ordered.size(), dress_code.rules.size()]
+		)
+	)
 
 
 func _load_materials() -> void:

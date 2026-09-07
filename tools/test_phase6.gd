@@ -34,17 +34,21 @@ func _run() -> void:
 		return
 
 	var pref = customer.get("preference")
-	_check(pref != null, "spawned customer has a preference + budget")
+	_check(pref != null, "spawned customer has a brief (occasion/style/budget)")
 	_check(mirror.get("customer") == null, "mirror starts with no customer")
 
 	# --- Seat the customer at the mirror ---
 	customer.offer_mirror()
 	_check(mirror.get("customer") == customer, "offer_mirror seats them at the mirror")
 
-	# --- A design matching their taste is loved and affordable ---
-	var design := _design_from(pref)
+	# --- A design that fits the dress-code brief is accepted ---
+	pref.budget = 1000  # take budget out of the equation; test the rule logic
+	var design := _suitable_design(pref)
 	var reaction: Dictionary = pref.evaluate(design)
-	_check(reaction["liked"], "matching design is loved and within budget")
+	_check(reaction["suitable"], "a design that fits the brief is accepted")
+	# --- A design that breaks the brief is rejected ---
+	var bad := _breaking_design(pref)
+	_check(not pref.evaluate(bad)["suitable"], "a design that breaks the brief is rejected")
 	var quote: int = reaction["quote"]
 
 	# --- Approve it: an order is created ---
@@ -68,10 +72,33 @@ func _run() -> void:
 	_finish()
 
 
-func _design_from(pref) -> Dictionary:
+func _suitable_design(pref) -> Dictionary:
+	var rule = root.get_node("Catalog").dress_code.rule_for(pref.occasion, pref.style)
+	var color := int(rule.allowed_colors[0]) if not rule.allowed_colors.is_empty() else 0
+	var pattern := int(rule.allowed_patterns[0]) if not rule.allowed_patterns.is_empty() else 0
+	if rule.require_pattern and pattern == 0:
+		for p in rule.allowed_patterns:
+			if int(p) != 0:
+				pattern = int(p)
+				break
+	var fabric := int(rule.allowed_fabrics[0]) if not rule.allowed_fabrics.is_empty() else 0
+	return _all_parts(fabric, color, pattern)
+
+
+func _breaking_design(pref) -> Dictionary:
+	var rule = root.get_node("Catalog").dress_code.rule_for(pref.occasion, pref.style)
+	var bad_color := 0
+	for c in range(10):
+		if not (c in rule.allowed_colors):
+			bad_color = c
+			break
+	return _all_parts(0, bad_color, 0)
+
+
+func _all_parts(fabric: int, color: int, pattern: int) -> Dictionary:
 	var d := {}
 	for t in [JACKET, SHIRT, PANTS]:
-		d[t] = {"fabric": pref.fabric, "color": pref.color, "pattern": pref.pattern, "style_idx": 0}
+		d[t] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
 	return d
 
 

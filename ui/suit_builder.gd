@@ -168,11 +168,11 @@ func _refresh() -> void:
 		var quote := Pricing.suit_quote(_design)
 		var over := "  (OVER)" if quote > _pref.budget else ""
 		var brief := (
-			"Wants: %s   ·   Budget $%d   ·   Quote $%d%s"
+			"For: %s   ·   Budget $%d   ·   Quote $%d%s"
 			% [_pref.describe(), _pref.budget, quote, over]
 		)
 		var keys := "W/S select  A/D change  E ask/confirm  Esc close"
-		_hint.text = "%s\n%s%s" % [brief, keys, _status]
+		_hint.text = "%s\n“%s”\n%s%s" % [brief, _pref.hint(), keys, _status]
 	else:
 		_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
 
@@ -292,7 +292,7 @@ func _confirm() -> void:
 	if not _awaiting:
 		var reaction: Dictionary = _pref.evaluate(_design)
 		_status = "     %s: %s" % [_pref.display_name, reaction["reason"]]
-		_awaiting = reaction["liked"]
+		_awaiting = reaction["suitable"]
 		_refresh()
 		return
 	# Second E finalises: create the order and send the customer on their way.
