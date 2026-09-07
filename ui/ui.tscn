@@ -2,16 +2,18 @@
 
 [ext_resource type="Script" path="res://ui/ui.gd" id="1_wl5ax"]
 [ext_resource type="Script" path="res://ui/hud.gd" id="2_vkava"]
+[ext_resource type="Script" path="res://ui/orders_panel.gd" id="3_pa1oa"]
 [ext_resource type="Script" path="res://ui/shelf_menu.gd" id="3_wl5ax"]
 [ext_resource type="Script" path="res://ui/phone_order.gd" id="4_vkava"]
 [ext_resource type="Script" path="res://ui/worktable_screen.gd" id="5_tf0e0"]
 [ext_resource type="Script" path="res://ui/sewing_screen.gd" id="6_obcwv"]
 [ext_resource type="Script" path="res://ui/suit_builder.gd" id="7_bo1jx"]
+[ext_resource type="Script" path="res://ui/customer_request.gd" id="9_ay4pc"]
 
-[node name="UI" type="CanvasLayer" unique_id=920531498]
+[node name="UI" type="CanvasLayer" unique_id=1229964463]
 script = ExtResource("1_wl5ax")
 
-[node name="HUD" type="Control" parent="." unique_id=1987219782]
+[node name="HUD" type="Control" parent="." unique_id=948361073]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,7 +21,7 @@ anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("2_vkava")
 
-[node name="Prompt" type="Label" parent="HUD" unique_id=1812045057]
+[node name="Prompt" type="Label" parent="HUD" unique_id=1775319354]
 layout_mode = 0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -29,7 +31,7 @@ offset_bottom = -44.0
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 
-[node name="Held" type="Label" parent="HUD" unique_id=868558141]
+[node name="Held" type="Label" parent="HUD" unique_id=1696340406]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 12.0
@@ -37,7 +39,7 @@ offset_right = 1.0
 offset_bottom = 23.0
 theme_override_font_sizes/font_size = 18
 
-[node name="Money" type="Label" parent="HUD" unique_id=1642871514]
+[node name="Money" type="Label" parent="HUD" unique_id=524957375]
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
@@ -48,163 +50,180 @@ offset_bottom = 23.0
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 2
 
-[node name="ShelfMenu" type="Control" parent="." unique_id=766330215]
+[node name="OrdersPanel" type="Control" parent="HUD" unique_id=1440759306]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("3_pa1oa")
+
+[node name="Stack" type="VBoxContainer" parent="HUD/OrdersPanel" unique_id=630542540]
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 8.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="ShelfMenu" type="Control" parent="." unique_id=1067221130]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("3_wl5ax")
 
-[node name="Dim" type="ColorRect" parent="ShelfMenu" unique_id=1261265262]
+[node name="Dim" type="ColorRect" parent="ShelfMenu" unique_id=368963187]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.5)
 
-[node name="Center" type="CenterContainer" parent="ShelfMenu" unique_id=764663881]
+[node name="Center" type="CenterContainer" parent="ShelfMenu" unique_id=53410264]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Panel" type="PanelContainer" parent="ShelfMenu/Center" unique_id=1597989676]
+[node name="Panel" type="PanelContainer" parent="ShelfMenu/Center" unique_id=1723956474]
 custom_minimum_size = Vector2(640, 0)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="ShelfMenu/Center/Panel" unique_id=1911169423]
+[node name="Margin" type="MarginContainer" parent="ShelfMenu/Center/Panel" unique_id=409722144]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Box" type="VBoxContainer" parent="ShelfMenu/Center/Panel/Margin" unique_id=460201009]
+[node name="Box" type="VBoxContainer" parent="ShelfMenu/Center/Panel/Margin" unique_id=185525075]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="ShelfMenu/Center/Panel/Margin/Box" unique_id=364654248]
+[node name="Title" type="Label" parent="ShelfMenu/Center/Panel/Margin/Box" unique_id=745652882]
 layout_mode = 2
 
-[node name="Hint" type="Label" parent="ShelfMenu/Center/Panel/Margin/Box" unique_id=1838375125]
+[node name="Hint" type="Label" parent="ShelfMenu/Center/Panel/Margin/Box" unique_id=1423354288]
 layout_mode = 2
 
-[node name="List" type="VBoxContainer" parent="ShelfMenu/Center/Panel/Margin/Box" unique_id=2029358140]
+[node name="List" type="VBoxContainer" parent="ShelfMenu/Center/Panel/Margin/Box" unique_id=1852911968]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="PhoneOrder" type="Control" parent="." unique_id=200052646]
+[node name="PhoneOrder" type="Control" parent="." unique_id=136003180]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("4_vkava")
 
-[node name="Dim" type="ColorRect" parent="PhoneOrder" unique_id=852936883]
+[node name="Dim" type="ColorRect" parent="PhoneOrder" unique_id=1665382044]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.5)
 
-[node name="Center" type="CenterContainer" parent="PhoneOrder" unique_id=527607720]
+[node name="Center" type="CenterContainer" parent="PhoneOrder" unique_id=1061563107]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Panel" type="PanelContainer" parent="PhoneOrder/Center" unique_id=1911000101]
+[node name="Panel" type="PanelContainer" parent="PhoneOrder/Center" unique_id=445445044]
 custom_minimum_size = Vector2(660, 0)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="PhoneOrder/Center/Panel" unique_id=496216832]
+[node name="Margin" type="MarginContainer" parent="PhoneOrder/Center/Panel" unique_id=780759683]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Box" type="VBoxContainer" parent="PhoneOrder/Center/Panel/Margin" unique_id=1872774987]
+[node name="Box" type="VBoxContainer" parent="PhoneOrder/Center/Panel/Margin" unique_id=158767771]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=305493524]
+[node name="Title" type="Label" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=346952296]
 layout_mode = 2
 
-[node name="Money" type="Label" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=403004146]
+[node name="Money" type="Label" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=1122754821]
 layout_mode = 2
 
-[node name="Preview" type="HBoxContainer" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=688999585]
+[node name="Preview" type="HBoxContainer" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=1371401926]
 layout_mode = 2
 
-[node name="Rows" type="VBoxContainer" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=233472797]
+[node name="Rows" type="VBoxContainer" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=1181455192]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Hint" type="Label" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=1144589461]
+[node name="Hint" type="Label" parent="PhoneOrder/Center/Panel/Margin/Box" unique_id=2139522732]
 layout_mode = 2
 
-[node name="WorktableScreen" type="Control" parent="." unique_id=620057400]
+[node name="WorktableScreen" type="Control" parent="." unique_id=327105493]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("5_tf0e0")
 
-[node name="Dim" type="ColorRect" parent="WorktableScreen" unique_id=1928114229]
+[node name="Dim" type="ColorRect" parent="WorktableScreen" unique_id=2088444429]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.55)
 
-[node name="Config" type="Control" parent="WorktableScreen" unique_id=1383944190]
+[node name="Config" type="Control" parent="WorktableScreen" unique_id=673357627]
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Center" type="CenterContainer" parent="WorktableScreen/Config" unique_id=897531510]
+[node name="Center" type="CenterContainer" parent="WorktableScreen/Config" unique_id=1958059922]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Panel" type="PanelContainer" parent="WorktableScreen/Config/Center" unique_id=1992430031]
+[node name="Panel" type="PanelContainer" parent="WorktableScreen/Config/Center" unique_id=1395424846]
 custom_minimum_size = Vector2(600, 0)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="WorktableScreen/Config/Center/Panel" unique_id=234024564]
+[node name="Margin" type="MarginContainer" parent="WorktableScreen/Config/Center/Panel" unique_id=2019472185]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Box" type="VBoxContainer" parent="WorktableScreen/Config/Center/Panel/Margin" unique_id=556262545]
+[node name="Box" type="VBoxContainer" parent="WorktableScreen/Config/Center/Panel/Margin" unique_id=2111975786]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=1802866782]
+[node name="Title" type="Label" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=1954672578]
 layout_mode = 2
 
-[node name="Preview" type="HBoxContainer" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=564432812]
+[node name="Preview" type="HBoxContainer" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=590681757]
 layout_mode = 2
 
-[node name="Rows" type="VBoxContainer" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=1162972231]
+[node name="Rows" type="VBoxContainer" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=1410643319]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Hint" type="Label" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=266705527]
+[node name="Hint" type="Label" parent="WorktableScreen/Config/Center/Panel/Margin/Box" unique_id=819485924]
 layout_mode = 2
 
-[node name="SewingScreen" type="Control" parent="." unique_id=506347462]
+[node name="SewingScreen" type="Control" parent="." unique_id=2016225846]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("6_obcwv")
 
-[node name="Dim" type="ColorRect" parent="SewingScreen" unique_id=1561288200]
+[node name="Dim" type="ColorRect" parent="SewingScreen" unique_id=1995870972]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.55)
 
-[node name="SuitBuilder" type="Control" parent="." unique_id=2005040545]
+[node name="SuitBuilder" type="Control" parent="." unique_id=1516221742]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -212,7 +231,7 @@ anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("7_bo1jx")
 
-[node name="Panel" type="PanelContainer" parent="SuitBuilder" unique_id=1863174426]
+[node name="Panel" type="PanelContainer" parent="SuitBuilder" unique_id=1256959077]
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
@@ -222,26 +241,68 @@ offset_top = 16.0
 offset_right = -16.0
 offset_bottom = -16.0
 
-[node name="Margin" type="MarginContainer" parent="SuitBuilder/Panel" unique_id=1988850447]
+[node name="Margin" type="MarginContainer" parent="SuitBuilder/Panel" unique_id=355441437]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Box" type="VBoxContainer" parent="SuitBuilder/Panel/Margin" unique_id=1889380574]
+[node name="Box" type="VBoxContainer" parent="SuitBuilder/Panel/Margin" unique_id=395700761]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="SuitBuilder/Panel/Margin/Box" unique_id=1202545130]
+[node name="Title" type="Label" parent="SuitBuilder/Panel/Margin/Box" unique_id=520697395]
 layout_mode = 2
 
-[node name="Preview" type="HBoxContainer" parent="SuitBuilder/Panel/Margin/Box" unique_id=1399854567]
+[node name="Preview" type="HBoxContainer" parent="SuitBuilder/Panel/Margin/Box" unique_id=2100554878]
 layout_mode = 2
 
-[node name="Rows" type="VBoxContainer" parent="SuitBuilder/Panel/Margin/Box" unique_id=1913742164]
+[node name="Rows" type="VBoxContainer" parent="SuitBuilder/Panel/Margin/Box" unique_id=1487496941]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Hint" type="Label" parent="SuitBuilder/Panel/Margin/Box" unique_id=1846956619]
+[node name="Hint" type="Label" parent="SuitBuilder/Panel/Margin/Box" unique_id=451188356]
+layout_mode = 2
+
+[node name="CustomerRequest" type="Control" parent="." unique_id=769427334]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("9_ay4pc")
+
+[node name="Dim" type="ColorRect" parent="CustomerRequest" unique_id=1517837278]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.5)
+
+[node name="Center" type="CenterContainer" parent="CustomerRequest" unique_id=1971666222]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="PanelContainer" parent="CustomerRequest/Center" unique_id=793293919]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="CustomerRequest/Center/Panel" unique_id=139620658]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Box" type="VBoxContainer" parent="CustomerRequest/Center/Panel/Margin" unique_id=594529063]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="CustomerRequest/Center/Panel/Margin/Box" unique_id=1879154425]
+layout_mode = 2
+
+[node name="Brief" type="Label" parent="CustomerRequest/Center/Panel/Margin/Box" unique_id=115085546]
+layout_mode = 2
+
+[node name="Hint" type="Label" parent="CustomerRequest/Center/Panel/Margin/Box" unique_id=662876935]
 layout_mode = 2

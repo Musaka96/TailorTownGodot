@@ -28,3 +28,15 @@ signal suit_packaged(suit: Node)
 
 # --- Customer / design ---
 signal design_confirmed(design: Dictionary)
+
+# --- Customers, storefront & orders ---
+## A shopper has entered and is waiting to be greeted.
+signal customer_waiting(customer: Node)
+## A greeted customer has been sent to the fitting mirror.
+signal customer_seated(customer: Node)
+## A customer approved a design and left; an order now exists to make it.
+signal order_created(order: Resource)
+## A packaged suit fulfilled an order; the shop was paid `payout`.
+signal order_fulfilled(order: Resource, payout: int)
+## A customer left the shop (served or gave up).
+signal customer_left(customer: Node)

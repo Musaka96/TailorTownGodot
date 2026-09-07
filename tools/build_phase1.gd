@@ -88,6 +88,7 @@ func _initialize() -> void:
 
 # --- Material roll ---------------------------------------------------------
 
+
 func _build_roll_scene() -> void:
 	var root := Node3D.new()
 	root.name = "MaterialRoll"
@@ -123,6 +124,7 @@ func _build_roll_scene() -> void:
 
 # --- Fabric piece ----------------------------------------------------------
 
+
 func _build_fabric_piece_scene() -> void:
 	var root := Node3D.new()
 	root.name = "FabricPiece"
@@ -155,6 +157,7 @@ func _build_fabric_piece_scene() -> void:
 
 
 # --- Garment piece ---------------------------------------------------------
+
 
 func _build_garment_piece_scene() -> void:
 	var root := Node3D.new()
@@ -210,6 +213,7 @@ func _build_garment_piece_scene() -> void:
 
 # --- Phone station ---------------------------------------------------------
 
+
 func _build_phone_scene() -> void:
 	var root := Node3D.new()
 	root.name = "Phone"
@@ -235,6 +239,7 @@ func _build_phone_scene() -> void:
 
 
 # --- Worktable station -----------------------------------------------------
+
 
 func _build_worktable_scene() -> void:
 	var root := Node3D.new()
@@ -417,6 +422,8 @@ func _build_customer_scene() -> void:
 	_add_marker(root, "PantsAnchor", Vector3(0, 0.5, 0.16))
 	_add_marker(root, "ShirtAnchor", Vector3(0, 1.2, 0.16))
 	_add_marker(root, "JacketAnchor", Vector3(0, 1.2, 0.2))
+	# Interaction volume so the player can greet / design at the customer.
+	_add_station_interactable(root, Vector3(1.3, 1.9, 1.3), Vector3(0, 0.95, 0))
 	_save(root, CUSTOMER_SCENE)
 
 
@@ -446,11 +453,8 @@ func _build_mirror_scene() -> void:
 	col.shape = cbox
 	col.position = Vector3(0, 1.1, -0.45)
 	body.add_child(col)
-	# Customer stands in front of the mirror, facing the room (+Z).
-	var customer: Node = load(CUSTOMER_SCENE).instantiate()
-	customer.name = "Customer"
-	customer.position = Vector3(0, 0, 0.1)
-	root.add_child(customer)
+	# No built-in customer: walk-in customers (spawned by the CustomerManager)
+	# come here to be fitted; the mirror's `customer` is assigned at runtime.
 	_add_station_interactable(root, Vector3(2.0, 1.8, 1.4), Vector3(0, 0.9, 1.0))
 	_save(root, MIRROR_SCENE)
 
@@ -481,6 +485,7 @@ func _add_station_interactable(root: Node3D, box_size: Vector3, box_pos: Vector3
 
 
 # --- Shelf -----------------------------------------------------------------
+
 
 func _build_shelf_scene() -> void:
 	var root := Node3D.new()
@@ -537,6 +542,7 @@ func _build_shelf_scene() -> void:
 
 
 # --- UI --------------------------------------------------------------------
+
 
 func _build_ui_scene() -> void:
 	var root := CanvasLayer.new()
@@ -744,14 +750,43 @@ func _build_ui_scene() -> void:
 	sb_hint.name = "Hint"
 	sb_box.add_child(sb_hint)
 
+	# Customer greeting / request modal
+	var cr_box := _build_modal(root, "CustomerRequest", "res://ui/customer_request.gd", 520)
+	var cr_title := Label.new()
+	cr_title.name = "Title"
+	cr_box.add_child(cr_title)
+	var cr_brief := Label.new()
+	cr_brief.name = "Brief"
+	cr_box.add_child(cr_brief)
+	var cr_hint := Label.new()
+	cr_hint.name = "Hint"
+	cr_box.add_child(cr_hint)
+
+	# Orders tracker — top-centre HUD list of open bespoke orders.
+	var orders := Control.new()
+	orders.name = "OrdersPanel"
+	orders.set_script(load("res://ui/orders_panel.gd"))
+	orders.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	orders.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(orders)
+	var stack := VBoxContainer.new()
+	stack.name = "Stack"
+	stack.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	stack.offset_top = 8
+	stack.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 6)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	orders.add_child(stack)
+
 	_save(root, UI_SCENE)
 
 
 ## Build a modal overlay (Dim + centered Panel + Margin + Box) under `parent`
 ## and return the inner VBox to fill with content.
 func _build_modal(
-		parent: Node, node_name: String, script_path: String,
-		min_width: int) -> VBoxContainer:
+	parent: Node, node_name: String, script_path: String, min_width: int
+) -> VBoxContainer:
 	var modal := Control.new()
 	modal.name = node_name
 	modal.set_script(load(script_path))
@@ -788,6 +823,7 @@ func _build_modal(
 
 
 # --- Player (rebuild with Carry + Interactor) ------------------------------
+
 
 func _build_player_scene() -> void:
 	var root := CharacterBody3D.new()
@@ -860,6 +896,7 @@ func _build_player_scene() -> void:
 
 # --- Shop room -------------------------------------------------------------
 
+
 func _build_room_scene() -> void:
 	var root := Node3D.new()
 	root.name = "ShopRoom"
@@ -900,7 +937,10 @@ func _build_room_scene() -> void:
 	var t := 0.3
 	var h := 3.0
 	_add_box_collider(walls, "N", Vector3(16, h, t), Vector3(0, h / 2, -8), wall_mat)
-	_add_box_collider(walls, "S", Vector3(16, h, t), Vector3(0, h / 2, 8), wall_mat)
+	# South wall has a 3 m door gap at the centre (customers come and go here).
+	_add_box_collider(walls, "S_L", Vector3(6.5, h, t), Vector3(-4.75, h / 2, 8), wall_mat)
+	_add_box_collider(walls, "S_R", Vector3(6.5, h, t), Vector3(4.75, h / 2, 8), wall_mat)
+	_add_box_mesh(walls, "S_Lintel", Vector3(3.5, 0.6, t), Vector3(0, h - 0.3, 8), wall_mat)
 	_add_box_collider(walls, "E", Vector3(t, h, 16), Vector3(8, h / 2, 0), wall_mat)
 	_add_box_collider(walls, "W", Vector3(t, h, 16), Vector3(-8, h / 2, 0), wall_mat)
 
@@ -934,10 +974,14 @@ func _build_room_scene() -> void:
 	mannequin.position = Vector3(-2.5, 0, -6.7)
 	root.add_child(mannequin)
 
-	# Mirror + customer, facing the room so the camera can frame from the front.
+	# Mirror, facing the room so the camera can frame a customer from the front.
 	var mirror: Node = load(MIRROR_SCENE).instantiate()
 	mirror.position = Vector3(3.0, 0, -6.5)
 	root.add_child(mirror)
+
+	# Street outside the door + the customer spawner and its waypoints.
+	_build_storefront(root)
+	_build_customer_system(root)
 
 	# Scatter material rolls on the floor
 	var roll_scene: PackedScene = load(ROLL_SCENE)
@@ -950,6 +994,72 @@ func _build_room_scene() -> void:
 
 	_build_test_items(root)
 	_save(root, ROOM_SCENE)
+
+
+# Sidewalk + street outside the shop door, with an awning and shop sign.
+func _build_storefront(root: Node3D) -> void:
+	var pave := StandardMaterial3D.new()
+	pave.albedo_color = Color(0.55, 0.54, 0.5)
+	var walk := StaticBody3D.new()
+	walk.name = "Sidewalk"
+	root.add_child(walk)
+	_add_box_collider(walk, "Path", Vector3(48, 1, 4), Vector3(0, -0.5, 10), pave)
+
+	var asphalt := StandardMaterial3D.new()
+	asphalt.albedo_color = Color(0.22, 0.22, 0.24)
+	var road := StaticBody3D.new()
+	road.name = "Street"
+	root.add_child(road)
+	_add_box_collider(road, "Asphalt", Vector3(60, 1, 10), Vector3(0, -0.5, 17), asphalt)
+	var paint := StandardMaterial3D.new()
+	paint.albedo_color = Color(0.85, 0.82, 0.6)
+	for i in range(-6, 7):
+		_add_box_mesh(
+			road, "Lane_%d" % i, Vector3(1.4, 0.02, 0.2), Vector3(i * 4.0, 0.01, 17), paint
+		)
+
+	var deco := Node3D.new()
+	deco.name = "Storefront"
+	root.add_child(deco)
+	var awning_mat := StandardMaterial3D.new()
+	awning_mat.albedo_color = Color(0.71, 0.28, 0.24)
+	_add_box_mesh(deco, "Awning", Vector3(4.2, 0.2, 1.6), Vector3(0, 2.6, 8.9), awning_mat)
+	var sign := Label3D.new()
+	sign.name = "Sign"
+	sign.text = "TAILORTOWN"
+	sign.font_size = 64
+	sign.pixel_size = 0.006
+	sign.modulate = Color(0.97, 0.91, 0.78)
+	sign.outline_size = 12
+	sign.outline_modulate = Color(0.2, 0.08, 0.06)
+	sign.rotation_degrees = Vector3(-90, 0, 0)  # lie flat, readable top-down
+	sign.position = Vector3(0, 2.72, 8.9)
+	deco.add_child(sign)
+
+
+# Waypoint markers + the CustomerManager that spawns and routes shoppers.
+func _build_customer_system(root: Node3D) -> void:
+	var wp := Node3D.new()
+	wp.name = "Waypoints"
+	root.add_child(wp)
+	_add_marker(wp, "GreetSpot", Vector3(1.6, 0, 5.2))
+	_add_marker(wp, "DoorInside", Vector3(0, 0, 7.2))
+	_add_marker(wp, "DoorOutside", Vector3(0, 0, 9.6))
+	_add_marker(wp, "MirrorSpot", Vector3(3.0, 0, -5.2))
+	_add_marker(wp, "StreetWest", Vector3(-22, 0, 10.2))
+	_add_marker(wp, "StreetEast", Vector3(22, 0, 10.2))
+
+	var mgr := Node3D.new()
+	mgr.name = "CustomerManager"
+	mgr.set_script(load("res://entities/customer/customer_manager.gd"))
+	mgr.set("mirror_path", NodePath("../Mirror"))
+	mgr.set("greet_path", NodePath("../Waypoints/GreetSpot"))
+	mgr.set("mirror_spot_path", NodePath("../Waypoints/MirrorSpot"))
+	mgr.set("door_in_path", NodePath("../Waypoints/DoorInside"))
+	mgr.set("door_out_path", NodePath("../Waypoints/DoorOutside"))
+	mgr.set("street_west_path", NodePath("../Waypoints/StreetWest"))
+	mgr.set("street_east_path", NodePath("../Waypoints/StreetEast"))
+	root.add_child(mgr)
 
 
 # Organized sample items for testing, in labelled rows near the left-front wall.
@@ -984,7 +1094,8 @@ func _build_test_items(room: Node) -> void:
 
 
 func _place_test_parts(
-		room: Node, entries: Array, stage: int, z: float, x0: float, dx: float) -> void:
+	room: Node, entries: Array, stage: int, z: float, x0: float, dx: float
+) -> void:
 	for i in entries.size():
 		var e: Array = entries[i]
 		var g: Node = load(GARMENT_PIECE_SCENE).instantiate()
@@ -1014,6 +1125,7 @@ func _test_label(room: Node, text: String, x: float, z: float) -> void:
 
 # --- Main ------------------------------------------------------------------
 
+
 func _build_main_scene() -> void:
 	var root := Node3D.new()
 	root.name = "Main"
@@ -1036,8 +1148,10 @@ func _build_main_scene() -> void:
 
 # --- Helpers ---------------------------------------------------------------
 
+
 func _add_box_mesh(
-		parent: Node, node_name: String, size: Vector3, pos: Vector3, mat: Material) -> void:
+	parent: Node, node_name: String, size: Vector3, pos: Vector3, mat: Material
+) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = node_name
 	var m := BoxMesh.new()
@@ -1049,7 +1163,8 @@ func _add_box_mesh(
 
 
 func _add_box_collider(
-		parent: Node, node_name: String, size: Vector3, pos: Vector3, mat: Material) -> void:
+	parent: Node, node_name: String, size: Vector3, pos: Vector3, mat: Material
+) -> void:
 	_add_box_mesh(parent, node_name + "Mesh", size, pos, mat)
 	var col := CollisionShape3D.new()
 	col.name = node_name + "Col"

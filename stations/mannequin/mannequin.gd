@@ -6,8 +6,8 @@ extends Node3D
 
 const SUIT_SCENE := preload("res://entities/items/suit.tscn")
 
-var _dressed := {}          # GarmentType(int) -> GarmentPiece
-var _order: Array[int] = [] # placement order, for take-back
+var _dressed := {}  # GarmentType(int) -> GarmentPiece
+var _order: Array[int] = []  # placement order, for take-back
 
 @onready var _slots := {
 	Enums.GarmentType.SHIRT: $ShirtSlot,
@@ -57,9 +57,11 @@ func interact(actor) -> void:
 
 
 func _is_complete() -> bool:
-	return (_dressed.has(Enums.GarmentType.SHIRT)
+	return (
+		_dressed.has(Enums.GarmentType.SHIRT)
 		and _dressed.has(Enums.GarmentType.PANTS)
-		and _dressed.has(Enums.GarmentType.JACKET))
+		and _dressed.has(Enums.GarmentType.JACKET)
+	)
 
 
 func _missing_text() -> String:
@@ -77,8 +79,10 @@ func _package(actor) -> void:
 	for t in _dressed.keys():
 		var piece = _dressed[t]
 		suit.parts[t] = {
-			"material": piece.material, "quality": piece.quality,
-			"size": piece.size, "style": piece.style,
+			"material": piece.material,
+			"quality": piece.quality,
+			"size": piece.size,
+			"style": piece.style,
 		}
 		quality_sum += piece.quality
 	suit.quality = quality_sum / 3.0
@@ -92,5 +96,6 @@ func _package(actor) -> void:
 	_order.clear()
 
 	add_child(suit)
-	actor.carry.take_item(suit)
 	EventBus.suit_packaged.emit(suit)
+	# Deliver against an open order (pays out and consumes it) or hand it over.
+	Orders.submit(suit, actor)

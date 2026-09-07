@@ -26,6 +26,13 @@ const PATTERN_SURCHARGE := {
 	Enums.Pattern.NAILHEAD: 5,
 }
 
+# Cloth a finished suit consumes per part (metres), for quoting a bespoke order.
+const PART_METERS := {
+	Enums.GarmentType.JACKET: 2.0,
+	Enums.GarmentType.PANTS: 1.4,
+	Enums.GarmentType.SHIRT: 1.6,
+}
+
 
 static func per_meter(fabric: Enums.Fabric, pattern: Enums.Pattern) -> int:
 	var cfg := Config.data
@@ -44,3 +51,17 @@ static func per_meter(fabric: Enums.Fabric, pattern: Enums.Pattern) -> int:
 static func roll_price(mat: MaterialType, length: float) -> int:
 	var pm := mat.price_per_meter if mat.price_per_meter > 0 else per_meter(mat.fabric, mat.pattern)
 	return int(round(pm * length))
+
+
+## What we charge a customer for a designed suit: cloth cost across all parts
+## times the sell markup. `design` maps GarmentType -> { fabric, pattern, ... }.
+static func suit_quote(design: Dictionary) -> int:
+	var markup := 2.4
+	if Config.data != null:
+		markup = Config.data.sell_markup
+	var cloth := 0.0
+	for t in design:
+		var c: Dictionary = design[t]
+		var meters: float = PART_METERS.get(t, 1.6)
+		cloth += per_meter(c["fabric"], c["pattern"]) * meters
+	return int(round(cloth * markup))

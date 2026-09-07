@@ -6,8 +6,11 @@ extends Control
 
 enum Row { PART, FABRIC, COLOR, PATTERN, STYLE }
 const ROW_NAME := {
-	Row.PART: "Part", Row.FABRIC: "Fabric", Row.COLOR: "Colour",
-	Row.PATTERN: "Pattern", Row.STYLE: "Style",
+	Row.PART: "Part",
+	Row.FABRIC: "Fabric",
+	Row.COLOR: "Colour",
+	Row.PATTERN: "Pattern",
+	Row.STYLE: "Style",
 }
 # Display order of the parts.
 const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
@@ -15,11 +18,13 @@ const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.Garment
 var _mirror = null
 var _actor = null
 var _customer = null
+var _pref = null  # CustomerPreference when fitting a real customer, else null
+var _awaiting := false  # customer loved it; next E finalises the order
 var _rig = null
-var _part_sel := -1   # -1 = overview, else index into PARTS
+var _part_sel := -1  # -1 = overview, else index into PARTS
 var _row := 0
 var _status := ""
-var _design := {}     # GarmentType -> { fabric, color, pattern, style_idx }
+var _design := {}  # GarmentType -> { fabric, color, pattern, style_idx }
 var _swatch: MaterialSwatch
 var _name_label: Label
 var _sub_label: Label
@@ -39,6 +44,8 @@ func open(mirror, actor) -> void:
 	_mirror = mirror
 	_actor = actor
 	_customer = mirror.customer
+	_pref = _customer.get("preference") if _customer != null else null
+	_awaiting = false
 	_rig = get_tree().get_first_node_in_group("camera_rig")
 	_part_sel = -1
 	_row = 0
@@ -92,6 +99,7 @@ func _style() -> void:
 
 # --- State -----------------------------------------------------------------
 
+
 func _type() -> int:
 	return PARTS[_part_sel] if _part_sel >= 0 else -1
 
@@ -127,6 +135,7 @@ func _value_text(row: int) -> String:
 
 # --- Camera ----------------------------------------------------------------
 
+
 func _update_camera() -> void:
 	if _rig == null or _customer == null:
 		return
@@ -141,8 +150,9 @@ func _update_camera() -> void:
 
 # --- Rendering -------------------------------------------------------------
 
+
 func _refresh() -> void:
-	_title.text = "Suit Builder"
+	_title.text = ("Fitting: %s" % _pref.display_name) if _pref != null else "Suit Builder"
 	var mat := _material()
 	_swatch.setup(mat, mat.roll_length_m)
 	if _part_sel < 0:
@@ -150,8 +160,20 @@ func _refresh() -> void:
 		_sub_label.text = "Pick a part to design and zoom in."
 	else:
 		_name_label.text = "%s — %s" % [Enums.garment_type_name(_type()), mat.display_name]
-		_sub_label.text = "%s  ·  %s" % [mat.summary(), Enums.styles_for(_type())[_cfg()["style_idx"]]]
-	_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
+		_sub_label.text = (
+			"%s  ·  %s" % [mat.summary(), Enums.styles_for(_type())[_cfg()["style_idx"]]]
+		)
+	if _pref != null:
+		var quote := Pricing.suit_quote(_design)
+		var over := "  (OVER)" if quote > _pref.budget else ""
+		var brief := (
+			"Wants: %s   ·   Budget $%d   ·   Quote $%d%s"
+			% [_pref.describe(), _pref.budget, quote, over]
+		)
+		var keys := "W/S select  A/D change  E ask/confirm  Esc close"
+		_hint.text = "%s\n%s%s" % [brief, keys, _status]
+	else:
+		_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
 
 	var rows := _active_rows()
 	_row = clampi(_row, 0, rows.size() - 1)
@@ -164,7 +186,9 @@ func _refresh() -> void:
 func _make_row(row: int, selected: bool) -> Control:
 	var card := PanelContainer.new()
 	if selected:
-		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.LEAF))
+		card.add_theme_stylebox_override(
+			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.LEAF)
+		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
 	var hbox := HBoxContainer.new()
@@ -186,6 +210,7 @@ func _make_row(row: int, selected: bool) -> Control:
 
 
 # --- Input -----------------------------------------------------------------
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
@@ -216,6 +241,7 @@ func _move_row(delta: int) -> void:
 
 func _adjust(dir: int) -> void:
 	_status = ""
+	_awaiting = false
 	var row: int = _active_rows()[_row]
 	if row == Row.PART:
 		_part_sel = wrapi(_part_sel + dir, -1, PARTS.size())
@@ -235,6 +261,24 @@ func _adjust(dir: int) -> void:
 
 
 func _confirm() -> void:
+	# Free-design mode (no customer): just announce the design.
+	if _pref == null:
+		EventBus.design_confirmed.emit(_design.duplicate(true))
+		_status = "     Design saved!"
+		_refresh()
+		return
+	# First E asks the customer for their reaction.
+	if not _awaiting:
+		var reaction: Dictionary = _pref.evaluate(_design)
+		_status = "     %s: %s" % [_pref.display_name, reaction["reason"]]
+		_awaiting = reaction["liked"]
+		_refresh()
+		return
+	# Second E finalises: create the order and send the customer on their way.
+	var quote: int = Pricing.suit_quote(_design)
+	Orders.create_order(_pref.display_name, _design, quote)
 	EventBus.design_confirmed.emit(_design.duplicate(true))
-	_status = "     Design saved!"
-	_refresh()
+	var cust = _customer
+	close()
+	if cust != null:
+		cust.finish_and_leave()
