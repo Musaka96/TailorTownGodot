@@ -24,6 +24,32 @@ const MAIN_SCENE := "res://main.tscn"
 const INTERACT_LAYER := 4  # collision layer bit 3
 const INTERACTABLE_SCRIPT := "res://entities/scripts/interactable.gd"
 
+# --- Test bench items (organized sample rows near the left-front wall) ---
+# Cloth: [material id, length]
+const TEST_CLOTH := [
+	["navy_worsted_pinstripe", 2.5],
+	["brown_tweed_herringbone", 3.0],
+	["tan_linen_solid", 1.5],
+	["blue_worsted_glencheck", 2.0],
+]
+# Garment parts: [material id, type(0 shirt/1 pants/2 jacket), size(1 M/2 L), style, quality]
+const TEST_CUT := [
+	["charcoal_worsted_solid", 0, 1, "Classic", 0.85],
+	["midgrey_flannel_solid", 1, 2, "Flat Front", 0.75],
+	["navy_worsted_pinstripe", 2, 1, "Single-Breasted", 0.80],
+]
+const TEST_SEWN := [
+	["lightgrey_worsted_sharkskin", 0, 1, "Slim", 0.90],
+	["charcoal_worsted_pinstripe", 1, 2, "Pleated", 0.85],
+	["black_worsted_solid", 2, 2, "Double-Breasted", 0.95],
+]
+# Suits: [material id for colour, quality]
+const TEST_SUITS := [
+	["navy_worsted_solid", 0.90],
+	["charcoal_worsted_solid", 0.75],
+	["burgundy_mohair_birdseye", 0.60],
+]
+
 # Floor rolls: [material id, position x, z, remaining metres]
 const FLOOR_ROLLS := [
 	["navy_worsted_solid", -3.0, 2.0, 20.0],
@@ -922,7 +948,68 @@ func _build_room_scene() -> void:
 		roll.position = Vector3(entry[1], 0.13, entry[2])
 		root.add_child(roll)
 
+	_build_test_items(root)
 	_save(root, ROOM_SCENE)
+
+
+# Organized sample items for testing, in labelled rows near the left-front wall.
+func _build_test_items(room: Node) -> void:
+	var x0 := -6.9
+	var dx := 0.72
+
+	_test_label(room, "CLOTH", x0 + dx, 5.7)
+	for i in TEST_CLOTH.size():
+		var c: Array = TEST_CLOTH[i]
+		var f: Node = load(PIECE_SCENE).instantiate()
+		f.material = load("res://data/materials/%s.tres" % c[0])
+		f.length_m = c[1]
+		room.add_child(f)
+		f.position = Vector3(x0 + i * dx, 0.03, 5.2)
+
+	_test_label(room, "CUT PARTS", x0 + dx, 4.5)
+	_place_test_parts(room, TEST_CUT, 2, 4.0, x0, dx)
+
+	_test_label(room, "SEWN PARTS", x0 + dx, 3.3)
+	_place_test_parts(room, TEST_SEWN, 3, 2.8, x0, dx)
+
+	_test_label(room, "SUITS", x0 + dx, 2.1)
+	for i in TEST_SUITS.size():
+		var s: Array = TEST_SUITS[i]
+		var suit: Node = load(SUIT_SCENE).instantiate()
+		suit.quality = s[1]
+		var m: MaterialType = load("res://data/materials/%s.tres" % s[0])
+		suit.primary_color = m.cloth_color
+		room.add_child(suit)
+		suit.position = Vector3(x0 + i * dx, 0.0, 1.6)
+
+
+func _place_test_parts(
+		room: Node, entries: Array, stage: int, z: float, x0: float, dx: float) -> void:
+	for i in entries.size():
+		var e: Array = entries[i]
+		var g: Node = load(GARMENT_PIECE_SCENE).instantiate()
+		g.material = load("res://data/materials/%s.tres" % e[0])
+		g.garment_type = e[1]
+		g.size = e[2]
+		g.style = e[3]
+		g.quality = e[4]
+		g.stage = stage
+		room.add_child(g)
+		g.position = Vector3(x0 + i * dx, 0.03, z)
+
+
+func _test_label(room: Node, text: String, x: float, z: float) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.font_size = 72
+	label.pixel_size = 0.006
+	label.modulate = Color(0.97, 0.91, 0.78)
+	label.outline_size = 14
+	label.outline_modulate = Color(0.12, 0.09, 0.06)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.position = Vector3(x, 1.4, z)
+	room.add_child(label)
 
 
 # --- Main ------------------------------------------------------------------

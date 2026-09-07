@@ -1,207 +1,353 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://stations/shelf/shelf.tscn" id="1_enfbf"]
-[ext_resource type="Script" path="res://stations/shelf/shelf.gd" id="2_i5usx"]
-[ext_resource type="PackedScene" path="res://stations/phone/phone.tscn" id="3_stiry"]
-[ext_resource type="Script" path="res://stations/phone/phone.gd" id="4_qa0s0"]
-[ext_resource type="PackedScene" path="res://stations/worktable/worktable.tscn" id="5_2xgx5"]
-[ext_resource type="Script" path="res://stations/worktable/worktable.gd" id="6_yia2c"]
-[ext_resource type="PackedScene" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_7md1u"]
-[ext_resource type="Script" path="res://stations/sewing_machine/sewing_machine.gd" id="8_s0cn2"]
-[ext_resource type="PackedScene" path="res://stations/clothing_rack/clothing_rack.tscn" id="9_pf3bg"]
-[ext_resource type="Script" path="res://stations/clothing_rack/clothing_rack.gd" id="10_ov3w0"]
-[ext_resource type="PackedScene" path="res://stations/mannequin/mannequin.tscn" id="11_kodol"]
-[ext_resource type="Script" path="res://stations/mannequin/mannequin.gd" id="12_rq063"]
-[ext_resource type="PackedScene" path="res://stations/mirror/mirror.tscn" id="13_2a88l"]
-[ext_resource type="Script" path="res://stations/mirror/mirror.gd" id="14_j5y0n"]
-[ext_resource type="PackedScene" path="res://entities/items/material_roll.tscn" id="15_jtjmr"]
-[ext_resource type="Script" path="res://entities/items/material_roll.gd" id="16_h0rls"]
-[ext_resource type="Resource" path="res://data/materials/navy_worsted_solid.tres" id="17_usqlc"]
-[ext_resource type="Resource" path="res://data/materials/charcoal_worsted_pinstripe.tres" id="18_tajrx"]
-[ext_resource type="Resource" path="res://data/materials/brown_tweed_herringbone.tres" id="19_f0faw"]
-[ext_resource type="Resource" path="res://data/materials/tan_linen_solid.tres" id="20_pw4dj"]
-[ext_resource type="Resource" path="res://data/materials/blue_worsted_glencheck.tres" id="21_o426c"]
-[ext_resource type="Resource" path="res://data/materials/midgrey_flannel_solid.tres" id="22_yrsd5"]
-[ext_resource type="Resource" path="res://data/materials/black_worsted_solid.tres" id="23_26bn3"]
-[ext_resource type="Resource" path="res://data/materials/burgundy_mohair_birdseye.tres" id="24_cstfg"]
+[ext_resource type="PackedScene" path="res://stations/shelf/shelf.tscn" id="1_ov3w0"]
+[ext_resource type="Script" path="res://stations/shelf/shelf.gd" id="2_kodol"]
+[ext_resource type="PackedScene" path="res://stations/phone/phone.tscn" id="3_rq063"]
+[ext_resource type="Script" path="res://stations/phone/phone.gd" id="4_2a88l"]
+[ext_resource type="PackedScene" path="res://stations/worktable/worktable.tscn" id="5_j5y0n"]
+[ext_resource type="Script" path="res://stations/worktable/worktable.gd" id="6_jtjmr"]
+[ext_resource type="PackedScene" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_h0rls"]
+[ext_resource type="Script" path="res://stations/sewing_machine/sewing_machine.gd" id="8_usqlc"]
+[ext_resource type="PackedScene" path="res://stations/clothing_rack/clothing_rack.tscn" id="9_tajrx"]
+[ext_resource type="Script" path="res://stations/clothing_rack/clothing_rack.gd" id="10_f0faw"]
+[ext_resource type="PackedScene" path="res://stations/mannequin/mannequin.tscn" id="11_pw4dj"]
+[ext_resource type="Script" path="res://stations/mannequin/mannequin.gd" id="12_o426c"]
+[ext_resource type="PackedScene" path="res://stations/mirror/mirror.tscn" id="13_yrsd5"]
+[ext_resource type="Script" path="res://stations/mirror/mirror.gd" id="14_26bn3"]
+[ext_resource type="PackedScene" path="res://entities/items/material_roll.tscn" id="15_cstfg"]
+[ext_resource type="Script" path="res://entities/items/material_roll.gd" id="16_ckdgv"]
+[ext_resource type="Resource" path="res://data/materials/navy_worsted_solid.tres" id="17_mh4gb"]
+[ext_resource type="Resource" path="res://data/materials/charcoal_worsted_pinstripe.tres" id="18_walcy"]
+[ext_resource type="Resource" path="res://data/materials/brown_tweed_herringbone.tres" id="19_ne8pp"]
+[ext_resource type="Resource" path="res://data/materials/tan_linen_solid.tres" id="20_08xdy"]
+[ext_resource type="Resource" path="res://data/materials/blue_worsted_glencheck.tres" id="21_qasyn"]
+[ext_resource type="Resource" path="res://data/materials/midgrey_flannel_solid.tres" id="22_f7f05"]
+[ext_resource type="Resource" path="res://data/materials/black_worsted_solid.tres" id="23_j7vby"]
+[ext_resource type="Resource" path="res://data/materials/burgundy_mohair_birdseye.tres" id="24_d3xxm"]
+[ext_resource type="PackedScene" path="res://entities/items/fabric_piece.tscn" id="25_n46ak"]
+[ext_resource type="Script" path="res://entities/items/fabric_piece.gd" id="26_7lax8"]
+[ext_resource type="Resource" path="res://data/materials/navy_worsted_pinstripe.tres" id="27_7mf47"]
+[ext_resource type="PackedScene" path="res://entities/items/garment_piece.tscn" id="28_43laf"]
+[ext_resource type="Script" path="res://entities/items/garment_piece.gd" id="29_xfnwj"]
+[ext_resource type="Resource" path="res://data/materials/charcoal_worsted_solid.tres" id="30_5nk8p"]
+[ext_resource type="Resource" path="res://data/materials/lightgrey_worsted_sharkskin.tres" id="31_5qj3b"]
+[ext_resource type="PackedScene" path="res://entities/items/suit.tscn" id="32_h3dsl"]
+[ext_resource type="Script" path="res://entities/items/suit.gd" id="33_swjr5"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ckdgv"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_d7rrd"]
 
-[sub_resource type="Sky" id="Sky_mh4gb"]
-sky_material = SubResource("ProceduralSkyMaterial_ckdgv")
+[sub_resource type="Sky" id="Sky_xfabo"]
+sky_material = SubResource("ProceduralSkyMaterial_d7rrd")
 
-[sub_resource type="Environment" id="Environment_walcy"]
+[sub_resource type="Environment" id="Environment_errh0"]
 background_mode = 2
-sky = SubResource("Sky_mh4gb")
+sky = SubResource("Sky_xfabo")
 ambient_light_source = 3
 tonemap_mode = 2
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ne8pp"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eig6a"]
 albedo_color = Color(0.34, 0.3, 0.27, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_08xdy"]
+[sub_resource type="BoxMesh" id="BoxMesh_knglg"]
 size = Vector3(16, 1, 16)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_qasyn"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_j5kd1"]
 size = Vector3(16, 1, 16)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f7f05"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c7tjy"]
 albedo_color = Color(0.62, 0.6, 0.56, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_j7vby"]
+[sub_resource type="BoxMesh" id="BoxMesh_hg8uv"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_d3xxm"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_d058j"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxMesh" id="BoxMesh_n46ak"]
+[sub_resource type="BoxMesh" id="BoxMesh_eeyg4"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_7lax8"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_6uxdm"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxMesh" id="BoxMesh_7mf47"]
+[sub_resource type="BoxMesh" id="BoxMesh_ojymr"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_43laf"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_bjxeq"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="BoxMesh" id="BoxMesh_xfnwj"]
+[sub_resource type="BoxMesh" id="BoxMesh_3xbni"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_5nk8p"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_kkv1v"]
 size = Vector3(0.3, 3, 16)
 
-[node name="ShopRoom" type="Node3D" unique_id=1458009411]
+[node name="ShopRoom" type="Node3D" unique_id=759091002]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1295399382]
-environment = SubResource("Environment_walcy")
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=691841624]
+environment = SubResource("Environment_errh0")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1383180651]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=50786772]
 transform = Transform3D(0.81915206, 0.46984634, -0.32898995, 0, 0.57357645, 0.81915206, 0.57357645, -0.6710101, 0.46984634, 0, 0, 0)
 shadow_enabled = true
 
-[node name="Floor" type="StaticBody3D" parent="." unique_id=287844392]
+[node name="Floor" type="StaticBody3D" parent="." unique_id=325795954]
 
-[node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=1465059351]
+[node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=1375113409]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-material_override = SubResource("StandardMaterial3D_ne8pp")
-mesh = SubResource("BoxMesh_08xdy")
+material_override = SubResource("StandardMaterial3D_eig6a")
+mesh = SubResource("BoxMesh_knglg")
 
-[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=619495905]
+[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=726176985]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-shape = SubResource("BoxShape3D_qasyn")
+shape = SubResource("BoxShape3D_j5kd1")
 
-[node name="Walls" type="StaticBody3D" parent="." unique_id=1325556004]
+[node name="Walls" type="StaticBody3D" parent="." unique_id=1144041442]
 
-[node name="NMesh" type="MeshInstance3D" parent="Walls" unique_id=1989862101]
+[node name="NMesh" type="MeshInstance3D" parent="Walls" unique_id=1528367009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
-material_override = SubResource("StandardMaterial3D_f7f05")
-mesh = SubResource("BoxMesh_j7vby")
+material_override = SubResource("StandardMaterial3D_c7tjy")
+mesh = SubResource("BoxMesh_hg8uv")
 
-[node name="NCol" type="CollisionShape3D" parent="Walls" unique_id=1881214708]
+[node name="NCol" type="CollisionShape3D" parent="Walls" unique_id=1906497120]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
-shape = SubResource("BoxShape3D_d3xxm")
+shape = SubResource("BoxShape3D_d058j")
 
-[node name="SMesh" type="MeshInstance3D" parent="Walls" unique_id=2054328596]
+[node name="SMesh" type="MeshInstance3D" parent="Walls" unique_id=108129535]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
-material_override = SubResource("StandardMaterial3D_f7f05")
-mesh = SubResource("BoxMesh_n46ak")
+material_override = SubResource("StandardMaterial3D_c7tjy")
+mesh = SubResource("BoxMesh_eeyg4")
 
-[node name="SCol" type="CollisionShape3D" parent="Walls" unique_id=740598023]
+[node name="SCol" type="CollisionShape3D" parent="Walls" unique_id=701815830]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
-shape = SubResource("BoxShape3D_7lax8")
+shape = SubResource("BoxShape3D_6uxdm")
 
-[node name="EMesh" type="MeshInstance3D" parent="Walls" unique_id=1909263466]
+[node name="EMesh" type="MeshInstance3D" parent="Walls" unique_id=59236321]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
-material_override = SubResource("StandardMaterial3D_f7f05")
-mesh = SubResource("BoxMesh_7mf47")
+material_override = SubResource("StandardMaterial3D_c7tjy")
+mesh = SubResource("BoxMesh_ojymr")
 
-[node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=369763893]
+[node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=828610743]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
-shape = SubResource("BoxShape3D_43laf")
+shape = SubResource("BoxShape3D_bjxeq")
 
-[node name="WMesh" type="MeshInstance3D" parent="Walls" unique_id=1044350218]
+[node name="WMesh" type="MeshInstance3D" parent="Walls" unique_id=17892528]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
-material_override = SubResource("StandardMaterial3D_f7f05")
-mesh = SubResource("BoxMesh_xfnwj")
+material_override = SubResource("StandardMaterial3D_c7tjy")
+mesh = SubResource("BoxMesh_3xbni")
 
-[node name="WCol" type="CollisionShape3D" parent="Walls" unique_id=418696325]
+[node name="WCol" type="CollisionShape3D" parent="Walls" unique_id=898066723]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
-shape = SubResource("BoxShape3D_5nk8p")
+shape = SubResource("BoxShape3D_kkv1v")
 
-[node name="Shelf" type="Node3D" parent="." unique_id=898755779 instance=ExtResource("1_enfbf")]
+[node name="Shelf" type="Node3D" parent="." unique_id=315825028 instance=ExtResource("1_ov3w0")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -7)
-script = ExtResource("2_i5usx")
+script = ExtResource("2_kodol")
 
-[node name="Phone" type="Node3D" parent="." unique_id=1055283600 instance=ExtResource("3_stiry")]
+[node name="Phone" type="Node3D" parent="." unique_id=929610153 instance=ExtResource("3_rq063")]
 transform = Transform3D(0.81915206, 0, 0.57357645, 0, 1, 0, -0.57357645, 0, 0.81915206, -6, 0, -5.5)
-script = ExtResource("4_qa0s0")
+script = ExtResource("4_2a88l")
 
-[node name="Worktable" type="Node3D" parent="." unique_id=989650607 instance=ExtResource("5_2xgx5")]
+[node name="Worktable" type="Node3D" parent="." unique_id=1585762630 instance=ExtResource("5_j5y0n")]
 transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 6, 0, -5)
-script = ExtResource("6_yia2c")
+script = ExtResource("6_jtjmr")
 
-[node name="SewingMachine" type="Node3D" parent="." unique_id=836279892 instance=ExtResource("7_7md1u")]
+[node name="SewingMachine" type="Node3D" parent="." unique_id=76018192 instance=ExtResource("7_h0rls")]
 transform = Transform3D(0.17364822, 0, -0.9848077, 0, 1, 0, 0.9848077, 0, 0.17364822, 6.5, 0, -1)
-script = ExtResource("8_s0cn2")
+script = ExtResource("8_usqlc")
 
-[node name="ClothingRack" type="Node3D" parent="." unique_id=1560935840 instance=ExtResource("9_pf3bg")]
+[node name="ClothingRack" type="Node3D" parent="." unique_id=1715875891 instance=ExtResource("9_tajrx")]
 transform = Transform3D(0.17364822, 0, 0.9848077, 0, 1, 0, -0.9848077, 0, 0.17364822, -6.5, 0, -1)
-script = ExtResource("10_ov3w0")
+script = ExtResource("10_f0faw")
 
-[node name="Mannequin" type="Node3D" parent="." unique_id=1915312574 instance=ExtResource("11_kodol")]
+[node name="Mannequin" type="Node3D" parent="." unique_id=1359859712 instance=ExtResource("11_pw4dj")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -6.7)
-script = ExtResource("12_rq063")
+script = ExtResource("12_o426c")
 
-[node name="Mirror" type="Node3D" parent="." unique_id=523692801 instance=ExtResource("13_2a88l")]
+[node name="Mirror" type="Node3D" parent="." unique_id=124564459 instance=ExtResource("13_yrsd5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -6.5)
-script = ExtResource("14_j5y0n")
+script = ExtResource("14_26bn3")
 
-[node name="MaterialRoll" type="Node3D" parent="." unique_id=1966387104 instance=ExtResource("15_jtjmr")]
+[node name="MaterialRoll" type="Node3D" parent="." unique_id=2133966212 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.13, 2)
-script = ExtResource("16_h0rls")
-material = ExtResource("17_usqlc")
+script = ExtResource("16_ckdgv")
+material = ExtResource("17_mh4gb")
 remaining_length_m = 20.0
 
-[node name="@Node3D@14" type="Node3D" parent="." unique_id=1161342878 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@14" type="Node3D" parent="." unique_id=582526319 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.13, 3.2)
-script = ExtResource("16_h0rls")
-material = ExtResource("18_tajrx")
+script = ExtResource("16_ckdgv")
+material = ExtResource("18_walcy")
 remaining_length_m = 9.5
 
-[node name="@Node3D@15" type="Node3D" parent="." unique_id=204679596 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@15" type="Node3D" parent="." unique_id=136664523 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0.13, 2.6)
-script = ExtResource("16_h0rls")
-material = ExtResource("19_f0faw")
+script = ExtResource("16_ckdgv")
+material = ExtResource("19_ne8pp")
 remaining_length_m = 15.0
 
-[node name="@Node3D@16" type="Node3D" parent="." unique_id=1204287724 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@16" type="Node3D" parent="." unique_id=1491153387 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.13, 1.4)
-script = ExtResource("16_h0rls")
-material = ExtResource("20_pw4dj")
+script = ExtResource("16_ckdgv")
+material = ExtResource("20_08xdy")
 remaining_length_m = 4.0
 
-[node name="@Node3D@17" type="Node3D" parent="." unique_id=77602571 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@17" type="Node3D" parent="." unique_id=1476462832 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.13, 0.4)
-script = ExtResource("16_h0rls")
-material = ExtResource("21_o426c")
+script = ExtResource("16_ckdgv")
+material = ExtResource("21_qasyn")
 remaining_length_m = 16.0
 
-[node name="@Node3D@18" type="Node3D" parent="." unique_id=1862741926 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@18" type="Node3D" parent="." unique_id=1284909540 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0.13, -0.6)
-script = ExtResource("16_h0rls")
-material = ExtResource("22_yrsd5")
+script = ExtResource("16_ckdgv")
+material = ExtResource("22_f7f05")
 remaining_length_m = 12.5
 
-[node name="@Node3D@19" type="Node3D" parent="." unique_id=188245870 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@19" type="Node3D" parent="." unique_id=1871374386 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.13, 1)
-script = ExtResource("16_h0rls")
-material = ExtResource("23_26bn3")
+script = ExtResource("16_ckdgv")
+material = ExtResource("23_j7vby")
 remaining_length_m = 20.0
 
-[node name="@Node3D@20" type="Node3D" parent="." unique_id=315785911 instance=ExtResource("15_jtjmr")]
+[node name="@Node3D@20" type="Node3D" parent="." unique_id=1716205477 instance=ExtResource("15_cstfg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.13, -1.4)
-script = ExtResource("16_h0rls")
-material = ExtResource("24_cstfg")
+script = ExtResource("16_ckdgv")
+material = ExtResource("24_d3xxm")
 remaining_length_m = 6.0
+
+[node name="@Label3D@21" type="Label3D" parent="." unique_id=1987091633]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 5.7)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+modulate = Color(0.97, 0.91, 0.78, 1)
+outline_modulate = Color(0.12, 0.09, 0.06, 1)
+text = "CLOTH"
+font_size = 72
+outline_size = 14
+
+[node name="FabricPiece" type="Node3D" parent="." unique_id=673003192 instance=ExtResource("25_n46ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 5.2)
+script = ExtResource("26_7lax8")
+material = ExtResource("27_7mf47")
+length_m = 2.5
+
+[node name="@Node3D@22" type="Node3D" parent="." unique_id=1570703904 instance=ExtResource("25_n46ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 5.2)
+script = ExtResource("26_7lax8")
+material = ExtResource("19_ne8pp")
+length_m = 3.0
+
+[node name="@Node3D@23" type="Node3D" parent="." unique_id=950794139 instance=ExtResource("25_n46ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 5.2)
+script = ExtResource("26_7lax8")
+material = ExtResource("20_08xdy")
+length_m = 1.5
+
+[node name="@Node3D@24" type="Node3D" parent="." unique_id=156278626 instance=ExtResource("25_n46ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.74, 0.03, 5.2)
+script = ExtResource("26_7lax8")
+material = ExtResource("21_qasyn")
+length_m = 2.0
+
+[node name="@Label3D@25" type="Label3D" parent="." unique_id=1457291266]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 4.5)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+modulate = Color(0.97, 0.91, 0.78, 1)
+outline_modulate = Color(0.12, 0.09, 0.06, 1)
+text = "CUT PARTS"
+font_size = 72
+outline_size = 14
+
+[node name="GarmentPiece" type="Node3D" parent="." unique_id=1892468661 instance=ExtResource("28_43laf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 4)
+script = ExtResource("29_xfnwj")
+material = ExtResource("30_5nk8p")
+quality = 0.85
+
+[node name="@Node3D@26" type="Node3D" parent="." unique_id=310060354 instance=ExtResource("28_43laf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 4)
+script = ExtResource("29_xfnwj")
+material = ExtResource("22_f7f05")
+garment_type = 1
+size = 2
+style = "Flat Front"
+quality = 0.75
+
+[node name="@Node3D@27" type="Node3D" parent="." unique_id=1916540076 instance=ExtResource("28_43laf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 4)
+script = ExtResource("29_xfnwj")
+material = ExtResource("27_7mf47")
+garment_type = 2
+style = "Single-Breasted"
+quality = 0.8
+
+[node name="@Label3D@28" type="Label3D" parent="." unique_id=694921128]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 3.3)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+modulate = Color(0.97, 0.91, 0.78, 1)
+outline_modulate = Color(0.12, 0.09, 0.06, 1)
+text = "SEWN PARTS"
+font_size = 72
+outline_size = 14
+
+[node name="@Node3D@29" type="Node3D" parent="." unique_id=756653928 instance=ExtResource("28_43laf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 2.8)
+script = ExtResource("29_xfnwj")
+material = ExtResource("31_5qj3b")
+style = "Slim"
+quality = 0.9
+stage = 3
+
+[node name="@Node3D@30" type="Node3D" parent="." unique_id=1332647421 instance=ExtResource("28_43laf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 2.8)
+script = ExtResource("29_xfnwj")
+material = ExtResource("18_walcy")
+garment_type = 1
+size = 2
+style = "Pleated"
+quality = 0.85
+stage = 3
+
+[node name="@Node3D@31" type="Node3D" parent="." unique_id=1221263076 instance=ExtResource("28_43laf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 2.8)
+script = ExtResource("29_xfnwj")
+material = ExtResource("23_j7vby")
+garment_type = 2
+size = 2
+style = "Double-Breasted"
+quality = 0.95
+stage = 3
+
+[node name="@Label3D@32" type="Label3D" parent="." unique_id=125073886]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 2.1)
+pixel_size = 0.006
+billboard = 1
+no_depth_test = true
+modulate = Color(0.97, 0.91, 0.78, 1)
+outline_modulate = Color(0.12, 0.09, 0.06, 1)
+text = "SUITS"
+font_size = 72
+outline_size = 14
+
+[node name="Suit" type="Node3D" parent="." unique_id=602633035 instance=ExtResource("32_h3dsl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0, 1.6)
+script = ExtResource("33_swjr5")
+quality = 0.9
+primary_color = Color(0.105882354, 0.16470589, 0.2901961, 1)
+
+[node name="@Node3D@33" type="Node3D" parent="." unique_id=740015857 instance=ExtResource("32_h3dsl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0, 1.6)
+script = ExtResource("33_swjr5")
+quality = 0.75
+primary_color = Color(0.21176471, 0.22352941, 0.24705882, 1)
+
+[node name="@Node3D@34" type="Node3D" parent="." unique_id=1485955 instance=ExtResource("32_h3dsl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0, 1.6)
+script = ExtResource("33_swjr5")
+quality = 0.6
+primary_color = Color(0.36078432, 0.12156863, 0.16470589, 1)
