@@ -5,6 +5,10 @@ extends CanvasLayer
 
 const FONT := preload("res://assets/fonts/Fredoka.ttf")
 
+## Built in code (see _build_orders_menu) so the scene files never have to be
+## regenerated to add it.
+var orders_menu: Control
+
 @onready var hud: Control = $HUD
 @onready var shelf_menu: Control = $ShelfMenu
 @onready var phone_order: Control = $PhoneOrder
@@ -13,10 +17,12 @@ const FONT := preload("res://assets/fonts/Fredoka.ttf")
 @onready var suit_builder: Control = $SuitBuilder
 @onready var customer_request: Control = $CustomerRequest
 @onready var handbook: Control = $Handbook
-@onready var orders_menu: Control = $OrdersMenu
 
 
 func _ready() -> void:
+	orders_menu = get_node_or_null("OrdersMenu")
+	if orders_menu == null:
+		orders_menu = _build_orders_menu()
 	shelf_menu.visible = false
 	phone_order.visible = false
 	worktable_screen.visible = false
@@ -70,3 +76,68 @@ func open_handbook(actor) -> void:
 
 func open_orders_menu(actor) -> void:
 	orders_menu.open(actor)
+
+
+## Assemble the Orders board node tree in code (Dim + centered Panel with a Title,
+## a two-column Pages row of List + Detail, and a Hint) and attach it last so its
+## @onready paths resolve. Matches what orders_menu.gd expects. Kept out of the
+## .tscn on purpose, so adding this feature never means rebuilding the scenes.
+func _build_orders_menu() -> Control:
+	var menu := Control.new()
+	menu.name = "OrdersMenu"
+	menu.set_script(load("res://ui/orders_menu.gd"))
+	menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var dim := ColorRect.new()
+	dim.name = "Dim"
+	dim.color = Color(0, 0, 0, 0.5)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(820, 0)
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 8)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.name = "Box"
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.name = "Title"
+	box.add_child(title)
+
+	var pages := HBoxContainer.new()
+	pages.name = "Pages"
+	pages.add_theme_constant_override("separation", 16)
+	box.add_child(pages)
+
+	var list := VBoxContainer.new()
+	list.name = "List"
+	list.custom_minimum_size = Vector2(300, 420)
+	pages.add_child(list)
+
+	var detail := VBoxContainer.new()
+	detail.name = "Detail"
+	detail.custom_minimum_size = Vector2(440, 0)
+	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pages.add_child(detail)
+
+	var hint := Label.new()
+	hint.name = "Hint"
+	box.add_child(hint)
+
+	add_child(menu)  # attach last so the script's @onready node paths resolve
+	return menu

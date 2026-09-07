@@ -850,28 +850,6 @@ func _build_ui_scene() -> void:
 	hb_hint.name = "Hint"
 	hb_box.add_child(hb_hint)
 
-	# Orders board — opened with the Orders key; a list + expanded per-piece detail.
-	var om_box := _build_modal(root, "OrdersMenu", "res://ui/orders_menu.gd", 820)
-	var om_title := Label.new()
-	om_title.name = "Title"
-	om_box.add_child(om_title)
-	var om_pages := HBoxContainer.new()
-	om_pages.name = "Pages"
-	om_pages.add_theme_constant_override("separation", 16)
-	om_box.add_child(om_pages)
-	var om_list := VBoxContainer.new()
-	om_list.name = "List"
-	om_list.custom_minimum_size = Vector2(300, 420)
-	om_pages.add_child(om_list)
-	var om_detail := VBoxContainer.new()
-	om_detail.name = "Detail"
-	om_detail.custom_minimum_size = Vector2(440, 0)
-	om_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	om_pages.add_child(om_detail)
-	var om_hint := Label.new()
-	om_hint.name = "Hint"
-	om_box.add_child(om_hint)
-
 	_save(root, UI_SCENE)
 
 
