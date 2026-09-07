@@ -1,0 +1,240 @@
+extends Control
+
+## The mirror's suit builder. A side panel (keeps the customer visible) where you
+## design each part of the suit. Selecting a part glides the camera to zoom onto
+## it; "Overview" frames the whole customer. E confirms the design.
+
+enum Row { PART, FABRIC, COLOR, PATTERN, STYLE }
+const ROW_NAME := {
+	Row.PART: "Part", Row.FABRIC: "Fabric", Row.COLOR: "Colour",
+	Row.PATTERN: "Pattern", Row.STYLE: "Style",
+}
+# Display order of the parts.
+const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
+
+var _mirror = null
+var _actor = null
+var _customer = null
+var _rig = null
+var _part_sel := -1   # -1 = overview, else index into PARTS
+var _row := 0
+var _status := ""
+var _design := {}     # GarmentType -> { fabric, color, pattern, style_idx }
+var _swatch: MaterialSwatch
+var _name_label: Label
+var _sub_label: Label
+
+@onready var _panel: PanelContainer = $Panel
+@onready var _title: Label = $Panel/Margin/Box/Title
+@onready var _preview: HBoxContainer = $Panel/Margin/Box/Preview
+@onready var _rows: VBoxContainer = $Panel/Margin/Box/Rows
+@onready var _hint: Label = $Panel/Margin/Box/Hint
+
+
+func _ready() -> void:
+	_build_preview()
+
+
+func open(mirror, actor) -> void:
+	_mirror = mirror
+	_actor = actor
+	_customer = mirror.customer
+	_rig = get_tree().get_first_node_in_group("camera_rig")
+	_part_sel = -1
+	_row = 0
+	_status = ""
+	_design = {}
+	for t in PARTS:
+		_design[t] = {"fabric": 0, "color": 0, "pattern": 0, "style_idx": 0}
+	GameState.input_locked = true
+	visible = true
+	_style()
+	_update_camera()
+	_refresh()
+
+
+func close() -> void:
+	visible = false
+	GameState.input_locked = false
+	if _rig != null:
+		_rig.unfocus()
+	_mirror = null
+
+
+func _build_preview() -> void:
+	_swatch = MaterialSwatch.new()
+	_swatch.swatch_size = 96
+	_preview.add_child(_swatch)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	_preview.add_child(info)
+	_name_label = Label.new()
+	_name_label.add_theme_font_size_override("font_size", 20)
+	info.add_child(_name_label)
+	_sub_label = Label.new()
+	_sub_label.add_theme_font_size_override("font_size", 14)
+	_sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(_sub_label)
+
+
+func _style() -> void:
+	_panel.add_theme_stylebox_override("panel", Style.panel())
+	_preview.add_theme_constant_override("separation", Style.S3)
+	_title.add_theme_font_size_override("font_size", 24)
+	_title.add_theme_color_override("font_color", Style.INK)
+	_name_label.add_theme_color_override("font_color", Style.INK)
+	_sub_label.add_theme_color_override("font_color", Style.INK_SOFT)
+	_hint.add_theme_font_size_override("font_size", 14)
+	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
+	_rows.add_theme_constant_override("separation", Style.S1)
+
+
+# --- State -----------------------------------------------------------------
+
+func _type() -> int:
+	return PARTS[_part_sel] if _part_sel >= 0 else -1
+
+
+func _cfg() -> Dictionary:
+	return _design[_type()] if _part_sel >= 0 else {}
+
+
+func _active_rows() -> Array:
+	if _part_sel < 0:
+		return [Row.PART]
+	return [Row.PART, Row.FABRIC, Row.COLOR, Row.PATTERN, Row.STYLE]
+
+
+func _material() -> MaterialType:
+	var t := _type() if _part_sel >= 0 else int(Enums.GarmentType.JACKET)
+	var c: Dictionary = _design[t]
+	return MaterialFactory.make(c["fabric"], c["pattern"], c["color"], 1.0)
+
+
+func _value_text(row: int) -> String:
+	if row == Row.PART:
+		return "Overview" if _part_sel < 0 else Enums.garment_type_name(_type())
+	var c := _cfg()
+	if row == Row.FABRIC:
+		return Enums.fabric_name(c["fabric"])
+	if row == Row.COLOR:
+		return MaterialFactory.color_name(c["color"])
+	if row == Row.PATTERN:
+		return Enums.pattern_name(c["pattern"])
+	return Enums.styles_for(_type())[c["style_idx"]]
+
+
+# --- Camera ----------------------------------------------------------------
+
+func _update_camera() -> void:
+	if _rig == null or _customer == null:
+		return
+	var front: Vector3 = _customer.facing()
+	if _part_sel < 0:
+		var c: Vector3 = _customer.center()
+		_rig.focus(c + front * 3.2 + Vector3(0, 0.7, 0), c)
+	else:
+		var p: Vector3 = _customer.part_position(_type())
+		_rig.focus(p + front * 1.7 + Vector3(0, 0.2, 0), p)
+
+
+# --- Rendering -------------------------------------------------------------
+
+func _refresh() -> void:
+	_title.text = "Suit Builder"
+	var mat := _material()
+	_swatch.setup(mat, mat.roll_length_m)
+	if _part_sel < 0:
+		_name_label.text = "Whole suit"
+		_sub_label.text = "Pick a part to design and zoom in."
+	else:
+		_name_label.text = "%s — %s" % [Enums.garment_type_name(_type()), mat.display_name]
+		_sub_label.text = "%s  ·  %s" % [mat.summary(), Enums.styles_for(_type())[_cfg()["style_idx"]]]
+	_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
+
+	var rows := _active_rows()
+	_row = clampi(_row, 0, rows.size() - 1)
+	for child in _rows.get_children():
+		child.queue_free()
+	for i in rows.size():
+		_rows.add_child(_make_row(rows[i], i == _row))
+
+
+func _make_row(row: int, selected: bool) -> Control:
+	var card := PanelContainer.new()
+	if selected:
+		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.LEAF))
+	else:
+		card.add_theme_stylebox_override("panel", Style.card())
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", Style.S2)
+	card.add_child(hbox)
+	var name_label := Label.new()
+	name_label.text = ROW_NAME[row]
+	name_label.custom_minimum_size = Vector2(96, 0)
+	name_label.add_theme_color_override("font_color", Style.INK_SOFT)
+	name_label.add_theme_font_size_override("font_size", 17)
+	hbox.add_child(name_label)
+	var value := Label.new()
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value.text = ("‹ %s ›" % _value_text(row)) if selected else _value_text(row)
+	value.add_theme_color_override("font_color", Style.INK)
+	value.add_theme_font_size_override("font_size", 18)
+	hbox.add_child(value)
+	return card
+
+
+# --- Input -----------------------------------------------------------------
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_down") or event.is_action_pressed("move_back"):
+		_move_row(1)
+	elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_forward"):
+		_move_row(-1)
+	elif event.is_action_pressed("move_right"):
+		_adjust(1)
+	elif event.is_action_pressed("move_left"):
+		_adjust(-1)
+	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
+		_confirm()
+	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+		close()
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+
+func _move_row(delta: int) -> void:
+	_status = ""
+	var n := _active_rows().size()
+	_row = (_row + delta + n) % n
+	_refresh()
+
+
+func _adjust(dir: int) -> void:
+	_status = ""
+	var row: int = _active_rows()[_row]
+	if row == Row.PART:
+		_part_sel = wrapi(_part_sel + dir, -1, PARTS.size())
+		_update_camera()
+	else:
+		var c := _cfg()
+		match row:
+			Row.FABRIC:
+				c["fabric"] = wrapi(c["fabric"] + dir, 0, 5)
+			Row.COLOR:
+				c["color"] = wrapi(c["color"] + dir, 0, MaterialFactory.color_count())
+			Row.PATTERN:
+				c["pattern"] = wrapi(c["pattern"] + dir, 0, 9)
+			Row.STYLE:
+				c["style_idx"] = wrapi(c["style_idx"] + dir, 0, Enums.styles_for(_type()).size())
+	_refresh()
+
+
+func _confirm() -> void:
+	EventBus.design_confirmed.emit(_design.duplicate(true))
+	_status = "     Design saved!"
+	_refresh()

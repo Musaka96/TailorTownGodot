@@ -25,3 +25,6 @@ signal cloth_cut(piece: Node, source_roll: Node)
 
 # --- Assembly ---
 signal suit_packaged(suit: Node)
+
+# --- Customer / design ---
+signal design_confirmed(design: Dictionary)

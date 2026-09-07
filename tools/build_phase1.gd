@@ -10,6 +10,8 @@ const GARMENT_PIECE_SCENE := "res://entities/items/garment_piece.tscn"
 const SUIT_SCENE := "res://entities/items/suit.tscn"
 const RACK_SCENE := "res://stations/clothing_rack/clothing_rack.tscn"
 const MANNEQUIN_SCENE := "res://stations/mannequin/mannequin.tscn"
+const CUSTOMER_SCENE := "res://entities/customer/customer.tscn"
+const MIRROR_SCENE := "res://stations/mirror/mirror.tscn"
 const SHELF_SCENE := "res://stations/shelf/shelf.tscn"
 const PHONE_SCENE := "res://stations/phone/phone.tscn"
 const WORKTABLE_SCENE := "res://stations/worktable/worktable.tscn"
@@ -48,6 +50,8 @@ func _initialize() -> void:
 	_build_sewing_machine_scene()
 	_build_clothing_rack_scene()
 	_build_mannequin_scene()
+	_build_customer_scene()
+	_build_mirror_scene()
 	_build_ui_scene()
 	_build_player_scene()
 	_build_room_scene()
@@ -131,25 +135,34 @@ func _build_garment_piece_scene() -> void:
 	root.name = "GarmentPiece"
 	root.set_script(load("res://entities/items/garment_piece.gd"))
 
-	var mesh := MeshInstance3D.new()
-	mesh.name = "Mesh"
-	var box := BoxMesh.new()
-	box.size = Vector3(0.55, 0.06, 0.45)
-	mesh.mesh = box
-	mesh.position = Vector3(0, 0.03, 0)
-	root.add_child(mesh)
+	# Distinct flat silhouettes per type (garment_piece.gd shows/colours one).
+	var models := Node3D.new()
+	models.name = "Models"
+	root.add_child(models)
+	var gray := StandardMaterial3D.new()
+	gray.albedo_color = Color(0.6, 0.6, 0.6)
 
-	# A small chalk-mark tag so a cut part reads differently from raw cloth.
-	var tag := MeshInstance3D.new()
-	tag.name = "Tag"
-	var tag_box := BoxMesh.new()
-	tag_box.size = Vector3(0.12, 0.02, 0.12)
-	tag.mesh = tag_box
-	var tag_mat := StandardMaterial3D.new()
-	tag_mat.albedo_color = Color(0.95, 0.94, 0.9)
-	tag.material_override = tag_mat
-	tag.position = Vector3(0.16, 0.07, 0.14)
-	root.add_child(tag)
+	var shirt := Node3D.new()
+	shirt.name = "Shirt"
+	models.add_child(shirt)
+	_add_box_mesh(shirt, "Torso", Vector3(0.34, 0.05, 0.4), Vector3(0, 0.025, 0), gray)
+	_add_box_mesh(shirt, "SleeveL", Vector3(0.14, 0.05, 0.16), Vector3(-0.24, 0.025, 0.12), gray)
+	_add_box_mesh(shirt, "SleeveR", Vector3(0.14, 0.05, 0.16), Vector3(0.24, 0.025, 0.12), gray)
+
+	var pants := Node3D.new()
+	pants.name = "Pants"
+	models.add_child(pants)
+	_add_box_mesh(pants, "Waist", Vector3(0.32, 0.05, 0.12), Vector3(0, 0.025, 0.2), gray)
+	_add_box_mesh(pants, "LegL", Vector3(0.13, 0.05, 0.42), Vector3(-0.09, 0.025, -0.02), gray)
+	_add_box_mesh(pants, "LegR", Vector3(0.13, 0.05, 0.42), Vector3(0.09, 0.025, -0.02), gray)
+
+	var jacket := Node3D.new()
+	jacket.name = "Jacket"
+	models.add_child(jacket)
+	_add_box_mesh(jacket, "Back", Vector3(0.44, 0.06, 0.44), Vector3(0, 0.03, 0), gray)
+	_add_box_mesh(jacket, "LapelL", Vector3(0.09, 0.07, 0.3), Vector3(-0.14, 0.035, 0.1), gray)
+	_add_box_mesh(jacket, "LapelR", Vector3(0.09, 0.07, 0.3), Vector3(0.14, 0.035, 0.1), gray)
+	_add_box_mesh(jacket, "Collar", Vector3(0.3, 0.07, 0.08), Vector3(0, 0.035, 0.24), gray)
 
 	var area := Area3D.new()
 	area.name = "Interactable"
@@ -341,6 +354,79 @@ func _build_mannequin_scene() -> void:
 	_add_marker(root, "JacketSlot", Vector3(0, 1.28, 0.22))
 	_add_station_interactable(root, Vector3(1.4, 2.0, 1.4), Vector3(0, 1.0, 0.5))
 	_save(root, MANNEQUIN_SCENE)
+
+
+func _build_customer_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Customer"
+	root.set_script(load("res://entities/customer/customer.gd"))
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = Color(0.55, 0.58, 0.64)
+	var skin := StandardMaterial3D.new()
+	skin.albedo_color = Color(0.86, 0.72, 0.61)
+	_add_box_mesh(body, "LegL", Vector3(0.16, 0.8, 0.18), Vector3(-0.12, 0.4, 0), cloth)
+	_add_box_mesh(body, "LegR", Vector3(0.16, 0.8, 0.18), Vector3(0.12, 0.4, 0), cloth)
+	_add_box_mesh(body, "Torso", Vector3(0.42, 0.6, 0.24), Vector3(0, 1.15, 0), cloth)
+	_add_box_mesh(body, "ArmL", Vector3(0.11, 0.5, 0.12), Vector3(-0.29, 1.15, 0), cloth)
+	_add_box_mesh(body, "ArmR", Vector3(0.11, 0.5, 0.12), Vector3(0.29, 1.15, 0), cloth)
+	var head := MeshInstance3D.new()
+	head.name = "Head"
+	var sph := SphereMesh.new()
+	sph.radius = 0.14
+	sph.height = 0.28
+	head.mesh = sph
+	head.material_override = skin
+	head.position = Vector3(0, 1.62, 0)
+	body.add_child(head)
+	var col := CollisionShape3D.new()
+	col.name = "Collision"
+	var cbox := BoxShape3D.new()
+	cbox.size = Vector3(0.55, 1.8, 0.4)
+	col.shape = cbox
+	col.position = Vector3(0, 0.9, 0)
+	body.add_child(col)
+	_add_marker(root, "PantsAnchor", Vector3(0, 0.5, 0.16))
+	_add_marker(root, "ShirtAnchor", Vector3(0, 1.2, 0.16))
+	_add_marker(root, "JacketAnchor", Vector3(0, 1.2, 0.2))
+	_save(root, CUSTOMER_SCENE)
+
+
+func _build_mirror_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Mirror"
+	root.set_script(load("res://stations/mirror/mirror.gd"))
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var frame_mat := StandardMaterial3D.new()
+	frame_mat.albedo_color = Color(0.28, 0.2, 0.14)
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.68, 0.78, 0.85)
+	glass.metallic = 0.6
+	glass.roughness = 0.1
+	var stool_mat := StandardMaterial3D.new()
+	stool_mat.albedo_color = Color(0.5, 0.38, 0.26)
+	# Mirror against the back of the station.
+	_add_box_mesh(body, "Frame", Vector3(1.2, 2.2, 0.1), Vector3(0, 1.1, -0.5), frame_mat)
+	_add_box_mesh(body, "Glass", Vector3(1.0, 1.9, 0.02), Vector3(0, 1.15, -0.44), glass)
+	_add_box_mesh(body, "Stool", Vector3(0.4, 0.45, 0.4), Vector3(0.95, 0.22, 0.3), stool_mat)
+	var col := CollisionShape3D.new()
+	col.name = "Collision"
+	var cbox := BoxShape3D.new()
+	cbox.size = Vector3(1.3, 2.2, 0.3)
+	col.shape = cbox
+	col.position = Vector3(0, 1.1, -0.45)
+	body.add_child(col)
+	# Customer stands in front of the mirror, facing the room (+Z).
+	var customer: Node = load(CUSTOMER_SCENE).instantiate()
+	customer.name = "Customer"
+	customer.position = Vector3(0, 0, 0.1)
+	root.add_child(customer)
+	_add_station_interactable(root, Vector3(2.0, 1.8, 1.4), Vector3(0, 0.9, 1.0))
+	_save(root, MIRROR_SCENE)
 
 
 func _add_marker(parent: Node, node_name: String, pos: Vector3) -> void:
@@ -591,6 +677,47 @@ func _build_ui_scene() -> void:
 	sew_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sew.add_child(sew_dim)
 
+	# Suit builder — a right-side panel (no dim) so the customer stays visible.
+	var sb := Control.new()
+	sb.name = "SuitBuilder"
+	sb.set_script(load("res://ui/suit_builder.gd"))
+	sb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(sb)
+	var sb_panel := PanelContainer.new()
+	sb_panel.name = "Panel"
+	sb_panel.anchor_left = 1.0
+	sb_panel.anchor_top = 0.0
+	sb_panel.anchor_right = 1.0
+	sb_panel.anchor_bottom = 1.0
+	sb_panel.offset_left = -470
+	sb_panel.offset_top = 16
+	sb_panel.offset_right = -16
+	sb_panel.offset_bottom = -16
+	sb.add_child(sb_panel)
+	var sb_margin := MarginContainer.new()
+	sb_margin.name = "Margin"
+	for side in ["left", "top", "right", "bottom"]:
+		sb_margin.add_theme_constant_override("margin_" + side, 8)
+	sb_panel.add_child(sb_margin)
+	var sb_box := VBoxContainer.new()
+	sb_box.name = "Box"
+	sb_box.add_theme_constant_override("separation", 8)
+	sb_margin.add_child(sb_box)
+	var sb_title := Label.new()
+	sb_title.name = "Title"
+	sb_box.add_child(sb_title)
+	var sb_preview := HBoxContainer.new()
+	sb_preview.name = "Preview"
+	sb_box.add_child(sb_preview)
+	var sb_rows := VBoxContainer.new()
+	sb_rows.name = "Rows"
+	sb_rows.add_theme_constant_override("separation", 4)
+	sb_box.add_child(sb_rows)
+	var sb_hint := Label.new()
+	sb_hint.name = "Hint"
+	sb_box.add_child(sb_hint)
+
 	_save(root, UI_SCENE)
 
 
@@ -780,6 +907,11 @@ func _build_room_scene() -> void:
 	var mannequin: Node = load(MANNEQUIN_SCENE).instantiate()
 	mannequin.position = Vector3(-2.5, 0, -6.7)
 	root.add_child(mannequin)
+
+	# Mirror + customer, facing the room so the camera can frame from the front.
+	var mirror: Node = load(MIRROR_SCENE).instantiate()
+	mirror.position = Vector3(3.0, 0, -6.5)
+	root.add_child(mirror)
 
 	# Scatter material rolls on the floor
 	var roll_scene: PackedScene = load(ROLL_SCENE)

@@ -5,6 +5,12 @@ extends Node3D
 ## and style, cut from a material with a quality score from the cutting minigame.
 ## Next stop is the sewing machine (later phase). Carryable like the other items.
 
+const MODEL_NAME := {
+	Enums.GarmentType.SHIRT: "Shirt",
+	Enums.GarmentType.PANTS: "Pants",
+	Enums.GarmentType.JACKET: "Jacket",
+}
+
 @export var material: MaterialType
 @export var garment_type: Enums.GarmentType = Enums.GarmentType.SHIRT
 @export var size: Enums.Size = Enums.Size.M
@@ -12,7 +18,7 @@ extends Node3D
 @export var quality: float = 1.0
 @export var stage: Enums.Stage = Enums.Stage.CUT
 
-@onready var _mesh: MeshInstance3D = $Mesh
+@onready var _models: Node3D = $Models
 @onready var _interactable: Interactable = $Interactable
 
 
@@ -50,8 +56,16 @@ func _sit_at(new_parent: Node3D) -> void:
 
 
 func _apply_visual() -> void:
-	if _mesh == null:
+	if _models == null:
 		return
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = material.cloth_color if material else Color(0.7, 0.7, 0.7)
-	_mesh.material_override = mat
+	var show_name: String = MODEL_NAME.get(garment_type, "Shirt")
+	var color := material.cloth_color if material else Color(0.7, 0.7, 0.7)
+	for model in _models.get_children():
+		var visible_now: bool = model.name == show_name
+		model.visible = visible_now
+		if visible_now:
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = color
+			for piece in model.get_children():
+				if piece is MeshInstance3D:
+					piece.material_override = mat
