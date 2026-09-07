@@ -128,29 +128,33 @@ const PATTERNS := [
 	],
 ]
 
+# [title, body, image]
 const STYLES := [
 	[
 		"Old-School",
 		"Heritage tailoring. Structured shoulders, a fuller, draped cut, sober colour and "
-		+ "time-honoured patterns like pinstripe and herringbone. Formal and unmistakably "
-		+ "traditional — the look of old money and old films.",
+		+ "time-honoured patterns like check and herringbone, often with a waistcoat. Formal "
+		+ "and unmistakably traditional — the look of old money and old films.",
+		"res://assets/handbook/styles/oldschool.jpg",
 	],
 	[
 		"Classic",
 		"The balanced middle ground: clean lines, versatile navy and grey, understated "
 		+ "pattern. It borrows from no single era and so never dates — the dependable "
 		+ "default of a well-dressed wardrobe.",
+		"res://assets/handbook/styles/classic.jpg",
 	],
 	[
 		"Modern",
-		"A trimmer, contemporary cut with fresher colour and subtle texture such as "
-		+ "sharkskin or glen check. Sharp and current, but still restrained enough for "
-		+ "serious rooms.",
+		"A trimmer, contemporary cut with fresher colour, peak lapels and confident pattern "
+		+ "mixing. Sharp and current — made to look of-the-moment.",
+		"res://assets/handbook/styles/modern.jpg",
 	],
 	[
 		"Fashion",
-		"Expressive and trend-led. Lighter and bolder colour, statement patterns like "
-		+ "windowpane and houndstooth, and unexpected cloth. Cut to be noticed.",
+		"Expressive and trend-led. Bolder colour, statement patterns like windowpane, and "
+		+ "playful touches — a bow tie, an unexpected cloth. Cut to be noticed.",
+		"res://assets/handbook/styles/fashion.jpg",
 	],
 ]
 
@@ -190,14 +194,14 @@ static func chapters() -> Array:
 		{"name": "Dress Codes", "entries": _dress_entries()},
 		{"name": "Fabrics", "entries": _swatch_entries(FABRICS, "fabric")},
 		{"name": "Patterns", "entries": _swatch_entries(PATTERNS, "pattern")},
-		{"name": "Styles", "entries": _plain_entries(STYLES)},
+		{"name": "Styles", "entries": _style_entries()},
 	]
 
 
-static func _plain_entries(data: Array) -> Array:
+static func _style_entries() -> Array:
 	var out: Array = []
-	for e in data:
-		out.append({"title": e[0], "body": e[1], "preview": {}})
+	for e in STYLES:
+		out.append({"title": e[0], "body": e[1], "preview": {"image": e[2]}})
 	return out
 
 

@@ -69,18 +69,27 @@ func _refresh() -> void:
 		child.queue_free()
 	var preview: Dictionary = entry.get("preview", {})
 	if not preview.is_empty():
-		_preview.add_child(_make_swatch(preview))
+		_preview.add_child(_make_preview(preview))
 	_body.text = "[b]%s[/b]\n\n%s" % [entry["title"], entry["body"]]
 	_hint.text = "A/D chapter    W/S topic    Esc close"
 
 
-func _make_swatch(preview: Dictionary) -> Control:
+func _make_preview(preview: Dictionary) -> Control:
+	# A reference photo (styles) …
+	if preview.has("image"):
+		var rect := TextureRect.new()
+		rect.texture = load(preview["image"]) as Texture2D
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rect.custom_minimum_size = Vector2(210, 285)
+		rect.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		rect.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		return rect
+	# … or a cloth swatch (fabrics/patterns).
 	var mat: MaterialType
 	if preview.has("fabric"):
-		# that fabric, plain, in a neutral charcoal so the weave reads
 		mat = MaterialFactory.make(preview["fabric"], Enums.Pattern.SOLID, 1, 1.0)
 	else:
-		# that pattern on a navy worsted ground
 		mat = MaterialFactory.make(Enums.Fabric.WORSTED_WOOL, preview["pattern"], 0, 1.0)
 	var swatch := MaterialSwatch.new()
 	swatch.swatch_size = 112

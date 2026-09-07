@@ -1,24 +1,15 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cf88wtft1fjxt"]
 
 [ext_resource type="PackedScene" path="res://stations/shelf/shelf.tscn" id="1_2a88l"]
-[ext_resource type="Script" path="res://stations/shelf/shelf.gd" id="2_j5y0n"]
 [ext_resource type="PackedScene" path="res://stations/phone/phone.tscn" id="3_jtjmr"]
-[ext_resource type="Script" path="res://stations/phone/phone.gd" id="4_h0rls"]
 [ext_resource type="PackedScene" path="res://stations/worktable/worktable.tscn" id="5_usqlc"]
-[ext_resource type="Script" path="res://stations/worktable/worktable.gd" id="6_tajrx"]
 [ext_resource type="PackedScene" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_f0faw"]
-[ext_resource type="Script" path="res://stations/sewing_machine/sewing_machine.gd" id="8_pw4dj"]
 [ext_resource type="PackedScene" path="res://stations/bookshelf/bookshelf.tscn" id="9_o426c"]
-[ext_resource type="Script" path="res://stations/bookshelf/bookshelf.gd" id="10_yrsd5"]
 [ext_resource type="PackedScene" path="res://stations/clothing_rack/clothing_rack.tscn" id="11_26bn3"]
-[ext_resource type="Script" path="res://stations/clothing_rack/clothing_rack.gd" id="12_cstfg"]
 [ext_resource type="PackedScene" path="res://stations/mannequin/mannequin.tscn" id="13_ckdgv"]
-[ext_resource type="Script" path="res://stations/mannequin/mannequin.gd" id="14_mh4gb"]
 [ext_resource type="PackedScene" path="res://stations/mirror/mirror.tscn" id="15_walcy"]
-[ext_resource type="Script" path="res://stations/mirror/mirror.gd" id="16_ne8pp"]
-[ext_resource type="Script" path="res://entities/customer/customer_manager.gd" id="17_08xdy"]
+[ext_resource type="Script" uid="uid://4777dfdbrk2e" path="res://entities/customer/customer_manager.gd" id="17_08xdy"]
 [ext_resource type="PackedScene" path="res://entities/items/material_roll.tscn" id="18_qasyn"]
-[ext_resource type="Script" path="res://entities/items/material_roll.gd" id="19_f7f05"]
 [ext_resource type="Resource" path="res://data/materials/navy_worsted_solid.tres" id="20_j7vby"]
 [ext_resource type="Resource" path="res://data/materials/charcoal_worsted_pinstripe.tres" id="21_d3xxm"]
 [ext_resource type="Resource" path="res://data/materials/brown_tweed_herringbone.tres" id="22_n46ak"]
@@ -28,14 +19,11 @@
 [ext_resource type="Resource" path="res://data/materials/black_worsted_solid.tres" id="26_xfnwj"]
 [ext_resource type="Resource" path="res://data/materials/burgundy_mohair_birdseye.tres" id="27_5nk8p"]
 [ext_resource type="PackedScene" path="res://entities/items/fabric_piece.tscn" id="28_5qj3b"]
-[ext_resource type="Script" path="res://entities/items/fabric_piece.gd" id="29_h3dsl"]
 [ext_resource type="Resource" path="res://data/materials/navy_worsted_pinstripe.tres" id="30_swjr5"]
 [ext_resource type="PackedScene" path="res://entities/items/garment_piece.tscn" id="31_d7rrd"]
-[ext_resource type="Script" path="res://entities/items/garment_piece.gd" id="32_xfabo"]
 [ext_resource type="Resource" path="res://data/materials/charcoal_worsted_solid.tres" id="33_errh0"]
 [ext_resource type="Resource" path="res://data/materials/lightgrey_worsted_sharkskin.tres" id="34_eig6a"]
 [ext_resource type="PackedScene" path="res://entities/items/suit.tscn" id="35_knglg"]
-[ext_resource type="Script" path="res://entities/items/suit.gd" id="36_j5kd1"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
@@ -93,65 +81,11 @@ size = Vector3(0.3, 3, 16)
 [sub_resource type="BoxShape3D" id="BoxShape3D_0jih7"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kadwv"]
-albedo_color = Color(0.55, 0.54, 0.5, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_816nw"]
-size = Vector3(48, 1, 4)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_3fqpp"]
 size = Vector3(48, 1, 4)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oq2t0"]
-albedo_color = Color(0.22, 0.22, 0.24, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_2iwgw"]
-size = Vector3(60, 1, 10)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_y34p1"]
 size = Vector3(60, 1, 10)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mnxss"]
-albedo_color = Color(0.85, 0.82, 0.6, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_6sk1p"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_0pgqb"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_i8kkj"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_daxhr"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_u2fmw"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_msw3p"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_58jca"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_iwt81"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_njnw8"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_f5pdn"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_2an8x"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_tqjjx"]
-size = Vector3(1.4, 0.02, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_1aa6w"]
-size = Vector3(1.4, 0.02, 0.2)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_imd4p"]
 albedo_color = Color(0.71, 0.28, 0.24, 1)
@@ -231,44 +165,31 @@ mesh = SubResource("BoxMesh_fjjdy")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
 shape = SubResource("BoxShape3D_0jih7")
 
-[node name="Shelf" type="Node3D" parent="." unique_id=2137070260 instance=ExtResource("1_2a88l")]
+[node name="Shelf" parent="." unique_id=2137070260 instance=ExtResource("1_2a88l")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -7)
-script = ExtResource("2_j5y0n")
 
-[node name="Phone" type="Node3D" parent="." unique_id=244267950 instance=ExtResource("3_jtjmr")]
+[node name="Phone" parent="." unique_id=244267950 instance=ExtResource("3_jtjmr")]
 transform = Transform3D(0.81915206, 0, 0.57357645, 0, 1, 0, -0.57357645, 0, 0.81915206, -6, 0, -5.5)
-script = ExtResource("4_h0rls")
 
-[node name="Worktable" type="Node3D" parent="." unique_id=2080952600 instance=ExtResource("5_usqlc")]
+[node name="Worktable" parent="." unique_id=2080952600 instance=ExtResource("5_usqlc")]
 transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 6, 0, -5)
-script = ExtResource("6_tajrx")
 
-[node name="SewingMachine" type="Node3D" parent="." unique_id=1098430318 instance=ExtResource("7_f0faw")]
+[node name="SewingMachine" parent="." unique_id=1098430318 instance=ExtResource("7_f0faw")]
 transform = Transform3D(0.17364822, 0, -0.9848077, 0, 1, 0, 0.9848077, 0, 0.17364822, 6.5, 0, -1)
-script = ExtResource("8_pw4dj")
 
-[node name="Bookshelf" type="Node3D" parent="." unique_id=765844317 instance=ExtResource("9_o426c")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 7.3, 0, 3)
-script = ExtResource("10_yrsd5")
+[node name="Bookshelf" parent="." unique_id=765844317 instance=ExtResource("9_o426c")]
+transform = Transform3D(0.011412329, 0, -0.99993485, 0, 1, 0, 0.99993485, 0, 0.011412329, 7.3, 0.043023825, 3)
 
-[node name="ClothingRack" type="Node3D" parent="." unique_id=1799385403 instance=ExtResource("11_26bn3")]
+[node name="ClothingRack" parent="." unique_id=1799385403 instance=ExtResource("11_26bn3")]
 transform = Transform3D(0.17364822, 0, 0.9848077, 0, 1, 0, -0.9848077, 0, 0.17364822, -6.5, 0, -1)
-script = ExtResource("12_cstfg")
 
-[node name="Mannequin" type="Node3D" parent="." unique_id=1760003643 instance=ExtResource("13_ckdgv")]
+[node name="Mannequin" parent="." unique_id=1760003643 instance=ExtResource("13_ckdgv")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -6.7)
-script = ExtResource("14_mh4gb")
 
-[node name="Mirror" type="Node3D" parent="." unique_id=270766224 instance=ExtResource("15_walcy")]
+[node name="Mirror" parent="." unique_id=270766224 instance=ExtResource("15_walcy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -6.5)
-script = ExtResource("16_ne8pp")
 
 [node name="Sidewalk" type="StaticBody3D" parent="." unique_id=1313181017]
-
-[node name="PathMesh" type="MeshInstance3D" parent="Sidewalk" unique_id=420171845]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 10)
-material_override = SubResource("StandardMaterial3D_kadwv")
-mesh = SubResource("BoxMesh_816nw")
 
 [node name="PathCol" type="CollisionShape3D" parent="Sidewalk" unique_id=220170867]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 10)
@@ -276,79 +197,9 @@ shape = SubResource("BoxShape3D_3fqpp")
 
 [node name="Street" type="StaticBody3D" parent="." unique_id=1024456187]
 
-[node name="AsphaltMesh" type="MeshInstance3D" parent="Street" unique_id=760652643]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 17)
-material_override = SubResource("StandardMaterial3D_oq2t0")
-mesh = SubResource("BoxMesh_2iwgw")
-
 [node name="AsphaltCol" type="CollisionShape3D" parent="Street" unique_id=538795973]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 17)
 shape = SubResource("BoxShape3D_y34p1")
-
-[node name="Lane_-6" type="MeshInstance3D" parent="Street" unique_id=674090728]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_6sk1p")
-
-[node name="Lane_-5" type="MeshInstance3D" parent="Street" unique_id=647480176]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_0pgqb")
-
-[node name="Lane_-4" type="MeshInstance3D" parent="Street" unique_id=1499144097]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_i8kkj")
-
-[node name="Lane_-3" type="MeshInstance3D" parent="Street" unique_id=583682838]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_daxhr")
-
-[node name="Lane_-2" type="MeshInstance3D" parent="Street" unique_id=2114507403]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_u2fmw")
-
-[node name="Lane_-1" type="MeshInstance3D" parent="Street" unique_id=1933338160]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_msw3p")
-
-[node name="Lane_0" type="MeshInstance3D" parent="Street" unique_id=661051009]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_58jca")
-
-[node name="Lane_1" type="MeshInstance3D" parent="Street" unique_id=795293996]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_iwt81")
-
-[node name="Lane_2" type="MeshInstance3D" parent="Street" unique_id=419902501]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_njnw8")
-
-[node name="Lane_3" type="MeshInstance3D" parent="Street" unique_id=1965261117]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_f5pdn")
-
-[node name="Lane_4" type="MeshInstance3D" parent="Street" unique_id=1769913665]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_2an8x")
-
-[node name="Lane_5" type="MeshInstance3D" parent="Street" unique_id=1758041410]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_tqjjx")
-
-[node name="Lane_6" type="MeshInstance3D" parent="Street" unique_id=666182766]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.01, 17)
-material_override = SubResource("StandardMaterial3D_mnxss")
-mesh = SubResource("BoxMesh_1aa6w")
 
 [node name="Storefront" type="Node3D" parent="." unique_id=7638284]
 
@@ -395,51 +246,43 @@ door_out_path = NodePath("../Waypoints/DoorOutside")
 street_west_path = NodePath("../Waypoints/StreetWest")
 street_east_path = NodePath("../Waypoints/StreetEast")
 
-[node name="MaterialRoll" type="Node3D" parent="." unique_id=1242550356 instance=ExtResource("18_qasyn")]
+[node name="MaterialRoll" parent="." unique_id=1242550356 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.13, 2)
-script = ExtResource("19_f7f05")
 material = ExtResource("20_j7vby")
 remaining_length_m = 20.0
 
-[node name="@Node3D@22" type="Node3D" parent="." unique_id=702019543 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@22" parent="." unique_id=702019543 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.13, 3.2)
-script = ExtResource("19_f7f05")
 material = ExtResource("21_d3xxm")
 remaining_length_m = 9.5
 
-[node name="@Node3D@23" type="Node3D" parent="." unique_id=1240906424 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@23" parent="." unique_id=1240906424 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0.13, 2.6)
-script = ExtResource("19_f7f05")
 material = ExtResource("22_n46ak")
 remaining_length_m = 15.0
 
-[node name="@Node3D@24" type="Node3D" parent="." unique_id=817921658 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@24" parent="." unique_id=817921658 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.13, 1.4)
-script = ExtResource("19_f7f05")
 material = ExtResource("23_7lax8")
 remaining_length_m = 4.0
 
-[node name="@Node3D@25" type="Node3D" parent="." unique_id=398954415 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@25" parent="." unique_id=398954415 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.13, 0.4)
-script = ExtResource("19_f7f05")
 material = ExtResource("24_7mf47")
 remaining_length_m = 16.0
 
-[node name="@Node3D@26" type="Node3D" parent="." unique_id=1650843485 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@26" parent="." unique_id=1650843485 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0.13, -0.6)
-script = ExtResource("19_f7f05")
 material = ExtResource("25_43laf")
 remaining_length_m = 12.5
 
-[node name="@Node3D@27" type="Node3D" parent="." unique_id=145632256 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@27" parent="." unique_id=145632256 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.13, 1)
-script = ExtResource("19_f7f05")
 material = ExtResource("26_xfnwj")
 remaining_length_m = 20.0
 
-[node name="@Node3D@28" type="Node3D" parent="." unique_id=1738253111 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@28" parent="." unique_id=1738253111 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.13, -1.4)
-script = ExtResource("19_f7f05")
 material = ExtResource("27_5nk8p")
 remaining_length_m = 6.0
 
@@ -454,27 +297,23 @@ text = "CLOTH"
 font_size = 72
 outline_size = 14
 
-[node name="FabricPiece" type="Node3D" parent="." unique_id=419227716 instance=ExtResource("28_5qj3b")]
+[node name="FabricPiece" parent="." unique_id=419227716 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 5.2)
-script = ExtResource("29_h3dsl")
 material = ExtResource("30_swjr5")
 length_m = 2.5
 
-[node name="@Node3D@30" type="Node3D" parent="." unique_id=1603196638 instance=ExtResource("28_5qj3b")]
+[node name="@Node3D@30" parent="." unique_id=1603196638 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 5.2)
-script = ExtResource("29_h3dsl")
 material = ExtResource("22_n46ak")
 length_m = 3.0
 
-[node name="@Node3D@31" type="Node3D" parent="." unique_id=652034609 instance=ExtResource("28_5qj3b")]
+[node name="@Node3D@31" parent="." unique_id=652034609 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 5.2)
-script = ExtResource("29_h3dsl")
 material = ExtResource("23_7lax8")
 length_m = 1.5
 
-[node name="@Node3D@32" type="Node3D" parent="." unique_id=102265762 instance=ExtResource("28_5qj3b")]
+[node name="@Node3D@32" parent="." unique_id=102265762 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.74, 0.03, 5.2)
-script = ExtResource("29_h3dsl")
 material = ExtResource("24_7mf47")
 length_m = 2.0
 
@@ -489,24 +328,21 @@ text = "CUT PARTS"
 font_size = 72
 outline_size = 14
 
-[node name="GarmentPiece" type="Node3D" parent="." unique_id=547495652 instance=ExtResource("31_d7rrd")]
+[node name="GarmentPiece" parent="." unique_id=547495652 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 4)
-script = ExtResource("32_xfabo")
 material = ExtResource("33_errh0")
 quality = 0.85
 
-[node name="@Node3D@34" type="Node3D" parent="." unique_id=128939810 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@34" parent="." unique_id=128939810 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 4)
-script = ExtResource("32_xfabo")
 material = ExtResource("25_43laf")
 garment_type = 1
 size = 2
 style = "Flat Front"
 quality = 0.75
 
-[node name="@Node3D@35" type="Node3D" parent="." unique_id=693018769 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@35" parent="." unique_id=693018769 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 4)
-script = ExtResource("32_xfabo")
 material = ExtResource("30_swjr5")
 garment_type = 2
 style = "Single-Breasted"
@@ -523,17 +359,15 @@ text = "SEWN PARTS"
 font_size = 72
 outline_size = 14
 
-[node name="@Node3D@37" type="Node3D" parent="." unique_id=1083264249 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@37" parent="." unique_id=1083264249 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 2.8)
-script = ExtResource("32_xfabo")
 material = ExtResource("34_eig6a")
 style = "Slim"
 quality = 0.9
 stage = 3
 
-[node name="@Node3D@38" type="Node3D" parent="." unique_id=826346737 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@38" parent="." unique_id=826346737 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 2.8)
-script = ExtResource("32_xfabo")
 material = ExtResource("21_d3xxm")
 garment_type = 1
 size = 2
@@ -541,9 +375,8 @@ style = "Pleated"
 quality = 0.85
 stage = 3
 
-[node name="@Node3D@39" type="Node3D" parent="." unique_id=1742878644 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@39" parent="." unique_id=1742878644 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 2.8)
-script = ExtResource("32_xfabo")
 material = ExtResource("26_xfnwj")
 garment_type = 2
 size = 2
@@ -562,20 +395,17 @@ text = "SUITS"
 font_size = 72
 outline_size = 14
 
-[node name="Suit" type="Node3D" parent="." unique_id=39199919 instance=ExtResource("35_knglg")]
+[node name="Suit" parent="." unique_id=39199919 instance=ExtResource("35_knglg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0, 1.6)
-script = ExtResource("36_j5kd1")
 quality = 0.9
 primary_color = Color(0.105882354, 0.16470589, 0.2901961, 1)
 
-[node name="@Node3D@41" type="Node3D" parent="." unique_id=540198646 instance=ExtResource("35_knglg")]
+[node name="@Node3D@41" parent="." unique_id=540198646 instance=ExtResource("35_knglg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0, 1.6)
-script = ExtResource("36_j5kd1")
 quality = 0.75
 primary_color = Color(0.21176471, 0.22352941, 0.24705882, 1)
 
-[node name="@Node3D@42" type="Node3D" parent="." unique_id=753162566 instance=ExtResource("35_knglg")]
+[node name="@Node3D@42" parent="." unique_id=753162566 instance=ExtResource("35_knglg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0, 1.6)
-script = ExtResource("36_j5kd1")
 quality = 0.6
 primary_color = Color(0.36078432, 0.12156863, 0.16470589, 1)
