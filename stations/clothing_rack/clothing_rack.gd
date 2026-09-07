@@ -4,8 +4,8 @@ extends Node3D
 ## Storage for finished garment parts. Hang a GarmentPiece on a free hook;
 ## empty-handed, take the most recently hung one back.
 
-var _slots: Array[Node3D] = []
 var stored: Array[Node] = []
+var _slots: Array[Node3D] = []
 
 @onready var _slots_root: Node3D = $Slots
 
