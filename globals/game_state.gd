@@ -16,6 +16,12 @@ signal pause_toggled(is_paused: bool)
 ## without pausing the whole tree.
 var input_locked := false
 
+## Shop wallet. Setter clamps at 0 and announces changes for the HUD.
+var money: int = 500:
+	set(value):
+		money = maxi(value, 0)
+		EventBus.money_changed.emit(money)
+
 var is_paused := false:
 	set(value):
 		if value == is_paused:
@@ -23,6 +29,22 @@ var is_paused := false:
 		is_paused = value
 		get_tree().paused = value
 		pause_toggled.emit(value)
+
+
+func can_afford(cost: int) -> bool:
+	return money >= cost
+
+
+## Deduct cost if affordable; returns whether it went through.
+func spend(cost: int) -> bool:
+	if cost > money:
+		return false
+	money -= cost
+	return true
+
+
+func earn(amount: int) -> void:
+	money += maxi(amount, 0)
 
 
 func _ready() -> void:

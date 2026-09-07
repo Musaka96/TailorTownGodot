@@ -25,6 +25,18 @@ func get_interaction_prompt(_actor) -> String:
 	return "Pick up %s" % material.display_name
 
 
+## Cut up to `length` metres off this bolt; returns how much was actually cut
+## (capped at what's left). Never goes negative.
+func cut(length: float) -> float:
+	var amount := minf(maxf(length, 0.0), remaining_length_m)
+	remaining_length_m -= amount
+	return amount
+
+
+func is_empty() -> bool:
+	return remaining_length_m <= 0.05
+
+
 func interact(actor) -> void:
 	actor.carry.try_pick_up(self)
 

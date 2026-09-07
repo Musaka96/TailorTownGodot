@@ -5,7 +5,10 @@ extends SceneTree
 ##   godot --headless --path . --script res://tools/build_phase1.gd
 
 const ROLL_SCENE := "res://entities/items/material_roll.tscn"
+const PIECE_SCENE := "res://entities/items/fabric_piece.tscn"
 const SHELF_SCENE := "res://stations/shelf/shelf.tscn"
+const PHONE_SCENE := "res://stations/phone/phone.tscn"
+const WORKTABLE_SCENE := "res://stations/worktable/worktable.tscn"
 const UI_SCENE := "res://ui/ui.tscn"
 const PLAYER_SCENE := "res://scenes/player/player.tscn"
 const ROOM_SCENE := "res://scenes/world/shop_room.tscn"
@@ -28,8 +31,13 @@ const FLOOR_ROLLS := [
 
 
 func _initialize() -> void:
+	# Order matters: fabric piece before shelf (shelf preloads it), roll before
+	# phone (phone preloads it).
+	_build_fabric_piece_scene()
 	_build_roll_scene()
 	_build_shelf_scene()
+	_build_phone_scene()
+	_build_worktable_scene()
 	_build_ui_scene()
 	_build_player_scene()
 	_build_room_scene()
@@ -71,6 +79,109 @@ func _build_roll_scene() -> void:
 	root.add_child(area)
 
 	_save(root, ROLL_SCENE)
+
+
+# --- Fabric piece ----------------------------------------------------------
+
+func _build_fabric_piece_scene() -> void:
+	var root := Node3D.new()
+	root.name = "FabricPiece"
+	root.set_script(load("res://entities/items/fabric_piece.gd"))
+
+	var mesh := MeshInstance3D.new()
+	mesh.name = "Mesh"
+	var box := BoxMesh.new()
+	box.size = Vector3(0.5, 0.06, 0.4)
+	mesh.mesh = box
+	mesh.position = Vector3(0, 0.03, 0)
+	root.add_child(mesh)
+
+	var area := Area3D.new()
+	area.name = "Interactable"
+	area.set_script(load(INTERACTABLE_SCRIPT))
+	area.collision_layer = INTERACT_LAYER
+	area.collision_mask = 0
+	area.monitoring = false
+	area.monitorable = true
+	var col := CollisionShape3D.new()
+	var box_shape := BoxShape3D.new()
+	box_shape.size = Vector3(0.55, 0.3, 0.45)
+	col.shape = box_shape
+	col.position = Vector3(0, 0.15, 0)
+	area.add_child(col)
+	root.add_child(area)
+
+	_save(root, PIECE_SCENE)
+
+
+# --- Phone station ---------------------------------------------------------
+
+func _build_phone_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Phone"
+	root.set_script(load("res://stations/phone/phone.gd"))
+
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var table_mat := StandardMaterial3D.new()
+	table_mat.albedo_color = Color(0.40, 0.28, 0.20)
+	_add_box_collider(body, "Table", Vector3(1.2, 0.9, 0.8), Vector3(0, 0.45, 0), table_mat)
+	var phone_mat := StandardMaterial3D.new()
+	phone_mat.albedo_color = Color(0.15, 0.15, 0.18)
+	_add_box_mesh(body, "Handset", Vector3(0.3, 0.12, 0.45), Vector3(0, 0.96, 0), phone_mat)
+
+	var delivery := Marker3D.new()
+	delivery.name = "DeliverySpot"
+	delivery.position = Vector3(1.2, 0.0, 0.3)  # on the floor beside the table
+	root.add_child(delivery)
+
+	_add_station_interactable(root, Vector3(1.4, 1.6, 1.4), Vector3(0, 0.8, 0.7))
+	_save(root, PHONE_SCENE)
+
+
+# --- Worktable station -----------------------------------------------------
+
+func _build_worktable_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Worktable"
+	root.set_script(load("res://stations/worktable/worktable.gd"))
+
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.52, 0.40, 0.28)
+	_add_box_collider(body, "Top", Vector3(1.6, 0.12, 1.0), Vector3(0, 0.9, 0), wood)
+	var leg := StandardMaterial3D.new()
+	leg.albedo_color = Color(0.40, 0.30, 0.20)
+	_add_box_mesh(body, "Leg", Vector3(1.5, 0.85, 0.9), Vector3(0, 0.42, 0), leg)
+
+	var slot := Marker3D.new()
+	slot.name = "Slot"
+	slot.position = Vector3(0, 0.99, 0)  # on the tabletop
+	root.add_child(slot)
+
+	_add_station_interactable(root, Vector3(1.8, 1.6, 1.5), Vector3(0, 0.9, 0.6))
+	_save(root, WORKTABLE_SCENE)
+
+
+func _add_station_interactable(root: Node3D, box_size: Vector3, box_pos: Vector3) -> void:
+	var area := Area3D.new()
+	area.name = "Interactable"
+	area.set_script(load(INTERACTABLE_SCRIPT))
+	area.set("target", root)
+	area.collision_layer = INTERACT_LAYER
+	area.collision_mask = 0
+	area.monitoring = false
+	area.monitorable = true
+	var col := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = box_size
+	col.shape = box
+	col.position = box_pos
+	area.add_child(col)
+	root.add_child(area)
 
 
 # --- Shelf -----------------------------------------------------------------
@@ -161,6 +272,16 @@ func _build_ui_scene() -> void:
 	held.add_theme_font_size_override("font_size", 18)
 	hud.add_child(held)
 
+	var money := Label.new()
+	money.name = "Money"
+	money.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	money.offset_left = -200
+	money.offset_top = 10
+	money.offset_right = -18
+	money.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money.add_theme_font_size_override("font_size", 24)
+	hud.add_child(money)
+
 	# Shelf menu
 	var menu := Control.new()
 	menu.name = "ShelfMenu"
@@ -209,7 +330,66 @@ func _build_ui_scene() -> void:
 	list.add_theme_constant_override("separation", 8)
 	box.add_child(list)
 
+	# Phone order screen
+	var phone_box := _build_modal(root, "PhoneOrder", "res://ui/phone_order.gd", 660)
+	var p_title := Label.new()
+	p_title.name = "Title"
+	phone_box.add_child(p_title)
+	var p_money := Label.new()
+	p_money.name = "Money"
+	phone_box.add_child(p_money)
+	var preview := HBoxContainer.new()
+	preview.name = "Preview"
+	phone_box.add_child(preview)
+	var rows := VBoxContainer.new()
+	rows.name = "Rows"
+	rows.add_theme_constant_override("separation", 4)
+	phone_box.add_child(rows)
+	var p_hint := Label.new()
+	p_hint.name = "Hint"
+	phone_box.add_child(p_hint)
+
 	_save(root, UI_SCENE)
+
+
+## Build a modal overlay (Dim + centered Panel + Margin + Box) under `parent`
+## and return the inner VBox to fill with content.
+func _build_modal(
+		parent: Node, node_name: String, script_path: String,
+		min_width: int) -> VBoxContainer:
+	var modal := Control.new()
+	modal.name = node_name
+	modal.set_script(load(script_path))
+	modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	parent.add_child(modal)
+
+	var dim := ColorRect.new()
+	dim.name = "Dim"
+	dim.color = Color(0, 0, 0, 0.5)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	modal.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	modal.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(min_width, 0)
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 8)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.name = "Box"
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
+	return box
 
 
 # --- Player (rebuild with Carry + Interactor) ------------------------------
@@ -333,6 +513,17 @@ func _build_room_scene() -> void:
 	var shelf: Node = load(SHELF_SCENE).instantiate()
 	shelf.position = Vector3(0, 0, -7.0)
 	root.add_child(shelf)
+
+	# Phone table (left) and worktable (right).
+	var phone: Node = load(PHONE_SCENE).instantiate()
+	phone.position = Vector3(-6.0, 0, -5.5)
+	phone.rotation_degrees = Vector3(0, 35, 0)
+	root.add_child(phone)
+
+	var worktable: Node = load(WORKTABLE_SCENE).instantiate()
+	worktable.position = Vector3(6.0, 0, -5.0)
+	worktable.rotation_degrees = Vector3(0, -35, 0)
+	root.add_child(worktable)
 
 	# Scatter material rolls on the floor
 	var roll_scene: PackedScene = load(ROLL_SCENE)

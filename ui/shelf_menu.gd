@@ -1,12 +1,17 @@
 extends Control
 
-## Animal-Crossing-styled browse menu: a warm rounded panel listing each shelved
-## roll as a card with a layered material swatch, name, fabric/pattern, and a
-## "left" readout. Scroll with W/S or ↑/↓, take with E, close with Esc.
+## Animal-Crossing-styled browse menu for a shelf. Each stored roll is a card
+## with a layered swatch, name, fabric/pattern and %-left. You can take a whole
+## bolt (E) or cut a piece of a chosen length (A/D to set, F to cut) to carry to
+## the worktable. Taking or cutting fills your hands, so the menu closes after.
+
+const CUT_STEP := 0.5
+const CUT_MIN := 0.5
 
 var _shelf = null
 var _actor = null
 var _index := 0
+var _cut_length := 1.0
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -18,9 +23,11 @@ func open(shelf, actor) -> void:
 	_shelf = shelf
 	_actor = actor
 	_index = 0
+	_cut_length = 1.0
 	GameState.input_locked = true
 	visible = true
 	_style()
+	_clamp_cut()
 	_rebuild()
 
 
@@ -45,7 +52,8 @@ func _rebuild() -> void:
 
 	var rolls: Array = _shelf.stored
 	_title.text = "Shelf  ·  %d rolls" % rolls.size()
-	_hint.text = "W/S  scroll      E  take      Esc  close"
+	_hint.text = ("W/S select    A/D cut length ‹%.1f m›    F cut    E take roll    Esc close"
+		% _cut_length)
 
 	for i in rolls.size():
 		_list.add_child(_make_card(rolls[i], i == _index))
@@ -104,6 +112,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_move(1)
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_forward"):
 		_move(-1)
+	elif event.is_action_pressed("move_right"):
+		_adjust_cut(CUT_STEP)
+	elif event.is_action_pressed("move_left"):
+		_adjust_cut(-CUT_STEP)
+	elif event.is_action_pressed("cut"):
+		_do_cut()
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_take()
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
@@ -118,16 +132,38 @@ func _move(delta: int) -> void:
 	if n == 0:
 		return
 	_index = (_index + delta + n) % n
+	_clamp_cut()
 	_rebuild()
+
+
+func _adjust_cut(delta: float) -> void:
+	_cut_length += delta
+	_clamp_cut()
+	_rebuild()
+
+
+## Keep the requested cut length within [0.5 m, the selected roll's remaining].
+func _clamp_cut() -> void:
+	var rolls: Array = _shelf.stored
+	if _index < 0 or _index >= rolls.size():
+		return
+	var remaining: float = rolls[_index].remaining_length_m
+	_cut_length = clampf(_cut_length, CUT_MIN, maxf(CUT_MIN, remaining))
 
 
 func _take() -> void:
 	if _shelf.stored.size() == 0:
 		close()
 		return
-	_shelf.take(_index, _actor)
+	# Taking a bolt fills your hands, so close on success.
+	if _shelf.take(_index, _actor):
+		close()
+
+
+func _do_cut() -> void:
 	if _shelf.stored.size() == 0:
 		close()
-	else:
-		_index = min(_index, _shelf.stored.size() - 1)
-		_rebuild()
+		return
+	# Cutting fills your hands with the piece, so close on success.
+	if _shelf.cut_piece(_index, _cut_length, _actor):
+		close()

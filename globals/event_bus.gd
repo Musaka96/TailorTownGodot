@@ -15,5 +15,10 @@ signal item_taken(item: Node, station: Node)
 ## Current interaction prompt for the HUD ("" = nothing in range).
 signal interaction_prompt_changed(text: String)
 
-# --- Economy (used from Phase 2) ---
+# --- Economy / ordering ---
 signal money_changed(balance: int)
+signal order_placed(material: MaterialType, length: float, cost: int)
+signal order_delivered(roll: Node)
+
+# --- Cutting ---
+signal cloth_cut(piece: Node, source_roll: Node)
