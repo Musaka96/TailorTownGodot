@@ -832,11 +832,20 @@ func _build_ui_scene() -> void:
 	hb_index.name = "Index"
 	hb_index.custom_minimum_size = Vector2(220, 0)
 	hb_pages.add_child(hb_index)
+	var hb_right := VBoxContainer.new()
+	hb_right.name = "Right"
+	hb_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb_right.add_theme_constant_override("separation", 10)
+	hb_pages.add_child(hb_right)
+	var hb_preview := HBoxContainer.new()
+	hb_preview.name = "Preview"
+	hb_right.add_child(hb_preview)
 	var hb_body := RichTextLabel.new()
 	hb_body.name = "Body"
-	hb_body.custom_minimum_size = Vector2(560, 430)
+	hb_body.custom_minimum_size = Vector2(560, 400)
 	hb_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb_pages.add_child(hb_body)
+	hb_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hb_right.add_child(hb_body)
 	var hb_hint := Label.new()
 	hb_hint.name = "Hint"
 	hb_box.add_child(hb_hint)

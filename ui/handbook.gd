@@ -13,7 +13,8 @@ var _topic := 0
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
 @onready var _tabs: HBoxContainer = $Center/Panel/Margin/Box/Tabs
 @onready var _index: VBoxContainer = $Center/Panel/Margin/Box/Pages/Index
-@onready var _body: RichTextLabel = $Center/Panel/Margin/Box/Pages/Body
+@onready var _preview: HBoxContainer = $Center/Panel/Margin/Box/Pages/Right/Preview
+@onready var _body: RichTextLabel = $Center/Panel/Margin/Box/Pages/Right/Body
 @onready var _hint: Label = $Center/Panel/Margin/Box/Hint
 
 
@@ -64,14 +65,35 @@ func _refresh() -> void:
 		_index.add_child(_make_card(entries[i]["title"], i == _topic, 16))
 
 	var entry: Dictionary = entries[_topic]
+	for child in _preview.get_children():
+		child.queue_free()
+	var preview: Dictionary = entry.get("preview", {})
+	if not preview.is_empty():
+		_preview.add_child(_make_swatch(preview))
 	_body.text = "[b]%s[/b]\n\n%s" % [entry["title"], entry["body"]]
 	_hint.text = "A/D chapter    W/S topic    Esc close"
+
+
+func _make_swatch(preview: Dictionary) -> Control:
+	var mat: MaterialType
+	if preview.has("fabric"):
+		# that fabric, plain, in a neutral charcoal so the weave reads
+		mat = MaterialFactory.make(preview["fabric"], Enums.Pattern.SOLID, 1, 1.0)
+	else:
+		# that pattern on a navy worsted ground
+		mat = MaterialFactory.make(Enums.Fabric.WORSTED_WOOL, preview["pattern"], 0, 1.0)
+	var swatch := MaterialSwatch.new()
+	swatch.swatch_size = 112
+	swatch.setup(mat, mat.roll_length_m)
+	return swatch
 
 
 func _make_card(text: String, selected: bool, font_size: int) -> Control:
 	var card := PanelContainer.new()
 	if selected:
-		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.LEAF))
+		card.add_theme_stylebox_override(
+			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.LEAF)
+		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
 	var label := Label.new()

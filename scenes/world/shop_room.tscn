@@ -159,205 +159,205 @@ albedo_color = Color(0.71, 0.28, 0.24, 1)
 [sub_resource type="BoxMesh" id="BoxMesh_ir8pn"]
 size = Vector3(4.2, 0.2, 1.6)
 
-[node name="ShopRoom" type="Node3D" unique_id=1353030490]
+[node name="ShopRoom" type="Node3D" unique_id=1507661624]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1628610231]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=563568563]
 environment = SubResource("Environment_d058j")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=498893036]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=814668976]
 transform = Transform3D(0.81915206, 0.46984634, -0.32898995, 0, 0.57357645, 0.81915206, 0.57357645, -0.6710101, 0.46984634, 0, 0, 0)
 shadow_enabled = true
 
-[node name="Floor" type="StaticBody3D" parent="." unique_id=1657023840]
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1108522204]
 
-[node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=875766724]
+[node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=403747064]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 material_override = SubResource("StandardMaterial3D_eeyg4")
 mesh = SubResource("BoxMesh_6uxdm")
 
-[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=1071498555]
+[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=734846109]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_ojymr")
 
-[node name="Walls" type="StaticBody3D" parent="." unique_id=2077658023]
+[node name="Walls" type="StaticBody3D" parent="." unique_id=1147655836]
 
-[node name="NMesh" type="MeshInstance3D" parent="Walls" unique_id=453057212]
+[node name="NMesh" type="MeshInstance3D" parent="Walls" unique_id=1316699411]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
 material_override = SubResource("StandardMaterial3D_bjxeq")
 mesh = SubResource("BoxMesh_3xbni")
 
-[node name="NCol" type="CollisionShape3D" parent="Walls" unique_id=1683981933]
+[node name="NCol" type="CollisionShape3D" parent="Walls" unique_id=999691540]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
 shape = SubResource("BoxShape3D_kkv1v")
 
-[node name="S_LMesh" type="MeshInstance3D" parent="Walls" unique_id=450894530]
+[node name="S_LMesh" type="MeshInstance3D" parent="Walls" unique_id=1157842996]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.75, 1.5, 8)
 material_override = SubResource("StandardMaterial3D_bjxeq")
 mesh = SubResource("BoxMesh_7hfae")
 
-[node name="S_LCol" type="CollisionShape3D" parent="Walls" unique_id=1165300204]
+[node name="S_LCol" type="CollisionShape3D" parent="Walls" unique_id=1246025795]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.75, 1.5, 8)
 shape = SubResource("BoxShape3D_monyf")
 
-[node name="S_RMesh" type="MeshInstance3D" parent="Walls" unique_id=1251050855]
+[node name="S_RMesh" type="MeshInstance3D" parent="Walls" unique_id=1513874692]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.75, 1.5, 8)
 material_override = SubResource("StandardMaterial3D_bjxeq")
 mesh = SubResource("BoxMesh_6e5y0")
 
-[node name="S_RCol" type="CollisionShape3D" parent="Walls" unique_id=161937392]
+[node name="S_RCol" type="CollisionShape3D" parent="Walls" unique_id=699562265]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.75, 1.5, 8)
 shape = SubResource("BoxShape3D_f5swu")
 
-[node name="S_Lintel" type="MeshInstance3D" parent="Walls" unique_id=438511834]
+[node name="S_Lintel" type="MeshInstance3D" parent="Walls" unique_id=808246]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 8)
 material_override = SubResource("StandardMaterial3D_bjxeq")
 mesh = SubResource("BoxMesh_tmwry")
 
-[node name="EMesh" type="MeshInstance3D" parent="Walls" unique_id=1981750092]
+[node name="EMesh" type="MeshInstance3D" parent="Walls" unique_id=1388259520]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
 material_override = SubResource("StandardMaterial3D_bjxeq")
 mesh = SubResource("BoxMesh_y58rx")
 
-[node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=2062844829]
+[node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=170812063]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
 shape = SubResource("BoxShape3D_fdmf3")
 
-[node name="WMesh" type="MeshInstance3D" parent="Walls" unique_id=1263067848]
+[node name="WMesh" type="MeshInstance3D" parent="Walls" unique_id=1436165883]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
 material_override = SubResource("StandardMaterial3D_bjxeq")
 mesh = SubResource("BoxMesh_fjjdy")
 
-[node name="WCol" type="CollisionShape3D" parent="Walls" unique_id=1776160224]
+[node name="WCol" type="CollisionShape3D" parent="Walls" unique_id=531375732]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
 shape = SubResource("BoxShape3D_0jih7")
 
-[node name="Shelf" type="Node3D" parent="." unique_id=1921671884 instance=ExtResource("1_2a88l")]
+[node name="Shelf" type="Node3D" parent="." unique_id=2137070260 instance=ExtResource("1_2a88l")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -7)
 script = ExtResource("2_j5y0n")
 
-[node name="Phone" type="Node3D" parent="." unique_id=639028043 instance=ExtResource("3_jtjmr")]
+[node name="Phone" type="Node3D" parent="." unique_id=244267950 instance=ExtResource("3_jtjmr")]
 transform = Transform3D(0.81915206, 0, 0.57357645, 0, 1, 0, -0.57357645, 0, 0.81915206, -6, 0, -5.5)
 script = ExtResource("4_h0rls")
 
-[node name="Worktable" type="Node3D" parent="." unique_id=309298931 instance=ExtResource("5_usqlc")]
+[node name="Worktable" type="Node3D" parent="." unique_id=2080952600 instance=ExtResource("5_usqlc")]
 transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 6, 0, -5)
 script = ExtResource("6_tajrx")
 
-[node name="SewingMachine" type="Node3D" parent="." unique_id=1519441607 instance=ExtResource("7_f0faw")]
+[node name="SewingMachine" type="Node3D" parent="." unique_id=1098430318 instance=ExtResource("7_f0faw")]
 transform = Transform3D(0.17364822, 0, -0.9848077, 0, 1, 0, 0.9848077, 0, 0.17364822, 6.5, 0, -1)
 script = ExtResource("8_pw4dj")
 
-[node name="Bookshelf" type="Node3D" parent="." unique_id=1234611655 instance=ExtResource("9_o426c")]
+[node name="Bookshelf" type="Node3D" parent="." unique_id=765844317 instance=ExtResource("9_o426c")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 7.3, 0, 3)
 script = ExtResource("10_yrsd5")
 
-[node name="ClothingRack" type="Node3D" parent="." unique_id=21635749 instance=ExtResource("11_26bn3")]
+[node name="ClothingRack" type="Node3D" parent="." unique_id=1799385403 instance=ExtResource("11_26bn3")]
 transform = Transform3D(0.17364822, 0, 0.9848077, 0, 1, 0, -0.9848077, 0, 0.17364822, -6.5, 0, -1)
 script = ExtResource("12_cstfg")
 
-[node name="Mannequin" type="Node3D" parent="." unique_id=1280275381 instance=ExtResource("13_ckdgv")]
+[node name="Mannequin" type="Node3D" parent="." unique_id=1760003643 instance=ExtResource("13_ckdgv")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -6.7)
 script = ExtResource("14_mh4gb")
 
-[node name="Mirror" type="Node3D" parent="." unique_id=1000444156 instance=ExtResource("15_walcy")]
+[node name="Mirror" type="Node3D" parent="." unique_id=270766224 instance=ExtResource("15_walcy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -6.5)
 script = ExtResource("16_ne8pp")
 
-[node name="Sidewalk" type="StaticBody3D" parent="." unique_id=1478148479]
+[node name="Sidewalk" type="StaticBody3D" parent="." unique_id=1313181017]
 
-[node name="PathMesh" type="MeshInstance3D" parent="Sidewalk" unique_id=1118967582]
+[node name="PathMesh" type="MeshInstance3D" parent="Sidewalk" unique_id=420171845]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 10)
 material_override = SubResource("StandardMaterial3D_kadwv")
 mesh = SubResource("BoxMesh_816nw")
 
-[node name="PathCol" type="CollisionShape3D" parent="Sidewalk" unique_id=565175017]
+[node name="PathCol" type="CollisionShape3D" parent="Sidewalk" unique_id=220170867]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 10)
 shape = SubResource("BoxShape3D_3fqpp")
 
-[node name="Street" type="StaticBody3D" parent="." unique_id=2116376085]
+[node name="Street" type="StaticBody3D" parent="." unique_id=1024456187]
 
-[node name="AsphaltMesh" type="MeshInstance3D" parent="Street" unique_id=1339167092]
+[node name="AsphaltMesh" type="MeshInstance3D" parent="Street" unique_id=760652643]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 17)
 material_override = SubResource("StandardMaterial3D_oq2t0")
 mesh = SubResource("BoxMesh_2iwgw")
 
-[node name="AsphaltCol" type="CollisionShape3D" parent="Street" unique_id=1550726230]
+[node name="AsphaltCol" type="CollisionShape3D" parent="Street" unique_id=538795973]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 17)
 shape = SubResource("BoxShape3D_y34p1")
 
-[node name="Lane_-6" type="MeshInstance3D" parent="Street" unique_id=834580085]
+[node name="Lane_-6" type="MeshInstance3D" parent="Street" unique_id=674090728]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_6sk1p")
 
-[node name="Lane_-5" type="MeshInstance3D" parent="Street" unique_id=2115990831]
+[node name="Lane_-5" type="MeshInstance3D" parent="Street" unique_id=647480176]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_0pgqb")
 
-[node name="Lane_-4" type="MeshInstance3D" parent="Street" unique_id=755933027]
+[node name="Lane_-4" type="MeshInstance3D" parent="Street" unique_id=1499144097]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_i8kkj")
 
-[node name="Lane_-3" type="MeshInstance3D" parent="Street" unique_id=1260510776]
+[node name="Lane_-3" type="MeshInstance3D" parent="Street" unique_id=583682838]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_daxhr")
 
-[node name="Lane_-2" type="MeshInstance3D" parent="Street" unique_id=2101346988]
+[node name="Lane_-2" type="MeshInstance3D" parent="Street" unique_id=2114507403]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_u2fmw")
 
-[node name="Lane_-1" type="MeshInstance3D" parent="Street" unique_id=1616257846]
+[node name="Lane_-1" type="MeshInstance3D" parent="Street" unique_id=1933338160]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_msw3p")
 
-[node name="Lane_0" type="MeshInstance3D" parent="Street" unique_id=140552453]
+[node name="Lane_0" type="MeshInstance3D" parent="Street" unique_id=661051009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_58jca")
 
-[node name="Lane_1" type="MeshInstance3D" parent="Street" unique_id=669696388]
+[node name="Lane_1" type="MeshInstance3D" parent="Street" unique_id=795293996]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_iwt81")
 
-[node name="Lane_2" type="MeshInstance3D" parent="Street" unique_id=1965206408]
+[node name="Lane_2" type="MeshInstance3D" parent="Street" unique_id=419902501]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_njnw8")
 
-[node name="Lane_3" type="MeshInstance3D" parent="Street" unique_id=227644843]
+[node name="Lane_3" type="MeshInstance3D" parent="Street" unique_id=1965261117]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_f5pdn")
 
-[node name="Lane_4" type="MeshInstance3D" parent="Street" unique_id=1750516555]
+[node name="Lane_4" type="MeshInstance3D" parent="Street" unique_id=1769913665]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_2an8x")
 
-[node name="Lane_5" type="MeshInstance3D" parent="Street" unique_id=772484954]
+[node name="Lane_5" type="MeshInstance3D" parent="Street" unique_id=1758041410]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_tqjjx")
 
-[node name="Lane_6" type="MeshInstance3D" parent="Street" unique_id=1714180729]
+[node name="Lane_6" type="MeshInstance3D" parent="Street" unique_id=666182766]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.01, 17)
 material_override = SubResource("StandardMaterial3D_mnxss")
 mesh = SubResource("BoxMesh_1aa6w")
 
-[node name="Storefront" type="Node3D" parent="." unique_id=469146290]
+[node name="Storefront" type="Node3D" parent="." unique_id=7638284]
 
-[node name="Awning" type="MeshInstance3D" parent="Storefront" unique_id=1767615597]
+[node name="Awning" type="MeshInstance3D" parent="Storefront" unique_id=1992196709]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 8.9)
 material_override = SubResource("StandardMaterial3D_imd4p")
 mesh = SubResource("BoxMesh_ir8pn")
 
-[node name="Sign" type="Label3D" parent="Storefront" unique_id=487556178]
+[node name="Sign" type="Label3D" parent="Storefront" unique_id=282864519]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 2.72, 8.9)
 pixel_size = 0.006
 modulate = Color(0.97, 0.91, 0.78, 1)
@@ -365,27 +365,27 @@ outline_modulate = Color(0.2, 0.08, 0.06, 1)
 text = "TAILORTOWN"
 font_size = 64
 
-[node name="Waypoints" type="Node3D" parent="." unique_id=38062029]
+[node name="Waypoints" type="Node3D" parent="." unique_id=1591188085]
 
-[node name="GreetSpot" type="Marker3D" parent="Waypoints" unique_id=1306167604]
+[node name="GreetSpot" type="Marker3D" parent="Waypoints" unique_id=2002706852]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 5.2)
 
-[node name="DoorInside" type="Marker3D" parent="Waypoints" unique_id=1824281520]
+[node name="DoorInside" type="Marker3D" parent="Waypoints" unique_id=1351360069]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7.2)
 
-[node name="DoorOutside" type="Marker3D" parent="Waypoints" unique_id=1520424670]
+[node name="DoorOutside" type="Marker3D" parent="Waypoints" unique_id=1530681602]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 9.6)
 
-[node name="MirrorSpot" type="Marker3D" parent="Waypoints" unique_id=1118143816]
+[node name="MirrorSpot" type="Marker3D" parent="Waypoints" unique_id=716688041]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -5.2)
 
-[node name="StreetWest" type="Marker3D" parent="Waypoints" unique_id=111229686]
+[node name="StreetWest" type="Marker3D" parent="Waypoints" unique_id=394422646]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, 10.2)
 
-[node name="StreetEast" type="Marker3D" parent="Waypoints" unique_id=1595439514]
+[node name="StreetEast" type="Marker3D" parent="Waypoints" unique_id=1779476627]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 10.2)
 
-[node name="CustomerManager" type="Node3D" parent="." unique_id=1887461286]
+[node name="CustomerManager" type="Node3D" parent="." unique_id=1388212487]
 script = ExtResource("17_08xdy")
 mirror_path = NodePath("../Mirror")
 greet_path = NodePath("../Waypoints/GreetSpot")
@@ -395,55 +395,55 @@ door_out_path = NodePath("../Waypoints/DoorOutside")
 street_west_path = NodePath("../Waypoints/StreetWest")
 street_east_path = NodePath("../Waypoints/StreetEast")
 
-[node name="MaterialRoll" type="Node3D" parent="." unique_id=225418018 instance=ExtResource("18_qasyn")]
+[node name="MaterialRoll" type="Node3D" parent="." unique_id=1242550356 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.13, 2)
 script = ExtResource("19_f7f05")
 material = ExtResource("20_j7vby")
 remaining_length_m = 20.0
 
-[node name="@Node3D@20" type="Node3D" parent="." unique_id=652640277 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@22" type="Node3D" parent="." unique_id=702019543 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.13, 3.2)
 script = ExtResource("19_f7f05")
 material = ExtResource("21_d3xxm")
 remaining_length_m = 9.5
 
-[node name="@Node3D@21" type="Node3D" parent="." unique_id=619823445 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@23" type="Node3D" parent="." unique_id=1240906424 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0.13, 2.6)
 script = ExtResource("19_f7f05")
 material = ExtResource("22_n46ak")
 remaining_length_m = 15.0
 
-[node name="@Node3D@22" type="Node3D" parent="." unique_id=1324540523 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@24" type="Node3D" parent="." unique_id=817921658 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.13, 1.4)
 script = ExtResource("19_f7f05")
 material = ExtResource("23_7lax8")
 remaining_length_m = 4.0
 
-[node name="@Node3D@23" type="Node3D" parent="." unique_id=655034703 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@25" type="Node3D" parent="." unique_id=398954415 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.13, 0.4)
 script = ExtResource("19_f7f05")
 material = ExtResource("24_7mf47")
 remaining_length_m = 16.0
 
-[node name="@Node3D@24" type="Node3D" parent="." unique_id=1959718172 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@26" type="Node3D" parent="." unique_id=1650843485 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0.13, -0.6)
 script = ExtResource("19_f7f05")
 material = ExtResource("25_43laf")
 remaining_length_m = 12.5
 
-[node name="@Node3D@25" type="Node3D" parent="." unique_id=52507933 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@27" type="Node3D" parent="." unique_id=145632256 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.13, 1)
 script = ExtResource("19_f7f05")
 material = ExtResource("26_xfnwj")
 remaining_length_m = 20.0
 
-[node name="@Node3D@26" type="Node3D" parent="." unique_id=1736225185 instance=ExtResource("18_qasyn")]
+[node name="@Node3D@28" type="Node3D" parent="." unique_id=1738253111 instance=ExtResource("18_qasyn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.13, -1.4)
 script = ExtResource("19_f7f05")
 material = ExtResource("27_5nk8p")
 remaining_length_m = 6.0
 
-[node name="@Label3D@27" type="Label3D" parent="." unique_id=761727764]
+[node name="@Label3D@29" type="Label3D" parent="." unique_id=714796429]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 5.7)
 pixel_size = 0.006
 billboard = 1
@@ -454,31 +454,31 @@ text = "CLOTH"
 font_size = 72
 outline_size = 14
 
-[node name="FabricPiece" type="Node3D" parent="." unique_id=1449535751 instance=ExtResource("28_5qj3b")]
+[node name="FabricPiece" type="Node3D" parent="." unique_id=419227716 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 5.2)
 script = ExtResource("29_h3dsl")
 material = ExtResource("30_swjr5")
 length_m = 2.5
 
-[node name="@Node3D@28" type="Node3D" parent="." unique_id=1702021299 instance=ExtResource("28_5qj3b")]
+[node name="@Node3D@30" type="Node3D" parent="." unique_id=1603196638 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 5.2)
 script = ExtResource("29_h3dsl")
 material = ExtResource("22_n46ak")
 length_m = 3.0
 
-[node name="@Node3D@29" type="Node3D" parent="." unique_id=141493950 instance=ExtResource("28_5qj3b")]
+[node name="@Node3D@31" type="Node3D" parent="." unique_id=652034609 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 5.2)
 script = ExtResource("29_h3dsl")
 material = ExtResource("23_7lax8")
 length_m = 1.5
 
-[node name="@Node3D@30" type="Node3D" parent="." unique_id=109960492 instance=ExtResource("28_5qj3b")]
+[node name="@Node3D@32" type="Node3D" parent="." unique_id=102265762 instance=ExtResource("28_5qj3b")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.74, 0.03, 5.2)
 script = ExtResource("29_h3dsl")
 material = ExtResource("24_7mf47")
 length_m = 2.0
 
-[node name="@Label3D@31" type="Label3D" parent="." unique_id=2134185584]
+[node name="@Label3D@33" type="Label3D" parent="." unique_id=28785044]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 4.5)
 pixel_size = 0.006
 billboard = 1
@@ -489,13 +489,13 @@ text = "CUT PARTS"
 font_size = 72
 outline_size = 14
 
-[node name="GarmentPiece" type="Node3D" parent="." unique_id=846647172 instance=ExtResource("31_d7rrd")]
+[node name="GarmentPiece" type="Node3D" parent="." unique_id=547495652 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 4)
 script = ExtResource("32_xfabo")
 material = ExtResource("33_errh0")
 quality = 0.85
 
-[node name="@Node3D@32" type="Node3D" parent="." unique_id=1793457656 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@34" type="Node3D" parent="." unique_id=128939810 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 4)
 script = ExtResource("32_xfabo")
 material = ExtResource("25_43laf")
@@ -504,7 +504,7 @@ size = 2
 style = "Flat Front"
 quality = 0.75
 
-[node name="@Node3D@33" type="Node3D" parent="." unique_id=935199289 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@35" type="Node3D" parent="." unique_id=693018769 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 4)
 script = ExtResource("32_xfabo")
 material = ExtResource("30_swjr5")
@@ -512,7 +512,7 @@ garment_type = 2
 style = "Single-Breasted"
 quality = 0.8
 
-[node name="@Label3D@34" type="Label3D" parent="." unique_id=2059677810]
+[node name="@Label3D@36" type="Label3D" parent="." unique_id=1961263700]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 3.3)
 pixel_size = 0.006
 billboard = 1
@@ -523,7 +523,7 @@ text = "SEWN PARTS"
 font_size = 72
 outline_size = 14
 
-[node name="@Node3D@35" type="Node3D" parent="." unique_id=301550704 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@37" type="Node3D" parent="." unique_id=1083264249 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0.03, 2.8)
 script = ExtResource("32_xfabo")
 material = ExtResource("34_eig6a")
@@ -531,7 +531,7 @@ style = "Slim"
 quality = 0.9
 stage = 3
 
-[node name="@Node3D@36" type="Node3D" parent="." unique_id=1687989996 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@38" type="Node3D" parent="." unique_id=826346737 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0.03, 2.8)
 script = ExtResource("32_xfabo")
 material = ExtResource("21_d3xxm")
@@ -541,7 +541,7 @@ style = "Pleated"
 quality = 0.85
 stage = 3
 
-[node name="@Node3D@37" type="Node3D" parent="." unique_id=918800843 instance=ExtResource("31_d7rrd")]
+[node name="@Node3D@39" type="Node3D" parent="." unique_id=1742878644 instance=ExtResource("31_d7rrd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0.03, 2.8)
 script = ExtResource("32_xfabo")
 material = ExtResource("26_xfnwj")
@@ -551,7 +551,7 @@ style = "Double-Breasted"
 quality = 0.95
 stage = 3
 
-[node name="@Label3D@38" type="Label3D" parent="." unique_id=1728726583]
+[node name="@Label3D@40" type="Label3D" parent="." unique_id=773088786]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 1.4, 2.1)
 pixel_size = 0.006
 billboard = 1
@@ -562,19 +562,19 @@ text = "SUITS"
 font_size = 72
 outline_size = 14
 
-[node name="Suit" type="Node3D" parent="." unique_id=217996207 instance=ExtResource("35_knglg")]
+[node name="Suit" type="Node3D" parent="." unique_id=39199919 instance=ExtResource("35_knglg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9, 0, 1.6)
 script = ExtResource("36_j5kd1")
 quality = 0.9
 primary_color = Color(0.105882354, 0.16470589, 0.2901961, 1)
 
-[node name="@Node3D@39" type="Node3D" parent="." unique_id=41596610 instance=ExtResource("35_knglg")]
+[node name="@Node3D@41" type="Node3D" parent="." unique_id=540198646 instance=ExtResource("35_knglg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0, 1.6)
 script = ExtResource("36_j5kd1")
 quality = 0.75
 primary_color = Color(0.21176471, 0.22352941, 0.24705882, 1)
 
-[node name="@Node3D@40" type="Node3D" parent="." unique_id=2069191996 instance=ExtResource("35_knglg")]
+[node name="@Node3D@42" type="Node3D" parent="." unique_id=753162566 instance=ExtResource("35_knglg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.46, 0, 1.6)
 script = ExtResource("36_j5kd1")
 quality = 0.6
