@@ -28,7 +28,15 @@ const PATTERN_SURCHARGE := {
 
 
 static func per_meter(fabric: Enums.Fabric, pattern: Enums.Pattern) -> int:
-	return int(FABRIC_BASE.get(fabric, 20)) + int(PATTERN_SURCHARGE.get(pattern, 0))
+	var cfg := Config.data
+	var base := int(FABRIC_BASE.get(fabric, 20))
+	var surcharge := int(PATTERN_SURCHARGE.get(pattern, 0))
+	if cfg != null:
+		if fabric < cfg.fabric_price_per_m.size():
+			base = cfg.fabric_price_per_m[fabric]
+		if pattern < cfg.pattern_surcharge_per_m.size():
+			surcharge = cfg.pattern_surcharge_per_m[pattern]
+	return base + surcharge
 
 
 ## Total price of a bolt: prefer the material's own per-metre price (premade),

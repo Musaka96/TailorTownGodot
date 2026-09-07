@@ -23,7 +23,10 @@ func capacity() -> int:
 
 
 func get_interaction_prompt(actor) -> String:
-	if not actor.carry.is_empty():
+	var held: Node = actor.carry.get_held()
+	if held != null:
+		if not (held is MaterialRoll):
+			return "Shelf holds material rolls"
 		return "Place roll" if stored.size() < _slots.size() else "Shelf full"
 	if stored.size() > 0:
 		return "Browse shelf (%d)" % stored.size()
@@ -31,7 +34,11 @@ func get_interaction_prompt(actor) -> String:
 
 
 func interact(actor) -> void:
-	if not actor.carry.is_empty():
+	var held: Node = actor.carry.get_held()
+	if held != null:
+		# The shelf only holds material rolls (cut pieces go to the worktable).
+		if not (held is MaterialRoll):
+			return
 		if stored.size() >= _slots.size():
 			return
 		var roll: Node = actor.carry.release()

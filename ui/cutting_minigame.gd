@@ -11,7 +11,7 @@ signal finished(success: bool, quality: float)
 enum State { RUNNING, SUCCESS, RUINED }
 
 const GOOD_TOL := deg_to_rad(26.0)     # within this of the outline = clean cut
-const TARGET_SECONDS := 9.0            # time to cut the whole shape when aligned
+const TARGET_SECONDS := 15.0           # time to cut the whole shape when aligned
 const MISTAKE_COST := 0.85             # accumulated error that equals one mistake
 const MAX_MISTAKES := 3
 const ROT_SPEED := 14.0
@@ -34,6 +34,9 @@ const SHAPES := {
 	],
 }
 
+var _good_tol := GOOD_TOL
+var _seconds := TARGET_SECONDS
+var _max_mistakes := MAX_MISTAKES
 var _state := State.RUNNING
 var _pts: PackedVector2Array = []
 var _cum: PackedFloat32Array = []
@@ -67,6 +70,11 @@ func _ready() -> void:
 
 func start(garment_type: int, title: String) -> void:
 	_title = title
+	var c := Config.data
+	if c != null:
+		_good_tol = deg_to_rad(c.cut_tolerance_deg)
+		_seconds = c.cut_seconds
+		_max_mistakes = c.cut_max_mistakes
 	_generate(garment_type)
 	_state = State.RUNNING
 	_cursor = 0.0
@@ -109,10 +117,10 @@ func _process(delta: float) -> void:
 	var err: float = minf(
 		absf(angle_difference(_angle, tangent)),
 		absf(angle_difference(_angle, tangent + PI)))
-	_aligned = err <= GOOD_TOL
+	_aligned = err <= _good_tol
 
 	if _aligned:
-		_cursor += (_total / TARGET_SECONDS) * delta
+		_cursor += (_total / _seconds) * delta
 		_error = maxf(0.0, _error - delta * 0.7)
 		_snip_accum += delta
 		if _snip_accum >= 0.13:
@@ -121,7 +129,7 @@ func _process(delta: float) -> void:
 		if _cursor >= _total:
 			_succeed()
 	elif _cooldown <= 0.0:
-		_error += (err - GOOD_TOL) * delta
+		_error += (err - _good_tol) * delta
 		if _error >= MISTAKE_COST:
 			_register_mistake()
 
@@ -134,7 +142,7 @@ func _register_mistake() -> void:
 	_cooldown = 0.5
 	_nicks.append(_point_at(_cursor))
 	_play(_slip, 0.8)
-	if _mistakes >= MAX_MISTAKES:
+	if _mistakes >= _max_mistakes:
 		_fail()
 
 
@@ -268,7 +276,7 @@ func _draw_hud() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("f4ead2"))
 
 	# Mistakes as pips (top-right of the mat).
-	for i in MAX_MISTAKES:
+	for i in _max_mistakes:
 		var c := Color("e05a4a") if i < _mistakes else Color(1, 1, 1, 0.3)
 		draw_circle(_origin() + Vector2(_mat_half() - 60 + i * 26, -_mat_half() - 22), 8.0, c)
 

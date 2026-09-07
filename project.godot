@@ -17,8 +17,9 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-GameState="*res://globals/game_state.gd"
 EventBus="*res://globals/event_bus.gd"
+Config="*res://globals/config.gd"
+GameState="*res://globals/game_state.gd"
 Catalog="*res://globals/catalog.gd"
 UI="*res://ui/ui.tscn"
 McpBridgeGame="*res://mcp_bridge_game.gd"

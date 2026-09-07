@@ -16,8 +16,22 @@ func _initialize() -> void:
 	_save(_slip(), "slip")
 	_save(_complete(), "complete")
 	_save(_ruined(), "ruined")
+	_save(_stitch(), "stitch")
 	print("build_audio: done.")
 	quit(0)
+
+
+func _stitch() -> PackedFloat32Array:
+	# Soft pluck for a stitch.
+	var s := PackedFloat32Array()
+	var n := int(0.07 * RATE)
+	for i in n:
+		var t := float(i) / RATE
+		var env: float = exp(-t * 45.0)
+		var tone := sin(TAU * 720.0 * t)
+		var click := (randf() * 2.0 - 1.0) * exp(-t * 160.0) * 0.3
+		s.append((tone * 0.5 + click) * env * 0.5)
+	return s
 
 
 func _snip() -> PackedFloat32Array:

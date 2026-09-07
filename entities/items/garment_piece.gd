@@ -21,7 +21,9 @@ func _ready() -> void:
 
 
 func get_interaction_prompt(_actor) -> String:
-	return "Pick up %s (%s)" % [Enums.garment_type_name(garment_type), Enums.size_name(size)]
+	var st := "sewn" if stage == Enums.Stage.SEWN else "cut"
+	return "Pick up %s (%s, %s)" % [
+		Enums.garment_type_name(garment_type), Enums.size_name(size), st]
 
 
 func attach_to(point: Node3D) -> void:

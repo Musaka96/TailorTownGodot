@@ -50,6 +50,8 @@ func earn(amount: int) -> void:
 func _ready() -> void:
 	# Keep processing input while the rest of the tree is paused.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if Config.data:
+		money = Config.data.starting_money
 
 
 func _unhandled_input(event: InputEvent) -> void:
