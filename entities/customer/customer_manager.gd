@@ -9,6 +9,20 @@ extends Node3D
 
 const CUSTOMER_SCENE := preload("res://entities/customer/customer.tscn")
 
+# Skin + hair pools for spawned characters (suits come from the material catalog).
+const SKINS := [
+	Color(0.87, 0.72, 0.60),
+	Color(0.80, 0.62, 0.48),
+	Color(0.93, 0.81, 0.69),
+	Color(0.66, 0.48, 0.35)
+]
+const HAIRS := [
+	Color(0.15, 0.12, 0.10),
+	Color(0.35, 0.24, 0.16),
+	Color(0.72, 0.60, 0.34),
+	Color(0.55, 0.55, 0.58)
+]
+
 @export var mirror_path: NodePath
 @export var greet_path: NodePath
 @export var mirror_spot_path: NodePath
@@ -99,9 +113,18 @@ func _spawn(pos: Vector3, with_pref: bool) -> Customer:
 	cust.manager = self
 	if with_pref:
 		cust.preference = CustomerPreference.random_pref(_rng)
+	_dress(cust)
 	cust.departed.connect(_on_departed)
 	_alive += 1
 	return cust
+
+
+func _dress(cust: Customer) -> void:
+	cust.apply_look(SKINS[_rng.randi() % SKINS.size()], HAIRS[_rng.randi() % HAIRS.size()])
+	var mats := Catalog.all_materials()
+	if not mats.is_empty():
+		var suit: MaterialType = mats[_rng.randi() % mats.size()]
+		cust.wear_suit(suit, suit)
 
 
 # --- Routing (called by Customer / UI) -------------------------------------

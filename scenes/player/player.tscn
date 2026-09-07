@@ -1,61 +1,41 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scenes/player/player.gd" id="1_gmlin"]
-[ext_resource type="Script" path="res://entities/player/carry_slot.gd" id="2_lvxji"]
-[ext_resource type="Script" path="res://entities/player/interaction_controller.gd" id="3_p47bc"]
+[ext_resource type="Script" path="res://scenes/player/player.gd" id="1_p47bc"]
+[ext_resource type="PackedScene" path="res://entities/character/character_rig.tscn" id="2_75vfm"]
+[ext_resource type="Script" path="res://entities/character/character_rig.gd" id="3_0owmy"]
+[ext_resource type="Script" path="res://entities/player/carry_slot.gd" id="4_qek5x"]
+[ext_resource type="Script" path="res://entities/player/interaction_controller.gd" id="5_5gtgg"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_75vfm"]
-radius = 0.4
-height = 1.8
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0owmy"]
-albedo_color = Color(0.2, 0.55, 0.9, 1)
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_qek5x"]
-radius = 0.4
-height = 1.8
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5gtgg"]
-albedo_color = Color(0.95, 0.85, 0.25, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_h17s1"]
-size = Vector3(0.25, 0.25, 0.35)
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_h17s1"]
+radius = 0.34
+height = 1.4
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_je7p5"]
 radius = 1.6
 
-[node name="Player" type="CharacterBody3D" unique_id=1368718575]
-script = ExtResource("1_gmlin")
+[node name="Player" type="CharacterBody3D" unique_id=1898879754]
+script = ExtResource("1_p47bc")
 
-[node name="Collision" type="CollisionShape3D" parent="." unique_id=267702586]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("CapsuleShape3D_75vfm")
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1317194476]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("CapsuleShape3D_h17s1")
 
-[node name="Model" type="Node3D" parent="." unique_id=2055954942]
+[node name="Model" type="Node3D" parent="." unique_id=738323546 instance=ExtResource("2_75vfm")]
+script = ExtResource("3_0owmy")
 
-[node name="Body" type="MeshInstance3D" parent="Model" unique_id=45988815]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-material_override = SubResource("StandardMaterial3D_0owmy")
-mesh = SubResource("CapsuleMesh_qek5x")
+[node name="Carry" type="Node3D" parent="." unique_id=543223038]
+script = ExtResource("4_qek5x")
 
-[node name="Nose" type="MeshInstance3D" parent="Model" unique_id=1912990901]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.45)
-material_override = SubResource("StandardMaterial3D_5gtgg")
-mesh = SubResource("BoxMesh_h17s1")
+[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=1828831501]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.5)
 
-[node name="Carry" type="Node3D" parent="." unique_id=1599600283]
-script = ExtResource("2_lvxji")
-
-[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=857034685]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0.6)
-
-[node name="Interactor" type="Area3D" parent="." unique_id=1872694693]
+[node name="Interactor" type="Area3D" parent="." unique_id=2077339716]
 collision_layer = 0
 collision_mask = 4
 monitorable = false
-script = ExtResource("3_p47bc")
+script = ExtResource("5_5gtgg")
 player_path = NodePath("..")
 
-[node name="@CollisionShape3D@14" type="CollisionShape3D" parent="Interactor" unique_id=181934957]
+[node name="@CollisionShape3D@14" type="CollisionShape3D" parent="Interactor" unique_id=865332535]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("SphereShape3D_je7p5")

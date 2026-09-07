@@ -11,6 +11,7 @@ const SUIT_SCENE := "res://entities/items/suit.tscn"
 const RACK_SCENE := "res://stations/clothing_rack/clothing_rack.tscn"
 const MANNEQUIN_SCENE := "res://stations/mannequin/mannequin.tscn"
 const CUSTOMER_SCENE := "res://entities/customer/customer.tscn"
+const CHARACTER_SCENE := "res://entities/character/character_rig.tscn"
 const MIRROR_SCENE := "res://stations/mirror/mirror.tscn"
 const SHELF_SCENE := "res://stations/shelf/shelf.tscn"
 const PHONE_SCENE := "res://stations/phone/phone.tscn"
@@ -391,39 +392,26 @@ func _build_customer_scene() -> void:
 	var root := Node3D.new()
 	root.name = "Customer"
 	root.set_script(load("res://entities/customer/customer.gd"))
+	# Collision-only body (the visual is the shared toon rig).
 	var body := StaticBody3D.new()
 	body.name = "Body"
 	root.add_child(body)
-	var cloth := StandardMaterial3D.new()
-	cloth.albedo_color = Color(0.55, 0.58, 0.64)
-	var skin := StandardMaterial3D.new()
-	skin.albedo_color = Color(0.86, 0.72, 0.61)
-	_add_box_mesh(body, "LegL", Vector3(0.16, 0.8, 0.18), Vector3(-0.12, 0.4, 0), cloth)
-	_add_box_mesh(body, "LegR", Vector3(0.16, 0.8, 0.18), Vector3(0.12, 0.4, 0), cloth)
-	_add_box_mesh(body, "Torso", Vector3(0.42, 0.6, 0.24), Vector3(0, 1.15, 0), cloth)
-	_add_box_mesh(body, "ArmL", Vector3(0.11, 0.5, 0.12), Vector3(-0.29, 1.15, 0), cloth)
-	_add_box_mesh(body, "ArmR", Vector3(0.11, 0.5, 0.12), Vector3(0.29, 1.15, 0), cloth)
-	var head := MeshInstance3D.new()
-	head.name = "Head"
-	var sph := SphereMesh.new()
-	sph.radius = 0.14
-	sph.height = 0.28
-	head.mesh = sph
-	head.material_override = skin
-	head.position = Vector3(0, 1.62, 0)
-	body.add_child(head)
 	var col := CollisionShape3D.new()
 	col.name = "Collision"
 	var cbox := BoxShape3D.new()
-	cbox.size = Vector3(0.55, 1.8, 0.4)
+	cbox.size = Vector3(0.5, 1.5, 0.42)
 	col.shape = cbox
-	col.position = Vector3(0, 0.9, 0)
+	col.position = Vector3(0, 0.75, 0)
 	body.add_child(col)
-	_add_marker(root, "PantsAnchor", Vector3(0, 0.5, 0.16))
-	_add_marker(root, "ShirtAnchor", Vector3(0, 1.2, 0.16))
-	_add_marker(root, "JacketAnchor", Vector3(0, 1.2, 0.2))
+	var rig: Node = load(CHARACTER_SCENE).instantiate()
+	rig.name = "Rig"
+	root.add_child(rig)
+	# Anchors sized to the rig (used by the suit builder to frame garment parts).
+	_add_marker(root, "PantsAnchor", Vector3(0, 0.32, 0.18))
+	_add_marker(root, "ShirtAnchor", Vector3(0, 0.64, 0.18))
+	_add_marker(root, "JacketAnchor", Vector3(0, 0.66, 0.22))
 	# Interaction volume so the player can greet / design at the customer.
-	_add_station_interactable(root, Vector3(1.3, 1.9, 1.3), Vector3(0, 0.95, 0))
+	_add_station_interactable(root, Vector3(1.2, 1.6, 1.2), Vector3(0, 0.8, 0))
 	_save(root, CUSTOMER_SCENE)
 
 
@@ -831,38 +819,18 @@ func _build_player_scene() -> void:
 	root.set_script(load("res://scenes/player/player.gd"))
 
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.4
-	shape.height = 1.8
+	shape.radius = 0.34
+	shape.height = 1.4
 	var collision := CollisionShape3D.new()
 	collision.name = "Collision"
 	collision.shape = shape
-	collision.position = Vector3(0, 0.9, 0)
+	collision.position = Vector3(0, 0.7, 0)
 	root.add_child(collision)
 
-	var model := Node3D.new()
+	# The player is a toon character too (same shared rig as customers).
+	var model: Node = load(CHARACTER_SCENE).instantiate()
 	model.name = "Model"
 	root.add_child(model)
-	var body_mat := StandardMaterial3D.new()
-	body_mat.albedo_color = Color(0.20, 0.55, 0.90)
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.4
-	capsule.height = 1.8
-	var body := MeshInstance3D.new()
-	body.name = "Body"
-	body.mesh = capsule
-	body.material_override = body_mat
-	body.position = Vector3(0, 0.9, 0)
-	model.add_child(body)
-	var nose_mat := StandardMaterial3D.new()
-	nose_mat.albedo_color = Color(0.95, 0.85, 0.25)
-	var nose_mesh := BoxMesh.new()
-	nose_mesh.size = Vector3(0.25, 0.25, 0.35)
-	var nose := MeshInstance3D.new()
-	nose.name = "Nose"
-	nose.mesh = nose_mesh
-	nose.material_override = nose_mat
-	nose.position = Vector3(0, 0.9, 0.45)
-	model.add_child(nose)
 
 	# Hands
 	var carry := Node3D.new()
@@ -871,7 +839,7 @@ func _build_player_scene() -> void:
 	root.add_child(carry)
 	var hold := Marker3D.new()
 	hold.name = "HoldPoint"
-	hold.position = Vector3(0, 1.15, 0.6)
+	hold.position = Vector3(0, 0.95, 0.5)
 	carry.add_child(hold)
 
 	# Interaction detector

@@ -23,9 +23,18 @@ extends CharacterBody3D
 # the physics world instead of being a magic number.
 ## The player's hands. Stations reach it as `actor.carry`.
 @onready var carry: CarrySlot = $Carry
-@onready var _gravity: float = ProjectSettings.get_setting(
-	"physics/3d/default_gravity", 9.8)
+@onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 @onready var _model: Node3D = $Model
+
+
+func _ready() -> void:
+	# The shopkeeper is a toon character too — skin/hair + a sharp charcoal suit.
+	if _model.has_method("set_palette"):
+		_model.set_palette(Color(0.90, 0.76, 0.66), Color(0.28, 0.20, 0.13))
+	if _model.has_method("set_outfit"):
+		var suit: MaterialType = Catalog.get_material(&"charcoal_worsted_solid")
+		if suit != null:
+			_model.set_outfit(suit, suit)
 
 
 func _physics_process(delta: float) -> void:
@@ -50,6 +59,9 @@ func _physics_process(delta: float) -> void:
 
 	if direction.length_squared() > 0.001:
 		_face(direction, delta)
+
+	if _model.has_method("set_moving"):
+		_model.set_moving(Vector2(velocity.x, velocity.z).length() > 0.4)
 
 
 ## Converts a 2D input vector into a world-space direction on the ground plane,

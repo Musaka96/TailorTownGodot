@@ -21,57 +21,57 @@ size = Vector3(2, 1.7, 0.42)
 [sub_resource type="BoxShape3D" id="BoxShape3D_a4eiy"]
 size = Vector3(2.2, 1.8, 1.3)
 
-[node name="Shelf" type="Node3D" unique_id=1963129167]
+[node name="Shelf" type="Node3D" unique_id=1798676515]
 script = ExtResource("1_tnu5x")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=1368997840]
+[node name="Body" type="StaticBody3D" parent="." unique_id=2010096360]
 
-[node name="Back" type="MeshInstance3D" parent="Body" unique_id=27477894]
+[node name="Back" type="MeshInstance3D" parent="Body" unique_id=903117305]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -0.2)
 material_override = SubResource("StandardMaterial3D_mgga7")
 mesh = SubResource("BoxMesh_o6sp6")
 
-[node name="Plank1" type="MeshInstance3D" parent="Body" unique_id=934743510]
+[node name="Plank1" type="MeshInstance3D" parent="Body" unique_id=1031370387]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 material_override = SubResource("StandardMaterial3D_mgga7")
 mesh = SubResource("BoxMesh_3xfg2")
 
-[node name="Plank2" type="MeshInstance3D" parent="Body" unique_id=1664299845]
+[node name="Plank2" type="MeshInstance3D" parent="Body" unique_id=930319775]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
 material_override = SubResource("StandardMaterial3D_mgga7")
 mesh = SubResource("BoxMesh_xclqu")
 
-[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=886397785]
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=1884578495]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 shape = SubResource("BoxShape3D_f553d")
 
-[node name="Slots" type="Node3D" parent="." unique_id=618881426]
+[node name="Slots" type="Node3D" parent="." unique_id=1042961759]
 
-[node name="Slot_72_-60" type="Marker3D" parent="Slots" unique_id=80316116]
+[node name="Slot_72_-60" type="Marker3D" parent="Slots" unique_id=606909197]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.72, 0.06)
 
-[node name="Slot_72_0" type="Marker3D" parent="Slots" unique_id=1043220064]
+[node name="Slot_72_0" type="Marker3D" parent="Slots" unique_id=1596550873]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0.06)
 
-[node name="Slot_72_60" type="Marker3D" parent="Slots" unique_id=929257069]
+[node name="Slot_72_60" type="Marker3D" parent="Slots" unique_id=467204259]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.72, 0.06)
 
-[node name="Slot_132_-60" type="Marker3D" parent="Slots" unique_id=1430216463]
+[node name="Slot_132_-60" type="Marker3D" parent="Slots" unique_id=1876966007]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.32, 0.06)
 
-[node name="Slot_132_0" type="Marker3D" parent="Slots" unique_id=1108747262]
+[node name="Slot_132_0" type="Marker3D" parent="Slots" unique_id=379007468]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, 0.06)
 
-[node name="Slot_132_60" type="Marker3D" parent="Slots" unique_id=1750790461]
+[node name="Slot_132_60" type="Marker3D" parent="Slots" unique_id=1461613747]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.32, 0.06)
 
-[node name="Interactable" type="Area3D" parent="." unique_id=993477812 node_paths=PackedStringArray("target")]
+[node name="Interactable" type="Area3D" parent="." unique_id=1689242142 node_paths=PackedStringArray("target")]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_ypf5v")
 target = NodePath("..")
 
-[node name="@CollisionShape3D@6" type="CollisionShape3D" parent="Interactable" unique_id=2137726938]
+[node name="@CollisionShape3D@6" type="CollisionShape3D" parent="Interactable" unique_id=646131789]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.6)
 shape = SubResource("BoxShape3D_a4eiy")

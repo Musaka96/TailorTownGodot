@@ -32,6 +32,7 @@ var _mode := Mode.NONE
 var _face_target := NAN
 
 @onready var _interactable: Interactable = $Interactable
+@onready var _rig: Node = $Rig
 
 
 func _ready() -> void:
@@ -39,6 +40,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _rig != null:
+		_rig.set_moving(not _points.is_empty())
 	if _points.is_empty():
 		if not is_nan(_face_target):
 			rotation.y = lerp_angle(rotation.y, _face_target, turn_speed * delta)
@@ -90,6 +93,20 @@ func despawn() -> void:
 func offer_greeting() -> void:
 	_mode = Mode.GREET
 	_set_interactable(true)
+	if _rig != null:
+		_rig.wave()
+
+
+## Set skin + hair colour (called by the manager on spawn).
+func apply_look(skin: Color, hair: Color) -> void:
+	if _rig != null:
+		_rig.set_palette(skin, hair)
+
+
+## Dress the customer in a suit made from real cloth materials.
+func wear_suit(jacket_mat: MaterialType, trousers_mat: MaterialType) -> void:
+	if _rig != null:
+		_rig.set_outfit(jacket_mat, trousers_mat)
 
 
 func offer_mirror() -> void:
@@ -148,7 +165,7 @@ func _set_interactable(on: bool) -> void:
 
 
 func center() -> Vector3:
-	return global_position + Vector3(0, 1.0, 0)
+	return global_position + Vector3(0, 0.8, 0)
 
 
 func facing() -> Vector3:
