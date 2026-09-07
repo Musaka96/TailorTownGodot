@@ -172,7 +172,7 @@ func _refresh() -> void:
 			% [_pref.describe(), _pref.budget, quote, over]
 		)
 		var keys := "W/S select  A/D change  E ask/confirm  Esc close"
-		_hint.text = "%s\n“%s”\n%s%s" % [brief, _pref.hint(), keys, _status]
+		_hint.text = "%s\n%s%s" % [brief, keys, _status]
 	else:
 		_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
 

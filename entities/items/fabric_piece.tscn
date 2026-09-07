@@ -9,19 +9,19 @@ size = Vector3(0.5, 0.06, 0.4)
 [sub_resource type="BoxShape3D" id="BoxShape3D_lrqhe"]
 size = Vector3(0.55, 0.3, 0.45)
 
-[node name="FabricPiece" type="Node3D" unique_id=365332826]
+[node name="FabricPiece" type="Node3D" unique_id=1449535751]
 script = ExtResource("1_4a8yu")
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=669148929]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2028656932]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 mesh = SubResource("BoxMesh_8kd7k")
 
-[node name="Interactable" type="Area3D" parent="." unique_id=1382564003]
+[node name="Interactable" type="Area3D" parent="." unique_id=1866250026]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_b74mb")
 
-[node name="@CollisionShape3D@2" type="CollisionShape3D" parent="Interactable" unique_id=1998296800]
+[node name="@CollisionShape3D@2" type="CollisionShape3D" parent="Interactable" unique_id=407092092]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lrqhe")

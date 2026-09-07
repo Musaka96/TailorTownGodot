@@ -17,6 +17,7 @@ const SHELF_SCENE := "res://stations/shelf/shelf.tscn"
 const PHONE_SCENE := "res://stations/phone/phone.tscn"
 const WORKTABLE_SCENE := "res://stations/worktable/worktable.tscn"
 const SEWING_SCENE := "res://stations/sewing_machine/sewing_machine.tscn"
+const BOOKSHELF_SCENE := "res://stations/bookshelf/bookshelf.tscn"
 const UI_SCENE := "res://ui/ui.tscn"
 const PLAYER_SCENE := "res://scenes/player/player.tscn"
 const ROOM_SCENE := "res://scenes/world/shop_room.tscn"
@@ -75,6 +76,7 @@ func _initialize() -> void:
 	_build_phone_scene()
 	_build_worktable_scene()
 	_build_sewing_machine_scene()
+	_build_bookshelf_scene()
 	_build_clothing_rack_scene()
 	_build_mannequin_scene()
 	_build_customer_scene()
@@ -289,6 +291,52 @@ func _build_sewing_machine_scene() -> void:
 
 	_add_station_interactable(root, Vector3(1.7, 1.6, 1.5), Vector3(0, 0.9, 0.6))
 	_save(root, SEWING_SCENE)
+
+
+func _build_bookshelf_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Bookshelf"
+	root.set_script(load("res://stations/bookshelf/bookshelf.gd"))
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.36, 0.24, 0.16)
+	_add_box_mesh(body, "Back", Vector3(1.4, 1.8, 0.08), Vector3(0, 0.9, -0.18), wood)
+	_add_box_mesh(body, "SideL", Vector3(0.08, 1.8, 0.42), Vector3(-0.66, 0.9, 0), wood)
+	_add_box_mesh(body, "SideR", Vector3(0.08, 1.8, 0.42), Vector3(0.66, 0.9, 0), wood)
+	_add_box_mesh(body, "Top", Vector3(1.4, 0.08, 0.42), Vector3(0, 1.78, 0), wood)
+	var shelf_ys := [0.5, 1.0, 1.5]
+	for y in shelf_ys:
+		_add_box_mesh(body, "Shelf_%d" % int(y * 100), Vector3(1.3, 0.05, 0.4), Vector3(0, y, 0), wood)
+	_place_books(body, shelf_ys)
+	var col := CollisionShape3D.new()
+	col.name = "Collision"
+	var cbox := BoxShape3D.new()
+	cbox.size = Vector3(1.4, 1.8, 0.42)
+	col.shape = cbox
+	col.position = Vector3(0, 0.9, 0)
+	body.add_child(col)
+	_add_station_interactable(root, Vector3(1.7, 1.8, 1.3), Vector3(0, 0.9, 0.5))
+	_save(root, BOOKSHELF_SCENE)
+
+
+func _place_books(body: Node, shelf_ys: Array) -> void:
+	var spines := [
+		Color(0.55, 0.20, 0.18), Color(0.20, 0.35, 0.45), Color(0.30, 0.42, 0.26),
+		Color(0.60, 0.48, 0.22), Color(0.38, 0.24, 0.42), Color(0.72, 0.55, 0.30),
+	]
+	for y in shelf_ys:
+		var x := -0.56
+		var i := 0
+		while x < 0.56:
+			var h: float = 0.30 + float((i * 7) % 5) * 0.012
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = spines[i % spines.size()]
+			var name := "Book_%d_%d" % [int(y * 100), i]
+			_add_box_mesh(body, name, Vector3(0.06, h, 0.28), Vector3(x, y + 0.03 + h / 2, 0.02), mat)
+			x += 0.075
+			i += 1
 
 
 func _build_suit_scene() -> void:
@@ -767,6 +815,32 @@ func _build_ui_scene() -> void:
 	tickets.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	orders.add_child(tickets)
 
+	# Tailor's Handbook — a book-style reference (chapter tabs + index + article).
+	var hb_box := _build_modal(root, "Handbook", "res://ui/handbook.gd", 900)
+	var hb_title := Label.new()
+	hb_title.name = "Title"
+	hb_box.add_child(hb_title)
+	var hb_tabs := HBoxContainer.new()
+	hb_tabs.name = "Tabs"
+	hb_tabs.add_theme_constant_override("separation", 6)
+	hb_box.add_child(hb_tabs)
+	var hb_pages := HBoxContainer.new()
+	hb_pages.name = "Pages"
+	hb_pages.add_theme_constant_override("separation", 16)
+	hb_box.add_child(hb_pages)
+	var hb_index := VBoxContainer.new()
+	hb_index.name = "Index"
+	hb_index.custom_minimum_size = Vector2(220, 0)
+	hb_pages.add_child(hb_index)
+	var hb_body := RichTextLabel.new()
+	hb_body.name = "Body"
+	hb_body.custom_minimum_size = Vector2(560, 430)
+	hb_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb_pages.add_child(hb_body)
+	var hb_hint := Label.new()
+	hb_hint.name = "Hint"
+	hb_box.add_child(hb_hint)
+
 	_save(root, UI_SCENE)
 
 
@@ -932,6 +1006,12 @@ func _build_room_scene() -> void:
 	sewing.position = Vector3(6.5, 0, -1.0)
 	sewing.rotation_degrees = Vector3(0, -80, 0)
 	root.add_child(sewing)
+
+	# Reference library against the east wall (opens the Tailor's Handbook).
+	var bookshelf: Node = load(BOOKSHELF_SCENE).instantiate()
+	bookshelf.position = Vector3(7.3, 0, 3.0)
+	bookshelf.rotation_degrees = Vector3(0, 90, 0)
+	root.add_child(bookshelf)
 
 	var rack: Node = load(RACK_SCENE).instantiate()
 	rack.position = Vector3(-6.5, 0, -1.0)

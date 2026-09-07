@@ -45,7 +45,7 @@ func _fill() -> void:
 		_brief.text = "They're just browsing."
 	else:
 		_title.text = pref.display_name
-		_brief.text = ("%s\n\nBudget: $%d\n\n“%s”" % [pref.describe(), pref.budget, pref.hint()])
+		_brief.text = "%s\n\nBudget: $%d" % [pref.describe(), pref.budget]
 	_hint.text = "E: send to the fitting mirror      Esc: later"
 
 

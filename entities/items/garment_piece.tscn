@@ -39,73 +39,73 @@ size = Vector3(0.3, 0.07, 0.08)
 [sub_resource type="BoxShape3D" id="BoxShape3D_shcfa"]
 size = Vector3(0.6, 0.3, 0.5)
 
-[node name="GarmentPiece" type="Node3D" unique_id=851152605]
+[node name="GarmentPiece" type="Node3D" unique_id=846647172]
 script = ExtResource("1_17bn5")
 
-[node name="Models" type="Node3D" parent="." unique_id=533316869]
+[node name="Models" type="Node3D" parent="." unique_id=2140490416]
 
-[node name="Shirt" type="Node3D" parent="Models" unique_id=587650279]
+[node name="Shirt" type="Node3D" parent="Models" unique_id=139673935]
 
-[node name="Torso" type="MeshInstance3D" parent="Models/Shirt" unique_id=1625458188]
+[node name="Torso" type="MeshInstance3D" parent="Models/Shirt" unique_id=2077126156]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_q702b")
 
-[node name="SleeveL" type="MeshInstance3D" parent="Models/Shirt" unique_id=2030134510]
+[node name="SleeveL" type="MeshInstance3D" parent="Models/Shirt" unique_id=1939295585]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.24, 0.025, 0.12)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_y3oiv")
 
-[node name="SleeveR" type="MeshInstance3D" parent="Models/Shirt" unique_id=915119324]
+[node name="SleeveR" type="MeshInstance3D" parent="Models/Shirt" unique_id=456228882]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, 0.025, 0.12)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_ry4ew")
 
-[node name="Pants" type="Node3D" parent="Models" unique_id=1820390233]
+[node name="Pants" type="Node3D" parent="Models" unique_id=1245984034]
 
-[node name="Waist" type="MeshInstance3D" parent="Models/Pants" unique_id=1112133402]
+[node name="Waist" type="MeshInstance3D" parent="Models/Pants" unique_id=74765870]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0.2)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_iat7u")
 
-[node name="LegL" type="MeshInstance3D" parent="Models/Pants" unique_id=550578638]
+[node name="LegL" type="MeshInstance3D" parent="Models/Pants" unique_id=1632168140]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.09, 0.025, -0.02)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_g5nqe")
 
-[node name="LegR" type="MeshInstance3D" parent="Models/Pants" unique_id=677019143]
+[node name="LegR" type="MeshInstance3D" parent="Models/Pants" unique_id=1095517556]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.09, 0.025, -0.02)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_uya4v")
 
-[node name="Jacket" type="Node3D" parent="Models" unique_id=950375200]
+[node name="Jacket" type="Node3D" parent="Models" unique_id=2116041405]
 
-[node name="Back" type="MeshInstance3D" parent="Models/Jacket" unique_id=1189673320]
+[node name="Back" type="MeshInstance3D" parent="Models/Jacket" unique_id=749888763]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_uymac")
 
-[node name="LapelL" type="MeshInstance3D" parent="Models/Jacket" unique_id=746580075]
+[node name="LapelL" type="MeshInstance3D" parent="Models/Jacket" unique_id=970108493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.035, 0.1)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_s5gg0")
 
-[node name="LapelR" type="MeshInstance3D" parent="Models/Jacket" unique_id=1101839496]
+[node name="LapelR" type="MeshInstance3D" parent="Models/Jacket" unique_id=659857808]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.035, 0.1)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_j0xaa")
 
-[node name="Collar" type="MeshInstance3D" parent="Models/Jacket" unique_id=884337205]
+[node name="Collar" type="MeshInstance3D" parent="Models/Jacket" unique_id=1903628288]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.035, 0.24)
 material_override = SubResource("StandardMaterial3D_fjpqq")
 mesh = SubResource("BoxMesh_sjcyu")
 
-[node name="Interactable" type="Area3D" parent="." unique_id=1690877181]
+[node name="Interactable" type="Area3D" parent="." unique_id=1893474048]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_s1e0h")
 
-[node name="@CollisionShape3D@3" type="CollisionShape3D" parent="Interactable" unique_id=1825440992]
+[node name="@CollisionShape3D@3" type="CollisionShape3D" parent="Interactable" unique_id=1387682569]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_shcfa")
