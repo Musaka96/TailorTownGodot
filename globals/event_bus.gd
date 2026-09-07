@@ -36,7 +36,15 @@ signal customer_waiting(customer: Node)
 signal customer_seated(customer: Node)
 ## A customer approved a design and left; an order now exists to make it.
 signal order_created(order: Resource)
-## A packaged suit fulfilled an order; the shop was paid `payout`.
+## A made piece was checked off against an order (garment_type of Enums.GarmentType).
+signal order_part_filled(order: Resource, garment_type: int)
+## Every piece of an order is checked off; it now waits for the customer to collect.
+signal order_ready(order: Resource)
+## An order's deadline arrived — the customer is on their way back to collect it.
+signal order_due(order: Resource)
+## The customer collected a finished order and paid `payout`.
 signal order_fulfilled(order: Resource, payout: int)
+## An order's deadline passed without it being finished; it was lost.
+signal order_expired(order: Resource)
 ## A customer left the shop (served or gave up).
 signal customer_left(customer: Node)

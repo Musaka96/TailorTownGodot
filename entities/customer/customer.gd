@@ -15,13 +15,17 @@ signal arrived  ## the current path finished
 signal departed(customer: Node)  ## about to remove itself
 
 ## What interacting with the customer does right now.
-enum Mode { NONE, GREET, MIRROR }
+enum Mode { NONE, GREET, MIRROR, COLLECT }
 
 @export var walk_speed: float = 2.6
 @export var turn_speed: float = 8.0
 
 ## Taste + budget (null for a plain pedestrian).
 var preference: CustomerPreference = null
+## Skin tone, remembered so a returning customer looks the same (set by the manager).
+var skin_color := Color(0.87, 0.72, 0.60)
+## The order this customer is returning to collect (COLLECT mode only).
+var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
 var mirror: Node = null
 var manager: Node = null
@@ -99,8 +103,18 @@ func offer_greeting() -> void:
 
 ## Set skin colour (called by the manager on spawn).
 func apply_look(skin: Color) -> void:
+	skin_color = skin
 	if _rig != null:
 		_rig.set_palette(skin)
+
+
+## Wait at the counter for the player to hand over a finished order.
+func offer_collection(order: SuitOrder) -> void:
+	_mode = Mode.COLLECT
+	collect_order = order
+	_set_interactable(true)
+	if _rig != null:
+		_rig.wave()
 
 
 ## Dress the customer in a suit made from real cloth materials.
@@ -149,6 +163,9 @@ func get_interaction_prompt(_actor) -> String:
 			return "Greet %s" % _label()
 		Mode.MIRROR:
 			return "Design %s's suit" % _label()
+		Mode.COLLECT:
+			var pay := collect_order.payout() if collect_order != null else 0
+			return "Hand %s their suit  (+$%d)" % [_label(), pay]
 	return ""
 
 
@@ -159,10 +176,18 @@ func interact(actor) -> void:
 		Mode.MIRROR:
 			if mirror != null:
 				UI.open_suit_builder(mirror, actor)
+		Mode.COLLECT:
+			Orders.collect(collect_order)
+			collect_order = null
+			finish_and_leave()
 
 
 func _label() -> String:
-	return preference.display_name if preference != null else "the customer"
+	if preference != null:
+		return preference.display_name
+	if collect_order != null:
+		return collect_order.customer_name
+	return "the customer"
 
 
 func _set_interactable(on: bool) -> void:

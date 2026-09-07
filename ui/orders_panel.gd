@@ -1,25 +1,44 @@
 extends Control
 
-## Overcooked-style order tickets across the top of the screen: a horizontal row
-## of little paper cards, each with the customer, a fabric swatch of the jacket,
-## the spec and the price. New orders pop in; a fulfilled one flashes its payout
-## and clears. Driven entirely by EventBus so it stays decoupled from OrderManager.
+## Overcooked-style order tickets across the top of the screen: a row of little
+## paper cards, one per open order. Each shows the customer, a jacket swatch, the
+## jacket spec, a chip per piece that lights up as it's checked off, the days left
+## and the price. New orders pop in; when a piece is checked off its chip fills;
+## when all are done the card turns "Ready"; when the customer collects it flashes
+## the payout and clears. Driven by EventBus so it stays decoupled from Orders.
 
-var _tickets := {}  # SuitOrder -> Control
+# GarmentType -> single-letter chip label.
+const CHIP := {
+	Enums.GarmentType.JACKET: "J",
+	Enums.GarmentType.SHIRT: "S",
+	Enums.GarmentType.PANTS: "P",
+}
+
+var _tickets := {}  # SuitOrder -> { card, days, chips, order }
 
 @onready var _row: HBoxContainer = $Tickets
 
 
 func _ready() -> void:
 	EventBus.order_created.connect(_on_created)
+	EventBus.order_part_filled.connect(func(order, _t): _refresh(order))
+	EventBus.order_ready.connect(_refresh)
+	EventBus.order_due.connect(_refresh)
 	EventBus.order_fulfilled.connect(_on_fulfilled)
+	EventBus.order_expired.connect(_on_expired)
+
+
+func _process(_delta: float) -> void:
+	# Live-update the days-left badge on each open ticket.
+	for order in _tickets:
+		_update_days(_tickets[order])
 
 
 func _on_created(order) -> void:
 	var ticket := _make_ticket(order)
-	_row.add_child(ticket)
+	_row.add_child(ticket["card"])
 	_tickets[order] = ticket
-	_pop_in(ticket)
+	_pop_in(ticket["card"])
 
 
 func _on_fulfilled(order, payout: int) -> void:
@@ -27,25 +46,49 @@ func _on_fulfilled(order, payout: int) -> void:
 	if ticket == null:
 		return
 	_tickets.erase(order)
-	_float_payout(ticket, payout)
-	_complete(ticket)
+	_float_payout(ticket["card"], payout)
+	_complete(ticket["card"], Style.LEAF)
+
+
+func _on_expired(order) -> void:
+	var ticket = _tickets.get(order)
+	if ticket == null:
+		return
+	_tickets.erase(order)
+	_complete(ticket["card"], Style.CLAY)
+
+
+func _refresh(order) -> void:
+	var ticket = _tickets.get(order)
+	if ticket == null:
+		return
+	ticket["card"].add_theme_stylebox_override("panel", _ticket_style(order))
+	_rebuild_chips(ticket)
+	_update_days(ticket)
 
 
 # --- Ticket building -------------------------------------------------------
 
 
-func _make_ticket(order) -> Control:
+func _make_ticket(order) -> Dictionary:
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _ticket_style())
+	card.add_theme_stylebox_override("panel", _ticket_style(order))
 	card.custom_minimum_size = Vector2(150, 0)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", Style.S1)
 	card.add_child(box)
 
-	box.add_child(_label(order.customer_name, 15, Style.INK, HORIZONTAL_ALIGNMENT_CENTER))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", Style.S1)
+	box.add_child(head)
+	var who := _label(order.customer_name, 15, Style.INK, HORIZONTAL_ALIGNMENT_LEFT)
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(who)
+	var days := _label("", 14, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
+	head.add_child(days)
 
 	var swatch := MaterialSwatch.new()
-	swatch.swatch_size = 64
+	swatch.swatch_size = 60
 	swatch.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(swatch)
 	var mat: MaterialType = order.jacket_material()
@@ -57,8 +100,53 @@ func _make_ticket(order) -> Control:
 	spec.custom_minimum_size = Vector2(134, 0)
 	box.add_child(spec)
 
+	var chips := HBoxContainer.new()
+	chips.alignment = BoxContainer.ALIGNMENT_CENTER
+	chips.add_theme_constant_override("separation", Style.S1)
+	box.add_child(chips)
+
 	box.add_child(_label("$%d" % order.price, 18, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER))
-	return card
+
+	var ticket := {"card": card, "days": days, "chips": chips, "order": order}
+	_rebuild_chips(ticket)
+	_update_days(ticket)
+	return ticket
+
+
+func _rebuild_chips(ticket: Dictionary) -> void:
+	var chips: HBoxContainer = ticket["chips"]
+	var order = ticket["order"]
+	for child in chips.get_children():
+		child.queue_free()
+	for t in order.required_types():
+		chips.add_child(_chip(CHIP.get(t, "?"), order.is_part_done(t)))
+
+
+func _update_days(ticket: Dictionary) -> void:
+	var order = ticket["order"]
+	var days: Label = ticket["days"]
+	if order.state == SuitOrder.State.READY:
+		days.text = "READY"
+		days.add_theme_color_override("font_color", Style.LEAF)
+		return
+	var left: int = order.days_left_ceil()
+	days.text = "%dd" % left
+	days.add_theme_color_override(
+		"font_color", Style.fill_color(order.days_left / order.deadline_days)
+	)
+
+
+func _chip(text: String, done: bool) -> Control:
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override(
+		"panel", Style.card(Style.LEAF if done else Style.CREAM_DARK, 7)
+	)
+	var lbl := _label(
+		text, 12, Color.WHITE if done else Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER
+	)
+	lbl.custom_minimum_size = Vector2(16, 0)
+	chip.add_child(lbl)
+	return chip
 
 
 func _label(text: String, size: int, color: Color, align: int) -> Label:
@@ -70,17 +158,25 @@ func _label(text: String, size: int, color: Color, align: int) -> Label:
 	return lbl
 
 
-func _ticket_style() -> StyleBoxFlat:
+func _ticket_style(order) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.98, 0.96, 0.90)  # paper
 	sb.set_corner_radius_all(10)
-	sb.border_width_top = 6  # coloured ticket header strip
-	sb.border_color = Style.AMBER
+	sb.border_width_top = 6  # coloured ticket header strip: state at a glance
+	sb.border_color = _state_color(order)
 	sb.set_content_margin_all(Style.S2)
 	sb.shadow_color = Style.SHADOW
 	sb.shadow_size = 5
 	sb.shadow_offset = Vector2(0, 3)
 	return sb
+
+
+func _state_color(order) -> Color:
+	if order.state == SuitOrder.State.READY:
+		return Style.LEAF
+	if order.days_left_ceil() <= 1:
+		return Style.CLAY
+	return Style.AMBER
 
 
 # --- Animation -------------------------------------------------------------
@@ -97,10 +193,10 @@ func _pop_in(ticket: Control) -> void:
 	)
 
 
-func _complete(ticket: Control) -> void:
+func _complete(ticket: Control, flash: Color) -> void:
 	ticket.pivot_offset = ticket.size / 2.0
 	var tween := create_tween()
-	tween.tween_property(ticket, "modulate", Style.LEAF, 0.12)
+	tween.tween_property(ticket, "modulate", flash, 0.12)
 	tween.tween_interval(0.4)
 	tween.tween_property(ticket, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(ticket.queue_free)

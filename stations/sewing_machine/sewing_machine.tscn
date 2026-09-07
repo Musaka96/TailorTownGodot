@@ -24,40 +24,40 @@ size = Vector3(0.1, 0.22, 0.1)
 [sub_resource type="BoxShape3D" id="BoxShape3D_73p8g"]
 size = Vector3(1.7, 1.6, 1.5)
 
-[node name="SewingMachine" type="Node3D" unique_id=1098430318]
+[node name="SewingMachine" type="Node3D" unique_id=620721238]
 script = ExtResource("1_lp63i")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=122581036]
+[node name="Body" type="StaticBody3D" parent="." unique_id=951233140]
 
-[node name="TableMesh" type="MeshInstance3D" parent="Body" unique_id=1503978256]
+[node name="TableMesh" type="MeshInstance3D" parent="Body" unique_id=931025219]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 material_override = SubResource("StandardMaterial3D_ci6qi")
 mesh = SubResource("BoxMesh_t3ibc")
 
-[node name="TableCol" type="CollisionShape3D" parent="Body" unique_id=418814371]
+[node name="TableCol" type="CollisionShape3D" parent="Body" unique_id=1676471301]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 shape = SubResource("BoxShape3D_g7ajy")
 
-[node name="Machine" type="MeshInstance3D" parent="Body" unique_id=904084573]
+[node name="Machine" type="MeshInstance3D" parent="Body" unique_id=883992642]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 1.06, -0.05)
 material_override = SubResource("StandardMaterial3D_5iiqe")
 mesh = SubResource("BoxMesh_fnnug")
 
-[node name="Arm" type="MeshInstance3D" parent="Body" unique_id=464611449]
+[node name="Arm" type="MeshInstance3D" parent="Body" unique_id=1623100805]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 1.15, -0.05)
 material_override = SubResource("StandardMaterial3D_5iiqe")
 mesh = SubResource("BoxMesh_rhhoe")
 
-[node name="Slot" type="Marker3D" parent="." unique_id=808005647]
+[node name="Slot" type="Marker3D" parent="." unique_id=1157722601]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, 0.95, 0.22)
 
-[node name="Interactable" type="Area3D" parent="." unique_id=1513629426 node_paths=PackedStringArray("target")]
+[node name="Interactable" type="Area3D" parent="." unique_id=361455426 node_paths=PackedStringArray("target")]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_2vebb")
 target = NodePath("..")
 
-[node name="@CollisionShape3D@11" type="CollisionShape3D" parent="Interactable" unique_id=2101531947]
+[node name="@CollisionShape3D@11" type="CollisionShape3D" parent="Interactable" unique_id=1439176687]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.6)
 shape = SubResource("BoxShape3D_73p8g")

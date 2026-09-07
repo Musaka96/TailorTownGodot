@@ -16,6 +16,11 @@ extends Resource
 ## customer/selling phase).
 @export var sell_markup: float = 2.4
 
+@export_group("Orders")
+## Real seconds per in-game day. Order deadlines (1–5 days) count down in real
+## time, so this sets how long the player has to build each suit.
+@export var seconds_per_day: float = 120.0
+
 @export_group("Cutting minigame")
 @export var cut_lead_seconds: float = 1.6        ## "get ready" pause before cutting starts
 @export var cut_seconds: float = 15.0            ## time to cut the whole shape when aligned

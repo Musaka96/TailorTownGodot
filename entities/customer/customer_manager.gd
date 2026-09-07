@@ -44,6 +44,7 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	EventBus.order_due.connect(_on_order_due)
 	# Defer so all sibling markers/stations exist and report global positions.
 	call_deferred("_start")
 
@@ -92,6 +93,38 @@ func _send_shopper(start: Vector3) -> void:
 	var cust := _spawn(start, true)
 	_served = cust
 	cust.walk([_door_out, _door_in, _greet], func() -> void: _on_shopper_waiting(cust))
+
+
+# --- Returning collectors --------------------------------------------------
+
+
+## An order's deadline arrived: the customer walks back in to collect it. This is
+## independent of the fitting queue (collectors don't use the mirror).
+func _on_order_due(order: SuitOrder) -> void:
+	if not is_inside_tree() or _door_in == Vector3.ZERO:
+		return
+	var start := _street_west if _rng.randf() < 0.5 else _street_east
+	var cust := _spawn(start, false)
+	cust.collect_order = order
+	cust.apply_look(order.skin)
+	cust.walk([_door_out, _door_in, _collect_spot()], func() -> void: _on_collector_arrived(cust))
+
+
+func _on_collector_arrived(cust: Customer) -> void:
+	var order: SuitOrder = cust.collect_order
+	if order != null and Orders.is_ready(order):
+		cust.offer_collection(order)
+	else:
+		# Deadline passed unfinished — the customer leaves empty-handed.
+		if order != null:
+			Orders.expire(order)
+		cust.collect_order = null
+		dismiss(cust)
+
+
+## Where a returning customer waits — just inside the door, clear of the mirror.
+func _collect_spot() -> Vector3:
+	return _door_in + Vector3(0.9, 0.0, 0.0)
 
 
 func _on_shopper_waiting(cust: Customer) -> void:

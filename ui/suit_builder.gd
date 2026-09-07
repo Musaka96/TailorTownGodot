@@ -297,7 +297,8 @@ func _confirm() -> void:
 		return
 	# Second E finalises: create the order and send the customer on their way.
 	var quote: int = Pricing.suit_quote(_design)
-	Orders.create_order(_pref.display_name, _design, quote)
+	var skin: Color = _customer.skin_color if _customer != null else Color(0.87, 0.72, 0.60)
+	Orders.create_order(_pref.display_name, _design, quote, skin)
 	EventBus.design_confirmed.emit(_design.duplicate(true))
 	var cust = _customer
 	close()

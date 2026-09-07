@@ -11,34 +11,34 @@ size = Vector3(0.5, 1.5, 0.42)
 [sub_resource type="BoxShape3D" id="BoxShape3D_rfjvo"]
 size = Vector3(1.2, 1.7, 1.2)
 
-[node name="Customer" type="Node3D" unique_id=357566252]
+[node name="Customer" type="Node3D" unique_id=123309091]
 script = ExtResource("1_ahyps")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=2044941132]
+[node name="Body" type="StaticBody3D" parent="." unique_id=2147315171]
 
-[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=2041575183]
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=1729228810]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
 shape = SubResource("BoxShape3D_luk7a")
 
 [node name="Rig" type="Node3D" parent="." unique_id=1538957237 instance=ExtResource("2_nhfij")]
 script = ExtResource("3_j6trb")
 
-[node name="PantsAnchor" type="Marker3D" parent="." unique_id=1616700098]
+[node name="PantsAnchor" type="Marker3D" parent="." unique_id=378470526]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.2)
 
-[node name="ShirtAnchor" type="Marker3D" parent="." unique_id=1590774007]
+[node name="ShirtAnchor" type="Marker3D" parent="." unique_id=495742349]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0.2)
 
-[node name="JacketAnchor" type="Marker3D" parent="." unique_id=27645790]
+[node name="JacketAnchor" type="Marker3D" parent="." unique_id=780494245]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.24)
 
-[node name="Interactable" type="Area3D" parent="." unique_id=522512462 node_paths=PackedStringArray("target")]
+[node name="Interactable" type="Area3D" parent="." unique_id=1015824787 node_paths=PackedStringArray("target")]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("4_b4er3")
 target = NodePath("..")
 
-[node name="@CollisionShape3D@15" type="CollisionShape3D" parent="Interactable" unique_id=1041525858]
+[node name="@CollisionShape3D@15" type="CollisionShape3D" parent="Interactable" unique_id=1179184175]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 shape = SubResource("BoxShape3D_rfjvo")

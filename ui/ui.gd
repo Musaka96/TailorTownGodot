@@ -13,6 +13,7 @@ const FONT := preload("res://assets/fonts/Fredoka.ttf")
 @onready var suit_builder: Control = $SuitBuilder
 @onready var customer_request: Control = $CustomerRequest
 @onready var handbook: Control = $Handbook
+@onready var orders_menu: Control = $OrdersMenu
 
 
 func _ready() -> void:
@@ -23,6 +24,7 @@ func _ready() -> void:
 	suit_builder.visible = false
 	customer_request.visible = false
 	handbook.visible = false
+	orders_menu.visible = false
 	# Apply the rounded font project-wide via a shared theme.
 	var theme := Theme.new()
 	theme.default_font = FONT
@@ -35,6 +37,7 @@ func _ready() -> void:
 	suit_builder.theme = theme
 	customer_request.theme = theme
 	handbook.theme = theme
+	orders_menu.theme = theme
 
 
 func open_shelf_menu(shelf, actor) -> void:
@@ -63,3 +66,7 @@ func open_customer_request(customer, actor) -> void:
 
 func open_handbook(actor) -> void:
 	handbook.open(actor)
+
+
+func open_orders_menu(actor) -> void:
+	orders_menu.open(actor)
