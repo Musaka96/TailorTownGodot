@@ -97,16 +97,18 @@ func offer_greeting() -> void:
 		_rig.wave()
 
 
-## Set skin + hair colour (called by the manager on spawn).
-func apply_look(skin: Color, hair: Color) -> void:
+## Set skin colour (called by the manager on spawn).
+func apply_look(skin: Color) -> void:
 	if _rig != null:
-		_rig.set_palette(skin, hair)
+		_rig.set_palette(skin)
 
 
 ## Dress the customer in a suit made from real cloth materials.
-func wear_suit(jacket_mat: MaterialType, trousers_mat: MaterialType) -> void:
+func wear_suit(
+	jacket_mat: MaterialType, shirt_mat: MaterialType, trousers_mat: MaterialType
+) -> void:
 	if _rig != null:
-		_rig.set_outfit(jacket_mat, trousers_mat)
+		_rig.set_outfit(jacket_mat, shirt_mat, trousers_mat)
 
 
 func offer_mirror() -> void:
@@ -165,7 +167,7 @@ func _set_interactable(on: bool) -> void:
 
 
 func center() -> Vector3:
-	return global_position + Vector3(0, 0.8, 0)
+	return global_position + Vector3(0, 0.9, 0)
 
 
 func facing() -> Vector3:

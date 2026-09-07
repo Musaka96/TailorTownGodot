@@ -407,11 +407,11 @@ func _build_customer_scene() -> void:
 	rig.name = "Rig"
 	root.add_child(rig)
 	# Anchors sized to the rig (used by the suit builder to frame garment parts).
-	_add_marker(root, "PantsAnchor", Vector3(0, 0.32, 0.18))
-	_add_marker(root, "ShirtAnchor", Vector3(0, 0.64, 0.18))
-	_add_marker(root, "JacketAnchor", Vector3(0, 0.66, 0.22))
+	_add_marker(root, "PantsAnchor", Vector3(0, 0.5, 0.2))
+	_add_marker(root, "ShirtAnchor", Vector3(0, 0.98, 0.2))
+	_add_marker(root, "JacketAnchor", Vector3(0, 0.9, 0.24))
 	# Interaction volume so the player can greet / design at the customer.
-	_add_station_interactable(root, Vector3(1.2, 1.6, 1.2), Vector3(0, 0.8, 0))
+	_add_station_interactable(root, Vector3(1.2, 1.7, 1.2), Vector3(0, 0.85, 0))
 	_save(root, CUSTOMER_SCENE)
 
 

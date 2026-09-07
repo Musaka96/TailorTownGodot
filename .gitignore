@@ -19,3 +19,4 @@ Thumbs.db
 
 # MCP: local, machine-specific (absolute path to the godot-mcp clone)
 .mcp.json
+/IMPORT/

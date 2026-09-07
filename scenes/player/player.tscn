@@ -13,29 +13,29 @@ height = 1.4
 [sub_resource type="SphereShape3D" id="SphereShape3D_je7p5"]
 radius = 1.6
 
-[node name="Player" type="CharacterBody3D" unique_id=1898879754]
+[node name="Player" type="CharacterBody3D" unique_id=531864551]
 script = ExtResource("1_p47bc")
 
-[node name="Collision" type="CollisionShape3D" parent="." unique_id=1317194476]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1333157667]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 shape = SubResource("CapsuleShape3D_h17s1")
 
-[node name="Model" type="Node3D" parent="." unique_id=738323546 instance=ExtResource("2_75vfm")]
+[node name="Model" type="Node3D" parent="." unique_id=2018710923 instance=ExtResource("2_75vfm")]
 script = ExtResource("3_0owmy")
 
-[node name="Carry" type="Node3D" parent="." unique_id=543223038]
+[node name="Carry" type="Node3D" parent="." unique_id=68058163]
 script = ExtResource("4_qek5x")
 
-[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=1828831501]
+[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=43312771]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.5)
 
-[node name="Interactor" type="Area3D" parent="." unique_id=2077339716]
+[node name="Interactor" type="Area3D" parent="." unique_id=1299611415]
 collision_layer = 0
 collision_mask = 4
 monitorable = false
 script = ExtResource("5_5gtgg")
 player_path = NodePath("..")
 
-[node name="@CollisionShape3D@14" type="CollisionShape3D" parent="Interactor" unique_id=865332535]
+[node name="@CollisionShape3D@14" type="CollisionShape3D" parent="Interactor" unique_id=1664975818]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("SphereShape3D_je7p5")

@@ -28,13 +28,13 @@ extends CharacterBody3D
 
 
 func _ready() -> void:
-	# The shopkeeper is a toon character too — skin/hair + a sharp charcoal suit.
+	# The shopkeeper wears a sharp charcoal suit over a white shirt.
 	if _model.has_method("set_palette"):
-		_model.set_palette(Color(0.90, 0.76, 0.66), Color(0.28, 0.20, 0.13))
+		_model.set_palette(Color(0.90, 0.76, 0.66))
 	if _model.has_method("set_outfit"):
 		var suit: MaterialType = Catalog.get_material(&"charcoal_worsted_solid")
 		if suit != null:
-			_model.set_outfit(suit, suit)
+			_model.set_outfit(suit, null, suit)
 
 
 func _physics_process(delta: float) -> void:
