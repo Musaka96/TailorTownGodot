@@ -22,3 +22,6 @@ signal order_delivered(roll: Node)
 
 # --- Cutting ---
 signal cloth_cut(piece: Node, source_roll: Node)
+
+# --- Assembly ---
+signal suit_packaged(suit: Node)

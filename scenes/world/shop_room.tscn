@@ -1,189 +1,201 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://stations/shelf/shelf.tscn" id="1_4aqmo"]
-[ext_resource type="Script" path="res://stations/shelf/shelf.gd" id="2_jtjkw"]
-[ext_resource type="PackedScene" path="res://stations/phone/phone.tscn" id="3_kqmlc"]
-[ext_resource type="Script" path="res://stations/phone/phone.gd" id="4_mcm4t"]
-[ext_resource type="PackedScene" path="res://stations/worktable/worktable.tscn" id="5_ouajb"]
-[ext_resource type="Script" path="res://stations/worktable/worktable.gd" id="6_nqgoc"]
-[ext_resource type="PackedScene" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_enfbf"]
-[ext_resource type="Script" path="res://stations/sewing_machine/sewing_machine.gd" id="8_i5usx"]
-[ext_resource type="PackedScene" path="res://entities/items/material_roll.tscn" id="9_stiry"]
-[ext_resource type="Script" path="res://entities/items/material_roll.gd" id="10_qa0s0"]
-[ext_resource type="Resource" path="res://data/materials/navy_worsted_solid.tres" id="11_2xgx5"]
-[ext_resource type="Resource" path="res://data/materials/charcoal_worsted_pinstripe.tres" id="12_yia2c"]
-[ext_resource type="Resource" path="res://data/materials/brown_tweed_herringbone.tres" id="13_7md1u"]
-[ext_resource type="Resource" path="res://data/materials/tan_linen_solid.tres" id="14_s0cn2"]
-[ext_resource type="Resource" path="res://data/materials/blue_worsted_glencheck.tres" id="15_pf3bg"]
-[ext_resource type="Resource" path="res://data/materials/midgrey_flannel_solid.tres" id="16_ov3w0"]
-[ext_resource type="Resource" path="res://data/materials/black_worsted_solid.tres" id="17_kodol"]
-[ext_resource type="Resource" path="res://data/materials/burgundy_mohair_birdseye.tres" id="18_rq063"]
+[ext_resource type="PackedScene" path="res://stations/shelf/shelf.tscn" id="1_ouajb"]
+[ext_resource type="Script" path="res://stations/shelf/shelf.gd" id="2_nqgoc"]
+[ext_resource type="PackedScene" path="res://stations/phone/phone.tscn" id="3_enfbf"]
+[ext_resource type="Script" path="res://stations/phone/phone.gd" id="4_i5usx"]
+[ext_resource type="PackedScene" path="res://stations/worktable/worktable.tscn" id="5_stiry"]
+[ext_resource type="Script" path="res://stations/worktable/worktable.gd" id="6_qa0s0"]
+[ext_resource type="PackedScene" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_2xgx5"]
+[ext_resource type="Script" path="res://stations/sewing_machine/sewing_machine.gd" id="8_yia2c"]
+[ext_resource type="PackedScene" path="res://stations/clothing_rack/clothing_rack.tscn" id="9_7md1u"]
+[ext_resource type="Script" path="res://stations/clothing_rack/clothing_rack.gd" id="10_s0cn2"]
+[ext_resource type="PackedScene" path="res://stations/mannequin/mannequin.tscn" id="11_pf3bg"]
+[ext_resource type="Script" path="res://stations/mannequin/mannequin.gd" id="12_ov3w0"]
+[ext_resource type="PackedScene" path="res://entities/items/material_roll.tscn" id="13_kodol"]
+[ext_resource type="Script" path="res://entities/items/material_roll.gd" id="14_rq063"]
+[ext_resource type="Resource" path="res://data/materials/navy_worsted_solid.tres" id="15_2a88l"]
+[ext_resource type="Resource" path="res://data/materials/charcoal_worsted_pinstripe.tres" id="16_j5y0n"]
+[ext_resource type="Resource" path="res://data/materials/brown_tweed_herringbone.tres" id="17_jtjmr"]
+[ext_resource type="Resource" path="res://data/materials/tan_linen_solid.tres" id="18_h0rls"]
+[ext_resource type="Resource" path="res://data/materials/blue_worsted_glencheck.tres" id="19_usqlc"]
+[ext_resource type="Resource" path="res://data/materials/midgrey_flannel_solid.tres" id="20_tajrx"]
+[ext_resource type="Resource" path="res://data/materials/black_worsted_solid.tres" id="21_f0faw"]
+[ext_resource type="Resource" path="res://data/materials/burgundy_mohair_birdseye.tres" id="22_pw4dj"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_2a88l"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_o426c"]
 
-[sub_resource type="Sky" id="Sky_j5y0n"]
-sky_material = SubResource("ProceduralSkyMaterial_2a88l")
+[sub_resource type="Sky" id="Sky_yrsd5"]
+sky_material = SubResource("ProceduralSkyMaterial_o426c")
 
-[sub_resource type="Environment" id="Environment_jtjmr"]
+[sub_resource type="Environment" id="Environment_26bn3"]
 background_mode = 2
-sky = SubResource("Sky_j5y0n")
+sky = SubResource("Sky_yrsd5")
 ambient_light_source = 3
 tonemap_mode = 2
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h0rls"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cstfg"]
 albedo_color = Color(0.34, 0.3, 0.27, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_usqlc"]
+[sub_resource type="BoxMesh" id="BoxMesh_ckdgv"]
 size = Vector3(16, 1, 16)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_tajrx"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_mh4gb"]
 size = Vector3(16, 1, 16)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f0faw"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_walcy"]
 albedo_color = Color(0.62, 0.6, 0.56, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_pw4dj"]
+[sub_resource type="BoxMesh" id="BoxMesh_ne8pp"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_o426c"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_08xdy"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxMesh" id="BoxMesh_yrsd5"]
+[sub_resource type="BoxMesh" id="BoxMesh_qasyn"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_26bn3"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_f7f05"]
 size = Vector3(16, 3, 0.3)
 
-[sub_resource type="BoxMesh" id="BoxMesh_cstfg"]
+[sub_resource type="BoxMesh" id="BoxMesh_j7vby"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_ckdgv"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_d3xxm"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="BoxMesh" id="BoxMesh_mh4gb"]
+[sub_resource type="BoxMesh" id="BoxMesh_n46ak"]
 size = Vector3(0.3, 3, 16)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_walcy"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_7lax8"]
 size = Vector3(0.3, 3, 16)
 
-[node name="ShopRoom" type="Node3D" unique_id=2123317824]
+[node name="ShopRoom" type="Node3D" unique_id=1129519523]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=851766971]
-environment = SubResource("Environment_jtjmr")
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1554971188]
+environment = SubResource("Environment_26bn3")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=860628374]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=242637044]
 transform = Transform3D(0.81915206, 0.46984634, -0.32898995, 0, 0.57357645, 0.81915206, 0.57357645, -0.6710101, 0.46984634, 0, 0, 0)
 shadow_enabled = true
 
-[node name="Floor" type="StaticBody3D" parent="." unique_id=638729269]
+[node name="Floor" type="StaticBody3D" parent="." unique_id=678650180]
 
-[node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=1930623832]
+[node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=1374499948]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-material_override = SubResource("StandardMaterial3D_h0rls")
-mesh = SubResource("BoxMesh_usqlc")
+material_override = SubResource("StandardMaterial3D_cstfg")
+mesh = SubResource("BoxMesh_ckdgv")
 
-[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=1696188306]
+[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=2041634453]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-shape = SubResource("BoxShape3D_tajrx")
+shape = SubResource("BoxShape3D_mh4gb")
 
-[node name="Walls" type="StaticBody3D" parent="." unique_id=415649463]
+[node name="Walls" type="StaticBody3D" parent="." unique_id=436123185]
 
-[node name="NMesh" type="MeshInstance3D" parent="Walls" unique_id=2043978194]
+[node name="NMesh" type="MeshInstance3D" parent="Walls" unique_id=581300346]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
-material_override = SubResource("StandardMaterial3D_f0faw")
-mesh = SubResource("BoxMesh_pw4dj")
+material_override = SubResource("StandardMaterial3D_walcy")
+mesh = SubResource("BoxMesh_ne8pp")
 
-[node name="NCol" type="CollisionShape3D" parent="Walls" unique_id=1118407862]
+[node name="NCol" type="CollisionShape3D" parent="Walls" unique_id=984308515]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
-shape = SubResource("BoxShape3D_o426c")
+shape = SubResource("BoxShape3D_08xdy")
 
-[node name="SMesh" type="MeshInstance3D" parent="Walls" unique_id=449170764]
+[node name="SMesh" type="MeshInstance3D" parent="Walls" unique_id=254572290]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
-material_override = SubResource("StandardMaterial3D_f0faw")
-mesh = SubResource("BoxMesh_yrsd5")
+material_override = SubResource("StandardMaterial3D_walcy")
+mesh = SubResource("BoxMesh_qasyn")
 
-[node name="SCol" type="CollisionShape3D" parent="Walls" unique_id=657281224]
+[node name="SCol" type="CollisionShape3D" parent="Walls" unique_id=1885400132]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
-shape = SubResource("BoxShape3D_26bn3")
+shape = SubResource("BoxShape3D_f7f05")
 
-[node name="EMesh" type="MeshInstance3D" parent="Walls" unique_id=1587608503]
+[node name="EMesh" type="MeshInstance3D" parent="Walls" unique_id=838013328]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
-material_override = SubResource("StandardMaterial3D_f0faw")
-mesh = SubResource("BoxMesh_cstfg")
+material_override = SubResource("StandardMaterial3D_walcy")
+mesh = SubResource("BoxMesh_j7vby")
 
-[node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=1525863665]
+[node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=1194968258]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
-shape = SubResource("BoxShape3D_ckdgv")
+shape = SubResource("BoxShape3D_d3xxm")
 
-[node name="WMesh" type="MeshInstance3D" parent="Walls" unique_id=945468410]
+[node name="WMesh" type="MeshInstance3D" parent="Walls" unique_id=1266916437]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
-material_override = SubResource("StandardMaterial3D_f0faw")
-mesh = SubResource("BoxMesh_mh4gb")
+material_override = SubResource("StandardMaterial3D_walcy")
+mesh = SubResource("BoxMesh_n46ak")
 
-[node name="WCol" type="CollisionShape3D" parent="Walls" unique_id=1133845180]
+[node name="WCol" type="CollisionShape3D" parent="Walls" unique_id=1270998373]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 0)
-shape = SubResource("BoxShape3D_walcy")
+shape = SubResource("BoxShape3D_7lax8")
 
-[node name="Shelf" type="Node3D" parent="." unique_id=755035886 instance=ExtResource("1_4aqmo")]
+[node name="Shelf" type="Node3D" parent="." unique_id=1672060041 instance=ExtResource("1_ouajb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -7)
-script = ExtResource("2_jtjkw")
+script = ExtResource("2_nqgoc")
 
-[node name="Phone" type="Node3D" parent="." unique_id=1349762016 instance=ExtResource("3_kqmlc")]
+[node name="Phone" type="Node3D" parent="." unique_id=168837012 instance=ExtResource("3_enfbf")]
 transform = Transform3D(0.81915206, 0, 0.57357645, 0, 1, 0, -0.57357645, 0, 0.81915206, -6, 0, -5.5)
-script = ExtResource("4_mcm4t")
+script = ExtResource("4_i5usx")
 
-[node name="Worktable" type="Node3D" parent="." unique_id=1053064106 instance=ExtResource("5_ouajb")]
+[node name="Worktable" type="Node3D" parent="." unique_id=1134871141 instance=ExtResource("5_stiry")]
 transform = Transform3D(0.81915206, 0, -0.57357645, 0, 1, 0, 0.57357645, 0, 0.81915206, 6, 0, -5)
-script = ExtResource("6_nqgoc")
+script = ExtResource("6_qa0s0")
 
-[node name="SewingMachine" type="Node3D" parent="." unique_id=1030133311 instance=ExtResource("7_enfbf")]
+[node name="SewingMachine" type="Node3D" parent="." unique_id=1693110873 instance=ExtResource("7_2xgx5")]
 transform = Transform3D(0.17364822, 0, -0.9848077, 0, 1, 0, 0.9848077, 0, 0.17364822, 6.5, 0, -1)
-script = ExtResource("8_i5usx")
+script = ExtResource("8_yia2c")
 
-[node name="MaterialRoll" type="Node3D" parent="." unique_id=187291426 instance=ExtResource("9_stiry")]
+[node name="ClothingRack" type="Node3D" parent="." unique_id=666088750 instance=ExtResource("9_7md1u")]
+transform = Transform3D(0.17364822, 0, 0.9848077, 0, 1, 0, -0.9848077, 0, 0.17364822, -6.5, 0, -1)
+script = ExtResource("10_s0cn2")
+
+[node name="Mannequin" type="Node3D" parent="." unique_id=2101141595 instance=ExtResource("11_pf3bg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -6.7)
+script = ExtResource("12_ov3w0")
+
+[node name="MaterialRoll" type="Node3D" parent="." unique_id=1105856037 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.13, 2)
-script = ExtResource("10_qa0s0")
-material = ExtResource("11_2xgx5")
+script = ExtResource("14_rq063")
+material = ExtResource("15_2a88l")
 remaining_length_m = 20.0
 
-[node name="@Node3D@10" type="Node3D" parent="." unique_id=1201796715 instance=ExtResource("9_stiry")]
+[node name="@Node3D@13" type="Node3D" parent="." unique_id=1124329349 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.13, 3.2)
-script = ExtResource("10_qa0s0")
-material = ExtResource("12_yia2c")
+script = ExtResource("14_rq063")
+material = ExtResource("16_j5y0n")
 remaining_length_m = 9.5
 
-[node name="@Node3D@11" type="Node3D" parent="." unique_id=1045481386 instance=ExtResource("9_stiry")]
+[node name="@Node3D@14" type="Node3D" parent="." unique_id=487871604 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0.13, 2.6)
-script = ExtResource("10_qa0s0")
-material = ExtResource("13_7md1u")
+script = ExtResource("14_rq063")
+material = ExtResource("17_jtjmr")
 remaining_length_m = 15.0
 
-[node name="@Node3D@12" type="Node3D" parent="." unique_id=2140687612 instance=ExtResource("9_stiry")]
+[node name="@Node3D@15" type="Node3D" parent="." unique_id=1361402484 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.13, 1.4)
-script = ExtResource("10_qa0s0")
-material = ExtResource("14_s0cn2")
+script = ExtResource("14_rq063")
+material = ExtResource("18_h0rls")
 remaining_length_m = 4.0
 
-[node name="@Node3D@13" type="Node3D" parent="." unique_id=2042900042 instance=ExtResource("9_stiry")]
+[node name="@Node3D@16" type="Node3D" parent="." unique_id=22273386 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.13, 0.4)
-script = ExtResource("10_qa0s0")
-material = ExtResource("15_pf3bg")
+script = ExtResource("14_rq063")
+material = ExtResource("19_usqlc")
 remaining_length_m = 16.0
 
-[node name="@Node3D@14" type="Node3D" parent="." unique_id=1102100278 instance=ExtResource("9_stiry")]
+[node name="@Node3D@17" type="Node3D" parent="." unique_id=678559537 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0.13, -0.6)
-script = ExtResource("10_qa0s0")
-material = ExtResource("16_ov3w0")
+script = ExtResource("14_rq063")
+material = ExtResource("20_tajrx")
 remaining_length_m = 12.5
 
-[node name="@Node3D@15" type="Node3D" parent="." unique_id=376205508 instance=ExtResource("9_stiry")]
+[node name="@Node3D@18" type="Node3D" parent="." unique_id=1545693279 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.13, 1)
-script = ExtResource("10_qa0s0")
-material = ExtResource("17_kodol")
+script = ExtResource("14_rq063")
+material = ExtResource("21_f0faw")
 remaining_length_m = 20.0
 
-[node name="@Node3D@16" type="Node3D" parent="." unique_id=1791783372 instance=ExtResource("9_stiry")]
+[node name="@Node3D@19" type="Node3D" parent="." unique_id=1141564472 instance=ExtResource("13_kodol")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.13, -1.4)
-script = ExtResource("10_qa0s0")
-material = ExtResource("18_rq063")
+script = ExtResource("14_rq063")
+material = ExtResource("22_pw4dj")
 remaining_length_m = 6.0

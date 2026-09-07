@@ -21,35 +21,35 @@ size = Vector3(0.3, 0.12, 0.45)
 [sub_resource type="BoxShape3D" id="BoxShape3D_2yroi"]
 size = Vector3(1.4, 1.6, 1.4)
 
-[node name="Phone" type="Node3D" unique_id=1349762016]
+[node name="Phone" type="Node3D" unique_id=168837012]
 script = ExtResource("1_un18p")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=905866727]
+[node name="Body" type="StaticBody3D" parent="." unique_id=93179220]
 
-[node name="TableMesh" type="MeshInstance3D" parent="Body" unique_id=301856980]
+[node name="TableMesh" type="MeshInstance3D" parent="Body" unique_id=687983951]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 material_override = SubResource("StandardMaterial3D_ejqlw")
 mesh = SubResource("BoxMesh_thg5u")
 
-[node name="TableCol" type="CollisionShape3D" parent="Body" unique_id=178667243]
+[node name="TableCol" type="CollisionShape3D" parent="Body" unique_id=1218857183]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 shape = SubResource("BoxShape3D_x26gb")
 
-[node name="Handset" type="MeshInstance3D" parent="Body" unique_id=1490023017]
+[node name="Handset" type="MeshInstance3D" parent="Body" unique_id=925486130]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.96, 0)
 material_override = SubResource("StandardMaterial3D_a6iwf")
 mesh = SubResource("BoxMesh_gxxjd")
 
-[node name="DeliverySpot" type="Marker3D" parent="." unique_id=544702515]
+[node name="DeliverySpot" type="Marker3D" parent="." unique_id=162701334]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0, 0.3)
 
-[node name="Interactable" type="Area3D" parent="." unique_id=380114452 node_paths=PackedStringArray("target")]
+[node name="Interactable" type="Area3D" parent="." unique_id=1785316608 node_paths=PackedStringArray("target")]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_smmvd")
 target = NodePath("..")
 
-[node name="@CollisionShape3D@6" type="CollisionShape3D" parent="Interactable" unique_id=1546485627]
+[node name="@CollisionShape3D@7" type="CollisionShape3D" parent="Interactable" unique_id=2066886411]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0.7)
 shape = SubResource("BoxShape3D_2yroi")

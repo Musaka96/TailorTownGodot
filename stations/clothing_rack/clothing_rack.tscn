@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://stations/clothing_rack/clothing_rack.gd" id="1_hceyj"]
+[ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="2_xnpxf"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6ard1"]
+albedo_color = Color(0.3, 0.31, 0.34, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ay3we"]
+size = Vector3(0.06, 1.6, 0.06)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ff6if"]
+size = Vector3(0.06, 1.6, 0.06)
+
+[sub_resource type="BoxMesh" id="BoxMesh_24fgx"]
+size = Vector3(1.55, 0.06, 0.06)
+
+[sub_resource type="BoxMesh" id="BoxMesh_m0wk8"]
+size = Vector3(1.6, 0.06, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6iqi0"]
+size = Vector3(1.6, 1.6, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5ctxl"]
+size = Vector3(1.8, 1.8, 1.2)
+
+[node name="ClothingRack" type="Node3D" unique_id=666088750]
+script = ExtResource("1_hceyj")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1945906839]
+
+[node name="PostL" type="MeshInstance3D" parent="Body" unique_id=851351667]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 0.8, 0)
+material_override = SubResource("StandardMaterial3D_6ard1")
+mesh = SubResource("BoxMesh_ay3we")
+
+[node name="PostR" type="MeshInstance3D" parent="Body" unique_id=1338894634]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0.8, 0)
+material_override = SubResource("StandardMaterial3D_6ard1")
+mesh = SubResource("BoxMesh_ff6if")
+
+[node name="Bar" type="MeshInstance3D" parent="Body" unique_id=449198918]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+material_override = SubResource("StandardMaterial3D_6ard1")
+mesh = SubResource("BoxMesh_24fgx")
+
+[node name="Base" type="MeshInstance3D" parent="Body" unique_id=1144872179]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+material_override = SubResource("StandardMaterial3D_6ard1")
+mesh = SubResource("BoxMesh_m0wk8")
+
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=1650298223]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("BoxShape3D_6iqi0")
+
+[node name="Slots" type="Node3D" parent="." unique_id=736090552]
+
+[node name="Hook_-50" type="Marker3D" parent="Slots" unique_id=961251641]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 1.3, 0)
+
+[node name="Hook_-25" type="Marker3D" parent="Slots" unique_id=403095873]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.3, 0)
+
+[node name="Hook_0" type="Marker3D" parent="Slots" unique_id=387903719]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+
+[node name="Hook_25" type="Marker3D" parent="Slots" unique_id=399855123]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.3, 0)
+
+[node name="Hook_50" type="Marker3D" parent="Slots" unique_id=1085136321]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.3, 0)
+
+[node name="Interactable" type="Area3D" parent="." unique_id=30613826 node_paths=PackedStringArray("target")]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+script = ExtResource("2_xnpxf")
+target = NodePath("..")
+
+[node name="@CollisionShape3D@10" type="CollisionShape3D" parent="Interactable" unique_id=2034352327]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.5)
+shape = SubResource("BoxShape3D_5ctxl")

@@ -22,6 +22,7 @@ var _cross_seconds := CROSS_SECONDS
 var _good_window := GOOD_WINDOW
 var _perfect_window := PERFECT_WINDOW
 var _max_mistakes := MAX_MISTAKES
+var _lead := 0.0
 var _state := State.RUNNING
 var _needle := 0.0
 var _pts: PackedFloat32Array = []
@@ -50,12 +51,14 @@ func _ready() -> void:
 func start(title: String) -> void:
 	_title = title
 	var c := Config.data
+	_lead = 1.6
 	if c != null:
 		_stitches = maxi(2, c.sew_stitches)
 		_cross_seconds = c.sew_cross_seconds
 		_good_window = c.sew_good_window
 		_perfect_window = c.sew_perfect_window
 		_max_mistakes = c.sew_max_mistakes
+		_lead = c.sew_lead_seconds
 	_state = State.RUNNING
 	_needle = 0.0
 	_mistakes = 0
@@ -72,6 +75,13 @@ func _process(delta: float) -> void:
 	if _state != State.RUNNING:
 		return
 	_bob += delta * 12.0
+
+	# Lead-in: hold at the start so the player can find the rhythm.
+	if _lead > 0.0:
+		_lead -= delta
+		queue_redraw()
+		return
+
 	_needle += delta / _cross_seconds
 
 	# Points the needle has passed without a stitch are misses.
@@ -96,6 +106,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _try_stitch() -> void:
+	if _lead > 0.0:
+		return  # ignore taps during the lead-in
 	var idx := _next_pending()
 	if idx == -1:
 		return
@@ -218,7 +230,10 @@ func _draw_hud() -> void:
 		draw_circle(_origin() + Vector2(_mat_half() - 60 + i * 26, -_mat_half() - 22), 8.0, c)
 
 	var bottom := _origin() + Vector2(-_mat_half(), _mat_half() + 34)
-	if _state == State.RUNNING:
+	if _state == State.RUNNING and _lead > 0.0:
+		draw_string(font, bottom, "Get ready…  %d" % ceili(_lead),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("e6c84c"))
+	elif _state == State.RUNNING:
 		draw_string(font, bottom, "Tap E / Space as the needle hits each stitch",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))
 	elif _state == State.SUCCESS:

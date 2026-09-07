@@ -7,6 +7,9 @@ extends SceneTree
 const ROLL_SCENE := "res://entities/items/material_roll.tscn"
 const PIECE_SCENE := "res://entities/items/fabric_piece.tscn"
 const GARMENT_PIECE_SCENE := "res://entities/items/garment_piece.tscn"
+const SUIT_SCENE := "res://entities/items/suit.tscn"
+const RACK_SCENE := "res://stations/clothing_rack/clothing_rack.tscn"
+const MANNEQUIN_SCENE := "res://stations/mannequin/mannequin.tscn"
 const SHELF_SCENE := "res://stations/shelf/shelf.tscn"
 const PHONE_SCENE := "res://stations/phone/phone.tscn"
 const WORKTABLE_SCENE := "res://stations/worktable/worktable.tscn"
@@ -37,11 +40,14 @@ func _initialize() -> void:
 	# phone (phone preloads it).
 	_build_fabric_piece_scene()
 	_build_garment_piece_scene()
+	_build_suit_scene()
 	_build_roll_scene()
 	_build_shelf_scene()
 	_build_phone_scene()
 	_build_worktable_scene()
 	_build_sewing_machine_scene()
+	_build_clothing_rack_scene()
+	_build_mannequin_scene()
 	_build_ui_scene()
 	_build_player_scene()
 	_build_room_scene()
@@ -238,6 +244,110 @@ func _build_sewing_machine_scene() -> void:
 
 	_add_station_interactable(root, Vector3(1.7, 1.6, 1.5), Vector3(0, 0.9, 0.6))
 	_save(root, SEWING_SCENE)
+
+
+func _build_suit_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Suit"
+	root.set_script(load("res://entities/items/suit.gd"))
+	var mesh := MeshInstance3D.new()
+	mesh.name = "Mesh"
+	var box := BoxMesh.new()
+	box.size = Vector3(0.4, 0.7, 0.16)
+	mesh.mesh = box
+	mesh.position = Vector3(0, 0.35, 0)
+	root.add_child(mesh)
+	var area := Area3D.new()
+	area.name = "Interactable"
+	area.set_script(load(INTERACTABLE_SCRIPT))
+	area.collision_layer = INTERACT_LAYER
+	area.collision_mask = 0
+	area.monitoring = false
+	area.monitorable = true
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.5, 0.85, 0.4)
+	col.shape = shape
+	col.position = Vector3(0, 0.4, 0)
+	area.add_child(col)
+	root.add_child(area)
+	_save(root, SUIT_SCENE)
+
+
+func _build_clothing_rack_scene() -> void:
+	var root := Node3D.new()
+	root.name = "ClothingRack"
+	root.set_script(load("res://stations/clothing_rack/clothing_rack.gd"))
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.3, 0.31, 0.34)
+	_add_box_mesh(body, "PostL", Vector3(0.06, 1.6, 0.06), Vector3(-0.7, 0.8, 0), metal)
+	_add_box_mesh(body, "PostR", Vector3(0.06, 1.6, 0.06), Vector3(0.7, 0.8, 0), metal)
+	_add_box_mesh(body, "Bar", Vector3(1.55, 0.06, 0.06), Vector3(0, 1.55, 0), metal)
+	_add_box_mesh(body, "Base", Vector3(1.6, 0.06, 0.5), Vector3(0, 0.03, 0), metal)
+	var col := CollisionShape3D.new()
+	col.name = "Collision"
+	var cbox := BoxShape3D.new()
+	cbox.size = Vector3(1.6, 1.6, 0.5)
+	col.shape = cbox
+	col.position = Vector3(0, 0.8, 0)
+	body.add_child(col)
+	var slots := Node3D.new()
+	slots.name = "Slots"
+	root.add_child(slots)
+	for x in [-0.5, -0.25, 0.0, 0.25, 0.5]:
+		var m := Marker3D.new()
+		m.name = "Hook_%d" % int(x * 100)
+		m.position = Vector3(x, 1.3, 0)
+		slots.add_child(m)
+	_add_station_interactable(root, Vector3(1.8, 1.8, 1.2), Vector3(0, 0.9, 0.5))
+	_save(root, RACK_SCENE)
+
+
+func _build_mannequin_scene() -> void:
+	var root := Node3D.new()
+	root.name = "Mannequin"
+	root.set_script(load("res://stations/mannequin/mannequin.gd"))
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var form := StandardMaterial3D.new()
+	form.albedo_color = Color(0.82, 0.78, 0.72)
+	var stand := StandardMaterial3D.new()
+	stand.albedo_color = Color(0.3, 0.24, 0.18)
+	_add_box_mesh(body, "Base", Vector3(0.5, 0.06, 0.5), Vector3(0, 0.03, 0), stand)
+	_add_box_mesh(body, "Post", Vector3(0.08, 0.9, 0.08), Vector3(0, 0.5, 0), stand)
+	_add_box_mesh(body, "Torso", Vector3(0.5, 0.7, 0.28), Vector3(0, 1.25, 0), form)
+	var head := MeshInstance3D.new()
+	head.name = "Head"
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.13
+	sphere.height = 0.26
+	head.mesh = sphere
+	head.material_override = form
+	head.position = Vector3(0, 1.75, 0)
+	body.add_child(head)
+	var col := CollisionShape3D.new()
+	col.name = "Collision"
+	var cbox := BoxShape3D.new()
+	cbox.size = Vector3(0.6, 1.9, 0.4)
+	col.shape = cbox
+	col.position = Vector3(0, 0.95, 0)
+	body.add_child(col)
+	_add_marker(root, "PantsSlot", Vector3(0, 0.75, 0.16))
+	_add_marker(root, "ShirtSlot", Vector3(0, 1.3, 0.16))
+	_add_marker(root, "JacketSlot", Vector3(0, 1.28, 0.22))
+	_add_station_interactable(root, Vector3(1.4, 2.0, 1.4), Vector3(0, 1.0, 0.5))
+	_save(root, MANNEQUIN_SCENE)
+
+
+func _add_marker(parent: Node, node_name: String, pos: Vector3) -> void:
+	var m := Marker3D.new()
+	m.name = node_name
+	m.position = pos
+	parent.add_child(m)
 
 
 func _add_station_interactable(root: Node3D, box_size: Vector3, box_pos: Vector3) -> void:
@@ -661,6 +771,15 @@ func _build_room_scene() -> void:
 	sewing.position = Vector3(6.5, 0, -1.0)
 	sewing.rotation_degrees = Vector3(0, -80, 0)
 	root.add_child(sewing)
+
+	var rack: Node = load(RACK_SCENE).instantiate()
+	rack.position = Vector3(-6.5, 0, -1.0)
+	rack.rotation_degrees = Vector3(0, 80, 0)
+	root.add_child(rack)
+
+	var mannequin: Node = load(MANNEQUIN_SCENE).instantiate()
+	mannequin.position = Vector3(-2.5, 0, -6.7)
+	root.add_child(mannequin)
 
 	# Scatter material rolls on the floor
 	var roll_scene: PackedScene = load(ROLL_SCENE)

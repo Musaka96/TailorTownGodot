@@ -37,6 +37,7 @@ const SHAPES := {
 var _good_tol := GOOD_TOL
 var _seconds := TARGET_SECONDS
 var _max_mistakes := MAX_MISTAKES
+var _lead := 0.0
 var _state := State.RUNNING
 var _pts: PackedVector2Array = []
 var _cum: PackedFloat32Array = []
@@ -71,10 +72,12 @@ func _ready() -> void:
 func start(garment_type: int, title: String) -> void:
 	_title = title
 	var c := Config.data
+	_lead = 1.6
 	if c != null:
 		_good_tol = deg_to_rad(c.cut_tolerance_deg)
 		_seconds = c.cut_seconds
 		_max_mistakes = c.cut_max_mistakes
+		_lead = c.cut_lead_seconds
 	_generate(garment_type)
 	_state = State.RUNNING
 	_cursor = 0.0
@@ -111,6 +114,12 @@ func _process(delta: float) -> void:
 	var v := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if v.length() > 0.35:
 		_angle = _rotate_toward(_angle, v.angle(), ROT_SPEED * delta)
+
+	# Lead-in: let the player line up before the cut starts.
+	if _lead > 0.0:
+		_lead -= delta
+		queue_redraw()
+		return
 
 	# Alignment is line-orientation (either blade direction is fine).
 	var tangent := _tangent_at(_cursor)
@@ -281,7 +290,10 @@ func _draw_hud() -> void:
 		draw_circle(_origin() + Vector2(_mat_half() - 60 + i * 26, -_mat_half() - 22), 8.0, c)
 
 	var bottom := _origin() + Vector2(-_mat_half(), _mat_half() + 34)
-	if _state == State.RUNNING:
+	if _state == State.RUNNING and _lead > 0.0:
+		draw_string(font, bottom, "Get ready…  %d" % ceili(_lead),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("e6c84c"))
+	elif _state == State.RUNNING:
 		var pct := int(_cursor / _total * 100.0)
 		draw_string(font, bottom, "Point the scissors along the line   ·   %d%%" % pct,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))

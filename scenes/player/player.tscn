@@ -24,38 +24,38 @@ size = Vector3(0.25, 0.25, 0.35)
 [sub_resource type="SphereShape3D" id="SphereShape3D_je7p5"]
 radius = 1.6
 
-[node name="Player" type="CharacterBody3D" unique_id=1153480150]
+[node name="Player" type="CharacterBody3D" unique_id=424460443]
 script = ExtResource("1_gmlin")
 
-[node name="Collision" type="CollisionShape3D" parent="." unique_id=1012832359]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=581278137]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_75vfm")
 
-[node name="Model" type="Node3D" parent="." unique_id=1641581704]
+[node name="Model" type="Node3D" parent="." unique_id=1084702302]
 
-[node name="Body" type="MeshInstance3D" parent="Model" unique_id=827766602]
+[node name="Body" type="MeshInstance3D" parent="Model" unique_id=374961912]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 material_override = SubResource("StandardMaterial3D_0owmy")
 mesh = SubResource("CapsuleMesh_qek5x")
 
-[node name="Nose" type="MeshInstance3D" parent="Model" unique_id=2139905745]
+[node name="Nose" type="MeshInstance3D" parent="Model" unique_id=155089468]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.45)
 material_override = SubResource("StandardMaterial3D_5gtgg")
 mesh = SubResource("BoxMesh_h17s1")
 
-[node name="Carry" type="Node3D" parent="." unique_id=1102058211]
+[node name="Carry" type="Node3D" parent="." unique_id=1715654382]
 script = ExtResource("2_lvxji")
 
-[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=333994789]
+[node name="HoldPoint" type="Marker3D" parent="Carry" unique_id=2039902467]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0.6)
 
-[node name="Interactor" type="Area3D" parent="." unique_id=136688525]
+[node name="Interactor" type="Area3D" parent="." unique_id=773074724]
 collision_layer = 0
 collision_mask = 4
 monitorable = false
 script = ExtResource("3_p47bc")
 player_path = NodePath("..")
 
-[node name="@CollisionShape3D@9" type="CollisionShape3D" parent="Interactor" unique_id=770201419]
+[node name="@CollisionShape3D@12" type="CollisionShape3D" parent="Interactor" unique_id=1636726592]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("SphereShape3D_je7p5")
