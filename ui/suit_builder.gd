@@ -57,6 +57,7 @@ func open(mirror, actor) -> void:
 	visible = true
 	_style()
 	_update_camera()
+	_apply_to_customer()
 	_refresh()
 
 
@@ -257,7 +258,27 @@ func _adjust(dir: int) -> void:
 				c["pattern"] = wrapi(c["pattern"] + dir, 0, 9)
 			Row.STYLE:
 				c["style_idx"] = wrapi(c["style_idx"] + dir, 0, Enums.styles_for(_type()).size())
+	_apply_to_customer()
 	_refresh()
+
+
+## Dress the seated customer in the current design so they change live as you edit.
+func _apply_to_customer() -> void:
+	if _customer == null or not _customer.has_method("wear_suit"):
+		return
+	(
+		_customer
+		. wear_suit(
+			_part_material(Enums.GarmentType.JACKET),
+			_part_material(Enums.GarmentType.SHIRT),
+			_part_material(Enums.GarmentType.PANTS),
+		)
+	)
+
+
+func _part_material(garment_type: int) -> MaterialType:
+	var c: Dictionary = _design[garment_type]
+	return MaterialFactory.make(c["fabric"], c["pattern"], c["color"], 1.0)
 
 
 func _confirm() -> void:

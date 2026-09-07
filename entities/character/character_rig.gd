@@ -12,8 +12,8 @@ const SKIN_PARTS := [
 	"Mannequin_Medium_Head",
 	"Mannequin_Medium_ArmLeft_001",
 	"Mannequin_Medium_ArmRight_001",
-	"Mannequin_Medium_LegLeft_001",
-	"Mannequin_Medium_LegRight_001",
+	"Mannequin_Medium_LegLeft",
+	"Mannequin_Medium_LegRight",
 ]
 const JACKET_PARTS := [
 	"Mannequin_Medium_Body",
@@ -21,7 +21,7 @@ const JACKET_PARTS := [
 	"Mannequin_Medium_ArmRight",
 ]
 const SHIRT_PARTS := ["Mannequin_Medium_Body_001"]
-const PANTS_PARTS := ["Mannequin_Medium_LegLeft", "Mannequin_Medium_LegRight"]
+const PANTS_PARTS := ["Mannequin_Medium_LegLeft_001", "Mannequin_Medium_LegRight_001"]
 
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
