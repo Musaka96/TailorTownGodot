@@ -7,6 +7,7 @@ class_name Enums
 enum GarmentType { SHIRT, PANTS, JACKET }
 enum ItemKind { MATERIAL_BOLT, FABRIC_PART, GARMENT_PIECE, SUIT }
 enum Stage { FABRIC_PART, CONFIGURED, CUT, SEWN }
+enum Size { S, M, L, XL }
 
 # --- Material rolls ---
 enum Fabric { WORSTED_WOOL, FLANNEL, TWEED, MOHAIR_BLEND, LINEN }
@@ -31,6 +32,32 @@ static func fabric_name(f: Fabric) -> String:
 		Fabric.MOHAIR_BLEND: return "Mohair Blend"
 		Fabric.LINEN: return "Linen"
 	return "?"
+
+
+static func garment_type_name(t: GarmentType) -> String:
+	match t:
+		GarmentType.SHIRT: return "Shirt"
+		GarmentType.PANTS: return "Pants"
+		GarmentType.JACKET: return "Jacket"
+	return "?"
+
+
+static func size_name(s: Size) -> String:
+	match s:
+		Size.S: return "S"
+		Size.M: return "M"
+		Size.L: return "L"
+		Size.XL: return "XL"
+	return "?"
+
+
+## Style options per garment type (the first is the default).
+static func styles_for(t: GarmentType) -> PackedStringArray:
+	match t:
+		GarmentType.SHIRT: return PackedStringArray(["Classic", "Slim"])
+		GarmentType.PANTS: return PackedStringArray(["Flat Front", "Pleated", "Shorts"])
+		GarmentType.JACKET: return PackedStringArray(["Single-Breasted", "Double-Breasted"])
+	return PackedStringArray(["Classic"])
 
 
 static func pattern_name(p: Pattern) -> String:

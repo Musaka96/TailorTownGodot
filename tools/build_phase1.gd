@@ -6,6 +6,7 @@ extends SceneTree
 
 const ROLL_SCENE := "res://entities/items/material_roll.tscn"
 const PIECE_SCENE := "res://entities/items/fabric_piece.tscn"
+const GARMENT_PIECE_SCENE := "res://entities/items/garment_piece.tscn"
 const SHELF_SCENE := "res://stations/shelf/shelf.tscn"
 const PHONE_SCENE := "res://stations/phone/phone.tscn"
 const WORKTABLE_SCENE := "res://stations/worktable/worktable.tscn"
@@ -34,6 +35,7 @@ func _initialize() -> void:
 	# Order matters: fabric piece before shelf (shelf preloads it), roll before
 	# phone (phone preloads it).
 	_build_fabric_piece_scene()
+	_build_garment_piece_scene()
 	_build_roll_scene()
 	_build_shelf_scene()
 	_build_phone_scene()
@@ -112,6 +114,51 @@ func _build_fabric_piece_scene() -> void:
 	root.add_child(area)
 
 	_save(root, PIECE_SCENE)
+
+
+# --- Garment piece ---------------------------------------------------------
+
+func _build_garment_piece_scene() -> void:
+	var root := Node3D.new()
+	root.name = "GarmentPiece"
+	root.set_script(load("res://entities/items/garment_piece.gd"))
+
+	var mesh := MeshInstance3D.new()
+	mesh.name = "Mesh"
+	var box := BoxMesh.new()
+	box.size = Vector3(0.55, 0.06, 0.45)
+	mesh.mesh = box
+	mesh.position = Vector3(0, 0.03, 0)
+	root.add_child(mesh)
+
+	# A small chalk-mark tag so a cut part reads differently from raw cloth.
+	var tag := MeshInstance3D.new()
+	tag.name = "Tag"
+	var tag_box := BoxMesh.new()
+	tag_box.size = Vector3(0.12, 0.02, 0.12)
+	tag.mesh = tag_box
+	var tag_mat := StandardMaterial3D.new()
+	tag_mat.albedo_color = Color(0.95, 0.94, 0.9)
+	tag.material_override = tag_mat
+	tag.position = Vector3(0.16, 0.07, 0.14)
+	root.add_child(tag)
+
+	var area := Area3D.new()
+	area.name = "Interactable"
+	area.set_script(load(INTERACTABLE_SCRIPT))
+	area.collision_layer = INTERACT_LAYER
+	area.collision_mask = 0
+	area.monitoring = false
+	area.monitorable = true
+	var col := CollisionShape3D.new()
+	var box_shape := BoxShape3D.new()
+	box_shape.size = Vector3(0.6, 0.3, 0.5)
+	col.shape = box_shape
+	col.position = Vector3(0, 0.15, 0)
+	area.add_child(col)
+	root.add_child(area)
+
+	_save(root, GARMENT_PIECE_SCENE)
 
 
 # --- Phone station ---------------------------------------------------------
@@ -348,6 +395,52 @@ func _build_ui_scene() -> void:
 	var p_hint := Label.new()
 	p_hint.name = "Hint"
 	phone_box.add_child(p_hint)
+
+	# Worktable screen (config panel + runtime minigame overlay)
+	var wt := Control.new()
+	wt.name = "WorktableScreen"
+	wt.set_script(load("res://ui/worktable_screen.gd"))
+	wt.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_child(wt)
+	var wt_dim := ColorRect.new()
+	wt_dim.name = "Dim"
+	wt_dim.color = Color(0, 0, 0, 0.55)
+	wt_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wt.add_child(wt_dim)
+	var config := Control.new()
+	config.name = "Config"
+	config.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wt.add_child(config)
+	var wt_center := CenterContainer.new()
+	wt_center.name = "Center"
+	wt_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	config.add_child(wt_center)
+	var wt_panel := PanelContainer.new()
+	wt_panel.name = "Panel"
+	wt_panel.custom_minimum_size = Vector2(600, 0)
+	wt_center.add_child(wt_panel)
+	var wt_margin := MarginContainer.new()
+	wt_margin.name = "Margin"
+	for side in ["left", "top", "right", "bottom"]:
+		wt_margin.add_theme_constant_override("margin_" + side, 8)
+	wt_panel.add_child(wt_margin)
+	var wt_box := VBoxContainer.new()
+	wt_box.name = "Box"
+	wt_box.add_theme_constant_override("separation", 8)
+	wt_margin.add_child(wt_box)
+	var wt_title := Label.new()
+	wt_title.name = "Title"
+	wt_box.add_child(wt_title)
+	var wt_preview := HBoxContainer.new()
+	wt_preview.name = "Preview"
+	wt_box.add_child(wt_preview)
+	var wt_rows := VBoxContainer.new()
+	wt_rows.name = "Rows"
+	wt_rows.add_theme_constant_override("separation", 4)
+	wt_box.add_child(wt_rows)
+	var wt_hint := Label.new()
+	wt_hint.name = "Hint"
+	wt_box.add_child(wt_hint)
 
 	_save(root, UI_SCENE)
 

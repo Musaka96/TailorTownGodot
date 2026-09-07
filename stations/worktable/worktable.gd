@@ -1,36 +1,67 @@
 class_name Worktable
 extends Node3D
 
-## Where cut cloth pieces go next. For now it just receives/holds one piece and
-## lets you take it back; configuring/cutting garments comes in later phases.
+## Turns a cut cloth piece into a garment part: place a FabricPiece, configure
+## type/size/style, then cut it to shape in the minigame. Success leaves a
+## GarmentPiece on the table to take; ruin wastes the cloth.
 
-var _piece: Node = null
+const GARMENT_PIECE_SCENE := preload("res://entities/items/garment_piece.tscn")
+
+var _item: Node = null
 
 @onready var _slot: Node3D = $Slot
 
 
 func get_interaction_prompt(actor) -> String:
 	var held: Node = actor.carry.get_held()
-	if held is FabricPiece:
-		return "Place piece" if _piece == null else "Table full"
+	if _is_piece(held):
+		return "Place piece" if _item == null else "Table busy"
 	if held != null:
 		return "Bring a cut cloth piece"
-	if _piece != null:
-		return "Take piece"
+	if _item is FabricPiece:
+		return "Cut to shape"
+	if _item is GarmentPiece:
+		return "Take %s" % Enums.garment_type_name(_item.garment_type)
 	return "Worktable"
 
 
 func interact(actor) -> void:
 	var held: Node = actor.carry.get_held()
-	if held is FabricPiece:
-		if _piece != null:
-			return  # occupied
+	if _is_piece(held):
+		if _item != null:
+			return  # busy
 		var piece: Node = actor.carry.release()
 		piece.place_on(_slot)
-		_piece = piece
+		_item = piece
 	elif held != null:
-		return  # carrying something that isn't a piece
-	elif _piece != null:
-		var piece := _piece
-		_piece = null
-		actor.carry.take_item(piece)
+		return  # wrong item in hand
+	elif _item is FabricPiece:
+		UI.open_worktable(self, actor, _item)
+	elif _item is GarmentPiece:
+		var part := _item
+		_item = null
+		actor.carry.take_item(part)
+
+
+## Called by the worktable screen once the cutting minigame resolves.
+func finish_cut(success: bool, type: int, size: int, style: String, quality: float) -> void:
+	if not (_item is FabricPiece):
+		return
+	var mat: MaterialType = _item.material
+	_item.queue_free()
+	_item = null
+	if not success:
+		return  # cloth wasted
+	var part: Node = GARMENT_PIECE_SCENE.instantiate()
+	part.material = mat
+	part.garment_type = type
+	part.size = size
+	part.style = style
+	part.quality = quality
+	_slot.add_child(part)
+	part.transform = Transform3D.IDENTITY
+	_item = part
+
+
+func _is_piece(node: Node) -> bool:
+	return node is FabricPiece or node is GarmentPiece
