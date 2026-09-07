@@ -4,10 +4,10 @@ extends Node3D
 ## Storage for finished garment parts. Hang a GarmentPiece on a free hook;
 ## empty-handed, take the most recently hung one back.
 
-@onready var _slots_root: Node3D = $Slots
-
 var _slots: Array[Node3D] = []
 var stored: Array[Node] = []
+
+@onready var _slots_root: Node3D = $Slots
 
 
 func _ready() -> void:

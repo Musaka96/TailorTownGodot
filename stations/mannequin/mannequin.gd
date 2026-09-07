@@ -22,9 +22,8 @@ func get_interaction_prompt(actor) -> String:
 		if held.stage != Enums.Stage.SEWN:
 			return "Sew this piece first"
 		var t: int = held.garment_type
-		if _dressed.has(t):
-			return "%s already on" % Enums.garment_type_name(t)
-		return "Put on %s" % Enums.garment_type_name(t)
+		var name := Enums.garment_type_name(t)
+		return "%s already on" % name if _dressed.has(t) else "Put on %s" % name
 	if held != null:
 		return "Dress with a sewn piece"
 	if _is_complete():
