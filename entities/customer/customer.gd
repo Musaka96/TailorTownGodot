@@ -126,12 +126,19 @@ func begin_fitting() -> void:
 		manager.route_to_mirror(self)
 
 
-## Design approved — clear the fitting station and head for the exit.
+## Design approved — play a happy gesture, then head for the exit.
 func finish_and_leave() -> void:
 	_set_interactable(false)
 	_mode = Mode.NONE
 	if mirror != null and mirror.get("customer") == self:
 		mirror.set("customer", null)
+	if _rig != null and _rig.has_method("celebrate"):
+		_rig.celebrate(_leave)
+	else:
+		_leave()
+
+
+func _leave() -> void:
 	if manager != null:
 		manager.dismiss(self)
 

@@ -757,15 +757,15 @@ func _build_ui_scene() -> void:
 	orders.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	orders.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(orders)
-	var stack := VBoxContainer.new()
-	stack.name = "Stack"
-	stack.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	stack.offset_top = 8
-	stack.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 6)
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	orders.add_child(stack)
+	var tickets := HBoxContainer.new()
+	tickets.name = "Tickets"
+	tickets.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	tickets.offset_top = 10
+	tickets.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	tickets.alignment = BoxContainer.ALIGNMENT_CENTER
+	tickets.add_theme_constant_override("separation", 10)
+	tickets.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	orders.add_child(tickets)
 
 	_save(root, UI_SCENE)
 

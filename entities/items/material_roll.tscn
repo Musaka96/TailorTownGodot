@@ -11,18 +11,18 @@ height = 0.55
 [sub_resource type="SphereShape3D" id="SphereShape3D_p2e52"]
 radius = 0.45
 
-[node name="MaterialRoll" type="Node3D" unique_id=1739044075]
+[node name="MaterialRoll" type="Node3D" unique_id=1365264828]
 script = ExtResource("1_u85be")
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=536016429]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=637441068]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0)
 mesh = SubResource("CylinderMesh_i0h2l")
 
-[node name="Interactable" type="Area3D" parent="." unique_id=921589042]
+[node name="Interactable" type="Area3D" parent="." unique_id=488983947]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_8fymo")
 
-[node name="@CollisionShape3D@5" type="CollisionShape3D" parent="Interactable" unique_id=1507652798]
+[node name="@CollisionShape3D@5" type="CollisionShape3D" parent="Interactable" unique_id=1545503563]
 shape = SubResource("SphereShape3D_p2e52")

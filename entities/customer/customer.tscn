@@ -11,34 +11,34 @@ size = Vector3(0.5, 1.5, 0.42)
 [sub_resource type="BoxShape3D" id="BoxShape3D_rfjvo"]
 size = Vector3(1.2, 1.7, 1.2)
 
-[node name="Customer" type="Node3D" unique_id=1732912450]
+[node name="Customer" type="Node3D" unique_id=572194847]
 script = ExtResource("1_ahyps")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=557392929]
+[node name="Body" type="StaticBody3D" parent="." unique_id=759842885]
 
-[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=774299474]
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=179592252]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
 shape = SubResource("BoxShape3D_luk7a")
 
-[node name="Rig" type="Node3D" parent="." unique_id=2018710923 instance=ExtResource("2_nhfij")]
+[node name="Rig" type="Node3D" parent="." unique_id=1538957237 instance=ExtResource("2_nhfij")]
 script = ExtResource("3_j6trb")
 
-[node name="PantsAnchor" type="Marker3D" parent="." unique_id=896640030]
+[node name="PantsAnchor" type="Marker3D" parent="." unique_id=673490809]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.2)
 
-[node name="ShirtAnchor" type="Marker3D" parent="." unique_id=766764356]
+[node name="ShirtAnchor" type="Marker3D" parent="." unique_id=1730748161]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0.2)
 
-[node name="JacketAnchor" type="Marker3D" parent="." unique_id=1363249108]
+[node name="JacketAnchor" type="Marker3D" parent="." unique_id=830604969]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.24)
 
-[node name="Interactable" type="Area3D" parent="." unique_id=575361875 node_paths=PackedStringArray("target")]
+[node name="Interactable" type="Area3D" parent="." unique_id=1822969621 node_paths=PackedStringArray("target")]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("4_b4er3")
 target = NodePath("..")
 
-[node name="@CollisionShape3D@12" type="CollisionShape3D" parent="Interactable" unique_id=1306431382]
+[node name="@CollisionShape3D@12" type="CollisionShape3D" parent="Interactable" unique_id=2111150298]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 shape = SubResource("BoxShape3D_rfjvo")

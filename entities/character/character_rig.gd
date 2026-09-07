@@ -31,7 +31,11 @@ const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
 # swimming. Tune if the tiling looks too dense/sparse for the character's UVs.
 const CLOTH_UV_SCALE := 6.0
 
+# One-off gestures that set_moving must not interrupt (they return to idle/walk).
+const ONE_SHOTS := ["wave", "accept"]
+
 var _pending := ""
+var _oneshot_done := Callable()
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
 
@@ -43,12 +47,12 @@ func _ready() -> void:
 			_anim.play("idle")
 
 
-## Toggle the walk cycle vs idle (no-op if already there / mid-wave).
+## Toggle the walk cycle vs idle (no-op if already there / mid one-shot gesture).
 func set_moving(moving: bool) -> void:
 	if _anim == null:
 		return
 	var want := "walk" if moving else "idle"
-	if _anim.current_animation == "wave":
+	if _anim.current_animation in ONE_SHOTS:
 		_pending = want
 		return
 	if _anim.current_animation == want:
@@ -58,10 +62,23 @@ func set_moving(moving: bool) -> void:
 
 ## Play a one-off greeting gesture, then return to what we were doing.
 func wave() -> void:
-	if _anim == null or not _anim.has_animation("wave"):
+	_play_once("wave", Callable())
+
+
+## Play the happy "accepted the design" gesture; `done` fires when it finishes.
+func celebrate(done := Callable()) -> void:
+	_play_once("accept", done)
+
+
+func _play_once(anim_name: String, done: Callable) -> void:
+	if _anim == null or not _anim.has_animation(anim_name):
+		if done.is_valid():
+			done.call()
 		return
-	_pending = _anim.current_animation
-	_anim.play("wave", 0.15)
+	if not (_anim.current_animation in ONE_SHOTS):
+		_pending = _anim.current_animation
+	_oneshot_done = done
+	_anim.play(anim_name, 0.15)
 
 
 ## Colour the exposed skin (head, hands, feet).
@@ -100,7 +117,11 @@ func _flat(color: Color, roughness: float) -> StandardMaterial3D:
 
 
 func _on_finished(anim_name: String) -> void:
-	if anim_name == "wave":
+	if anim_name in ONE_SHOTS:
 		var back := _pending if _pending != "" else "idle"
 		_pending = ""
 		_anim.play(back, 0.2)
+		var done := _oneshot_done
+		_oneshot_done = Callable()
+		if done.is_valid():
+			done.call()

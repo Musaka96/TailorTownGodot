@@ -22,6 +22,7 @@ const ANIMS := {
 	"idle": ["Rig_Medium_General.glb", "Idle_A", true],
 	"walk": ["Rig_Medium_MovementBasic.glb", "Walking_A", true],
 	"wave": ["Rig_Medium_General.glb", "Interact", false],
+	"accept": ["Rig_Medium_MovementBasic.glb", "Jump_Full_Short", false],
 }
 
 

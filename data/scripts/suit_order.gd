@@ -29,6 +29,19 @@ func describe() -> String:
 	return " ".join(parts)
 
 
+## The jacket's fabric as a MaterialType, for the order ticket's swatch.
+func jacket_material() -> MaterialType:
+	var jacket: Dictionary = design.get(Enums.GarmentType.JACKET, {})
+	if jacket.is_empty():
+		return null
+	return MaterialFactory.make(
+		int(jacket.get("fabric", 0)),
+		int(jacket.get("pattern", 0)),
+		int(jacket.get("color", 0)),
+		1.0
+	)
+
+
 ## 0..1 — how well `suit` matches this order across its three parts.
 func match_fraction(suit: Node) -> float:
 	if suit == null or not (suit.get("parts") is Dictionary):
