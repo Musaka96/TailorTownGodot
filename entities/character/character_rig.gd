@@ -26,6 +26,11 @@ const PANTS_PARTS := ["Mannequin_Medium_LegLeft_001", "Mannequin_Medium_LegRight
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
 
+# Fabric tiling across the mesh UVs. UV mapping (not triplanar) so the weave/
+# pattern is locked to the surface and deforms with the animation instead of
+# swimming. Tune if the tiling looks too dense/sparse for the character's UVs.
+const CLOTH_UV_SCALE := 6.0
+
 var _pending := ""
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
@@ -71,11 +76,11 @@ func set_outfit(
 	jacket_mat: MaterialType, shirt_mat: MaterialType, trousers_mat: MaterialType
 ) -> void:
 	if jacket_mat != null:
-		_apply(JACKET_PARTS, ClothMaterial.build_triplanar(jacket_mat, 3.0))
+		_apply(JACKET_PARTS, ClothMaterial.build(jacket_mat, CLOTH_UV_SCALE))
 	if trousers_mat != null:
-		_apply(PANTS_PARTS, ClothMaterial.build_triplanar(trousers_mat, 3.0))
+		_apply(PANTS_PARTS, ClothMaterial.build(trousers_mat, CLOTH_UV_SCALE))
 	if shirt_mat != null:
-		_apply(SHIRT_PARTS, ClothMaterial.build_triplanar(shirt_mat, 3.5))
+		_apply(SHIRT_PARTS, ClothMaterial.build(shirt_mat, CLOTH_UV_SCALE))
 	else:
 		_apply(SHIRT_PARTS, _flat(DEFAULT_SHIRT, 0.6))
 
