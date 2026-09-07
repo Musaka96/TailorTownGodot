@@ -49,6 +49,14 @@ func _sit_at(new_parent: Node3D) -> void:
 func _apply_visual() -> void:
 	if _mesh == null:
 		return
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = primary_color
-	_mesh.material_override = mat
+	# Use the jacket's cloth if this suit was assembled from parts; otherwise fall
+	# back to a flat primary colour (e.g. placed test suits with no parts).
+	var jacket_mat: MaterialType = null
+	if parts.has(Enums.GarmentType.JACKET):
+		jacket_mat = parts[Enums.GarmentType.JACKET].get("material")
+	if jacket_mat != null:
+		_mesh.material_override = ClothMaterial.build(jacket_mat, 2.5)
+	else:
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = primary_color
+		_mesh.material_override = mat

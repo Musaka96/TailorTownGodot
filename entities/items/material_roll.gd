@@ -65,6 +65,4 @@ func _sit_at(new_parent: Node3D) -> void:
 func _apply_visual() -> void:
 	if _mesh == null:
 		return
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = material.cloth_color if material else Color(0.6, 0.6, 0.6)
-	_mesh.material_override = mat
+	_mesh.material_override = ClothMaterial.build(material, 3.0)

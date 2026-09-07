@@ -59,13 +59,11 @@ func _apply_visual() -> void:
 	if _models == null:
 		return
 	var show_name: String = MODEL_NAME.get(garment_type, "Shirt")
-	var color := material.cloth_color if material else Color(0.7, 0.7, 0.7)
+	var cloth := ClothMaterial.build(material, 2.2)
 	for model in _models.get_children():
 		var visible_now: bool = model.name == show_name
 		model.visible = visible_now
 		if visible_now:
-			var mat := StandardMaterial3D.new()
-			mat.albedo_color = color
 			for piece in model.get_children():
 				if piece is MeshInstance3D:
-					piece.material_override = mat
+					piece.material_override = cloth
