@@ -98,6 +98,13 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _state != State.RUNNING:
 		return
+	# Debug (F2, debug builds only): skip the seam and finish it perfectly.
+	if OS.is_debug_build() and event.is_action_pressed("debug"):
+		get_viewport().set_input_as_handled()
+		_state = State.SUCCESS
+		set_process(false)
+		finished.emit(true, 1.0)
+		return
 	if not (event.is_action_pressed("interact") or event.is_action_pressed("jump")
 			or event.is_action_pressed("cut") or event.is_action_pressed("ui_accept")):
 		return
@@ -234,8 +241,10 @@ func _draw_hud() -> void:
 		draw_string(font, bottom, "Get ready…  %d" % ceili(_lead),
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("e6c84c"))
 	elif _state == State.RUNNING:
-		draw_string(font, bottom, "Tap E / Space as the needle hits each stitch",
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))
+		var tip := "Tap E / Space as the needle hits each stitch"
+		if OS.is_debug_build():
+			tip += "   ·   F2 skip"
+		draw_string(font, bottom, tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))
 	elif _state == State.SUCCESS:
 		draw_string(font, bottom, "Seam finished!  Looking sharp.",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("8fe07a"))

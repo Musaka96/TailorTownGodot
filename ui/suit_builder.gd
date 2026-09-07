@@ -172,6 +172,8 @@ func _refresh() -> void:
 			% [_pref.describe(), _pref.budget, quote, over]
 		)
 		var keys := "W/S select  A/D change  E ask/confirm  Esc close"
+		if OS.is_debug_build():
+			keys += "   ·   F2 auto-fit"
 		_hint.text = "%s\n%s%s" % [brief, keys, _status]
 	else:
 		_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
@@ -226,6 +228,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_adjust(-1)
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_confirm()
+	elif OS.is_debug_build() and event.is_action_pressed("debug"):
+		_debug_autocomplete()
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		close()
 	else:
@@ -296,6 +300,11 @@ func _confirm() -> void:
 		_refresh()
 		return
 	# Second E finalises: create the order and send the customer on their way.
+	_finalize()
+
+
+## Create the order for the current design and send the customer off happy.
+func _finalize() -> void:
 	var quote: int = Pricing.suit_quote(_design)
 	var skin: Color = _customer.skin_color if _customer != null else Color(0.87, 0.72, 0.60)
 	Orders.create_order(_pref.display_name, _design, quote, skin)
@@ -304,3 +313,63 @@ func _confirm() -> void:
 	close()
 	if cust != null:
 		cust.finish_and_leave()
+
+
+# --- Debug (F2, debug builds only) -----------------------------------------
+
+
+## Instantly design a suit this customer would accept, then confirm the order.
+func _debug_autocomplete() -> void:
+	if _pref == null:
+		EventBus.design_confirmed.emit(_design.duplicate(true))
+		_status = "     Design saved! (debug)"
+		_refresh()
+		return
+	_design = _acceptable_design()
+	_apply_to_customer()
+	_finalize()
+
+
+## A design that satisfies this customer's dress-code brief and budget: allowed
+## colour, the required/allowed pattern, and the cheapest allowed cloth.
+func _acceptable_design() -> Dictionary:
+	var color := 0
+	var pattern := 0
+	var fabric := 0
+	var rule: DressRule = null
+	if Catalog.dress_code != null:
+		rule = Catalog.dress_code.rule_for(_pref.occasion, _pref.style)
+	if rule != null:
+		if not rule.allowed_colors.is_empty():
+			color = int(rule.allowed_colors[0])
+		fabric = _cheapest_fabric(rule.allowed_fabrics)
+		if rule.require_pattern:
+			for p in rule.allowed_patterns:
+				if int(p) != Enums.Pattern.SOLID:
+					pattern = int(p)
+					break
+		elif not rule.allowed_patterns.is_empty():
+			pattern = int(rule.allowed_patterns[0])
+	var design := {}
+	for t in PARTS:
+		design[t] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+	return design
+
+
+## Cheapest fabric among `allowed` (or all fabrics if unrestricted), to stay in budget.
+func _cheapest_fabric(allowed: Array) -> int:
+	var prices: Array = Config.data.fabric_price_per_m if Config.data != null else []
+	var pool: Array = []
+	if allowed != null and not allowed.is_empty():
+		for f in allowed:
+			pool.append(int(f))
+	else:
+		for i in prices.size():
+			pool.append(i)
+	if pool.is_empty():
+		return 0
+	var best: int = pool[0]
+	for f in pool:
+		if f < prices.size() and best < prices.size() and prices[f] < prices[best]:
+			best = f
+	return best

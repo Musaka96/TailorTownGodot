@@ -145,6 +145,17 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## Debug (F2, debug builds only): skip the cut and finish it perfectly.
+func _unhandled_input(event: InputEvent) -> void:
+	if _state != State.RUNNING or not OS.is_debug_build():
+		return
+	if event.is_action_pressed("debug"):
+		get_viewport().set_input_as_handled()
+		_state = State.SUCCESS
+		set_process(false)
+		finished.emit(true, 1.0)
+
+
 func _register_mistake() -> void:
 	_mistakes += 1
 	_error = 0.0
@@ -295,8 +306,10 @@ func _draw_hud() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("e6c84c"))
 	elif _state == State.RUNNING:
 		var pct := int(_cursor / _total * 100.0)
-		draw_string(font, bottom, "Point the scissors along the line   ·   %d%%" % pct,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))
+		var tip := "Point the scissors along the line   ·   %d%%" % pct
+		if OS.is_debug_build():
+			tip += "   ·   F2 skip"
+		draw_string(font, bottom, tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))
 	elif _state == State.SUCCESS:
 		draw_string(font, bottom, "Cut complete!  Nice work.",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("8fe07a"))
