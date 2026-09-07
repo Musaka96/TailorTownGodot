@@ -2,26 +2,18 @@ class_name CharacterRig
 extends Node3D
 
 ## Runtime controller for the shared character (built by tools/build_character.gd
-## from CHAR1 + KayKit Rig_Medium animations). Drives the AnimationPlayer
+## from CHARTGEN1 + KayKit Rig_Medium animations). Drives the AnimationPlayer
 ## (idle/walk/wave) and swaps per-part suit materials at runtime — jacket, shirt
-## and trousers each get a triplanar cloth material, so the mirror menu can
-## restyle the suit live. Skin parts (head, hands, feet) take a flat colour.
+## and trousers each get a UV-mapped cloth material, so the mirror menu can
+## restyle the suit live. Skin parts (head, arms) take a flat colour. Parts not
+## listed here (buttons, Hair, the left/right leg pieces) keep the model's own
+## imported materials.
 
-# CHAR1 mesh parts grouped by what material they receive.
-const SKIN_PARTS := [
-	"Mannequin_Medium_Head",
-	"Mannequin_Medium_ArmLeft_001",
-	"Mannequin_Medium_ArmRight_001",
-	"Mannequin_Medium_LegLeft",
-	"Mannequin_Medium_LegRight",
-]
-const JACKET_PARTS := [
-	"Mannequin_Medium_Body",
-	"Mannequin_Medium_ArmLeft",
-	"Mannequin_Medium_ArmRight",
-]
-const SHIRT_PARTS := ["Mannequin_Medium_Body_001"]
-const PANTS_PARTS := ["Mannequin_Medium_LegLeft_001", "Mannequin_Medium_LegRight_001"]
+# CHARTGEN1 mesh parts grouped by what material they receive.
+const SKIN_PARTS := ["head", "arms"]
+const JACKET_PARTS := ["jacket"]
+const SHIRT_PARTS := ["shirt"]
+const PANTS_PARTS := ["legs"]
 
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)

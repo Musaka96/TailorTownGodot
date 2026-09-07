@@ -1,20 +1,20 @@
 extends SceneTree
 
 ## Builds the shared character rig (res://entities/character/character_rig.tscn)
-## from the user's modified KayKit mannequin (assets/characters/CHAR2.glb: a
-## Rig_Medium skeleton with the body split into separate mesh parts) plus the
-## KayKit Rig_Medium animation clips merged into one AnimationPlayer.
+## from the CHARTGEN1 character (res://IMPORT/CHARTGEN1.glb: a Rig_Medium skeleton
+## with the body split into separate mesh parts — head, arms, jacket, shirt, legs,
+## …) plus the KayKit Rig_Medium animation clips merged into one AnimationPlayer.
 ##
-## Because CHAR2 and the animation .glb share the same Rig_Medium skeleton
-## (tracks target "Rig_Medium/Skeleton3D:<bone>"), the clips drive CHAR1 directly
+## Because CHARTGEN1 and the animation .glb share the same Rig_Medium skeleton
+## (tracks target "Rig_Medium/Skeleton3D:<bone>"), the clips drive it directly
 ## with no retargeting. Per-part suit materials are applied at runtime by
-## character_rig.gd (triplanar cloth), so this only wires geometry + animation.
+## character_rig.gd (UV-mapped cloth), so this only wires geometry + animation.
 ##
 ##   godot --headless --path . --script res://tools/build_character.gd
 
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
-const CHAR_SOURCE := "res://assets/characters/CHAR2.glb"
-const CHAR_NAME := "CHAR2"
+const CHAR_SOURCE := "res://IMPORT/CHARTGEN1.glb"
+const CHAR_NAME := "CHARTGEN1"
 const ANIM_DIR := "res://assets/characters/anim/"
 
 # our name -> [source glb, clip name, loop]

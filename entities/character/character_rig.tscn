@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://entities/character/character_rig.gd" id="1_atflr"]
-[ext_resource type="PackedScene" path="res://assets/characters/CHAR2.glb" id="2_eb6sw"]
+[ext_resource type="PackedScene" path="res://IMPORT/CHARTGEN1.glb" id="2_eb6sw"]
 
 [sub_resource type="Animation" id="Animation_dkxvt"]
 resource_name = "Jump_Full_Short"
@@ -1135,12 +1135,12 @@ _data = {
 &"wave": SubResource("Animation_dwubl")
 }
 
-[node name="CharacterRig" type="Node3D" unique_id=1538957237]
+[node name="CharacterRig" type="Node3D" unique_id=206556127]
 script = ExtResource("1_atflr")
 
-[node name="CHAR2" type="Node3D" parent="." unique_id=444733801 instance=ExtResource("2_eb6sw")]
+[node name="CHARTGEN1" type="Node3D" parent="." unique_id=187724422 instance=ExtResource("2_eb6sw")]
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1201418541]
-root_node = NodePath("../CHAR2")
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=818748252]
+root_node = NodePath("../CHARTGEN1")
 libraries/ = SubResource("AnimationLibrary_oyccj")
 autoplay = &"idle"
