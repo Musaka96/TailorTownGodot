@@ -107,6 +107,7 @@ func _on_order_due(order: SuitOrder) -> void:
 	var cust := _spawn(start, false)
 	cust.collect_order = order
 	cust.apply_look(order.skin)
+	cust.set_hair(order.hair_index)  # match the customer who ordered
 	cust.walk([_door_out, _door_in, _collect_spot()], func() -> void: _on_collector_arrived(cust))
 
 
@@ -148,10 +149,8 @@ func _spawn(pos: Vector3, with_pref: bool) -> Customer:
 
 func _dress(cust: Customer) -> void:
 	cust.apply_look(SKINS[_rng.randi() % SKINS.size()])
-	var mats := Catalog.all_materials()
-	if not mats.is_empty():
-		var suit: MaterialType = mats[_rng.randi() % mats.size()]
-		cust.wear_suit(suit, null, suit)
+	cust.set_hair(_rng.randi() % maxi(1, Wardrobe.hair_count()))
+	cust.wear_street()
 
 
 # --- Routing (called by Customer / UI) -------------------------------------

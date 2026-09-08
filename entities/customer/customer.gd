@@ -22,8 +22,9 @@ enum Mode { NONE, GREET, MIRROR, COLLECT }
 
 ## Taste + budget (null for a plain pedestrian).
 var preference: CustomerPreference = null
-## Skin tone, remembered so a returning customer looks the same (set by the manager).
+## Skin tone + hairstyle, remembered so a returning customer looks the same.
 var skin_color := Color(0.87, 0.72, 0.60)
+var hair_index := 0
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -108,6 +109,19 @@ func apply_look(skin: Color) -> void:
 		_rig.set_palette(skin)
 
 
+## Pick a hairstyle from the wardrobe library.
+func set_hair(index: int) -> void:
+	hair_index = index
+	if _rig != null:
+		_rig.set_hair(index)
+
+
+## Wear the casual street outfit (on arrival, before a suit is made).
+func wear_street() -> void:
+	if _rig != null:
+		_rig.wear_street()
+
+
 ## Wait at the counter for the player to hand over a finished order.
 func offer_collection(order: SuitOrder) -> void:
 	_mode = Mode.COLLECT
@@ -117,12 +131,36 @@ func offer_collection(order: SuitOrder) -> void:
 		_rig.wave()
 
 
-## Dress the customer in a suit made from real cloth materials.
+## Dress the customer in a suit: cloth materials + the chosen jacket/pants styles
+## (which swap the actual models).
 func wear_suit(
-	jacket_mat: MaterialType, shirt_mat: MaterialType, trousers_mat: MaterialType
+	jacket_mat: MaterialType,
+	shirt_mat: MaterialType,
+	trousers_mat: MaterialType,
+	jacket_style := 0,
+	pants_style := 0
 ) -> void:
 	if _rig != null:
-		_rig.set_outfit(jacket_mat, shirt_mat, trousers_mat)
+		_rig.set_outfit(jacket_mat, shirt_mat, trousers_mat, jacket_style, pants_style)
+
+
+## Dress from a finished order's design (used when the customer collects the suit).
+func wear_suit_from_design(design: Dictionary) -> void:
+	var jacket := _design_material(design, Enums.GarmentType.JACKET)
+	var shirt := _design_material(design, Enums.GarmentType.SHIRT)
+	var pants := _design_material(design, Enums.GarmentType.PANTS)
+	var jacket_style := int(design.get(Enums.GarmentType.JACKET, {}).get("style_idx", 0))
+	var pants_style := int(design.get(Enums.GarmentType.PANTS, {}).get("style_idx", 0))
+	wear_suit(jacket, shirt, pants, jacket_style, pants_style)
+
+
+func _design_material(design: Dictionary, garment_type: int) -> MaterialType:
+	var c: Dictionary = design.get(garment_type, {})
+	if c.is_empty():
+		return null
+	return MaterialFactory.make(
+		int(c.get("fabric", 0)), int(c.get("pattern", 0)), int(c.get("color", 0)), 1.0
+	)
 
 
 func offer_mirror() -> void:
@@ -177,8 +215,11 @@ func interact(actor) -> void:
 			if mirror != null:
 				UI.open_suit_builder(mirror, actor)
 		Mode.COLLECT:
-			Orders.collect(collect_order)
+			var order := collect_order
+			Orders.collect(order)
 			collect_order = null
+			if order != null:
+				wear_suit_from_design(order.design)  # put the finished suit on
 			finish_and_leave()
 
 

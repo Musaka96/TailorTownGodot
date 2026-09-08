@@ -20,8 +20,9 @@ const COLOR_TOLERANCE := 0.14
 @export var design: Dictionary = {}
 ## Agreed price (the ceiling; actual payout scales by match and quality).
 @export var price: int = 0
-## Skin tone of the customer, so the one who returns to collect matches.
+## Skin tone + hairstyle of the customer, so the one who returns to collect matches.
 @export var skin: Color = Color(0.87, 0.72, 0.60)
+@export var hair_index: int = 0
 ## Total days promised (1–5) and how many real-time days remain.
 @export var deadline_days: int = 3
 @export var days_left: float = 3.0

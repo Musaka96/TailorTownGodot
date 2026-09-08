@@ -276,6 +276,8 @@ func _apply_to_customer() -> void:
 			_part_material(Enums.GarmentType.JACKET),
 			_part_material(Enums.GarmentType.SHIRT),
 			_part_material(Enums.GarmentType.PANTS),
+			int(_design[Enums.GarmentType.JACKET]["style_idx"]),
+			int(_design[Enums.GarmentType.PANTS]["style_idx"]),
 		)
 	)
 
@@ -307,7 +309,8 @@ func _confirm() -> void:
 func _finalize() -> void:
 	var quote: int = Pricing.suit_quote(_design)
 	var skin: Color = _customer.skin_color if _customer != null else Color(0.87, 0.72, 0.60)
-	Orders.create_order(_pref.display_name, _design, quote, skin)
+	var hair: int = _customer.hair_index if _customer != null else 0
+	Orders.create_order(_pref.display_name, _design, quote, skin, hair)
 	EventBus.design_confirmed.emit(_design.duplicate(true))
 	var cust = _customer
 	close()

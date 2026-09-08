@@ -39,12 +39,15 @@ func _process(delta: float) -> void:
 			EventBus.order_due.emit(order)
 
 
-func create_order(customer_name: String, design: Dictionary, price: int, skin: Color) -> SuitOrder:
+func create_order(
+	customer_name: String, design: Dictionary, price: int, skin: Color, hair_index := 0
+) -> SuitOrder:
 	var order := SuitOrder.new()
 	order.customer_name = customer_name
 	order.design = design.duplicate(true)
 	order.price = price
 	order.skin = skin
+	order.hair_index = hair_index
 	order.deadline_days = _rng.randi_range(DAYS_MIN, DAYS_MAX)
 	order.days_left = float(order.deadline_days)
 	active.append(order)
