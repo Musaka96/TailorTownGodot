@@ -49,7 +49,6 @@ const LIB := {
 	"pickup": "pickup.wav",
 	"putdown": "putdown.wav",
 	# world stingers & ambience
-	"interact_chime": "interact_chime.wav",
 	"new_order_ping": "new_order_ping.wav",
 	"order_complete": "order_complete.wav",
 	"day_start": "day_start.wav",
@@ -69,7 +68,6 @@ var _pool: Array[AudioStreamPlayer] = []
 var _loops: Dictionary = {}
 var _music: AudioStreamPlayer
 var _next := 0
-var _prompt_active := false
 
 
 func _ready() -> void:
@@ -215,7 +213,6 @@ func _connect_events() -> void:
 	EventBus.order_due.connect(_on_order_due)
 	EventBus.shift_started.connect(_on_shift_started)
 	EventBus.shift_ended.connect(_on_shift_ended)
-	EventBus.interaction_prompt_changed.connect(_on_prompt_changed)
 
 
 func _on_customer_waiting(_customer: Node) -> void:
@@ -273,12 +270,3 @@ func _on_shift_started(_start_hour: float) -> void:
 
 func _on_shift_ended() -> void:
 	play("day_end")
-
-
-## A ding when an interaction prompt first appears (only on the empty->set edge,
-## so walking past a row of stations doesn't chatter).
-func _on_prompt_changed(text: String) -> void:
-	var active := text != ""
-	if active and not _prompt_active:
-		play("interact_chime", -6.0)
-	_prompt_active = active

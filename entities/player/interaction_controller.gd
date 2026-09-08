@@ -4,15 +4,21 @@ extends Area3D
 ## nearest overlapping Interactable, publishes its prompt to the HUD (via
 ## EventBus), and triggers it on the "interact" action.
 
+const OUTLINE_SHADER := preload("res://assets/shaders/interact_outline.gdshader")
+
 @export var player_path: NodePath
 
 var _player: Node
 var _current: Interactable = null
 var _last_prompt := ""
+var _outline: ShaderMaterial
 
 
 func _ready() -> void:
 	_player = get_node(player_path)
+	_outline = ShaderMaterial.new()
+	_outline.shader = OUTLINE_SHADER
+	_outline.set_shader_parameter("outline_color", Style.BRASS)
 
 
 func _physics_process(_delta: float) -> void:
@@ -36,7 +42,23 @@ func _find_nearest() -> Interactable:
 
 
 func _set_current(interactable: Interactable) -> void:
+	if interactable == _current:
+		return
+	_highlight(_current, false)
 	_current = interactable
+	_highlight(_current, true)
+
+
+## Toggle the brass outline on every mesh under an interactable's target object.
+func _highlight(interactable: Interactable, on: bool) -> void:
+	if not is_instance_valid(interactable):
+		return
+	var root: Node = interactable.target if interactable.target != null else interactable
+	if not is_instance_valid(root):
+		return
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		mesh.material_overlay = _outline if on else null
 
 
 ## Prompts can depend on carry state (e.g. "Place roll" vs "Browse shelf"), so
