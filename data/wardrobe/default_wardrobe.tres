@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="WardrobeLibrary" format=3]
+[gd_resource type="Resource" script_class="WardrobeLibrary" format=3 uid="uid://u5idqehyarxi"]
 
-[ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_ohx82"]
-[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN1.glb" id="2_fibh6"]
-[ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="3_uwj4j"]
+[ext_resource type="Script" uid="uid://dyxx0hmf05pj2" path="res://data/scripts/wardrobe_part.gd" id="1_ohx82"]
+[ext_resource type="PackedScene" uid="uid://4gjg2o3qcery" path="res://assets/characters/CHARTGEN1.glb" id="2_fibh6"]
+[ext_resource type="Script" uid="uid://d3cgw5h0qanbh" path="res://data/scripts/wardrobe_library.gd" id="3_uwj4j"]
 
 [sub_resource type="Resource" id="Resource_2el7x"]
 script = ExtResource("1_ohx82")

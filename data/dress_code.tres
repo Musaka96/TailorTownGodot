@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="DressCode" format=3]
+[gd_resource type="Resource" script_class="DressCode" format=3 uid="uid://djljlek0ccgh3"]
 
-[ext_resource type="Script" path="res://data/scripts/dress_rule.gd" id="1_ybt8c"]
-[ext_resource type="Script" path="res://data/scripts/dress_code.gd" id="2_e5v0l"]
+[ext_resource type="Script" uid="uid://dfsp60hrrln13" path="res://data/scripts/dress_rule.gd" id="1_ybt8c"]
+[ext_resource type="Script" uid="uid://cpiuuoyxaa5iv" path="res://data/scripts/dress_code.gd" id="2_e5v0l"]
 
 [sub_resource type="Resource" id="Resource_cgpov"]
 script = ExtResource("1_ybt8c")

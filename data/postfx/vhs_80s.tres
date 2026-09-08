@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_der6t"]
+
+[resource]
+script = ExtResource("1_der6t")
+temperature = -0.05
+contrast = 1.05
+saturation = 0.9
+film_preset = 2
+film_strength = 0.7
+scanline_strength = 0.18
+vignette_strength = 0.3
+grain_strength = 0.15
+chromatic_aberration = 0.35
+bloom_strength = 0.1
+barrel_distortion = 0.12
+vhs_wobble = 0.4
+flicker_strength = 0.08

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_qg2ui"]
+
+[resource]
+script = ExtResource("1_qg2ui")
+contrast = 1.1
+saturation = 0.0
+film_preset = 6
+film_strength = 1.0
+scanline_strength = 0.3
+scanline_count = 400.0
+vignette_strength = 0.45
+grain_strength = 0.08
+chromatic_aberration = 0.05
+bloom_strength = 0.25
+barrel_distortion = 0.2
+flicker_strength = 0.1

@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="CharacterAnimations" format=3]
+[gd_resource type="Resource" script_class="CharacterAnimations" format=3 uid="uid://dvuidye16cein"]
 
-[ext_resource type="Script" path="res://data/scripts/anim_entry.gd" id="1_jdrcn"]
-[ext_resource type="PackedScene" path="res://assets/characters/anim/Rig_Medium_General.glb" id="2_vo7as"]
-[ext_resource type="PackedScene" path="res://assets/characters/anim/Rig_Medium_MovementBasic.glb" id="3_x0m4i"]
-[ext_resource type="Script" path="res://data/scripts/character_animations.gd" id="4_2vyph"]
+[ext_resource type="Script" uid="uid://c04hljrwt2lmc" path="res://data/scripts/anim_entry.gd" id="1_jdrcn"]
+[ext_resource type="PackedScene" uid="uid://32txqx37yvjv" path="res://assets/characters/anim/Rig_Medium_General.glb" id="2_vo7as"]
+[ext_resource type="PackedScene" uid="uid://b4pmamd6vkmbv" path="res://assets/characters/anim/Rig_Medium_MovementBasic.glb" id="3_x0m4i"]
+[ext_resource type="Script" uid="uid://dldfvs77j0ltx" path="res://data/scripts/character_animations.gd" id="4_2vyph"]
 
 [sub_resource type="Resource" id="Resource_1qw2j"]
 script = ExtResource("1_jdrcn")
@@ -16,7 +16,7 @@ loop = true
 script = ExtResource("1_jdrcn")
 name = "walk"
 source = ExtResource("3_x0m4i")
-clip = "Walking_A"
+clip = "Walking_B"
 loop = true
 
 [sub_resource type="Resource" id="Resource_t1kd6"]
