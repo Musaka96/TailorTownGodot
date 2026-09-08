@@ -1,31 +1,28 @@
 extends Node
 
-## Autoloaded as "DayNight". Plays one work shift as an accelerated day: it begins at
-## midday and advances to night over `shift_real_seconds`, driving the current
-## scene's Sun (DirectionalLight3D) and WorldEnvironment sky. The light sweeps down
-## through a warm sunset, then a soft blue "moon" rises and the world settles into a
-## cartoonish blue night — kept bright by lifting the ambient, never black. When the
-## end hour is reached it rings a closing bell and emits EventBus.shift_ended.
+## Autoloaded as "DayNight". Runs one work shift across the day: it advances the
+## in-game clock from the start hour to the end hour over `shift_real_seconds` and
+## sweeps the scene's Sun (DirectionalLight3D) across the sky at a pleasant daytime
+## angle — never straight overhead, never down to night. The light comes in low and
+## warm at the open, lifts toward midday, and eases back down by closing, with the
+## direction rotating so shadows travel across the shop through the day. At the end
+## hour it rings a closing bell and emits EventBus.shift_ended.
 ##
-## It locates the sun + environment in whatever scene is current (by type), so it
-## needs no scene edits and won't touch the map on disk. The HUD clock reads `hour`
-## and the shift window from here. Call start_shift() to run another day.
+## It finds the sun in whatever scene is current (by type), so it needs no scene
+## edits. The HUD clock reads `hour` and the shift window from here. It intentionally
+## leaves the sky/ambient alone — the shift is a daytime window, not a night cycle.
 
-const DEFAULT_START_HOUR := 12.0
-const DEFAULT_END_HOUR := 22.0
+const DEFAULT_START_HOUR := 8.0
+const DEFAULT_END_HOUR := 17.0
 const DEFAULT_SHIFT_SECONDS := 300.0
 
-# Light / sky palette keyframes (day → dusk → night).
-const DAY_SUN := Color(1.0, 0.96, 0.88)
-const DUSK_SUN := Color(1.0, 0.55, 0.30)
-const NIGHT_SUN := Color(0.55, 0.66, 1.0)
-const DAY_TOP := Color(0.35, 0.58, 0.98)
-const DAY_HORIZON := Color(0.72, 0.83, 0.98)
-const DUSK_HORIZON := Color(0.98, 0.55, 0.32)
-const NIGHT_TOP := Color(0.05, 0.09, 0.30)
-const NIGHT_HORIZON := Color(0.16, 0.20, 0.46)
-const DAY_GROUND := Color(0.42, 0.40, 0.37)
-const NIGHT_GROUND := Color(0.10, 0.12, 0.28)
+# Sun look across the shift (ends = warm/low, midday = neutral/higher — never zenith).
+const SUN_MID := Color(1.0, 0.97, 0.90)
+const SUN_GOLDEN := Color(1.0, 0.87, 0.70)
+const ELEV_LOW := 38.0  # degrees above horizon at the open/close
+const ELEV_HIGH := 56.0  # degrees at midday (angled, not overhead)
+const YAW_START := -55.0
+const YAW_END := 55.0
 
 ## Current in-game hour (24h), read by the clock.
 var hour := DEFAULT_START_HOUR
@@ -33,8 +30,6 @@ var running := false
 
 var _elapsed := 0.0
 var _sun: DirectionalLight3D
-var _env: Environment
-var _sky: ProceduralSkyMaterial
 var _bell: AudioStreamPlayer
 
 
@@ -103,8 +98,8 @@ func _shift_seconds() -> float:
 	return maxf(c.shift_real_seconds if c != null else DEFAULT_SHIFT_SECONDS, 1.0)
 
 
-## Find the sun + environment in the current scene (re-finds when the scene changes,
-## detected by the cached sun going invalid).
+## Find the sun in the current scene (re-finds when the scene changes, detected by
+## the cached sun going invalid).
 func _locate() -> void:
 	if _sun != null and is_instance_valid(_sun):
 		return
@@ -113,42 +108,21 @@ func _locate() -> void:
 		return
 	var lights := scene.find_children("*", "DirectionalLight3D", true, false)
 	_sun = lights[0] if not lights.is_empty() else null
-	_env = null
-	_sky = null
-	var envs := scene.find_children("*", "WorldEnvironment", true, false)
-	if not envs.is_empty():
-		_env = (envs[0] as WorldEnvironment).environment
-		if _env != null and _env.sky != null:
-			_sky = _env.sky.sky_material as ProceduralSkyMaterial
 
 
-## Apply the current hour to the sun direction/colour and the sky palette.
+## Sweep the sun across the sky over the shift: a gentle elevation arc (low → midday
+## → low) with the direction rotating east→west, and a warm tint near the ends.
 func _drive() -> void:
-	var dusk := smoothstep(15.5, 18.5, hour)
-	var night := smoothstep(16.5, 21.0, hour)
-	var deep := smoothstep(19.0, 21.5, hour)
-
-	if _sun != null and is_instance_valid(_sun):
-		# Sun arcs down to the horizon by dusk; then a soft moon rises for the night.
-		var sun_elev := 90.0 * cos((hour - 12.0) / 12.0 * PI)
-		var elevation := lerpf(sun_elev, 50.0, deep)
-		var yaw := -30.0 + (hour - 12.0) / 10.0 * 90.0
-		_sun.rotation_degrees = Vector3(-elevation, yaw, 0.0)
-		_sun.light_color = DAY_SUN.lerp(DUSK_SUN, dusk).lerp(NIGHT_SUN, night)
-		var energy := lerpf(1.05, 0.9, dusk)
-		_sun.light_energy = lerpf(energy, 0.4, night)
-
-	if _sky != null:
-		_sky.sky_top_color = DAY_TOP.lerp(NIGHT_TOP, night)
-		var horizon := DAY_HORIZON.lerp(DUSK_HORIZON, dusk * (1.0 - night))
-		horizon = horizon.lerp(NIGHT_HORIZON, night)
-		_sky.sky_horizon_color = horizon
-		_sky.ground_horizon_color = horizon
-		_sky.ground_bottom_color = DAY_GROUND.lerp(NIGHT_GROUND, night)
-
-	if _env != null:
-		# Lift ambient at night so it reads as a bright cartoon night, not darkness.
-		_env.ambient_light_energy = lerpf(1.0, 1.4, night)
+	if _sun == null or not is_instance_valid(_sun):
+		return
+	var p := progress()
+	var arc := sin(p * PI)  # 0 at the ends of the day, 1 at midday
+	var elevation := lerpf(ELEV_LOW, ELEV_HIGH, arc)
+	var yaw := lerpf(YAW_START, YAW_END, p)
+	_sun.rotation_degrees = Vector3(-elevation, yaw, 0.0)
+	var golden := 1.0 - arc
+	_sun.light_color = SUN_MID.lerp(SUN_GOLDEN, golden * 0.6)
+	_sun.light_energy = lerpf(1.15, 1.0, golden)
 
 
 func _ring() -> void:

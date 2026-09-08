@@ -22,11 +22,11 @@ extends Resource
 @export var seconds_per_day: float = 120.0
 
 @export_group("Day / Night")
-## In-game hour the shift starts at (24h clock) — midday by default.
-@export var shift_start_hour: float = 12.0
-## In-game hour the shift ends at (night); the closing bell rings here.
-@export var shift_end_hour: float = 22.0
-## Real seconds for the whole midday→night shift to play out.
+## In-game hour the shift opens at (24h clock).
+@export var shift_start_hour: float = 8.0
+## In-game hour the shift closes at; the closing bell rings here.
+@export var shift_end_hour: float = 17.0
+## Real seconds for the whole shift (open → close) to play out.
 @export var shift_real_seconds: float = 300.0
 
 @export_group("Cutting minigame")
