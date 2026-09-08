@@ -104,6 +104,52 @@ func is_ready(order: SuitOrder) -> bool:
 	return order != null and order.state == SuitOrder.State.READY
 
 
+# --- Debug helpers (used by the F3 debug menu) -----------------------------
+
+
+## Create a random valid order (a full jacket/shirt/pants brief).
+func debug_add_random() -> SuitOrder:
+	const NAMES := ["Mr. Rossi", "Ms. Byrne", "Dr. Vance", "Mr. Okafor", "Ms. Ito", "Mr. Kane"]
+	var design := {}
+	for t in [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]:
+		design[t] = {
+			"fabric": _rng.randi_range(0, 4),
+			"pattern": _rng.randi_range(0, 8),
+			"color": _rng.randi_range(0, maxi(MaterialFactory.color_count() - 1, 0)),
+			"style_idx": 0,
+		}
+	var skin := Color(0.7 + _rng.randf() * 0.2, 0.6 + _rng.randf() * 0.15, 0.5 + _rng.randf() * 0.15)
+	return create_order(NAMES[_rng.randi() % NAMES.size()], design, _rng.randi_range(150, 450), skin)
+
+
+## Instantly finish and pay out an order (fills every piece at full quality).
+func debug_complete(order: SuitOrder) -> void:
+	if order == null or not active.has(order):
+		return
+	for t in order.required_types():
+		if not order.is_part_done(t):
+			order.fill_part(t, 1.0, 1.0)
+			EventBus.order_part_filled.emit(order, t)
+	order.state = SuitOrder.State.READY
+	EventBus.order_ready.emit(order)
+	collect(order)
+
+
+func debug_complete_first() -> void:
+	if not active.is_empty():
+		debug_complete(active[0])
+
+
+func debug_complete_all() -> void:
+	for order in active.duplicate():
+		debug_complete(order)
+
+
+func debug_expire_first() -> void:
+	if not active.is_empty():
+		expire(active[0])
+
+
 # --- Internals -------------------------------------------------------------
 
 

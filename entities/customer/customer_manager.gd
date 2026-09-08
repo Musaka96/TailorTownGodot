@@ -90,6 +90,24 @@ func _send_shopper(start: Vector3) -> void:
 	cust.walk([_door_out, _door_in, _greet], func() -> void: _on_shopper_waiting(cust))
 
 
+# --- Debug hooks (used by the F3 debug menu) -------------------------------
+
+
+## Force a shopper to walk in now, regardless of the spawn chance or shop state.
+func debug_call_shopper() -> void:
+	if not is_inside_tree():
+		return
+	var start := _street_west if _rng.randf() < 0.5 else _street_east
+	_send_shopper(start)
+
+
+## Remove every customer currently in the world.
+func debug_clear_customers() -> void:
+	for child in get_children():
+		if child is Customer:
+			child.despawn()
+
+
 # --- Returning collectors --------------------------------------------------
 
 
