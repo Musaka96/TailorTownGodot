@@ -155,10 +155,24 @@ func _spawn(pos: Vector3, with_pref: bool) -> Customer:
 	cust.manager = self
 	if with_pref:
 		cust.preference = CustomerPreference.random_pref(_rng)
+		_apply_event_bias(cust.preference)
 	_dress(cust)
 	cust.departed.connect(_on_departed)
 	_alive += 1
 	return cust
+
+
+## A looming city event (from the paper) skews some briefs toward its occasion/style,
+## so the player who read the paper and prepared is rewarded.
+func _apply_event_bias(pref: CustomerPreference) -> void:
+	if pref == null or News == null:
+		return
+	var day: int = Shift.day if Shift != null else 1
+	var bias := News.event_bias(day, _rng)
+	if bias.has("occasion"):
+		pref.occasion = int(bias["occasion"])
+	if bias.has("style"):
+		pref.style = int(bias["style"])
 
 
 func _dress(cust: Customer) -> void:

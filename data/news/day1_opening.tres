@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_0qo1r"]
+
+[resource]
+script = ExtResource("1_0qo1r")
+id = "day1_opening"
+headline = "A New Name Opens on the Row"
+body = "The Row welcomes a fresh pair of shears this morning. Neighbours wish the new tailor a steady hand and a full order book."
+exact_day = 1
+priority = 10

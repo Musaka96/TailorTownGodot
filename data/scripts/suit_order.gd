@@ -97,10 +97,7 @@ func part_material(garment_type: int) -> MaterialType:
 	if spec.is_empty():
 		return null
 	return MaterialFactory.make(
-		int(spec.get("fabric", 0)),
-		int(spec.get("pattern", 0)),
-		int(spec.get("color", 0)),
-		1.0
+		int(spec.get("fabric", 0)), int(spec.get("pattern", 0)), int(spec.get("color", 0)), 1.0
 	)
 
 
@@ -126,18 +123,28 @@ func part_match(garment_type: int, part: Dictionary) -> float:
 
 ## Final payout once collected: price scaled by average match and craft quality.
 func payout() -> int:
+	return int(round(price * average_match() * average_quality()))
+
+
+## 0..1 — mean brief-match across the order's pieces (how right the cloth was).
+func average_match() -> float:
+	return _average("score")
+
+
+## 0..1 — mean craft quality across the order's pieces (how well it was made).
+func average_quality() -> float:
+	return _average("quality")
+
+
+func _average(field: String) -> float:
 	var types := required_types()
 	if types.is_empty():
-		return 0
-	var score_sum := 0.0
-	var quality_sum := 0.0
+		return 0.0
+	var sum := 0.0
 	for t in types:
 		var f: Dictionary = filled.get(t, {})
-		score_sum += float(f.get("score", 0.0))
-		quality_sum += float(f.get("quality", 0.0))
-	var avg_score := score_sum / types.size()
-	var avg_quality := quality_sum / types.size()
-	return int(round(price * avg_score * avg_quality))
+		sum += float(f.get(field, 0.0))
+	return sum / types.size()
 
 
 func _color_close(a: Color, b: Color) -> bool:

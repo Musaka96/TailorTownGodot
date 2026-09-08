@@ -54,3 +54,9 @@ signal customer_left(customer: Node)
 signal shift_started(start_hour: float)
 ## The shift reached its end hour (night); the closing bell rings.
 signal shift_ended
+
+# --- Reputation & news ---
+## The shop's standing changed; `tier` is the current rank index.
+signal reputation_changed(points: int, tier: int)
+## A fresh edition of the paper is ready for the given day (auto-opens the HUD paper).
+signal newspaper_ready(day: int)

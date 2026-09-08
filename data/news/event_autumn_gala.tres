@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_tmg4q"]
+
+[resource]
+script = ExtResource("1_tmg4q")
+id = "event_autumn_gala"
+headline = "Autumn Charity Gala Announced"
+body = "The city's gala lands in three days. Expect party briefs — prepare your bold cloth."
+kind = 2
+exact_day = 3
+priority = 7
+event_day = 6
+event_occasion = 3
+event_style = 3

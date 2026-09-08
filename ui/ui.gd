@@ -9,6 +9,8 @@ const FONT := preload("res://assets/fonts/Fredoka.ttf")
 ## have to be regenerated to add them.
 var orders_menu: Control
 var clock: Control
+var reputation: Control
+var newspaper: Control
 var day_transition: Control
 
 var _toast: Label
@@ -49,6 +51,8 @@ func _ready() -> void:
 	handbook.theme = theme
 	orders_menu.theme = theme
 	clock = _build_clock()
+	reputation = _build_reputation()
+	newspaper = _build_newspaper(theme)
 	day_transition = _build_day_transition()
 
 
@@ -209,6 +213,29 @@ func _build_clock() -> Control:
 	widget.position = Vector2(16, 12)
 	hud.add_child(widget)
 	return widget
+
+
+## Reputation badge, mounted just under the clock on the HUD. Built in code so the
+## scenes never need regenerating to add it.
+func _build_reputation() -> Control:
+	var widget := Control.new()
+	widget.name = "Reputation"
+	widget.set_script(load("res://ui/reputation_widget.gd"))
+	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	widget.position = Vector2(16, 148)
+	hud.add_child(widget)
+	return widget
+
+
+## The morning paper — a modal broadsheet attached to the root UI (above the HUD) so
+## it covers everything. Auto-opens on EventBus.newspaper_ready. Built in code.
+func _build_newspaper(theme: Theme) -> Control:
+	var paper := Control.new()
+	paper.name = "Newspaper"
+	paper.set_script(load("res://ui/newspaper.gd"))
+	paper.theme = theme
+	add_child(paper)
+	return paper
 
 
 ## Full-screen day-change animation, attached to the root UI (above the HUD) so it
