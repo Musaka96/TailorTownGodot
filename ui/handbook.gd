@@ -150,13 +150,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("move_right"):
 		_chapter = wrapi(_chapter + 1, 0, _chapters.size())
 		_topic = 0
+		Sfx.play("page_turn")
 	elif event.is_action_pressed("move_left"):
 		_chapter = wrapi(_chapter - 1, 0, _chapters.size())
 		_topic = 0
+		Sfx.play("page_turn")
 	elif event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
 		_topic = wrapi(_topic + 1, 0, count)
+		Sfx.play("page_turn", -8.0)
 	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
 		_topic = wrapi(_topic - 1, 0, count)
+		Sfx.play("page_turn", -8.0)
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		close()
 		get_viewport().set_input_as_handled()

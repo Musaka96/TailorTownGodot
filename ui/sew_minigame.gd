@@ -13,7 +13,7 @@ enum Stitch { PENDING, PERFECT, GOOD, MISS }
 
 const STITCHES := 9
 const CROSS_SECONDS := 7.5
-const GOOD_WINDOW := 0.05     # in seam fraction (0..1)
+const GOOD_WINDOW := 0.05  # in seam fraction (0..1)
 const PERFECT_WINDOW := 0.025
 const MAX_MISTAKES := 3
 
@@ -68,6 +68,7 @@ func start(title: String) -> void:
 		_pts.append(lerpf(0.08, 0.92, float(i) / (_stitches - 1)))
 		_judge.append(Stitch.PENDING)
 	set_process(true)
+	Sfx.start_loop("sew_machine_loop", -6.0)
 	queue_redraw()
 
 
@@ -105,8 +106,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_process(false)
 		finished.emit(true, 1.0)
 		return
-	if not (event.is_action_pressed("interact") or event.is_action_pressed("jump")
-			or event.is_action_pressed("cut") or event.is_action_pressed("ui_accept")):
+	if not (
+		event.is_action_pressed("interact")
+		or event.is_action_pressed("jump")
+		or event.is_action_pressed("cut")
+		or event.is_action_pressed("ui_accept")
+	):
 		return
 	get_viewport().set_input_as_handled()
 	_try_stitch()
@@ -145,6 +150,7 @@ func _register_mistake() -> void:
 func _succeed() -> void:
 	_state = State.SUCCESS
 	set_process(false)
+	Sfx.stop_loop("sew_machine_loop")
 	_play(_complete, 0.7)
 	queue_redraw()
 	var score := 0.0
@@ -158,6 +164,7 @@ func _succeed() -> void:
 func _fail() -> void:
 	_state = State.RUINED
 	set_process(false)
+	Sfx.stop_loop("sew_machine_loop")
 	_play(_ruined, 0.8)
 	queue_redraw()
 	await get_tree().create_timer(1.0).timeout
@@ -165,6 +172,7 @@ func _fail() -> void:
 
 
 # --- Drawing ---------------------------------------------------------------
+
 
 func _mat_half() -> float:
 	return minf(size.x, size.y) * 0.32
@@ -181,7 +189,9 @@ func _seam_x(frac: float) -> float:
 
 func _draw() -> void:
 	var mat_size := _mat_half() * 2.0
-	var mat_rect := Rect2(_origin() - Vector2(mat_size, mat_size) * 0.5, Vector2(mat_size, mat_size))
+	var mat_rect := Rect2(
+		_origin() - Vector2(mat_size, mat_size) * 0.5, Vector2(mat_size, mat_size)
+	)
 	var mat_box := StyleBoxFlat.new()
 	mat_box.bg_color = Color("2e3a30")
 	mat_box.set_corner_radius_all(18)
@@ -230,27 +240,55 @@ func _draw_x(pos: Vector2, col: Color, r: float) -> void:
 func _draw_hud() -> void:
 	var font := get_theme_default_font()
 	var top := _origin() - Vector2(0, _mat_half() + 30)
-	draw_string(font, top + Vector2(-_mat_half(), 0), "Sewing  ·  %s" % _title,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("f4ead2"))
+	draw_string(
+		font,
+		top + Vector2(-_mat_half(), 0),
+		"Sewing  ·  %s" % _title,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		24,
+		Color("f4ead2")
+	)
 	for i in _max_mistakes:
 		var c := Color("e05a4a") if i < _mistakes else Color(1, 1, 1, 0.3)
 		draw_circle(_origin() + Vector2(_mat_half() - 60 + i * 26, -_mat_half() - 22), 8.0, c)
 
 	var bottom := _origin() + Vector2(-_mat_half(), _mat_half() + 34)
 	if _state == State.RUNNING and _lead > 0.0:
-		draw_string(font, bottom, "Get ready…  %d" % ceili(_lead),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("e6c84c"))
+		draw_string(
+			font,
+			bottom,
+			"Get ready…  %d" % ceili(_lead),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			20,
+			Color("e6c84c")
+		)
 	elif _state == State.RUNNING:
 		var tip := "Tap E / Space as the needle hits each stitch"
 		if OS.is_debug_build():
 			tip += "   ·   F2 skip"
 		draw_string(font, bottom, tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("d8cdb2"))
 	elif _state == State.SUCCESS:
-		draw_string(font, bottom, "Seam finished!  Looking sharp.",
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("8fe07a"))
+		draw_string(
+			font,
+			bottom,
+			"Seam finished!  Looking sharp.",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			22,
+			Color("8fe07a")
+		)
 	else:
-		draw_string(font, bottom, "Ruined!  The seam is a mess.",
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("e05a4a"))
+		draw_string(
+			font,
+			bottom,
+			"Ruined!  The seam is a mess.",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			22,
+			Color("e05a4a")
+		)
 
 
 func _play(stream: AudioStream, volume_scale: float) -> void:

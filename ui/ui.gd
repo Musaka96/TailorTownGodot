@@ -55,44 +55,52 @@ func _ready() -> void:
 func open_shelf_menu(shelf, actor) -> void:
 	if _shop_closed():
 		return
+	Sfx.play("drawer")
 	shelf_menu.open(shelf, actor)
 
 
 func open_phone(phone, actor) -> void:
 	if _shop_closed():
 		return
+	Sfx.play("menu_open")
 	phone_order.open(phone, actor)
 
 
 func open_worktable(worktable, actor, piece) -> void:
 	if _shop_closed():
 		return
+	Sfx.play("chalk")
 	worktable_screen.open(worktable, actor, piece)
 
 
 func open_sewing(machine, actor, piece) -> void:
 	if _shop_closed():
 		return
+	Sfx.play("sew_machine", -3.0)
 	sewing_screen.open(machine, actor, piece)
 
 
 func open_suit_builder(mirror, actor) -> void:
 	if _shop_closed():
 		return
+	Sfx.play("tape")
 	suit_builder.open(mirror, actor)
 
 
 func open_customer_request(customer, actor) -> void:
 	if _shop_closed():
 		return
+	Sfx.play("menu_open")
 	customer_request.open(customer, actor)
 
 
 func open_handbook(actor) -> void:
+	Sfx.play("menu_open")
 	handbook.open(actor)
 
 
 func open_orders_menu(actor) -> void:
+	Sfx.play("menu_open")
 	orders_menu.open(actor)
 
 
@@ -120,6 +128,7 @@ func toast(text: String) -> void:
 ## True while the shop is shut for the night — work stations refuse and show a hint.
 func _shop_closed() -> bool:
 	if Shift != null and not Shift.is_open():
+		Sfx.play("error")
 		toast("The shop's closed — lock up at the door")
 		return true
 	return false
