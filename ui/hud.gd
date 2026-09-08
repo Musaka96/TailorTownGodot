@@ -41,13 +41,19 @@ func _build_prompt_bar() -> void:
 	sb.content_margin_bottom = Style.S1 + 2
 	_prompt_bar.add_theme_stylebox_override("panel", sb)
 	_prompt_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Anchor to the bottom-centre as a point and let the panel size to its content:
+	# equal top/bottom offsets give a zero-height base rect that grows upward to the
+	# key-cap + text (grow BEGIN), instead of being pinned to a fixed 92 px box.
 	_prompt_bar.anchor_left = 0.5
 	_prompt_bar.anchor_right = 0.5
 	_prompt_bar.anchor_top = 1.0
 	_prompt_bar.anchor_bottom = 1.0
 	_prompt_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_prompt_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_prompt_bar.offset_top = -92.0
+	_prompt_bar.offset_left = 0.0
+	_prompt_bar.offset_right = 0.0
+	_prompt_bar.offset_top = -48.0
+	_prompt_bar.offset_bottom = -48.0
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S2)
 	_prompt_bar.add_child(row)
