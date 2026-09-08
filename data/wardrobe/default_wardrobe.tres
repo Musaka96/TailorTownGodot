@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="WardrobeLibrary" format=3]
 
 [ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_ohx82"]
-[ext_resource type="PackedScene" path="res://IMPORT/CHARTGEN1.glb" id="2_fibh6"]
+[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN1.glb" id="2_fibh6"]
 [ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="3_uwj4j"]
 
 [sub_resource type="Resource" id="Resource_2el7x"]

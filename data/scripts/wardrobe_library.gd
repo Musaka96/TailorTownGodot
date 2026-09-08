@@ -9,7 +9,7 @@ extends Resource
 ## default with tools/build_wardrobe.gd. Everything reaches this through the Wardrobe
 ## facade, which loads the .tres (falling back to make_default() if it is missing).
 
-const _CHAR := "res://IMPORT/CHARTGEN1.glb"
+const _CHAR := "res://assets/characters/CHARTGEN1.glb"
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 

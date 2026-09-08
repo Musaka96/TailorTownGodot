@@ -55,6 +55,11 @@ func _ready() -> void:
 	_bottom = _adopt(BAKED_BOTTOM)
 	_hair = _adopt(BAKED_HAIR)
 	if _anim != null:
+		# Install the animation set from the editable asset (shared, cached), so
+		# changing data/animations/default_animations.tres takes effect next run.
+		if _anim.has_animation_library(""):
+			_anim.remove_animation_library("")
+		_anim.add_animation_library("", CharAnims.library())
 		_anim.animation_finished.connect(_on_finished)
 		if not _anim.is_playing():
 			_anim.play("idle")

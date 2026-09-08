@@ -1,29 +1,19 @@
 extends SceneTree
 
 ## Builds the shared character rig (res://entities/character/character_rig.tscn)
-## from the CHARTGEN1 character (res://IMPORT/CHARTGEN1.glb: a Rig_Medium skeleton
-## with the body split into separate mesh parts — head, arms, jacket, shirt, legs,
-## …) plus the KayKit Rig_Medium animation clips merged into one AnimationPlayer.
-##
-## Because CHARTGEN1 and the animation .glb share the same Rig_Medium skeleton
-## (tracks target "Rig_Medium/Skeleton3D:<bone>"), the clips drive it directly
-## with no retargeting. Per-part suit materials are applied at runtime by
-## character_rig.gd (UV-mapped cloth), so this only wires geometry + animation.
+## from the CHARTGEN1 character (res://assets/characters/CHARTGEN1.glb: a Rig_Medium
+## skeleton with the body split into separate mesh parts — head, arms, jacket, shirt,
+## legs, …). It wires geometry only: an empty AnimationPlayer is added (its root_node
+## pointed at the model), and character_rig.gd fills it at runtime from the editable
+## animation asset (data/animations/default_animations.tres via CharAnims) — so the
+## animation set can be changed by editing that asset without rerunning this builder.
+## Per-part suit materials are likewise applied at runtime (UV-mapped cloth).
 ##
 ##   godot --headless --path . --script res://tools/build_character.gd
 
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
-const CHAR_SOURCE := "res://IMPORT/CHARTGEN1.glb"
+const CHAR_SOURCE := "res://assets/characters/CHARTGEN1.glb"
 const CHAR_NAME := "CHARTGEN1"
-const ANIM_DIR := "res://assets/characters/anim/"
-
-# our name -> [source glb, clip name, loop]
-const ANIMS := {
-	"idle": ["Rig_Medium_General.glb", "Idle_A", true],
-	"walk": ["Rig_Medium_MovementBasic.glb", "Walking_A", true],
-	"wave": ["Rig_Medium_General.glb", "Interact", false],
-	"accept": ["Rig_Medium_MovementBasic.glb", "Jump_Full_Short", false],
-}
 
 
 func _initialize() -> void:
@@ -36,37 +26,15 @@ func _initialize() -> void:
 	root.add_child(model)
 	_report_size(model)
 
+	# Empty player; the rig installs the animation library from the asset at runtime.
 	var anim := AnimationPlayer.new()
 	anim.name = "AnimationPlayer"
 	root.add_child(anim)
 	anim.root_node = NodePath("../" + CHAR_NAME)
-	var lib := AnimationLibrary.new()
-	for our_name in ANIMS:
-		var spec: Array = ANIMS[our_name]
-		var clip := _load_clip(spec[0], spec[1])
-		if clip != null:
-			clip.loop_mode = Animation.LOOP_LINEAR if spec[2] else Animation.LOOP_NONE
-			lib.add_animation(our_name, clip)
-			print("  + %s <- %s / %s" % [our_name, spec[0], spec[1]])
-	anim.add_animation_library("", lib)
-	anim.autoplay = "idle"
 
 	_save(root, RIG_SCENE)
 	print("build_character: done.")
 	quit(0)
-
-
-func _load_clip(file: String, clip: String) -> Animation:
-	var scene: Node = load(ANIM_DIR + file).instantiate()
-	var players := scene.find_children("*", "AnimationPlayer", true, false)
-	if players.is_empty():
-		push_error("no AnimationPlayer in " + file)
-		return null
-	var ap := players[0] as AnimationPlayer
-	if not ap.has_animation(clip):
-		push_error("no clip %s in %s" % [clip, file])
-		return null
-	return ap.get_animation(clip).duplicate() as Animation
 
 
 func _report_size(model: Node) -> void:
