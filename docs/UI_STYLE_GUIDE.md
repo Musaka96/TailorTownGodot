@@ -138,6 +138,11 @@ calls `Style.apply_skin(panel, Style.MenuSkin.X)` (one line — it sets paper,
 silhouette, margins and the frame). **[CHECK]** Every menu panel uses
 `Style.apply_skin(...)`, not the generic `Style.panel()`.
 
+**Dialogs are not panels.** A character *speaking* to the player (e.g. the greeting
+brief) uses a small **speech bubble** — a compact cream rounded panel with a
+downward tail (`ui/speech_tail.gd`) and light key-cap prompts, not the full atelier
+frame. These are `EXEMPT` in the checker.
+
 **Collision rule [JUDGE]:** the screen title lives top-left, so solid shape
 accents are tucked hard into the top-right or edges, never top-left; the pattern
 stays a faint watermark and fabric swatches sit above it. No solid decoration or

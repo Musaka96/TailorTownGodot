@@ -18,15 +18,15 @@ const MIGRATED := [
 	"phone_order.gd",
 	"handbook.gd",
 	"shelf_menu.gd",
-	"customer_request.gd",
 	"worktable_screen.gd",
 	"suit_builder.gd",
 	"orders_menu.gd",
 ]
 const PENDING: Array[String] = []
-# Not panel-menus: sewing_screen only hosts the sewing minigame; orders_panel is
-# the always-on HUD ticket strip. Neither has a modal panel to skin.
-const EXEMPT := ["sewing_screen.gd", "orders_panel.gd"]
+# Not standard panel-menus: sewing_screen only hosts the sewing minigame;
+# orders_panel is the always-on HUD ticket strip; customer_request is a small
+# speech-bubble dialog (ui/speech_tail.gd), not an atelier panel.
+const EXEMPT := ["sewing_screen.gd", "orders_panel.gd", "customer_request.gd"]
 
 
 func _initialize() -> void:

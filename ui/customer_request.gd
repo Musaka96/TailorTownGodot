@@ -29,14 +29,23 @@ func close() -> void:
 
 
 func _style() -> void:
-	# A walk-in's brief reads like a fresh job ticket pinned up (ORDERS skin).
-	_panel.custom_minimum_size = Style.FRAME_SMALL
-	Style.apply_skin(_panel, Style.MenuSkin.ORDERS)
+	# Small, simple speech bubble — what the customer is "saying" as you greet them.
+	_panel.custom_minimum_size = Vector2(360, 0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Style.CREAM
+	sb.set_corner_radius_all(20)
+	sb.set_border_width_all(2)
+	sb.border_color = Style.BROWN
+	sb.set_content_margin_all(Style.S3)
+	sb.shadow_color = Style.SHADOW
+	sb.shadow_size = 8
+	sb.shadow_offset = Vector2(0, 4)
+	_panel.add_theme_stylebox_override("panel", sb)
 	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 24)
-	_title.add_theme_color_override("font_color", Style.ACC_ORDERS)
-	_brief.add_theme_font_size_override("font_size", 18)
-	_brief.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_font_size_override("font_size", 22)
+	_title.add_theme_color_override("font_color", Style.INK)
+	_brief.add_theme_font_size_override("font_size", 15)
+	_brief.add_theme_color_override("font_color", Style.INK_SOFT)
 	_brief.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_build_decor_once()
 
@@ -45,8 +54,29 @@ func _build_decor_once() -> void:
 	if _decor_built:
 		return
 	_decor_built = true
+	var tail := SpeechTail.new()
+	tail.name = "Tail"
+	_panel.add_child(tail)
+	tail.setup(Style.CREAM, Style.BROWN)
+	# Light prompts (no dark bar) to keep the bubble airy and simple.
 	_hint.visible = false
-	_hint.get_parent().add_child(Style.hint_bar([["E", "Send to mirror"], ["Esc", "Later"]]))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", Style.S3)
+	row.add_child(_prompt("E", "Send to mirror"))
+	row.add_child(_prompt("Esc", "Later"))
+	_hint.get_parent().add_child(row)
+
+
+func _prompt(key: String, verb: String) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", Style.S1 + 2)
+	box.add_child(Style.keycap(key))
+	var lbl := Label.new()
+	lbl.text = verb
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
+	box.add_child(lbl)
+	return box
 
 
 func _fill() -> void:
