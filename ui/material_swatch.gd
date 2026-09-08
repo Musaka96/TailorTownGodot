@@ -14,11 +14,22 @@ const SHADER := preload("res://ui/material_swatch.gdshader")
 const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen"]
 const FABRIC_LETTER := ["W", "F", "T", "M", "L"]
 const FABRIC_BADGE := [
-	Color("55668c"), Color("6d7075"), Color("7a5a38"), Color("7a4b57"), Color("a99a5e"),
+	Color("55668c"),
+	Color("6d7075"),
+	Color("7a5a38"),
+	Color("7a4b57"),
+	Color("a99a5e"),
 ]
 const PATTERN_TEX := [
-	"solid", "pinstripe", "herringbone", "houndstooth", "windowpane",
-	"glen_check", "birdseye", "sharkskin", "nailhead",
+	"solid",
+	"pinstripe",
+	"herringbone",
+	"houndstooth",
+	"windowpane",
+	"glen_check",
+	"birdseye",
+	"sharkskin",
+	"nailhead",
 ]
 
 @export var swatch_size := 84
@@ -38,6 +49,8 @@ func _build() -> void:
 	if _rect != null:
 		return
 	custom_minimum_size = Vector2(swatch_size, swatch_size)
+	# Sit above the menu's pattern overlay so the real cloth preview stays clean.
+	z_index = 1
 
 	_shader_mat = ShaderMaterial.new()
 	_shader_mat.shader = SHADER

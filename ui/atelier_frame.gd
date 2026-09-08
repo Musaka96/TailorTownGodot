@@ -1,21 +1,24 @@
 class_name AtelierFrame
 extends Control
 
-## Decorative bespoke-tailoring frame drawn over a menu panel. Three layers, from
-## back to front:
-##   1. a faint full-area background PATTERN (pinstripe, ruled lines, herringbone,
-##      cutting-grid, cork…) — a watermark, so body text stays readable over it;
-##   2. a dashed "stitch" line just inside the edge + chalk corner ticks;
-##   3. a solid SHAPE accent (clip / book spine+ribbon / dog-ear / pin / tape),
-##      always tucked into the top-right or edges — never the top-left, where the
-##      screen title lives — so it can't collide with text.
-## Transparent centre, ignores the mouse. Configure via Style.apply_skin().
+## Decorative bespoke-tailoring frame drawn on top of a menu panel. Three layers:
+##   1. a faint background PATTERN (pinstripe, ruled lines, herringbone, grid,
+##      dots, cork) spanning the WHOLE panel — a watermark over the items, so the
+##      screen reads as one textured sheet. Fabric swatches sit above it (their
+##      z_index) so the real cloth preview stays clean.
+##   2. a dashed "stitch" line inside the edge + chalk corner ticks;
+##   3. a solid SHAPE accent (clip / book spine+ribbon / dog-ear / pin / tape)
+##      tucked hard into the top-right or edges — never the top-left title.
+## Transparent centre, ignores the mouse. Configure via Style.apply_skin(). The
+## node is laid out inside the panel's content margins, but it reads those margins
+## back off the panel so the pattern + shapes reach the true panel edges.
 
 enum Pattern { NONE, PINSTRIPE, RULES, HERRINGBONE, GRID, DOTS, CORK }
 enum Shape { NONE, CLIP, BOOK, FOLD, PIN, TAPE }
 
-const INSET := 9.0
+const INSET := 9.0  # dashed stitch line, in from the content-rect edge
 const CORNER := 16.0
+const EDGE := 5.0  # shape accents sit this far from the true panel edge
 const CHALK := Color(0.933, 0.949, 0.957)
 
 var accent := Color("c9a24a")
@@ -39,19 +42,37 @@ func setup(accent_col: Color, trim_col: Color, pattern_val: int, shape_val: int)
 
 
 func _draw() -> void:
-	var r := Rect2(Vector2.ZERO, size)
-	_draw_pattern(r)
+	var r := Rect2(Vector2.ZERO, size)  # this node's rect (the panel content area)
+	var panel := _panel_rect()  # the full panel, in local coords
+	_draw_pattern(panel)
 	_draw_stitch(r)
 	_draw_corner_ticks(r)
-	_draw_shape(r)
+	_draw_shape(panel)
 
 
-# --- Layer 1: background pattern (watermark) -------------------------------
+## The full panel rectangle expressed in this node's local space. The node fills
+## the panel's content area, so the panel edges lie outside it by the stylebox's
+## content margins — read those back so the pattern/shapes reach the real edges.
+func _panel_rect() -> Rect2:
+	var p := get_parent() as Control
+	if p == null:
+		return Rect2(Vector2.ZERO, size)
+	var sb := p.get_theme_stylebox("panel")
+	if sb == null:
+		return Rect2(Vector2.ZERO, size)
+	var ml := sb.get_margin(SIDE_LEFT)
+	var mt := sb.get_margin(SIDE_TOP)
+	var mr := sb.get_margin(SIDE_RIGHT)
+	var mb := sb.get_margin(SIDE_BOTTOM)
+	return Rect2(Vector2(-ml, -mt), size + Vector2(ml + mr, mt + mb))
 
 
-func _draw_pattern(r: Rect2) -> void:
-	var pad := INSET + 8.0
-	var area := Rect2(r.position + Vector2(pad, pad), r.size - Vector2(pad, pad) * 2.0)
+# --- Layer 1: background pattern (whole panel, over items) ------------------
+
+
+func _draw_pattern(panel: Rect2) -> void:
+	var pad := 4.0
+	var area := Rect2(panel.position + Vector2(pad, pad), panel.size - Vector2(pad, pad) * 2.0)
 	if area.size.x <= 0.0 or area.size.y <= 0.0:
 		return
 	match pattern:
@@ -120,7 +141,7 @@ func _pat_herringbone(area: Rect2, col: Color) -> void:
 func _pat_cork(area: Rect2, col: Color) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1337
-	for _i in 240:
+	for _i in 320:
 		var p := Vector2(
 			rng.randf_range(area.position.x, area.end.x),
 			rng.randf_range(area.position.y, area.end.y),
@@ -128,7 +149,7 @@ func _pat_cork(area: Rect2, col: Color) -> void:
 		draw_circle(p, rng.randf_range(0.8, 1.8), col)
 
 
-# --- Layer 2: stitch + corner ticks ----------------------------------------
+# --- Layer 2: stitch + corner ticks (inner border) -------------------------
 
 
 func _draw_stitch(r: Rect2) -> void:
@@ -157,21 +178,21 @@ func _draw_corner_ticks(r: Rect2) -> void:
 	draw_line(Vector2(hi.x, hi.y - d), Vector2(hi.x, hi.y), ch, 2.0)
 
 
-# --- Layer 3: shape accent (top-right / edges only) ------------------------
+# --- Layer 3: shape accent (hard to the top-right / edges) ------------------
 
 
-func _draw_shape(r: Rect2) -> void:
+func _draw_shape(panel: Rect2) -> void:
 	match shape:
 		Shape.CLIP:
-			_shape_clip(r)
+			_shape_clip(panel)
 		Shape.BOOK:
-			_shape_book(r)
+			_shape_book(panel)
 		Shape.FOLD:
-			_shape_fold(r)
+			_shape_fold(panel)
 		Shape.PIN:
-			_shape_pin(r)
+			_shape_pin(panel)
 		Shape.TAPE:
-			_shape_tape(r)
+			_shape_tape(panel)
 		_:
 			pass
 
@@ -179,8 +200,8 @@ func _draw_shape(r: Rect2) -> void:
 ## A bulldog clip gripping the top-right of an order pad.
 func _shape_clip(r: Rect2) -> void:
 	var w := 54.0
-	var x := r.end.x - INSET - 20.0 - w
-	var y := r.position.y + INSET - 3.0
+	var x := r.end.x - EDGE - w
+	var y := r.position.y + EDGE
 	draw_rect(Rect2(Vector2(x, y), Vector2(w, 13.0)), accent, true)
 	draw_rect(Rect2(Vector2(x, y), Vector2(w, 13.0)), trim, false, 1.5)
 	draw_line(Vector2(x + w * 0.5, y + 13.0), Vector2(x + w * 0.5, y + 20.0), trim, 2.0)
@@ -189,11 +210,11 @@ func _shape_clip(r: Rect2) -> void:
 ## A book: a spine bar down the left edge plus a ribbon bookmark top-right.
 func _shape_book(r: Rect2) -> void:
 	var spine := Color(accent.r, accent.g, accent.b, 0.85)
-	var spine_rect := Rect2(r.position + Vector2(3.0, 3.0), Vector2(7.0, r.size.y - 6.0))
+	var spine_rect := Rect2(r.position + Vector2(EDGE, EDGE), Vector2(7.0, r.size.y - EDGE * 2.0))
 	draw_rect(spine_rect, spine, true)
-	var x := r.end.x - INSET - 46.0
+	var x := r.end.x - EDGE - 34.0
 	var w := 15.0
-	var top := r.position.y + INSET - 2.0
+	var top := r.position.y
 	var bot := top + 50.0
 	draw_rect(Rect2(Vector2(x, top), Vector2(w, bot - top)), accent, true)
 	var pts := PackedVector2Array(
@@ -209,10 +230,10 @@ func _shape_book(r: Rect2) -> void:
 	draw_colored_polygon(pts, accent)
 
 
-## A dog-eared folded corner, top-right (a bolt of cloth turned back).
+## A dog-eared folded corner, hard into the top-right.
 func _shape_fold(r: Rect2) -> void:
 	var s := 30.0
-	var tr := Vector2(r.end.x - INSET, r.position.y + INSET)
+	var tr := Vector2(r.end.x - EDGE, r.position.y + EDGE)
 	var pts := PackedVector2Array([tr - Vector2(s, 0), tr, tr + Vector2(0, s)])
 	draw_colored_polygon(pts, Color(accent.r, accent.g, accent.b, 0.9))
 	var inner := PackedVector2Array(
@@ -221,26 +242,26 @@ func _shape_fold(r: Rect2) -> void:
 	draw_colored_polygon(inner, Color(accent.r, accent.g, accent.b, 0.45))
 
 
-## A push-pin holding a ticket to the board, top-right.
+## A push-pin holding a ticket to the board, top-right corner.
 func _shape_pin(r: Rect2) -> void:
-	var c := Vector2(r.end.x - INSET - 24.0, r.position.y + INSET + 8.0)
+	var c := Vector2(r.end.x - EDGE - 14.0, r.position.y + EDGE + 14.0)
 	draw_circle(c, 8.0, accent)
 	draw_circle(c - Vector2(2.5, 2.5), 3.0, Color(CHALK.r, CHALK.g, CHALK.b, 0.8))
 	draw_circle(c, 8.0, trim, false, 1.5)
 
 
-## Two strips of masking tape across the top-right and bottom-left corners.
+## Strips of masking tape across the top-right and bottom-left corners.
 func _shape_tape(r: Rect2) -> void:
 	var col := Color(CHALK.r, CHALK.g, CHALK.b, 0.32)
 	var s := 34.0
-	var tr := Vector2(r.end.x - INSET, r.position.y + INSET)
+	var tr := Vector2(r.end.x - EDGE, r.position.y + EDGE)
 	draw_colored_polygon(
 		PackedVector2Array(
 			[tr - Vector2(s, -6), tr + Vector2(6, 0), tr + Vector2(0, s), tr - Vector2(s + 6, -s)]
 		),
 		col
 	)
-	var bl := Vector2(r.position.x + INSET, r.end.y - INSET)
+	var bl := Vector2(r.position.x + EDGE, r.end.y - EDGE)
 	draw_colored_polygon(
 		PackedVector2Array(
 			[

@@ -115,7 +115,10 @@ Controls and navigation are **identical** across menus (W/S select, A/D change,
 is its own object, differing on **four** axes, not just accent:
 
 - **Paper colour** — the panel background is not always cream.
-- **Background pattern** — a faint full-area watermark (`AtelierFrame.Pattern`).
+- **Background pattern** — a faint watermark (`AtelierFrame.Pattern`) drawn over
+  the *whole* panel, on top of the item cards, so the screen reads as one textured
+  sheet. Fabric swatches carry `z_index = 1` so the real cloth preview stays above
+  the pattern and clean.
 - **Silhouette** — per-corner radii (round pad vs. squared book-spine vs. arched
   mirror vs. boxy board).
 - **Shape accent** — a solid detail (`AtelierFrame.Shape`) in the **top-right or
@@ -136,9 +139,9 @@ silhouette, margins and the frame). **[CHECK]** Every menu panel uses
 `Style.apply_skin(...)`, not the generic `Style.panel()`.
 
 **Collision rule [JUDGE]:** the screen title lives top-left, so solid shape
-accents go top-right or along edges, never top-left; background patterns stay
-faint watermarks. No decoration or label may overlap another label. Verify by
-screenshot for every migrated menu.
+accents are tucked hard into the top-right or edges, never top-left; the pattern
+stays a faint watermark and fabric swatches sit above it. No solid decoration or
+label may overlap a label. Verify by screenshot for every migrated menu.
 
 ---
 
