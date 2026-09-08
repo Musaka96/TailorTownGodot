@@ -222,6 +222,7 @@ func _make_row(row: int, selected: bool) -> Control:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
+	Sfx.ui(event)
 	if event.is_action_pressed("ui_down") or event.is_action_pressed("move_back"):
 		_move_row(1)
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_forward"):

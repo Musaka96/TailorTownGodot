@@ -92,6 +92,7 @@ func _fill() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
+	Sfx.ui(event)
 	if event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_accept()
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):

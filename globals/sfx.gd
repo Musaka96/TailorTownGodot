@@ -114,6 +114,32 @@ func play(key: String, volume_db := 0.0, pitch_min := 0.98, pitch_max := 1.02) -
 	p.play()
 
 
+## Play the right navigation blip for a menu input event — call once at the top of a
+## menu's _unhandled_input. Directional actions tick, accept confirms, cancel backs out.
+func ui(event: InputEvent) -> void:
+	if (
+		event.is_action_pressed("interact")
+		or event.is_action_pressed("ui_accept")
+		or event.is_action_pressed("cut")
+	):
+		play("ui_confirm", -4.0)
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or event.is_action_pressed("orders")
+	):
+		play("ui_cancel", -4.0)
+	elif (
+		event.is_action_pressed("move_left")
+		or event.is_action_pressed("move_right")
+		or event.is_action_pressed("move_forward")
+		or event.is_action_pressed("move_back")
+		or event.is_action_pressed("ui_up")
+		or event.is_action_pressed("ui_down")
+	):
+		play("ui_move", -7.0)
+
+
 ## Resolve a key to a single stream — a random one when the key holds a variant set.
 func _pick(key: String) -> AudioStream:
 	var entry: Variant = _streams.get(key)

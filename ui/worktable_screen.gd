@@ -151,6 +151,7 @@ func _make_row(row: int, selected: bool) -> Control:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or not _config.visible:
 		return  # minigame handles its own input while it's up
+	Sfx.ui(event)
 	if event.is_action_pressed("ui_down") or event.is_action_pressed("move_back"):
 		_row = (_row + 1) % 3
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_forward"):

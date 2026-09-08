@@ -233,9 +233,11 @@ func _line(text: String, size: int, color: Color) -> Label:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		if event.is_action_pressed("orders") and not GameState.input_locked:
+			Sfx.play("menu_open")
 			open(get_tree().get_first_node_in_group("player"))
 			get_viewport().set_input_as_handled()
 		return
+	Sfx.ui(event)
 	if event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
 		_sel = wrapi(_sel + 1, 0, maxi(Orders.active.size(), 1))
 	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
