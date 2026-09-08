@@ -30,6 +30,7 @@ var _swatch: MaterialSwatch
 var _name_label: Label
 var _summary_label: Label
 var _price_label: Label
+var _decor_built := false
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -83,16 +84,37 @@ func _build_preview() -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
+	# Fixed frame (§3): the order pad keeps its size whether Premade (3 rows) or
+	# Custom (5 rows) is showing — the rows region reserves the taller height.
+	_panel.custom_minimum_size = Vector2(640, 0)
+	_panel.add_theme_stylebox_override("panel", Style.skin_base(Style.ACC_ORDER))
 	_preview.add_theme_constant_override("separation", Style.S3)
+	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_color_override("font_color", Style.ACC_ORDER.darkened(0.2))
 	_money.add_theme_font_size_override("font_size", 18)
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_summary_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	_hint.add_theme_font_size_override("font_size", 15)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
+	_rows.custom_minimum_size = Vector2(0, 250)
+	_build_decor_once()
+
+
+## The atelier frame overlay + key-cap hint bar are one-time structure; build them
+## on first open and reuse (the raw scene Hint label is retired for the bar).
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	var frame := AtelierFrame.new()
+	frame.name = "Frame"
+	_panel.add_child(frame)
+	frame.setup(Style.ACC_ORDER, Style.WALNUT, AtelierFrame.Motif.TAPE)
+	_hint.visible = false
+	var bar := Style.hint_bar(
+		[["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Close"]]
+	)
+	_hint.get_parent().add_child(bar)
 
 
 # --- State helpers ---------------------------------------------------------
@@ -150,11 +172,9 @@ func _refresh() -> void:
 		_swatch.setup(mat, mat.roll_length_m)
 		_name_label.text = mat.display_name
 		_summary_label.text = mat.summary()
-	_price_label.text = "Order:  $ %d   for %.0f m   [E]" % [cost, _length]
-	var price_col := Style.LEAF.darkened(0.1) if afford else Style.CLAY
+	_price_label.text = "Order:  $ %d   for %.0f m%s" % [cost, _length, _status]
+	var price_col := Style.FOREST if afford else Style.CLAY
 	_price_label.add_theme_color_override("font_color", price_col)
-
-	_hint.text = "W/S select    A/D change    E order    Esc close" + _status
 
 	var rows := _active_rows()
 	_row = clampi(_row, 0, rows.size() - 1)
@@ -167,7 +187,9 @@ func _refresh() -> void:
 func _make_row(row: int, selected: bool) -> Control:
 	var card := PanelContainer.new()
 	if selected:
-		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.LEAF))
+		card.add_theme_stylebox_override(
+			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_ORDER)
+		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
 

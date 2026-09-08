@@ -8,6 +8,7 @@ var _actor = null
 var _chapters: Array = []
 var _chapter := 0
 var _topic := 0
+var _decor_built := false
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -36,18 +37,53 @@ func close() -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
+	# Fixed book (§3): a paper leather-bound volume; the topic index scrolls and
+	# the article scrolls, so neither a long chapter nor a long article resizes it.
+	_panel.custom_minimum_size = Style.FRAME_WIDE
+	_panel.add_theme_stylebox_override("panel", Style.skin_base(Style.ACC_BOOK, Style.PAPER))
+	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_color_override("font_color", Style.ACC_BOOK)
 	_tabs.add_theme_constant_override("separation", Style.S1)
 	_index.add_theme_constant_override("separation", Style.S1)
 	_body.bbcode_enabled = true
 	_body.scroll_active = true
+	_body.fit_content = false
+	_body.custom_minimum_size = Vector2(0, 380)
 	_body.add_theme_color_override("default_color", Style.INK)
+	_body.add_theme_font_override("bold_font", Style.bold_font())
 	_body.add_theme_font_size_override("normal_font_size", 17)
 	_body.add_theme_font_size_override("bold_font_size", 17)
-	_hint.add_theme_font_size_override("font_size", 14)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
+	_build_decor_once()
+
+
+## One-time structure: atelier frame + ribbon motif, key-cap hint bar, and the
+## scrolling wrapper around the topic index so long chapters don't grow the book.
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	var frame := AtelierFrame.new()
+	frame.name = "Frame"
+	_panel.add_child(frame)
+	frame.setup(Style.ACC_BOOK, Style.WALNUT, AtelierFrame.Motif.BOOK)
+
+	var pages := _index.get_parent()
+	var pos := _index.get_index()
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(240, 380)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pages.remove_child(_index)
+	scroll.add_child(_index)
+	pages.add_child(scroll)
+	pages.move_child(scroll, pos)
+	_index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	_hint.visible = false
+	var bar := Style.hint_bar(
+		[["A/D", "Chapter"], ["W/S", "Topic"], ["Esc", "Close"]]
+	)
+	_hint.get_parent().add_child(bar)
 
 
 func _refresh() -> void:
@@ -71,7 +107,6 @@ func _refresh() -> void:
 	if not preview.is_empty():
 		_preview.add_child(_make_preview(preview))
 	_body.text = "[b]%s[/b]\n\n%s" % [entry["title"], entry["body"]]
-	_hint.text = "A/D chapter    W/S topic    Esc close"
 
 
 func _make_preview(preview: Dictionary) -> Control:
@@ -101,12 +136,14 @@ func _make_card(text: String, selected: bool, font_size: int) -> Control:
 	var card := PanelContainer.new()
 	if selected:
 		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.LEAF)
+			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.ACC_BOOK)
 		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
 	var label := Label.new()
 	label.text = text
+	if selected:
+		label.add_theme_font_override("font", Style.bold_font())
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", Style.INK if selected else Style.INK_SOFT)
 	card.add_child(label)
