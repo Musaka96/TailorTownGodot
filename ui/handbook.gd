@@ -40,7 +40,7 @@ func _style() -> void:
 	# Fixed book (§3): a paper leather-bound volume; the topic index scrolls and
 	# the article scrolls, so neither a long chapter nor a long article resizes it.
 	_panel.custom_minimum_size = Style.FRAME_WIDE
-	_panel.add_theme_stylebox_override("panel", Style.skin_base(Style.ACC_BOOK, Style.PAPER))
+	Style.apply_skin(_panel, Style.MenuSkin.BOOK)
 	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
 	_title.add_theme_color_override("font_color", Style.ACC_BOOK)
@@ -57,17 +57,12 @@ func _style() -> void:
 	_build_decor_once()
 
 
-## One-time structure: atelier frame + ribbon motif, key-cap hint bar, and the
-## scrolling wrapper around the topic index so long chapters don't grow the book.
+## One-time structure: key-cap hint bar and the scrolling wrapper around the topic
+## index so long chapters don't grow the book (the skin/frame is applied in _style).
 func _build_decor_once() -> void:
 	if _decor_built:
 		return
 	_decor_built = true
-	var frame := AtelierFrame.new()
-	frame.name = "Frame"
-	_panel.add_child(frame)
-	frame.setup(Style.ACC_BOOK, Style.WALNUT, AtelierFrame.Motif.BOOK)
-
 	var pages := _index.get_parent()
 	var pos := _index.get_index()
 	var scroll := ScrollContainer.new()
@@ -80,9 +75,7 @@ func _build_decor_once() -> void:
 	_index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	_hint.visible = false
-	var bar := Style.hint_bar(
-		[["A/D", "Chapter"], ["W/S", "Topic"], ["Esc", "Close"]]
-	)
+	var bar := Style.hint_bar([["A/D", "Chapter"], ["W/S", "Topic"], ["Esc", "Close"]])
 	_hint.get_parent().add_child(bar)
 
 

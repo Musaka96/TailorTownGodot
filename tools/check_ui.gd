@@ -2,7 +2,7 @@ extends SceneTree
 
 ## UI style-guide compliance checker (headless). Enforces the [CHECK] rules from
 ## docs/UI_STYLE_GUIDE.md against the menu scripts:
-##   - a per-menu skin (Style.skin_base), never the generic Style.panel()
+##   - a per-menu skin (Style.apply_skin), never the generic Style.panel()
 ##   - a fixed frame (the panel sets custom_minimum_size, so it can't stretch)
 ##   - key-cap hints via Style.hint_bar(), never raw "Esc close" hint text
 ##   - no hard-coded Color(...) literals in a menu (pull from Style)
@@ -65,8 +65,8 @@ func _check(path: String) -> Array[String]:
 		return issues
 	var text := FileAccess.get_file_as_string(path)
 
-	if not text.contains("Style.skin_base("):
-		issues.append("line 0: no Style.skin_base() — menu has no skin (guide §5)")
+	if not text.contains("Style.apply_skin("):
+		issues.append("line 0: no Style.apply_skin() — menu has no skin (guide §5)")
 	if not text.contains("_panel.custom_minimum_size"):
 		issues.append("line 0: panel never sets custom_minimum_size — can stretch (§3)")
 	if not text.contains("Style.hint_bar("):

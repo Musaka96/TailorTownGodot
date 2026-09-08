@@ -12,13 +12,17 @@ const LENGTH_MIN := 4.0
 const LENGTH_MAX := 24.0
 const LENGTH_STEP := 2.0
 const ROW_NAME := {
-	Row.MODE: "Mode", Row.MATERIAL: "Roll", Row.FABRIC: "Fabric",
-	Row.COLOR: "Colour", Row.PATTERN: "Pattern", Row.LENGTH: "Length",
+	Row.MODE: "Mode",
+	Row.MATERIAL: "Roll",
+	Row.FABRIC: "Fabric",
+	Row.COLOR: "Colour",
+	Row.PATTERN: "Pattern",
+	Row.LENGTH: "Length",
 }
 
 var _phone = null
 var _actor = null
-var _mode := 0        # 0 = premade, 1 = custom
+var _mode := 0  # 0 = premade, 1 = custom
 var _premade := 0
 var _fabric := 0
 var _color := 0
@@ -87,7 +91,7 @@ func _style() -> void:
 	# Fixed frame (§3): the order pad keeps its size whether Premade (3 rows) or
 	# Custom (5 rows) is showing — the rows region reserves the taller height.
 	_panel.custom_minimum_size = Vector2(640, 0)
-	_panel.add_theme_stylebox_override("panel", Style.skin_base(Style.ACC_ORDER))
+	Style.apply_skin(_panel, Style.MenuSkin.ORDER)
 	_preview.add_theme_constant_override("separation", Style.S3)
 	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
@@ -100,16 +104,12 @@ func _style() -> void:
 	_build_decor_once()
 
 
-## The atelier frame overlay + key-cap hint bar are one-time structure; build them
-## on first open and reuse (the raw scene Hint label is retired for the bar).
+## The key-cap hint bar is one-time structure (the raw scene Hint label is retired
+## for it); the skin/frame itself is (re)applied by Style.apply_skin() in _style().
 func _build_decor_once() -> void:
 	if _decor_built:
 		return
 	_decor_built = true
-	var frame := AtelierFrame.new()
-	frame.name = "Frame"
-	_panel.add_child(frame)
-	frame.setup(Style.ACC_ORDER, Style.WALNUT, AtelierFrame.Motif.TAPE)
 	_hint.visible = false
 	var bar := Style.hint_bar(
 		[["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Close"]]
@@ -118,6 +118,7 @@ func _build_decor_once() -> void:
 
 
 # --- State helpers ---------------------------------------------------------
+
 
 func _active_rows() -> Array:
 	if _mode == 0:
@@ -158,6 +159,7 @@ func _value_text(row: int) -> String:
 
 
 # --- Rendering -------------------------------------------------------------
+
 
 func _refresh() -> void:
 	var mat := _current_material()
@@ -215,6 +217,7 @@ func _make_row(row: int, selected: bool) -> Control:
 
 
 # --- Input -----------------------------------------------------------------
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:

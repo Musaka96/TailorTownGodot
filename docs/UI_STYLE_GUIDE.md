@@ -111,22 +111,34 @@ Frame presets in `Style`: `FRAME_SMALL (560×360)`, `FRAME_WIDE (820×520)`,
 ## 5. Per-menu skins — same controls, different surface  **[JUDGE]**
 
 Controls and navigation are **identical** across menus (W/S select, A/D change,
-`E`/`interact` confirm, `Esc` close). What changes is the *surface*: accent
-colour, frame motif, and layout personality, so each screen reads as its own
-object. Mapping (accent + `AtelierFrame.Motif`):
+`E`/`interact` confirm, `Esc` close). What changes is the *surface* — each screen
+is its own object, differing on **four** axes, not just accent:
 
-| Menu / screen        | Skin              | Accent    | Motif    |
-|----------------------|-------------------|-----------|----------|
-| Phone order          | Order pad         | `BRASS`   | `TAPE`   |
-| Handbook             | Leather book      | `BURGUNDY`| `BOOK`   |
-| Shelf browse         | Bolt shelf        | `FOREST`  | `BOLT`   |
-| Suit builder / mirror| Fitting room      | `BRASS`   | `MIRROR` |
-| Worktable / sewing   | Workbench         | `WALNUT`  | `TOOLS`  |
-| Orders board         | Pinned tickets    | `BURGUNDY`| `BOARD`  |
+- **Paper colour** — the panel background is not always cream.
+- **Background pattern** — a faint full-area watermark (`AtelierFrame.Pattern`).
+- **Silhouette** — per-corner radii (round pad vs. squared book-spine vs. arched
+  mirror vs. boxy board).
+- **Shape accent** — a solid detail (`AtelierFrame.Shape`) in the **top-right or
+  edges only** (see §4-collision below).
 
-Add a menu → add its row here, pick an accent + motif, and pass them to
-`Style.skin_base()` + `AtelierFrame.setup()`. **[CHECK]** Every menu panel uses
-`Style.skin_base(...)` (an accent), not the generic `Style.panel()`.
+| Menu / screen        | `MenuSkin`| Paper         | Accent    | Pattern      | Silhouette          | Shape  |
+|----------------------|-----------|---------------|-----------|--------------|---------------------|--------|
+| Phone order          | `ORDER`   | `CREAM`       | `BRASS`   | `PINSTRIPE`  | round               | `CLIP` |
+| Handbook             | `BOOK`    | `PAPER`       | `BURGUNDY`| `RULES`      | squared spine side  | `BOOK` |
+| Shelf browse         | `SHELF`   | `PAPER_COOL`  | `FOREST`  | `HERRINGBONE`| round               | `FOLD` |
+| Suit builder / mirror| `MIRROR`  | `PAPER_MIRROR`| `BRASS`   | none         | arched top          | none   |
+| Worktable / sewing   | `WORK`    | `MAT`         | `WALNUT`  | `GRID`       | boxy                | `TAPE` |
+| Orders board         | `ORDERS`  | `CORK`        | `BURGUNDY`| `CORK`       | boxy                | `PIN`  |
+
+Add a menu → add its row here and a `case` to `Style.apply_skin()`, then the menu
+calls `Style.apply_skin(panel, Style.MenuSkin.X)` (one line — it sets paper,
+silhouette, margins and the frame). **[CHECK]** Every menu panel uses
+`Style.apply_skin(...)`, not the generic `Style.panel()`.
+
+**Collision rule [JUDGE]:** the screen title lives top-left, so solid shape
+accents go top-right or along edges, never top-left; background patterns stay
+faint watermarks. No decoration or label may overlap another label. Verify by
+screenshot for every migrated menu.
 
 ---
 

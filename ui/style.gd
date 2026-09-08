@@ -7,12 +7,20 @@ class_name Style
 ## tools/check_ui.gd. Menus must pull values from here — never hard-code colours,
 ## radii or spacing in a menu script.
 
+## Per-menu skins (see the table in docs/UI_STYLE_GUIDE.md §5). Each maps to a
+## paper colour, accent, background pattern, silhouette (corner radii) and shape.
+enum MenuSkin { ORDER, BOOK, SHELF, MIRROR, WORK, ORDERS }
+
 const _FONT := preload("res://assets/fonts/Fredoka.ttf")
 
 # Palette
 const CREAM := Color("f4ead2")  # panel paper (default)
 const CREAM_DARK := Color("e7d8b8")  # grooves / soft borders
 const PAPER := Color("efe3c8")  # kraft pattern-paper (warmer surfaces)
+const PAPER_COOL := Color("eceadd")  # cool cream (fabric shelf)
+const PAPER_MIRROR := Color("eef0ea")  # pale silvery paper (fitting room)
+const MAT := Color("e8dcc0")  # cutting-mat tan (workbench)
+const CORK := Color("d8bd8f")  # corkboard tan (orders board)
 const CARD := Color("fbf5e6")  # list card
 const CARD_SELECTED := Color("fffaf0")
 const INK := Color("4a3826")  # primary text (walnut)
@@ -75,6 +83,76 @@ static func skin_base(accent: Color, paper: Color = CREAM, radius: int = 20) -> 
 	sb.shadow_size = 8
 	sb.shadow_offset = Vector2(0, 4)
 	return sb
+
+
+## The one call a menu makes to get its whole surface: paper colour, silhouette
+## (per-corner radii), margins, and an AtelierFrame overlay with the skin's
+## background pattern + shape accent. Returns the frame (reused on repeat calls).
+static func apply_skin(panel_node: PanelContainer, skin: int) -> AtelierFrame:
+	var paper := CREAM
+	var accent := BRASS
+	var pat := AtelierFrame.Pattern.NONE
+	var shp := AtelierFrame.Shape.NONE
+	var radii := Vector4i(20, 20, 20, 20)  # top-left, top-right, bottom-right, bottom-left
+	var pad_left := S3
+	match skin:
+		MenuSkin.ORDER:
+			accent = BRASS
+			pat = AtelierFrame.Pattern.PINSTRIPE
+			shp = AtelierFrame.Shape.CLIP
+		MenuSkin.BOOK:
+			paper = PAPER
+			accent = BURGUNDY
+			pat = AtelierFrame.Pattern.RULES
+			shp = AtelierFrame.Shape.BOOK
+			radii = Vector4i(6, 18, 18, 6)
+			pad_left = S4
+		MenuSkin.SHELF:
+			paper = PAPER_COOL
+			accent = FOREST
+			pat = AtelierFrame.Pattern.HERRINGBONE
+			shp = AtelierFrame.Shape.FOLD
+		MenuSkin.MIRROR:
+			paper = PAPER_MIRROR
+			accent = BRASS
+			radii = Vector4i(44, 44, 12, 12)
+		MenuSkin.WORK:
+			paper = MAT
+			accent = WALNUT
+			pat = AtelierFrame.Pattern.GRID
+			shp = AtelierFrame.Shape.TAPE
+			radii = Vector4i(8, 8, 8, 8)
+		MenuSkin.ORDERS:
+			paper = CORK
+			accent = BURGUNDY
+			pat = AtelierFrame.Pattern.CORK
+			shp = AtelierFrame.Shape.PIN
+			radii = Vector4i(6, 6, 6, 6)
+
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = paper
+	sb.corner_radius_top_left = radii.x
+	sb.corner_radius_top_right = radii.y
+	sb.corner_radius_bottom_right = radii.z
+	sb.corner_radius_bottom_left = radii.w
+	sb.set_border_width_all(3)
+	sb.border_color = accent
+	sb.content_margin_left = pad_left
+	sb.content_margin_right = S3
+	sb.content_margin_top = S3
+	sb.content_margin_bottom = S3
+	sb.shadow_color = SHADOW
+	sb.shadow_size = 8
+	sb.shadow_offset = Vector2(0, 4)
+	panel_node.add_theme_stylebox_override("panel", sb)
+
+	var frame := panel_node.get_node_or_null("Frame") as AtelierFrame
+	if frame == null:
+		frame = AtelierFrame.new()
+		frame.name = "Frame"
+		panel_node.add_child(frame)
+	frame.setup(accent, WALNUT, pat, shp)
+	return frame
 
 
 static func panel(
