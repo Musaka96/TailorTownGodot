@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_w0uft"]
+
+[resource]
+script = ExtResource("1_w0uft")
+id = "day4_fog"
+headline = "Autumn Fog Settles Over the Rooftops"
+body = "A thick fog rolls in off the river; the city reaches for warmer cloth."
+exact_day = 4
+priority = 3

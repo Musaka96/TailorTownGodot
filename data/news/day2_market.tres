@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_tjqnc"]
+
+[resource]
+script = ExtResource("1_tjqnc")
+id = "day2_market"
+headline = "Cloth Prices Hold at the Exchange"
+body = "Bolts are plentiful this week and prices steady — a fine time to stock up."
+exact_day = 2
+priority = 4

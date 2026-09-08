@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_8pko3"]
+
+[resource]
+script = ExtResource("1_8pko3")
+id = "day3_rival"
+headline = "A Rival Hangs a Shingle Down the Lane"
+body = "A second tailor sets up nearby. The Row watches to see who cuts the finer coat."
+exact_day = 3
+priority = 4

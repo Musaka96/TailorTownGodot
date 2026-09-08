@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_clev8"]
+
+[resource]
+script = ExtResource("1_clev8")
+id = "day5_theatre"
+headline = "Theatre Season Opens to Full Houses"
+body = "The playhouses light up for the season, and finer coats fill every box."
+exact_day = 5
+priority = 4

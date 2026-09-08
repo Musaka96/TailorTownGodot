@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_7vlne"]
+
+[resource]
+script = ExtResource("1_7vlne")
+id = "day9_royal"
+headline = "Whispers of a Royal Visit"
+body = "Word spreads of a royal passing through before the season is out."
+exact_day = 9
+priority = 5

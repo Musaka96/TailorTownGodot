@@ -5,11 +5,14 @@
 [resource]
 script = ExtResource("1_tmg4q")
 id = "event_autumn_gala"
-headline = "Autumn Charity Gala Announced"
-body = "The city's gala lands in three days. Expect party briefs — prepare your bold cloth."
+headline = "The Autumn Charity Gala"
+body = "The city's charity gala fills every diary — the set will want something bold."
 kind = 2
-exact_day = 3
+min_day = 3
+max_day = 6
+repeatable = true
 priority = 7
 event_day = 6
 event_occasion = 3
 event_style = 3
+bias_days = 3

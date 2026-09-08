@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_oe50w"]
+
+[resource]
+script = ExtResource("1_oe50w")
+id = "day7_fashion"
+headline = "Herringbone Is the Talk of the Salons"
+body = "The salons can speak of nothing but a sharp herringbone this week."
+kind = 1
+exact_day = 7
+priority = 5
+fashion_pattern = 2

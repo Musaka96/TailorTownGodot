@@ -6,6 +6,6 @@
 script = ExtResource("1_0qo1r")
 id = "day1_opening"
 headline = "A New Name Opens on the Row"
-body = "The Row welcomes a fresh pair of shears this morning. Neighbours wish the new tailor a steady hand and a full order book."
+body = "The Row welcomes a new pair of shears. The neighbours wish it well."
 exact_day = 1
 priority = 10

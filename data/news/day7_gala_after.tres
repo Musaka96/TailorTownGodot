@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_tqkj3"]
+
+[resource]
+script = ExtResource("1_tqkj3")
+id = "day7_gala_after"
+headline = "The Gala Dazzles the City"
+body = "Well-cut guests drew every admiring eye. A good night for a tailor's name."
+exact_day = 7
+priority = 8

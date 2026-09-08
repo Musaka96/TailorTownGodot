@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_5fgvl"]
+
+[resource]
+script = ExtResource("1_5fgvl")
+id = "event_guild_review"
+headline = "The Tailors' Guild Autumn Review"
+body = "The Guild will tour the Row to judge craft and cut; a fine showing lifts a name."
+kind = 2
+min_day = 7
+max_day = 10
+repeatable = true
+priority = 7
+event_day = 10
+event_occasion = 2
+event_style = 1
+bias_days = 3

@@ -12,6 +12,7 @@ extends Control
 ## has to be regenerated to add it.
 
 const FONT := preload("res://assets/fonts/Fredoka.ttf")
+const GRAIN_SHADER := preload("res://assets/shaders/paper_grain.gdshader")
 const PAPER_W := 600.0
 const SIDE_W := 216.0
 const HINT_BG := Color(0.18, 0.13, 0.09, 0.82)
@@ -93,18 +94,30 @@ func _build_paper() -> PanelContainer:
 	sb.set_corner_radius_all(2)
 	sb.set_border_width_all(2)
 	sb.border_color = Style.WALNUT
-	sb.content_margin_left = Style.S4
-	sb.content_margin_right = Style.S4
-	sb.content_margin_top = Style.S3
-	sb.content_margin_bottom = Style.S3
+	sb.set_content_margin_all(3)
 	sb.shadow_color = Style.SHADOW
 	sb.shadow_size = 14
 	sb.shadow_offset = Vector2(0, 8)
 	paper.add_theme_stylebox_override("panel", sb)
 
+	# Aged-newsprint overlay behind the text (fills the whole sheet, ignores input).
+	var grain := ColorRect.new()
+	var mat := ShaderMaterial.new()
+	mat.shader = GRAIN_SHADER
+	grain.material = mat
+	grain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	paper.add_child(grain)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", Style.S4)
+	margin.add_theme_constant_override("margin_right", Style.S4)
+	margin.add_theme_constant_override("margin_top", Style.S3)
+	margin.add_theme_constant_override("margin_bottom", Style.S3)
+	paper.add_child(margin)
+
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", Style.S1)
-	paper.add_child(body)
+	margin.add_child(body)
 
 	_build_masthead(body)
 	body.add_child(_rule(3, Style.INK))
@@ -265,7 +278,7 @@ func _gap(height: int) -> Control:
 
 func _fill() -> void:
 	var day := _day()
-	_dateline.text = "DAY %d\n%s" % [day, _rank().to_upper()]
+	_dateline.text = "MORNING ED.\nDAY %d" % day
 	_folio.text = "VOL. I  ·  NO. %d          THE ROW, THE CITY          PRICE: ONE FARTHING" % day
 
 	var edition := News.edition()
@@ -304,13 +317,35 @@ func _fill_story(parent: VBoxContainer, ev: NewsEvent, lead: bool) -> void:
 	head.add_theme_font_size_override("font_size", 26 if lead else 18)
 	head.add_theme_color_override("font_color", Style.INK)
 	parent.add_child(head)
-	if ev.body != "":
+	var body_text := _body_text(ev)
+	if body_text != "":
 		var text := Label.new()
-		text.text = ev.body
+		text.text = body_text
 		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		text.add_theme_font_size_override("font_size", 15 if lead else 14)
 		text.add_theme_color_override("font_color", Style.INK_SOFT)
 		parent.add_child(text)
+
+
+## An event's write-up gains a line that escalates as its day nears; other stories
+## read as authored.
+func _body_text(ev: NewsEvent) -> String:
+	if ev.kind != NewsEvent.Kind.EVENT:
+		return ev.body
+	var urgency := _event_urgency(ev.event_day - _day())
+	if ev.body == "":
+		return urgency
+	return "%s %s" % [ev.body, urgency]
+
+
+func _event_urgency(days: int) -> String:
+	if days <= 0:
+		return "It is tonight — the city turns out in its finest."
+	if days == 1:
+		return "It is tomorrow night; last stitches, please."
+	if days <= 3:
+		return "Only %d days to go, and the smart set is already fussing." % days
+	return "A little way off yet, but the diaries are filling."
 
 
 func _kicker(ev: NewsEvent) -> String:
@@ -318,8 +353,16 @@ func _kicker(ev: NewsEvent) -> String:
 		NewsEvent.Kind.FASHION:
 			return "IN FASHION"
 		NewsEvent.Kind.EVENT:
-			return "CITY EVENT · DAY %d" % ev.event_day
+			return "CITY EVENT · %s" % _countdown(ev.event_day - _day())
 	return ""
+
+
+func _countdown(days: int) -> String:
+	if days <= 0:
+		return "TODAY"
+	if days == 1:
+		return "TOMORROW"
+	return "IN %d DAYS" % days
 
 
 func _kicker_color(ev: NewsEvent) -> Color:
@@ -360,10 +403,6 @@ func _events_text(day: int) -> String:
 
 func _day() -> int:
 	return Shift.day if Shift != null else 1
-
-
-func _rank() -> String:
-	return Reputation.tier_name() if Reputation != null else "Unknown"
 
 
 func _unhandled_input(event: InputEvent) -> void:

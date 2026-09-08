@@ -6,7 +6,7 @@
 script = ExtResource("1_bi6ov")
 id = "day1_fashion"
 headline = "Pinstripe Returns to Favour"
-body = "The smart set is asking for pinstripe again. Work it in and heads will turn."
+body = "The smart set is asking for pinstripe again — heads will turn."
 kind = 1
 exact_day = 1
 priority = 5

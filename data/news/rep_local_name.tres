@@ -6,6 +6,6 @@
 script = ExtResource("1_av6bi")
 id = "rep_local_name"
 headline = "Word Travels of a Careful Hand"
-body = "Patrons speak warmly of a tailor who measures twice. The bench is getting busy."
+body = "Patrons speak warmly of a careful new hand on the Row."
 min_reputation = 120
 priority = 6
