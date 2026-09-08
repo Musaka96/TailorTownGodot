@@ -5,9 +5,10 @@ extends CanvasLayer
 
 const FONT := preload("res://assets/fonts/Fredoka.ttf")
 
-## Built in code (see _build_orders_menu) so the scene files never have to be
-## regenerated to add it.
+## Built in code (see _build_orders_menu / _build_clock) so the scene files never
+## have to be regenerated to add them.
 var orders_menu: Control
+var clock: Control
 
 @onready var hud: Control = $HUD
 @onready var shelf_menu: Control = $ShelfMenu
@@ -44,6 +45,7 @@ func _ready() -> void:
 	customer_request.theme = theme
 	handbook.theme = theme
 	orders_menu.theme = theme
+	clock = _build_clock()
 
 
 func open_shelf_menu(shelf, actor) -> void:
@@ -141,3 +143,15 @@ func _build_orders_menu() -> Control:
 
 	add_child(menu)  # attach last so the script's @onready node paths resolve
 	return menu
+
+
+## Analog shift clock, mounted top-left of the HUD. Built in code so the scenes
+## never need regenerating to add it.
+func _build_clock() -> Control:
+	var widget := Control.new()
+	widget.name = "Clock"
+	widget.set_script(load("res://ui/clock_widget.gd"))
+	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	widget.position = Vector2(16, 12)
+	hud.add_child(widget)
+	return widget

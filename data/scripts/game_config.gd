@@ -21,6 +21,14 @@ extends Resource
 ## time, so this sets how long the player has to build each suit.
 @export var seconds_per_day: float = 120.0
 
+@export_group("Day / Night")
+## In-game hour the shift starts at (24h clock) — midday by default.
+@export var shift_start_hour: float = 12.0
+## In-game hour the shift ends at (night); the closing bell rings here.
+@export var shift_end_hour: float = 22.0
+## Real seconds for the whole midday→night shift to play out.
+@export var shift_real_seconds: float = 300.0
+
 @export_group("Cutting minigame")
 @export var cut_lead_seconds: float = 1.6        ## "get ready" pause before cutting starts
 @export var cut_seconds: float = 15.0            ## time to cut the whole shape when aligned

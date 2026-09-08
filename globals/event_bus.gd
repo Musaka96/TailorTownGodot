@@ -48,3 +48,9 @@ signal order_fulfilled(order: Resource, payout: int)
 signal order_expired(order: Resource)
 ## A customer left the shop (served or gave up).
 signal customer_left(customer: Node)
+
+# --- Day / night shift ---
+## A new work shift began at `start_hour` (midday).
+signal shift_started(start_hour: float)
+## The shift reached its end hour (night); the closing bell rings.
+signal shift_ended
