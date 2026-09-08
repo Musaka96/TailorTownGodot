@@ -60,8 +60,9 @@ const LIB := {
 	"music_thread_and_thimble": "music_thread_and_thimble.mp3",
 }
 
-var sfx_volume := 0.0
-var music_volume := -8.0
+# Global trims — everything is deliberately soft and cozy, not in-your-face.
+var sfx_volume := -7.0
+var music_volume := -17.0
 
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
@@ -279,5 +280,5 @@ func _on_shift_ended() -> void:
 func _on_prompt_changed(text: String) -> void:
 	var active := text != ""
 	if active and not _prompt_active:
-		play("interact_chime", -10.0)
+		play("interact_chime", -6.0)
 	_prompt_active = active

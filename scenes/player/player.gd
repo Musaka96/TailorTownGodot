@@ -9,8 +9,9 @@ extends CharacterBody3D
 ## keyboard (WASD / arrows) and an analog gamepad stick, because it reads the
 ## input as a single Vector2 via Input.get_vector().
 
-## Metres of travel between footstep sounds (paced by actual speed).
-const STRIDE := 1.7
+## Seconds between footstep sounds while walking — a calm, steady cadence that
+## reads as cute rather than a realistic run.
+const STEP_TIME := 0.5
 
 ## Peak horizontal speed in metres/second.
 @export var move_speed: float = 6.0
@@ -24,7 +25,7 @@ const STRIDE := 1.7
 
 # Read the gravity from Project Settings so it stays consistent with the rest of
 # the physics world instead of being a magic number.
-var _step_accum := 0.0
+var _step_t := 0.0
 var _was_moving := false
 
 ## The player's hands. Stations reach it as `actor.carry`.
@@ -72,19 +73,16 @@ func _physics_process(delta: float) -> void:
 	_footsteps(delta)
 
 
-## Footstep foley paced by actual ground speed: a step fires every STRIDE metres,
-## with a soft cloth rustle the moment the shopkeeper sets off from standing.
+## Soft footstep pats on a steady, gentle cadence while walking.
 func _footsteps(delta: float) -> void:
-	var planar := Vector2(velocity.x, velocity.z).length()
-	var moving := planar > 0.6 and is_on_floor()
-	if moving and not _was_moving:
-		Sfx.play("cloth_rustle", -14.0)
-		_step_accum = STRIDE  # land the first footstep almost immediately
+	var moving := Vector2(velocity.x, velocity.z).length() > 0.6 and is_on_floor()
 	if moving:
-		_step_accum += planar * delta
-		if _step_accum >= STRIDE:
-			_step_accum = 0.0
-			Sfx.play("footstep_wood", -9.0)
+		if not _was_moving:
+			_step_t = STEP_TIME  # land the first step promptly on setting off
+		_step_t += delta
+		if _step_t >= STEP_TIME:
+			_step_t = 0.0
+			Sfx.play("footstep_wood", -7.0)
 	_was_moving = moving
 
 
