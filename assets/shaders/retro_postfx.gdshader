@@ -1,10 +1,11 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-// Full-screen 70s/80s TV / CRT / VHS post-process. Applied by the PostFX autoload
-// on a screen-reading ColorRect above everything. Every effect is gated by a
-// strength uniform (0 = off) that the PostFxProfile resource drives, so the whole
-// look is data-editable. See globals/postfx.gd and data/postfx/*.tres.
+// Full-screen stylise pass: 70s/80s TV/CRT/VHS retro looks AND "cute 3D" looks
+// (Animal-Crossing-style tilt-shift diorama, posterised storybook, pixel-toy).
+// Applied by the PostFX autoload on a screen-reading ColorRect above everything.
+// Every effect is gated by a strength/size uniform (0 = off) that the PostFxProfile
+// resource drives, so the whole look is data-editable. See globals/postfx.gd.
 
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear, repeat_disable;
 
@@ -21,7 +22,15 @@ uniform float saturation : hint_range(0.0, 2.0) = 1.0;
 uniform int film_preset = 0;
 uniform float film_strength : hint_range(0.0, 1.0) = 0.0;
 
-// Screen effects.
+// Stylise ("cute 3D").
+uniform float pixel_size : hint_range(0.0, 24.0) = 0.0;  // block size in px (<2 = off)
+uniform float posterize_levels : hint_range(0.0, 32.0) = 0.0;  // colour steps (<2 = off)
+uniform float tilt_shift : hint_range(0.0, 1.0) = 0.0;  // miniature/diorama blur
+uniform float tilt_focus : hint_range(0.0, 1.0) = 0.5;  // vertical focus band centre
+uniform float tilt_focus_size : hint_range(0.0, 1.0) = 0.18;  // sharp band half-height
+uniform float outline_strength : hint_range(0.0, 1.0) = 0.0;  // soft ink edges
+
+// Screen effects (retro).
 uniform float scanline_strength : hint_range(0.0, 1.0) = 0.0;
 uniform float scanline_count : hint_range(0.0, 2000.0) = 480.0;
 uniform float vignette_strength : hint_range(0.0, 1.0) = 0.0;
@@ -40,6 +49,11 @@ float hash(vec2 p) {
 }
 
 
+vec3 scr(vec2 uv) {
+	return texture(screen_tex, uv).rgb;
+}
+
+
 // CRT tube curvature: push pixels outward from the centre by the squared radius.
 vec2 barrel_uv(vec2 uv, float amt) {
 	vec2 cc = uv - 0.5;
@@ -47,13 +61,27 @@ vec2 barrel_uv(vec2 uv, float amt) {
 }
 
 
+// 9-tap box blur, radius in pixels — used for the tilt-shift out-of-focus areas.
+vec3 box_blur(vec2 uv, float radius) {
+	vec2 px = radius / vec2(textureSize(screen_tex, 0));
+	vec3 c = scr(uv);
+	c += scr(uv + vec2(px.x, 0.0));
+	c += scr(uv - vec2(px.x, 0.0));
+	c += scr(uv + vec2(0.0, px.y));
+	c += scr(uv - vec2(0.0, px.y));
+	c += scr(uv + px * 0.7071);
+	c += scr(uv - px * 0.7071);
+	c += scr(uv + vec2(px.x, -px.y) * 0.7071);
+	c += scr(uv + vec2(-px.x, px.y) * 0.7071);
+	return c / 9.0;
+}
+
+
 // Cheap bloom: 4-tap cross average, kept only where it is already bright.
 vec3 bloom(vec2 uv) {
-	vec2 o = 1.0 / vec2(textureSize(screen_tex, 0)) * 2.0;
-	vec3 b = texture(screen_tex, uv + vec2(o.x, 0.0)).rgb;
-	b += texture(screen_tex, uv - vec2(o.x, 0.0)).rgb;
-	b += texture(screen_tex, uv + vec2(0.0, o.y)).rgb;
-	b += texture(screen_tex, uv - vec2(0.0, o.y)).rgb;
+	vec2 o = 2.0 / vec2(textureSize(screen_tex, 0));
+	vec3 b = scr(uv + vec2(o.x, 0.0)) + scr(uv - vec2(o.x, 0.0));
+	b += scr(uv + vec2(0.0, o.y)) + scr(uv - vec2(0.0, o.y));
 	b *= 0.25;
 	return b * smoothstep(0.55, 1.0, dot(b, LUMA));
 }
@@ -104,10 +132,16 @@ vec3 film_look(vec3 c, int p) {
 
 
 void fragment() {
+	vec2 res = vec2(textureSize(screen_tex, 0));
 	vec2 raw = SCREEN_UV;
 	vec2 uv = barrel_uv(raw, barrel * 0.35);
 	// VHS horizontal tracking wobble (per-scanline jitter over time).
 	uv.x += (hash(vec2(floor(uv.y * 160.0), floor(TIME * 15.0))) - 0.5) * vhs_strength * 0.02;
+	// Pixelate: snap the sampling coordinate to a block grid.
+	if (pixel_size >= 2.0) {
+		vec2 grid = res / pixel_size;
+		uv = (floor(uv * grid) + 0.5) / grid;
+	}
 
 	vec3 col;
 	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
@@ -115,13 +149,38 @@ void fragment() {
 	} else {
 		vec2 dir = uv - 0.5;
 		float amt = aberration * 0.006;
-		col.r = texture(screen_tex, uv + dir * amt).r;
-		col.g = texture(screen_tex, uv).g;
-		col.b = texture(screen_tex, uv - dir * amt).b;
+		col.r = scr(uv + dir * amt).r;
+		col.g = scr(uv).g;
+		col.b = scr(uv - dir * amt).b;
 
 		col += bloom(uv) * bloom_strength;
+
+		// Tilt-shift diorama: sharp focus band, blur ramping toward top/bottom.
+		if (tilt_shift > 0.001) {
+			float t = smoothstep(
+				tilt_focus_size, tilt_focus_size + 0.28, abs(raw.y - tilt_focus)
+			);
+			if (t > 0.001) {
+				col = mix(col, box_blur(uv, tilt_shift * 10.0), t);
+			}
+		}
+
 		col = grade(col);
 		col = mix(col, film_look(col, film_preset), film_strength);
+
+		// Posterise: quantise each channel to N steps for a flat storybook look.
+		if (posterize_levels >= 2.0) {
+			col = floor(col * posterize_levels) / (posterize_levels - 1.0);
+		}
+
+		// Soft ink outline from screen-space luma edges.
+		if (outline_strength > 0.001) {
+			vec2 px = 1.0 / res;
+			float l0 = dot(scr(uv), LUMA);
+			float e = abs(l0 - dot(scr(uv + vec2(px.x, 0.0)), LUMA));
+			e += abs(l0 - dot(scr(uv + vec2(0.0, px.y)), LUMA));
+			col *= 1.0 - clamp(e * 6.0, 0.0, 1.0) * outline_strength;
+		}
 
 		float sl = 0.5 + 0.5 * sin(uv.y * scanline_count * TAU);
 		col *= 1.0 - scanline_strength * (1.0 - sl);
@@ -134,6 +193,5 @@ void fragment() {
 		col *= 1.0 - flicker_strength * 0.06 * (0.5 + 0.5 * sin(TIME * 48.0));
 	}
 
-	vec3 orig = texture(screen_tex, SCREEN_UV).rgb;
-	COLOR = vec4(mix(orig, col, master_strength), 1.0);
+	COLOR = vec4(mix(scr(SCREEN_UV), col, master_strength), 1.0);
 }

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_t1dfj"]
+
+[resource]
+script = ExtResource("1_t1dfj")
+contrast = 1.05
+saturation = 1.15
+pixelate = 4.0
+posterize = 12.0
+outline_strength = 0.15
+vignette_strength = 0.18

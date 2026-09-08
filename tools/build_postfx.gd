@@ -15,6 +15,9 @@ func _initialize() -> void:
 		"retro_70s": PostFxProfile.make_70s(),
 		"vhs_80s": PostFxProfile.make_vhs(),
 		"crt_green": PostFxProfile.make_crt_green(),
+		"cozy_diorama": PostFxProfile.make_cozy_diorama(),
+		"storybook": PostFxProfile.make_storybook(),
+		"pixel_toy": PostFxProfile.make_pixel_toy(),
 	}
 	var failed := 0
 	for file_name in presets:

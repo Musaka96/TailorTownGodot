@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_sf50k"]
+
+[resource]
+script = ExtResource("1_sf50k")
+temperature = 0.1
+brightness = 0.02
+contrast = 1.05
+saturation = 1.25
+tilt_shift = 0.7
+tilt_focus = 0.55
+tilt_focus_size = 0.16
+vignette_strength = 0.22
+bloom_strength = 0.2

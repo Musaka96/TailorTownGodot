@@ -37,6 +37,20 @@ enum FilmPreset {
 @export var film_preset: FilmPreset = FilmPreset.NONE
 @export_range(0.0, 1.0) var film_strength: float = 0.0
 
+@export_group("Stylise (cute 3D)")
+## Pixel block size in px (0 or 1 = off).
+@export_range(0.0, 24.0) var pixelate: float = 0.0
+## Colour steps per channel (0 or 1 = off; lower = more posterised/storybook).
+@export_range(0.0, 32.0) var posterize: float = 0.0
+## Tilt-shift "miniature/diorama" blur strength (Animal-Crossing look).
+@export_range(0.0, 1.0) var tilt_shift: float = 0.0
+## Vertical position of the sharp focus band (0 top .. 1 bottom).
+@export_range(0.0, 1.0) var tilt_focus: float = 0.5
+## Half-height of the sharp focus band.
+@export_range(0.0, 1.0) var tilt_focus_size: float = 0.18
+## Soft ink outline on edges.
+@export_range(0.0, 1.0) var outline_strength: float = 0.0
+
 @export_group("Screen Effects")
 @export_range(0.0, 1.0) var scanline_strength: float = 0.0
 @export_range(0.0, 2000.0) var scanline_count: float = 480.0
@@ -110,4 +124,45 @@ static func make_crt_green() -> PostFxProfile:
 	p.bloom_strength = 0.25
 	p.barrel_distortion = 0.20
 	p.flicker_strength = 0.10
+	return p
+
+
+## Animal-Crossing-style diorama: strong tilt-shift, warm saturated pastel, soft
+## glow and vignette — the world reads like a cosy handheld miniature.
+static func make_cozy_diorama() -> PostFxProfile:
+	var p := PostFxProfile.new()
+	p.temperature = 0.10
+	p.brightness = 0.02
+	p.contrast = 1.05
+	p.saturation = 1.25
+	p.tilt_shift = 0.7
+	p.tilt_focus = 0.55
+	p.tilt_focus_size = 0.16
+	p.bloom_strength = 0.20
+	p.vignette_strength = 0.22
+	return p
+
+
+## Storybook / gouache: posterised colour, soft ink outline, warm pastel grade.
+static func make_storybook() -> PostFxProfile:
+	var p := PostFxProfile.new()
+	p.temperature = 0.08
+	p.contrast = 1.06
+	p.saturation = 1.18
+	p.posterize = 8.0
+	p.outline_strength = 0.35
+	p.bloom_strength = 0.10
+	p.vignette_strength = 0.20
+	return p
+
+
+## Pixel-toy handheld: chunky pixels + gentle posterise + a touch of outline.
+static func make_pixel_toy() -> PostFxProfile:
+	var p := PostFxProfile.new()
+	p.saturation = 1.15
+	p.contrast = 1.05
+	p.pixelate = 4.0
+	p.posterize = 12.0
+	p.outline_strength = 0.15
+	p.vignette_strength = 0.18
 	return p
