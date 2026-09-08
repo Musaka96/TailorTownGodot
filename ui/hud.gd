@@ -37,8 +37,8 @@ func _build_prompt_bar() -> void:
 	sb.set_corner_radius_all(12)
 	sb.content_margin_left = Style.S3
 	sb.content_margin_right = Style.S3
-	sb.content_margin_top = Style.S2
-	sb.content_margin_bottom = Style.S2
+	sb.content_margin_top = Style.S1 + 2
+	sb.content_margin_bottom = Style.S1 + 2
 	_prompt_bar.add_theme_stylebox_override("panel", sb)
 	_prompt_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt_bar.anchor_left = 0.5
@@ -56,6 +56,7 @@ func _build_prompt_bar() -> void:
 	_prompt_verb.add_theme_font_override("font", Style.bold_font())
 	_prompt_verb.add_theme_font_size_override("font_size", 15)
 	_prompt_verb.add_theme_color_override("font_color", Style.CHALK)
+	_prompt_verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_prompt_verb)
 	add_child(_prompt_bar)
 	_prompt_bar.visible = false

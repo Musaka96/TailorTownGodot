@@ -223,10 +223,12 @@ static func keycap(key: String) -> Control:
 	sb.set_corner_radius_all(6)
 	sb.content_margin_left = S1 + 2
 	sb.content_margin_right = S1 + 2
-	sb.content_margin_top = 1
-	sb.content_margin_bottom = 1
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
 	cap.add_theme_stylebox_override("panel", sb)
 	cap.custom_minimum_size = Vector2(22, 0)
+	# Don't let the cap stretch to the row height — keep it a compact key.
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var lbl := Label.new()
 	lbl.text = key
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
