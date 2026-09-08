@@ -9,6 +9,9 @@ extends CharacterBody3D
 ## keyboard (WASD / arrows) and an analog gamepad stick, because it reads the
 ## input as a single Vector2 via Input.get_vector().
 
+## Metres of travel between footstep sounds (paced by actual speed).
+const STRIDE := 1.7
+
 ## Peak horizontal speed in metres/second.
 @export var move_speed: float = 6.0
 ## How quickly velocity blends toward the target (m/s^2). Higher = snappier,
@@ -21,6 +24,9 @@ extends CharacterBody3D
 
 # Read the gravity from Project Settings so it stays consistent with the rest of
 # the physics world instead of being a magic number.
+var _step_accum := 0.0
+var _was_moving := false
+
 ## The player's hands. Stations reach it as `actor.carry`.
 @onready var carry: CarrySlot = $Carry
 @onready var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
@@ -62,6 +68,24 @@ func _physics_process(delta: float) -> void:
 
 	if _model.has_method("set_moving"):
 		_model.set_moving(Vector2(velocity.x, velocity.z).length() > 0.4)
+
+	_footsteps(delta)
+
+
+## Footstep foley paced by actual ground speed: a step fires every STRIDE metres,
+## with a soft cloth rustle the moment the shopkeeper sets off from standing.
+func _footsteps(delta: float) -> void:
+	var planar := Vector2(velocity.x, velocity.z).length()
+	var moving := planar > 0.6 and is_on_floor()
+	if moving and not _was_moving:
+		Sfx.play("cloth_rustle", -14.0)
+		_step_accum = STRIDE  # land the first footstep almost immediately
+	if moving:
+		_step_accum += planar * delta
+		if _step_accum >= STRIDE:
+			_step_accum = 0.0
+			Sfx.play("footstep_wood", -9.0)
+	_was_moving = moving
 
 
 ## Converts a 2D input vector into a world-space direction on the ground plane,
