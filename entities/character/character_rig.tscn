@@ -1,12 +1,12 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://entities/character/character_rig.gd" id="1_atflr"]
-[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN1.glb" id="2_eb6sw"]
+[ext_resource type="PackedScene" uid="uid://4gjg2o3qcery" path="res://assets/characters/CHARTGEN1.glb" id="2_eb6sw"]
 
-[node name="CharacterRig" type="Node3D" unique_id=1008933962]
+[node name="CharacterRig" type="Node3D" unique_id=1509817254]
 script = ExtResource("1_atflr")
 
-[node name="CHARTGEN1" type="Node3D" parent="." unique_id=1296731282 instance=ExtResource("2_eb6sw")]
+[node name="CHARTGEN1" type="Node3D" parent="." unique_id=1485424008 instance=ExtResource("2_eb6sw")]
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1290805002]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1090176999]
 root_node = NodePath("../CHARTGEN1")
