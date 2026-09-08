@@ -157,7 +157,10 @@ new subject-facing ones (mirror first).
 
 - **[CHECK]** rules → `tools/check_ui.gd` (headless, part of the dev loop). Run:
   `godot --headless --path . --script res://tools/check_ui.gd`. Report in
-  `.dev/ui_check.log`; non-zero exit on any violation.
+  `.dev/ui_check.log`; non-zero exit on any violation. Screens that aren't modal
+  panels (minigame hosts, HUD strips) are listed `EXEMPT`. A legitimate non-styling
+  `Color()` literal (e.g. a skin/hair data fallback) is allowed by adding a
+  `# ui-check-ignore` marker on that line.
 - **[JUDGE]** rules → screenshot each changed menu (`tools/screenshot.gd`) and
   rate against §2 (type hierarchy), §4 (prompts/emphasis), §5 (distinct surface),
   §6 (staging). This is the checklist a dedicated UI-rater agent uses.

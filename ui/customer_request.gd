@@ -5,6 +5,7 @@ extends Control
 
 var _customer = null
 var _actor = null
+var _decor_built := false
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -28,14 +29,24 @@ func close() -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
+	# A walk-in's brief reads like a fresh job ticket pinned up (ORDERS skin).
+	_panel.custom_minimum_size = Style.FRAME_SMALL
+	Style.apply_skin(_panel, Style.MenuSkin.ORDERS)
+	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 24)
-	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_color_override("font_color", Style.ACC_ORDERS)
 	_brief.add_theme_font_size_override("font_size", 18)
 	_brief.add_theme_color_override("font_color", Style.INK)
 	_brief.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint.add_theme_font_size_override("font_size", 14)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
+	_build_decor_once()
+
+
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	_hint.visible = false
+	_hint.get_parent().add_child(Style.hint_bar([["E", "Send to mirror"], ["Esc", "Later"]]))
 
 
 func _fill() -> void:
@@ -46,7 +57,6 @@ func _fill() -> void:
 	else:
 		_title.text = pref.display_name
 		_brief.text = "%s\n\nBudget: $%d" % [pref.describe(), pref.budget]
-	_hint.text = "E: send to the fitting mirror      Esc: later"
 
 
 func _unhandled_input(event: InputEvent) -> void:

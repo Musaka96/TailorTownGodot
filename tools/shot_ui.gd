@@ -61,12 +61,36 @@ func _open() -> void:
 		push_error("UI autoload not found")
 		quit(1)
 		return
+	var scene := get_root().get_node_or_null("Main")
+	if scene == null:
+		scene = get_root().get_child(get_root().get_child_count() - 1)
 	match _menu:
 		"book":
 			ui.open_handbook(null)
-		"shelf":
-			pass  # needs a shelf instance; phone/book cover the flagship review
 		"orders":
 			ui.open_orders_menu(null)
+		"shelf":
+			var sh := _find(scene, "Shelf")
+			if sh != null:
+				ui.open_shelf_menu(sh, _player())
+		"worktable":
+			var wt := _find(scene, "Worktable")
+			if wt != null:
+				ui.open_worktable(wt, _player(), null)
+		"customer":
+			var cust := _find(scene, "Customer")
+			if cust != null:
+				ui.open_customer_request(cust, _player())
 		_:
 			ui.open_phone(null, null)
+
+
+func _find(scene: Node, cls: String) -> Node:
+	if scene == null:
+		return null
+	var found := scene.find_children("*", cls, true, false)
+	return found[0] if not found.is_empty() else null
+
+
+func _player() -> Node:
+	return get_first_node_in_group("player")

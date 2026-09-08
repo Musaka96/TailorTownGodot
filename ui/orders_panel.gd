@@ -150,7 +150,7 @@ func _chip(text: String, done: bool) -> Control:
 		"panel", Style.card(Style.LEAF if done else Style.CREAM_DARK, 7)
 	)
 	var lbl := _label(
-		text, 12, Color.WHITE if done else Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER
+		text, 12, Style.CHALK if done else Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER
 	)
 	lbl.custom_minimum_size = Vector2(16, 0)
 	chip.add_child(lbl)
@@ -168,7 +168,7 @@ func _label(text: String, size: int, color: Color, align: int) -> Label:
 
 func _ticket_style(order) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.98, 0.96, 0.90)  # paper
+	sb.bg_color = Style.CARD  # paper
 	sb.set_corner_radius_all(10)
 	sb.border_width_top = 6  # coloured ticket header strip: state at a glance
 	sb.border_color = _state_color(order)

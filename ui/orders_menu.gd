@@ -15,6 +15,7 @@ const CHIP := {
 var _actor = null
 var _sel := 0
 var _tick := 0.0
+var _decor_built := false
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -63,19 +64,39 @@ func _process(delta: float) -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
+	_panel.custom_minimum_size = Style.FRAME_WIDE
+	Style.apply_skin(_panel, Style.MenuSkin.ORDERS)
+	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_color_override("font_color", Style.ACC_ORDERS)
 	_list.add_theme_constant_override("separation", Style.S1)
 	_detail.add_theme_constant_override("separation", Style.S2)
-	_hint.add_theme_font_size_override("font_size", 14)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
+	_build_decor_once()
+
+
+## One-time structure: scroll wrapper around the order list (a long queue can't
+## grow the board) and the key-cap hint bar. Skin/frame is applied in _style().
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	var pages := _list.get_parent()
+	var pos := _list.get_index()
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(300, 420)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pages.remove_child(_list)
+	scroll.add_child(_list)
+	pages.add_child(scroll)
+	pages.move_child(scroll, pos)
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hint.visible = false
+	_hint.get_parent().add_child(Style.hint_bar([["W/S", "Select"], ["Esc", "Close"]]))
 
 
 func _refresh() -> void:
 	var orders: Array = Orders.active
 	_title.text = "Orders  (%d)" % orders.size()
-	_hint.text = "W/S select    Esc / Tab close"
 	_sel = clampi(_sel, 0, maxi(orders.size() - 1, 0))
 
 	for child in _list.get_children():
@@ -102,7 +123,7 @@ func _make_list_card(order, selected: bool) -> Control:
 	var card := PanelContainer.new()
 	if selected:
 		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.LEAF)
+			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.ACC_ORDERS)
 		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())

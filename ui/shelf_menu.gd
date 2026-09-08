@@ -12,6 +12,7 @@ var _shelf = null
 var _actor = null
 var _index := 0
 var _cut_length := 1.0
+var _decor_built := false
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -38,12 +39,40 @@ func close() -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
-	_title.add_theme_color_override("font_color", Style.INK)
+	_panel.custom_minimum_size = Style.FRAME_TALL
+	Style.apply_skin(_panel, Style.MenuSkin.SHELF)
+	_title.add_theme_font_override("font", Style.bold_font())
+	_title.add_theme_color_override("font_color", Style.ACC_SHELF)
 	_title.add_theme_font_size_override("font_size", 26)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
-	_hint.add_theme_font_size_override("font_size", 15)
 	_list.add_theme_constant_override("separation", Style.S2)
+	_build_decor_once()
+
+
+## One-time structure: scroll wrapper around the roll list (so a full shelf can't
+## grow the panel) and the key-cap hint bar. Skin/frame is applied in _style().
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	var box := _list.get_parent()
+	var pos := _list.get_index()
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 400)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.remove_child(_list)
+	scroll.add_child(_list)
+	box.add_child(scroll)
+	box.move_child(scroll, pos)
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hint.visible = false
+	var pairs := [
+		["W/S", "Select"],
+		["A/D", "Cut length"],
+		["F", "Cut"],
+		["E", "Take roll"],
+		["Esc", "Close"],
+	]
+	box.add_child(Style.hint_bar(pairs))
 
 
 func _rebuild() -> void:
@@ -51,9 +80,7 @@ func _rebuild() -> void:
 		child.queue_free()
 
 	var rolls: Array = _shelf.stored
-	_title.text = "Shelf  ·  %d rolls" % rolls.size()
-	_hint.text = ("W/S select    A/D cut length ‹%.1f m›    F cut    E take roll    Esc close"
-		% _cut_length)
+	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [rolls.size(), _cut_length]
 
 	for i in rolls.size():
 		_list.add_child(_make_card(rolls[i], i == _index))
@@ -64,7 +91,9 @@ func _make_card(roll, selected: bool) -> Control:
 
 	var card := PanelContainer.new()
 	if selected:
-		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.LEAF))
+		card.add_theme_stylebox_override(
+			"panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_SHELF)
+		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
 
@@ -96,8 +125,10 @@ func _make_card(roll, selected: bool) -> Control:
 
 	var frac: float = roll.remaining_length_m / maxf(mat.roll_length_m, 0.001)
 	var left := Label.new()
-	left.text = "%.1f / %.1f m left  (%d%%)" % [
-		roll.remaining_length_m, mat.roll_length_m, roundi(frac * 100.0)]
+	left.text = (
+		"%.1f / %.1f m left  (%d%%)"
+		% [roll.remaining_length_m, mat.roll_length_m, roundi(frac * 100.0)]
+	)
 	left.add_theme_color_override("font_color", Style.fill_color(frac).darkened(0.25))
 	left.add_theme_font_size_override("font_size", 15)
 	col.add_child(left)

@@ -10,13 +10,14 @@ var _worktable = null
 var _actor = null
 var _piece = null
 var _type := 0
-var _size := 1   # M
+var _size := 1  # M
 var _style_idx := 0
 var _row := 0
 var _swatch: MaterialSwatch
 var _name_label: Label
 var _sub_label: Label
 var _minigame: CuttingMinigame
+var _decor_built := false
 
 @onready var _config: Control = $Config
 @onready var _panel: PanelContainer = $Config/Center/Panel
@@ -69,15 +70,28 @@ func _build_preview() -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
+	_panel.custom_minimum_size = Vector2(600, 0)
+	Style.apply_skin(_panel, Style.MenuSkin.WORK)
 	_preview.add_theme_constant_override("separation", Style.S3)
+	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_color_override("font_color", Style.ACC_WORK)
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_sub_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	_hint.add_theme_font_size_override("font_size", 15)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
+	_build_decor_once()
+
+
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	_hint.visible = false
+	_hint.get_parent().add_child(
+		Style.hint_bar(
+			[["W/S", "Select"], ["A/D", "Change"], ["E", "Start cutting"], ["Esc", "Cancel"]]
+		)
+	)
 
 
 func _styles() -> PackedStringArray:
@@ -97,9 +111,10 @@ func _refresh() -> void:
 	if _piece != null and _piece.material != null:
 		_swatch.setup(_piece.material, _piece.material.roll_length_m)
 		_name_label.text = _piece.material.display_name
-	_sub_label.text = "%s  ·  Size %s  ·  %s" % [
-		Enums.garment_type_name(_type), Enums.size_name(_size), _styles()[_style_idx]]
-	_hint.text = "W/S select    A/D change    E start cutting    Esc cancel"
+	_sub_label.text = (
+		"%s  ·  Size %s  ·  %s"
+		% [Enums.garment_type_name(_type), Enums.size_name(_size), _styles()[_style_idx]]
+	)
 
 	for child in _rows.get_children():
 		child.queue_free()
@@ -110,7 +125,9 @@ func _refresh() -> void:
 func _make_row(row: int, selected: bool) -> Control:
 	var card := PanelContainer.new()
 	if selected:
-		card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.LEAF))
+		card.add_theme_stylebox_override(
+			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_WORK)
+		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
 	var hbox := HBoxContainer.new()

@@ -14,6 +14,9 @@ const ROW_NAME := {
 }
 # Display order of the parts.
 const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
+# Data fallbacks when there's no seated customer (not UI styling).
+const _SKIN_FALLBACK := Color(0.87, 0.72, 0.60)  # ui-check-ignore: skin data
+const _HAIR_FALLBACK := Color(0.14, 0.11, 0.09)  # ui-check-ignore: hair data
 
 var _mirror = null
 var _actor = null
@@ -28,6 +31,9 @@ var _design := {}  # GarmentType -> { fabric, color, pattern, style_idx }
 var _swatch: MaterialSwatch
 var _name_label: Label
 var _sub_label: Label
+var _brief_label: Label
+var _hint_bar: HBoxContainer
+var _decor_built := false
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _title: Label = $Panel/Margin/Box/Title
@@ -87,15 +93,35 @@ func _build_preview() -> void:
 
 
 func _style() -> void:
-	_panel.add_theme_stylebox_override("panel", Style.panel())
+	# Fitting-room skin (arched, brass). Side panel — the customer stays visible.
+	_panel.custom_minimum_size = Vector2(440, 560)
+	Style.apply_skin(_panel, Style.MenuSkin.MIRROR)
 	_preview.add_theme_constant_override("separation", Style.S3)
+	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 24)
-	_title.add_theme_color_override("font_color", Style.INK)
+	_title.add_theme_color_override("font_color", Style.ACC_MIRROR.darkened(0.2))
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_sub_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	_hint.add_theme_font_size_override("font_size", 14)
-	_hint.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
+	_rows.custom_minimum_size = Vector2(0, 236)
+	_build_decor_once()
+
+
+## The scene Hint label is retired for an informational brief/quote line plus a
+## rebuilt key-cap bar (the keys change with mode/debug). Skin applied in _style().
+func _build_decor_once() -> void:
+	if _decor_built:
+		return
+	_decor_built = true
+	_hint.visible = false
+	var box := _hint.get_parent()
+	_brief_label = Label.new()
+	_brief_label.add_theme_font_size_override("font_size", 14)
+	_brief_label.add_theme_color_override("font_color", Style.INK)
+	_brief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_brief_label)
+	_hint_bar = HBoxContainer.new()
+	box.add_child(_hint_bar)
 
 
 # --- State -----------------------------------------------------------------
@@ -167,16 +193,13 @@ func _refresh() -> void:
 	if _pref != null:
 		var quote := Pricing.suit_quote(_design)
 		var over := "  (OVER)" if quote > _pref.budget else ""
-		var brief := (
-			"For: %s   ·   Budget $%d   ·   Quote $%d%s"
-			% [_pref.describe(), _pref.budget, quote, over]
+		_brief_label.text = (
+			"For: %s   ·   Budget $%d   ·   Quote $%d%s%s"
+			% [_pref.describe(), _pref.budget, quote, over, _status]
 		)
-		var keys := "W/S select  A/D change  E ask/confirm  Esc close"
-		if OS.is_debug_build():
-			keys += "   ·   F2 auto-fit"
-		_hint.text = "%s\n%s%s" % [brief, keys, _status]
 	else:
-		_hint.text = "W/S select   A/D change   E confirm   Esc close" + _status
+		_brief_label.text = _status.strip_edges()
+	_rebuild_hint_bar()
 
 	var rows := _active_rows()
 	_row = clampi(_row, 0, rows.size() - 1)
@@ -186,11 +209,23 @@ func _refresh() -> void:
 		_rows.add_child(_make_row(rows[i], i == _row))
 
 
+## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
+func _rebuild_hint_bar() -> void:
+	for child in _hint_bar.get_children():
+		child.queue_free()
+	var pairs := [["W/S", "Select"], ["A/D", "Change"]]
+	pairs.append(["E", "Ask / confirm"] if _pref != null else ["E", "Confirm"])
+	if OS.is_debug_build():
+		pairs.append(["F2", "Auto-fit"])
+	pairs.append(["Esc", "Close"])
+	_hint_bar.add_child(Style.hint_bar(pairs))
+
+
 func _make_row(row: int, selected: bool) -> Control:
 	var card := PanelContainer.new()
 	if selected:
 		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.LEAF)
+			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_MIRROR)
 		)
 	else:
 		card.add_theme_stylebox_override("panel", Style.card())
@@ -308,9 +343,9 @@ func _confirm() -> void:
 ## Create the order for the current design and send the customer off happy.
 func _finalize() -> void:
 	var quote: int = Pricing.suit_quote(_design)
-	var skin: Color = _customer.skin_color if _customer != null else Color(0.87, 0.72, 0.60)
+	var skin: Color = _customer.skin_color if _customer != null else _SKIN_FALLBACK
 	var hair: int = _customer.hair_index if _customer != null else 0
-	var hair_col: Color = _customer.hair_color if _customer != null else Color(0.14, 0.11, 0.09)
+	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
 	Orders.create_order(_pref.display_name, _design, quote, skin, hair, hair_col)
 	EventBus.design_confirmed.emit(_design.duplicate(true))
 	var cust = _customer
