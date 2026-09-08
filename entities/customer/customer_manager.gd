@@ -9,14 +9,6 @@ extends Node3D
 
 const CUSTOMER_SCENE := preload("res://entities/customer/customer.tscn")
 
-# Skin tones for spawned characters (suits come from the material catalog).
-const SKINS := [
-	Color(0.87, 0.72, 0.60),
-	Color(0.80, 0.62, 0.48),
-	Color(0.93, 0.81, 0.69),
-	Color(0.66, 0.48, 0.35)
-]
-
 @export var mirror_path: NodePath
 @export var greet_path: NodePath
 @export var mirror_spot_path: NodePath
@@ -108,6 +100,7 @@ func _on_order_due(order: SuitOrder) -> void:
 	cust.collect_order = order
 	cust.apply_look(order.skin)
 	cust.set_hair(order.hair_index)  # match the customer who ordered
+	cust.set_hair_color(order.hair_color)
 	cust.walk([_door_out, _door_in, _collect_spot()], func() -> void: _on_collector_arrived(cust))
 
 
@@ -148,8 +141,9 @@ func _spawn(pos: Vector3, with_pref: bool) -> Customer:
 
 
 func _dress(cust: Customer) -> void:
-	cust.apply_look(SKINS[_rng.randi() % SKINS.size()])
+	cust.apply_look(Wardrobe.random_skin(_rng))
 	cust.set_hair(_rng.randi() % maxi(1, Wardrobe.hair_count()))
+	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
 	cust.wear_street()
 
 

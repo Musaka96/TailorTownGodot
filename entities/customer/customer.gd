@@ -22,9 +22,10 @@ enum Mode { NONE, GREET, MIRROR, COLLECT }
 
 ## Taste + budget (null for a plain pedestrian).
 var preference: CustomerPreference = null
-## Skin tone + hairstyle, remembered so a returning customer looks the same.
+## Skin tone + hairstyle + hair colour, remembered so a returning customer matches.
 var skin_color := Color(0.87, 0.72, 0.60)
 var hair_index := 0
+var hair_color := Color(0.14, 0.11, 0.09)
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -114,6 +115,13 @@ func set_hair(index: int) -> void:
 	hair_index = index
 	if _rig != null:
 		_rig.set_hair(index)
+
+
+## Tint the hair with a colour from the wardrobe palette.
+func set_hair_color(color: Color) -> void:
+	hair_color = color
+	if _rig != null:
+		_rig.set_hair_color(color)
 
 
 ## Wear the casual street outfit (on arrival, before a suit is made).

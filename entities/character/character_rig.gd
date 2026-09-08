@@ -19,6 +19,7 @@ const BAKED_HAIR := {"hair": "Hair"}
 
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
+const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 
 # Casual colours for the placeholder street outfit (until street models exist).
 const CASUAL_TOPS := [Color("6d7f9c"), Color("8a6d5b"), Color("5f7d5f"), Color("9c6d78")]
@@ -42,6 +43,8 @@ var _hair: Dictionary = {}
 var _top_style := 0
 var _bottom_style := 0
 var _hair_index := 0
+# Tint applied to the hair mesh (kept so it survives a hairstyle swap).
+var _hair_color := DEFAULT_HAIR
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
 
@@ -119,10 +122,23 @@ func set_hair(index: int) -> void:
 	if index == _hair_index and not _hair.is_empty():
 		return
 	_hair = _clear(_hair)
-	var item := Wardrobe.hair(index)
-	if not item.is_empty():
-		_hair = _attach_from(item["glb"], item["roles"])
+	var part := Wardrobe.hair(index)
+	if part != null and part.model != null:
+		_hair = _attach_from(part.model, part.roles)
 	_hair_index = index
+	_apply_hair_color()
+
+
+## Tint the hair (kept and re-applied whenever the hairstyle mesh is swapped).
+func set_hair_color(color: Color) -> void:
+	_hair_color = color
+	_apply_hair_color()
+
+
+func _apply_hair_color() -> void:
+	var mi = _hair.get("hair")
+	if mi is MeshInstance3D:
+		mi.material_override = _flat(_hair_color, 0.85)
 
 
 ## Dress in a made suit: swap the top/bottom MODEL to the chosen styles (only when
@@ -157,17 +173,17 @@ func wear_street() -> void:
 
 func _swap_top(style: int) -> void:
 	_top = _clear(_top)
-	var item := Wardrobe.top(style)
-	if not item.is_empty():
-		_top = _attach_from(item["glb"], item["roles"])
+	var part := Wardrobe.top(style)
+	if part != null and part.model != null:
+		_top = _attach_from(part.model, part.roles)
 	_top_style = style
 
 
 func _swap_bottom(style: int) -> void:
 	_bottom = _clear(_bottom)
-	var item := Wardrobe.bottom(style)
-	if not item.is_empty():
-		_bottom = _attach_from(item["glb"], item["roles"])
+	var part := Wardrobe.bottom(style)
+	if part != null and part.model != null:
+		_bottom = _attach_from(part.model, part.roles)
 	_bottom_style = style
 
 
@@ -184,16 +200,13 @@ func _adopt(roles: Dictionary) -> Dictionary:
 	return out
 
 
-## Pull the named meshes out of `glb_path` and reparent them onto our skeleton.
+## Pull the named meshes out of `model` and reparent them onto our skeleton.
 ## Their Skin binds by bone name, so on the shared Rig_Medium they animate as-is.
-func _attach_from(glb_path: String, roles: Dictionary) -> Dictionary:
+func _attach_from(model: PackedScene, roles: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
-	if _skel == null:
+	if _skel == null or model == null:
 		return out
-	var packed := load(glb_path) as PackedScene
-	if packed == null:
-		return out
-	var inst := packed.instantiate()
+	var inst := model.instantiate()
 	for role in roles:
 		var mi := inst.find_child(roles[role], true, false)
 		if mi is MeshInstance3D:

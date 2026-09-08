@@ -1,71 +1,76 @@
 class_name Wardrobe
 
-## The character wardrobe: the library of swappable, Rig_Medium-skinned meshes the
-## CharacterRig can pull in at runtime — hairstyles, suit tops (jacket + shirt) and
-## bottoms (trousers). Each entry names a source .glb and maps roles → the mesh
-## node inside it. Every mesh must be skinned to the same Rig_Medium skeleton so it
-## deforms with the shared animations (see CharacterRig._attach_from).
-##
-## To ADD an option: import the .glb (skinned to Rig_Medium) and append an entry to
-## the relevant list below. Tops are indexed to Enums jacket styles, bottoms to
-## pants styles, so list them in that order. Everything currently points at
-## CHARTGEN1 (the base model) until dedicated hair/style/street glbs are imported.
+## Facade over the editable wardrobe asset (data/wardrobe/default_wardrobe.tres, a
+## WardrobeLibrary). Everything in the game reaches wardrobe data through here so no
+## caller hard-codes the asset path. Add or change looks by editing the .tres in the
+## inspector — hairstyles, suit tops/bottoms, and the skin/hair colour palettes all
+## live there — or regenerate the default with tools/build_wardrobe.gd. No code
+## change is needed to add a new hairstyle, suit style, skin tone or hair colour.
 
-const CHAR := "res://IMPORT/CHARTGEN1.glb"
+const LIBRARY_PATH := "res://data/wardrobe/default_wardrobe.tres"
+
+static var _lib: WardrobeLibrary
 
 
-## Hairstyles (role "hair"). One entry per look; customers pick one at random.
-static func hairs() -> Array:
-	return [
-		{"name": "Default", "glb": CHAR, "roles": {"hair": "Hair"}},
-	]
+## The loaded library (cached). Falls back to the in-code default if the asset is
+## missing so the game never crashes on a fresh checkout without the .tres.
+static func library() -> WardrobeLibrary:
+	if _lib == null:
+		_lib = load(LIBRARY_PATH) as WardrobeLibrary
+	if _lib == null:
+		_lib = WardrobeLibrary.make_default()
+	return _lib
 
 
-## Suit tops, indexed to Enums.JacketStyle. A top owns both the jacket and the
-## shirt mesh (changing the jacket style changes the shirt with it).
-static func tops() -> Array:
-	return [
-		{"name": "Single-Breasted", "glb": CHAR, "roles": {"jacket": "jacket", "shirt": "shirt"}},
-	]
+# --- Clothing parts --------------------------------------------------------
 
 
-## Suit bottoms, indexed to Enums pants styles (role "pants").
-static func bottoms() -> Array:
-	return [
-		{"name": "Flat Front", "glb": CHAR, "roles": {"pants": "legs"}},
-	]
+static func hair(index: int) -> WardrobePart:
+	return library().hair(index)
 
 
-## Street (casual) outfit worn on arrival. Until real street models are imported
-## these reuse the base meshes and are told apart by their casual materials.
-static func street_top() -> Dictionary:
-	return {"name": "Casual Top", "glb": CHAR, "roles": {"jacket": "jacket", "shirt": "shirt"}}
+static func top(index: int) -> WardrobePart:
+	return library().top(index)
 
 
-static func street_bottom() -> Dictionary:
-	return {"name": "Casual Bottom", "glb": CHAR, "roles": {"pants": "legs"}}
+static func bottom(index: int) -> WardrobePart:
+	return library().bottom(index)
 
 
-# --- Safe lookups (clamp to the available options) -------------------------
+static func street_top() -> WardrobePart:
+	return library().street_top
 
 
-static func hair(index: int) -> Dictionary:
-	return _at(hairs(), index)
-
-
-static func top(style: int) -> Dictionary:
-	return _at(tops(), style)
-
-
-static func bottom(style: int) -> Dictionary:
-	return _at(bottoms(), style)
+static func street_bottom() -> WardrobePart:
+	return library().street_bottom
 
 
 static func hair_count() -> int:
-	return hairs().size()
+	return library().hair_count()
 
 
-static func _at(list: Array, index: int) -> Dictionary:
-	if list.is_empty():
-		return {}
-	return list[clampi(index, 0, list.size() - 1)]
+# --- Colour palettes -------------------------------------------------------
+
+
+static func skin(index: int) -> Color:
+	return library().skin(index)
+
+
+static func skin_count() -> int:
+	return library().skin_colors.size()
+
+
+static func hair_color(index: int) -> Color:
+	return library().hair_color(index)
+
+
+static func hair_color_count() -> int:
+	return library().hair_colors.size()
+
+
+static func random_skin(rng: RandomNumberGenerator) -> Color:
+	return library().random_skin(rng)
+
+
+static func random_hair_color(rng: RandomNumberGenerator) -> Color:
+	return library().random_hair_color(rng)

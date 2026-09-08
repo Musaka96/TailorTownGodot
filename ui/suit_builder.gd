@@ -310,7 +310,8 @@ func _finalize() -> void:
 	var quote: int = Pricing.suit_quote(_design)
 	var skin: Color = _customer.skin_color if _customer != null else Color(0.87, 0.72, 0.60)
 	var hair: int = _customer.hair_index if _customer != null else 0
-	Orders.create_order(_pref.display_name, _design, quote, skin, hair)
+	var hair_col: Color = _customer.hair_color if _customer != null else Color(0.14, 0.11, 0.09)
+	Orders.create_order(_pref.display_name, _design, quote, skin, hair, hair_col)
 	EventBus.design_confirmed.emit(_design.duplicate(true))
 	var cust = _customer
 	close()

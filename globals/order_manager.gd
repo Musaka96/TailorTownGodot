@@ -40,7 +40,12 @@ func _process(delta: float) -> void:
 
 
 func create_order(
-	customer_name: String, design: Dictionary, price: int, skin: Color, hair_index := 0
+	customer_name: String,
+	design: Dictionary,
+	price: int,
+	skin: Color,
+	hair_index := 0,
+	hair_color := Color(0.14, 0.11, 0.09)
 ) -> SuitOrder:
 	var order := SuitOrder.new()
 	order.customer_name = customer_name
@@ -48,6 +53,7 @@ func create_order(
 	order.price = price
 	order.skin = skin
 	order.hair_index = hair_index
+	order.hair_color = hair_color
 	order.deadline_days = _rng.randi_range(DAYS_MIN, DAYS_MAX)
 	order.days_left = float(order.deadline_days)
 	active.append(order)

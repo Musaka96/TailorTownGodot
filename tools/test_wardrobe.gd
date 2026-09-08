@@ -25,8 +25,15 @@ func _run() -> void:
 	_check(_under(rig, "Hair", skel), "baked hair sits under the skeleton")
 	_check(_under(rig, "jacket", skel), "baked jacket sits under the skeleton")
 
+	# The library resolves to WardrobeParts with a model + roles.
+	var part: WardrobePart = Wardrobe.hair(0)
+	_check(part != null and part.model != null, "hair(0) resolves to a WardrobePart model")
+	_check(not Wardrobe.library().skin_colors.is_empty(), "library has a skin palette")
+	_check(not Wardrobe.library().hair_colors.is_empty(), "library has a hair-colour palette")
+
 	# Force a hair reparent (index 1 clamps to the only entry but still swaps).
 	rig.set_hair(1)
+	rig.set_hair_color(Color(0.4, 0.2, 0.1))
 	await process_frame
 	_check(_under(rig, "Hair", skel), "hair reattached under the skeleton after swap")
 
