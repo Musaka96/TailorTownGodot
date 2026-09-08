@@ -24,6 +24,7 @@ Catalog="*res://globals/catalog.gd"
 Orders="*res://globals/order_manager.gd"
 UI="*res://ui/ui.tscn"
 PostFX="*res://globals/postfx.gd"
+Shift="*res://globals/shift_manager.gd"
 DayNight="*res://globals/day_night.gd"
 McpBridgeGame="*res://mcp_bridge_game.gd"
 

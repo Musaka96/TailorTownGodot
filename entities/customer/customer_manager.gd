@@ -68,6 +68,9 @@ func _start() -> void:
 
 
 func _spawn_tick() -> void:
+	# Labour laws: once the shift's over, no new shoppers wander in.
+	if Shift != null and not Shift.is_open():
+		return
 	if _alive >= max_alive:
 		return
 	var from_west := _rng.randf() < 0.5

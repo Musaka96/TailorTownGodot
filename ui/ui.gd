@@ -9,6 +9,9 @@ const FONT := preload("res://assets/fonts/Fredoka.ttf")
 ## have to be regenerated to add them.
 var orders_menu: Control
 var clock: Control
+var day_transition: Control
+
+var _toast: Label
 
 @onready var hud: Control = $HUD
 @onready var shelf_menu: Control = $ShelfMenu
@@ -46,29 +49,42 @@ func _ready() -> void:
 	handbook.theme = theme
 	orders_menu.theme = theme
 	clock = _build_clock()
+	day_transition = _build_day_transition()
 
 
 func open_shelf_menu(shelf, actor) -> void:
+	if _shop_closed():
+		return
 	shelf_menu.open(shelf, actor)
 
 
 func open_phone(phone, actor) -> void:
+	if _shop_closed():
+		return
 	phone_order.open(phone, actor)
 
 
 func open_worktable(worktable, actor, piece) -> void:
+	if _shop_closed():
+		return
 	worktable_screen.open(worktable, actor, piece)
 
 
 func open_sewing(machine, actor, piece) -> void:
+	if _shop_closed():
+		return
 	sewing_screen.open(machine, actor, piece)
 
 
 func open_suit_builder(mirror, actor) -> void:
+	if _shop_closed():
+		return
 	suit_builder.open(mirror, actor)
 
 
 func open_customer_request(customer, actor) -> void:
+	if _shop_closed():
+		return
 	customer_request.open(customer, actor)
 
 
@@ -78,6 +94,35 @@ func open_handbook(actor) -> void:
 
 func open_orders_menu(actor) -> void:
 	orders_menu.open(actor)
+
+
+func play_day_transition(old_day, new_day, earned, on_switch, on_done) -> void:
+	day_transition.play(old_day, new_day, earned, on_switch, on_done)
+
+
+## Brief centred message near the top of the screen (fades out on its own).
+func toast(text: String) -> void:
+	if _toast == null:
+		_toast = Label.new()
+		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_toast.add_theme_font_size_override("font_size", 22)
+		_toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		_toast.position.y = 120
+		_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hud.add_child(_toast)
+	_toast.text = text
+	_toast.modulate.a = 1.0
+	var tw := create_tween()
+	tw.tween_interval(1.3)
+	tw.tween_property(_toast, "modulate:a", 0.0, 0.6)
+
+
+## True while the shop is shut for the night — work stations refuse and show a hint.
+func _shop_closed() -> bool:
+	if Shift != null and not Shift.is_open():
+		toast("The shop's closed — lock up at the door")
+		return true
+	return false
 
 
 ## Assemble the Orders board node tree in code (Dim + centered Panel with a Title,
@@ -155,3 +200,13 @@ func _build_clock() -> Control:
 	widget.position = Vector2(16, 12)
 	hud.add_child(widget)
 	return widget
+
+
+## Full-screen day-change animation, attached to the root UI (above the HUD) so it
+## covers everything. Built in code — no scene regen needed.
+func _build_day_transition() -> Control:
+	var overlay := Control.new()
+	overlay.name = "DayTransition"
+	overlay.set_script(load("res://ui/day_transition.gd"))
+	add_child(overlay)
+	return overlay
