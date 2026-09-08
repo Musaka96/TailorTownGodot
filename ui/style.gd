@@ -151,7 +151,7 @@ static func apply_skin(panel_node: PanelContainer, skin: int) -> AtelierFrame:
 		frame = AtelierFrame.new()
 		frame.name = "Frame"
 		panel_node.add_child(frame)
-	frame.setup(accent, WALNUT, pat, shp)
+	frame.setup(accent, WALNUT, pat, shp, radii)
 	return frame
 
 

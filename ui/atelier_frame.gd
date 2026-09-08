@@ -16,8 +16,7 @@ extends Control
 enum Pattern { NONE, PINSTRIPE, RULES, HERRINGBONE, GRID, DOTS, CORK }
 enum Shape { NONE, CLIP, BOOK, FOLD, PIN, TAPE }
 
-const INSET := 9.0  # dashed stitch line, in from the content-rect edge
-const CORNER := 16.0
+const STITCH := 7.0  # dashed stitch line, in from the TRUE panel edge (margin band)
 const EDGE := 5.0  # shape accents sit this far from the true panel edge
 const CHALK := Color(0.933, 0.949, 0.957)
 
@@ -25,6 +24,7 @@ var accent := Color("c9a24a")
 var trim := Color("4a3826")
 var pattern: int = Pattern.NONE
 var shape: int = Shape.NONE
+var radii := Vector4i(20, 20, 20, 20)  # top-left, top-right, bottom-right, bottom-left
 
 
 func _ready() -> void:
@@ -33,20 +33,22 @@ func _ready() -> void:
 	resized.connect(queue_redraw)
 
 
-func setup(accent_col: Color, trim_col: Color, pattern_val: int, shape_val: int) -> void:
+func setup(
+	accent_col: Color, trim_col: Color, pattern_val: int, shape_val: int, radii_val: Vector4i
+) -> void:
 	accent = accent_col
 	trim = trim_col
 	pattern = pattern_val
 	shape = shape_val
+	radii = radii_val
 	queue_redraw()
 
 
 func _draw() -> void:
-	var r := Rect2(Vector2.ZERO, size)  # this node's rect (the panel content area)
 	var panel := _panel_rect()  # the full panel, in local coords
 	_draw_pattern(panel)
-	_draw_stitch(r)
-	_draw_corner_ticks(r)
+	_draw_stitch(panel)
+	_draw_corner_ticks(panel)
 	_draw_shape(panel)
 
 
@@ -152,30 +154,44 @@ func _pat_cork(area: Rect2, col: Color) -> void:
 # --- Layer 2: stitch + corner ticks (inner border) -------------------------
 
 
-func _draw_stitch(r: Rect2) -> void:
+## Dashed stitch just inside the true panel edge (in the margin band, clear of the
+## content), following each corner's radius so it hugs the panel's own silhouette.
+func _draw_stitch(panel: Rect2) -> void:
 	var a := Color(accent.r, accent.g, accent.b, 0.75)
-	var lo := r.position + Vector2(INSET, INSET)
-	var hi := r.end - Vector2(INSET, INSET)
-	var c := CORNER
-	draw_dashed_line(Vector2(lo.x + c, lo.y), Vector2(hi.x - c, lo.y), a, 2.0, 5.0)
-	draw_dashed_line(Vector2(lo.x + c, hi.y), Vector2(hi.x - c, hi.y), a, 2.0, 5.0)
-	draw_dashed_line(Vector2(lo.x, lo.y + c), Vector2(lo.x, hi.y - c), a, 2.0, 5.0)
-	draw_dashed_line(Vector2(hi.x, lo.y + c), Vector2(hi.x, hi.y - c), a, 2.0, 5.0)
+	var lo := panel.position + Vector2(STITCH, STITCH)
+	var hi := panel.end - Vector2(STITCH, STITCH)
+	var tl := float(radii.x)
+	var tr := float(radii.y)
+	var br := float(radii.z)
+	var bl := float(radii.w)
+	draw_dashed_line(Vector2(lo.x + tl, lo.y), Vector2(hi.x - tr, lo.y), a, 2.0, 5.0)
+	draw_dashed_line(Vector2(lo.x + bl, hi.y), Vector2(hi.x - br, hi.y), a, 2.0, 5.0)
+	draw_dashed_line(Vector2(lo.x, lo.y + tl), Vector2(lo.x, hi.y - bl), a, 2.0, 5.0)
+	draw_dashed_line(Vector2(hi.x, lo.y + tr), Vector2(hi.x, hi.y - br), a, 2.0, 5.0)
 
 
-func _draw_corner_ticks(r: Rect2) -> void:
+## Little chalk registration ticks, set at each corner's rounded tangent.
+func _draw_corner_ticks(panel: Rect2) -> void:
 	var ch := Color(CHALK.r, CHALK.g, CHALK.b, 0.9)
-	var lo := r.position + Vector2(INSET, INSET)
-	var hi := r.end - Vector2(INSET, INSET)
+	var lo := panel.position + Vector2(STITCH, STITCH)
+	var hi := panel.end - Vector2(STITCH, STITCH)
 	var d := 9.0
-	draw_line(Vector2(lo.x, lo.y + d), Vector2(lo.x, lo.y), ch, 2.0)
-	draw_line(Vector2(lo.x, lo.y), Vector2(lo.x + d, lo.y), ch, 2.0)
-	draw_line(Vector2(hi.x - d, lo.y), Vector2(hi.x, lo.y), ch, 2.0)
-	draw_line(Vector2(hi.x, lo.y), Vector2(hi.x, lo.y + d), ch, 2.0)
-	draw_line(Vector2(lo.x, hi.y - d), Vector2(lo.x, hi.y), ch, 2.0)
-	draw_line(Vector2(lo.x, hi.y), Vector2(lo.x + d, hi.y), ch, 2.0)
-	draw_line(Vector2(hi.x - d, hi.y), Vector2(hi.x, hi.y), ch, 2.0)
-	draw_line(Vector2(hi.x, hi.y - d), Vector2(hi.x, hi.y), ch, 2.0)
+	var tl := maxf(float(radii.x) - STITCH, 0.0)
+	var tr := maxf(float(radii.y) - STITCH, 0.0)
+	var br := maxf(float(radii.z) - STITCH, 0.0)
+	var bl := maxf(float(radii.w) - STITCH, 0.0)
+	var p := Vector2(lo.x + tl, lo.y + tl)
+	draw_line(p + Vector2(0, d), p, ch, 2.0)
+	draw_line(p, p + Vector2(d, 0), ch, 2.0)
+	p = Vector2(hi.x - tr, lo.y + tr)
+	draw_line(p - Vector2(d, 0), p, ch, 2.0)
+	draw_line(p, p + Vector2(0, d), ch, 2.0)
+	p = Vector2(lo.x + bl, hi.y - bl)
+	draw_line(p + Vector2(0, -d), p, ch, 2.0)
+	draw_line(p, p + Vector2(d, 0), ch, 2.0)
+	p = Vector2(hi.x - br, hi.y - br)
+	draw_line(p - Vector2(d, 0), p, ch, 2.0)
+	draw_line(p, p + Vector2(0, -d), ch, 2.0)
 
 
 # --- Layer 3: shape accent (hard to the top-right / edges) ------------------
