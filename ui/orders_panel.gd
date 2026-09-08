@@ -20,6 +20,12 @@ var _tickets := {}  # SuitOrder -> { card, days, chips, order }
 
 
 func _ready() -> void:
+	# Stack tickets from the left (clearing the clock), not centred.
+	_row.anchor_left = 0.0
+	_row.anchor_right = 0.0
+	_row.offset_left = 124.0
+	_row.grow_horizontal = Control.GROW_DIRECTION_END
+	_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	EventBus.order_created.connect(_on_created)
 	EventBus.order_part_filled.connect(func(order, _t): _refresh(order))
 	EventBus.order_ready.connect(_refresh)
@@ -73,31 +79,33 @@ func _refresh(order) -> void:
 func _make_ticket(order) -> Dictionary:
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", _ticket_style(order))
-	card.custom_minimum_size = Vector2(150, 0)
+	card.custom_minimum_size = Vector2(116, 0)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", Style.S1)
+	box.add_theme_constant_override("separation", 3)
 	card.add_child(box)
 
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", Style.S1)
 	box.add_child(head)
-	var who := _label(order.customer_name, 15, Style.INK, HORIZONTAL_ALIGNMENT_LEFT)
+	var who := _label(order.customer_name, 13, Style.INK, HORIZONTAL_ALIGNMENT_LEFT)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(who)
-	var days := _label("", 14, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
+	var days := _label("", 12, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
 	head.add_child(days)
 
-	var swatch := MaterialSwatch.new()
-	swatch.swatch_size = 60
-	swatch.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	box.add_child(swatch)
+	# Slim fabric-colour strip — the look at a glance, no roll/durability meter.
 	var mat: MaterialType = order.jacket_material()
-	if mat != null:
-		swatch.setup(mat, mat.roll_length_m)
+	var strip := PanelContainer.new()
+	strip.custom_minimum_size = Vector2(0, 9)
+	var strip_style := StyleBoxFlat.new()
+	strip_style.bg_color = mat.cloth_color if mat != null else Style.CREAM_DARK
+	strip_style.set_corner_radius_all(4)
+	strip.add_theme_stylebox_override("panel", strip_style)
+	box.add_child(strip)
 
-	var spec := _label(order.describe(), 12, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
+	var spec := _label(order.describe(), 11, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
 	spec.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	spec.custom_minimum_size = Vector2(134, 0)
+	spec.custom_minimum_size = Vector2(100, 0)
 	box.add_child(spec)
 
 	var chips := HBoxContainer.new()
@@ -105,7 +113,7 @@ func _make_ticket(order) -> Dictionary:
 	chips.add_theme_constant_override("separation", Style.S1)
 	box.add_child(chips)
 
-	box.add_child(_label("$%d" % order.price, 18, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(_label("$%d" % order.price, 15, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER))
 
 	var ticket := {"card": card, "days": days, "chips": chips, "order": order}
 	_rebuild_chips(ticket)
@@ -164,7 +172,7 @@ func _ticket_style(order) -> StyleBoxFlat:
 	sb.set_corner_radius_all(10)
 	sb.border_width_top = 6  # coloured ticket header strip: state at a glance
 	sb.border_color = _state_color(order)
-	sb.set_content_margin_all(Style.S2)
+	sb.set_content_margin_all(7)
 	sb.shadow_color = Style.SHADOW
 	sb.shadow_size = 5
 	sb.shadow_offset = Vector2(0, 3)
@@ -184,7 +192,7 @@ func _state_color(order) -> Color:
 
 func _pop_in(ticket: Control) -> void:
 	ticket.modulate.a = 0.0
-	ticket.pivot_offset = Vector2(75, 70)
+	ticket.pivot_offset = Vector2(58, 50)
 	ticket.scale = Vector2(0.8, 0.8)
 	var tween := create_tween().set_parallel()
 	tween.tween_property(ticket, "modulate:a", 1.0, 0.2)
