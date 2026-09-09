@@ -74,15 +74,21 @@ func _build() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# A stray event can arrive mid scene-swap once New Game/Load has detached us.
+	# A stray event can arrive mid scene-swap once we've handed off. Cache the
+	# viewport up front so both branches use a verified-non-null reference.
+	var vp := get_viewport()
+	if vp == null:
+		return
 	# Esc backs out of the load list; on the main page it's swallowed so it can't
 	# reach GameState and unpause the frozen sim behind the menu.
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		if _sub:
 			_show_main()
-		get_viewport().set_input_as_handled()
+		vp.set_input_as_handled()
 		return
 	if MenuKit.handle_nav(event, _box):
-		get_viewport().set_input_as_handled()
+		vp.set_input_as_handled()
 
 
 func _show_main() -> void:
@@ -114,17 +120,26 @@ func _show_load() -> void:
 
 
 func _new_game() -> void:
+	_hand_off()
 	SaveManager.new_game()
 
 
 func _continue() -> void:
 	var slot: Variant = SaveManager.latest_slot()
 	if slot != null:
+		_hand_off()
 		SaveManager.load_from(slot)
 
 
 func _load(slot: Variant) -> void:
+	_hand_off()
 	SaveManager.load_from(slot)
+
+
+## About to swap scenes — stop reacting to input so no stray event hits this
+## menu while it's being torn down.
+func _hand_off() -> void:
+	set_process_unhandled_input(false)
 
 
 func _clear() -> void:

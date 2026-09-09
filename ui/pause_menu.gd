@@ -54,19 +54,21 @@ func _build() -> void:
 func _on_pause(paused: bool) -> void:
 	visible = paused
 	if paused:
+		set_process_unhandled_input(true)  # re-arm (a prior Load/Menu disabled it)
 		_show_main()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
+	var vp := get_viewport()
+	if not visible or vp == null:
 		return
 	# Esc backs out of a slot list to the main pause page (instead of unpausing).
 	if _sub and event.is_action_pressed("pause"):
 		_show_main()
-		get_viewport().set_input_as_handled()
+		vp.set_input_as_handled()
 		return
 	if MenuKit.handle_nav(event, _box):
-		get_viewport().set_input_as_handled()
+		vp.set_input_as_handled()
 
 
 func _show_main() -> void:
@@ -109,11 +111,13 @@ func _save(slot: Variant) -> void:
 
 
 func _load(slot: Variant) -> void:
+	set_process_unhandled_input(false)  # stop reacting while the scene swaps
 	GameState.is_paused = false
 	SaveManager.load_from(slot)
 
 
 func _to_menu() -> void:
+	set_process_unhandled_input(false)  # stop reacting while the scene swaps
 	GameState.is_paused = false
 	SaveManager.to_menu()
 
