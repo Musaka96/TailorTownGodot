@@ -59,6 +59,17 @@ const FACE_DIR := "res://assets/textures/faces/"
 const BLINK_MIN := 2.4
 const BLINK_MAX := 6.0
 const BLINK_TIME := 0.11
+# --- Expression + head gestures --------------------------------------------
+# The face reacts while a suit is being fitted: brows rise and the mouth curls up
+# when pleased, brows drop and the mouth turns down when not. A yes-nod / no-shake
+# swings the whole face on a pivot under the head-bone attachment (the AnimationTree
+# owns the skeleton, so we can't pose the head bone; swinging the face reads the
+# same on the cute 2D face and never fights the animation).
+const EXPR_BROW_LIFT := 0.022  # metres brows rise (pleased) / drop (displeased)
+const EXPR_HAPPY_MOUTH := 1.2  # mouth grows into a grin when pleased
+const NOD_ANGLE := 0.30
+const SHAKE_ANGLE := 0.34
+const GESTURE_STEP := 0.13
 
 # Shared across every character so the mouth frames load once.
 static var _mouth_sf: SpriteFrames
@@ -73,6 +84,9 @@ var _carry_hold: Node3D
 var _skel: Skeleton3D
 var _layout: FaceLayout
 var _head_inv := Transform3D.IDENTITY
+var _face_pivot: Node3D  # swings for nod/shake; face sprites hang under it
+var _expr := 0  # -1 displeased, 0 neutral, 1 pleased
+var _gesture: Tween
 var _eye_l: Sprite3D
 var _eye_r: Sprite3D
 var _brow_l: Sprite3D
@@ -139,12 +153,17 @@ func _build_face() -> void:
 	attach.name = "FaceAttach"
 	attach.bone_name = FACE_BONE
 	_skel.add_child(attach)
-	_eye_l = _sprite(attach, _tex("eye"), false)
-	_eye_r = _sprite(attach, _tex("eye"), true)
-	_brow_l = _sprite(attach, _tex("brow"), false)
-	_brow_r = _sprite(attach, _tex("brow"), true)
-	_nose = _sprite(attach, _tex("nose"), false)
-	_mouth = _mouth_sprite(attach)
+	# A pivot between the bone attachment and the sprites: the attachment resyncs to
+	# the bone each frame, but the pivot's own rotation is ours to swing (nod/shake).
+	_face_pivot = Node3D.new()
+	_face_pivot.name = "FacePivot"
+	attach.add_child(_face_pivot)
+	_eye_l = _sprite(_face_pivot, _tex("eye"), false)
+	_eye_r = _sprite(_face_pivot, _tex("eye"), true)
+	_brow_l = _sprite(_face_pivot, _tex("brow"), false)
+	_brow_r = _sprite(_face_pivot, _tex("brow"), true)
+	_nose = _sprite(_face_pivot, _tex("nose"), false)
+	_mouth = _mouth_sprite(_face_pivot)
 	apply_layout(_layout)
 	_blink = Timer.new()
 	_blink.one_shot = true
@@ -171,6 +190,52 @@ func apply_layout(layout: FaceLayout) -> void:
 func set_talking(on: bool) -> void:
 	if _mouth != null:
 		_mouth.play("talk" if on else "closed")
+
+
+## React while being fitted: a lasting smile (liked) or frown (disliked). Brows and
+## mouth shift and hold until reset; pair with nod()/shake() for the one-off gesture.
+func set_expression(liked: bool) -> void:
+	_apply_expression(1 if liked else -1)
+
+
+## Return to the resting face (called when the fitting menu closes).
+func reset_expression() -> void:
+	_apply_expression(0)
+
+
+## A happy yes-nod (pitch) — a quick swing that settles back to centre.
+func nod() -> void:
+	_swing("rotation:x", NOD_ANGLE, [1.0, -0.35, 0.5, 0.0])
+
+
+## A no-no head shake (yaw) — used when the customer dislikes the design.
+func shake() -> void:
+	_swing("rotation:y", SHAKE_ANGLE, [1.0, -1.0, 0.6, -0.35, 0.0])
+
+
+func _apply_expression(mood: int) -> void:
+	_expr = mood
+	if _layout == null:
+		return
+	var lift := EXPR_BROW_LIFT * mood
+	_place(_brow_l, -_layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px)
+	_place(_brow_r, _layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px)
+	if _mouth != null:
+		_mouth.play("closed")
+		_mouth.flip_v = mood < 0  # the resting smile, flipped over into a frown
+		_mouth.pixel_size = _layout.mouth_px * (EXPR_HAPPY_MOUTH if mood > 0 else 1.0)
+
+
+## Swing the face pivot through a sequence of angle multiples, back to rest.
+func _swing(prop: String, angle: float, steps: Array) -> void:
+	if _face_pivot == null:
+		return
+	if _gesture != null and _gesture.is_valid():
+		_gesture.kill()
+	_face_pivot.rotation = Vector3.ZERO
+	_gesture = create_tween()
+	for s: float in steps:
+		_gesture.tween_property(_face_pivot, prop, angle * s, GESTURE_STEP)
 
 
 func _place(node: Node3D, x: float, y_off: float, px: float) -> void:

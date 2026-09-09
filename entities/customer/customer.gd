@@ -117,6 +117,24 @@ func set_talking(on: bool) -> void:
 		_rig.set_talking(on)
 
 
+## React to the suit being fitted. `mood`: 1 pleased, -1 displeased, 0 back to rest.
+## The held smile/frown always updates; `gesture` also plays a one-off nod (pleased)
+## or "no-no" head shake (displeased), used by the suit builder only when the verdict
+## actually flips, so they don't lurch on every tweak.
+func react(mood: int, gesture: bool) -> void:
+	if _rig == null or not _rig.has_method("set_expression"):
+		return
+	if mood == 0:
+		_rig.reset_expression()
+	else:
+		_rig.set_expression(mood > 0)
+	if gesture and mood != 0:
+		if mood > 0:
+			_rig.nod()
+		else:
+			_rig.shake()
+
+
 func set_hair(index: int) -> void:
 	hair_index = index
 	if _rig != null:
