@@ -122,7 +122,14 @@ func _suitable_design(pref) -> Dictionary:
 				pattern = int(p)
 				break
 	var fabric := int(rule.allowed_fabrics[0]) if not rule.allowed_fabrics.is_empty() else 0
-	return _all_parts(fabric, color, pattern)
+	# Jacket + matching trousers, plus a white solid cotton shirt (fine for any brief).
+	var d := {}
+	d[JACKET] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+	d[PANTS] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+	d[SHIRT] = {
+		"fabric": Enums.Fabric.COTTON, "color": 10, "pattern": Enums.Pattern.SOLID, "style_idx": 0
+	}
+	return d
 
 
 func _breaking_design(pref) -> Dictionary:
