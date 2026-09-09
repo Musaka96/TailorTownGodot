@@ -40,6 +40,8 @@ var _sprinting := false
 
 
 func _ready() -> void:
+	# So systems like the roof fader can find us without a wired-up NodePath.
+	add_to_group("player")
 	# The shopkeeper wears a sharp charcoal suit over a white shirt.
 	if _model.has_method("set_palette"):
 		_model.set_palette(Color(0.90, 0.76, 0.66))
