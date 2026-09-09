@@ -60,6 +60,48 @@ static func _short_time(stamp: String) -> String:
 	return "%s %s" % [stamp.substr(5, 5), stamp.substr(11, 5)]
 
 
+# --- Navigation ------------------------------------------------------------
+
+
+## Extra keyboard/controller nav for a column of buttons, on top of Godot's
+## built-in arrow/D-pad/stick focus. Adds the game's own W/S (move_forward/back)
+## and E (interact) so the menus navigate the same way as the rest of the shop.
+## Returns true if it acted (caller should mark the input handled).
+static func handle_nav(event: InputEvent, box: Node) -> bool:
+	var buttons := focusables(box)
+	if buttons.is_empty():
+		return false
+	var cur := -1
+	for i in buttons.size():
+		if buttons[i].has_focus():
+			cur = i
+			break
+	if event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
+		_focus_at(buttons, cur + 1)
+		return true
+	if event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
+		_focus_at(buttons, cur - 1)
+		return true
+	if event.is_action_pressed("interact") and cur >= 0:
+		buttons[cur].emit_signal("pressed")
+		return true
+	return false
+
+
+## Visible, enabled buttons in `box`, in order — the current focus ring.
+static func focusables(box: Node) -> Array:
+	var out: Array = []
+	for child in box.get_children():
+		if child is Button and child.visible and not child.disabled:
+			out.append(child)
+	return out
+
+
+static func _focus_at(buttons: Array, index: int) -> void:
+	var n := buttons.size()
+	buttons[((index % n) + n) % n].grab_focus()
+
+
 static func _box(bg: Color, border: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg

@@ -7,6 +7,7 @@ extends Control
 
 var _box: VBoxContainer
 var _title: Label
+var _sub := false  # true while a Save/Load slot list is showing (Esc goes back)
 
 
 func _ready() -> void:
@@ -56,7 +57,20 @@ func _on_pause(paused: bool) -> void:
 		_show_main()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	# Esc backs out of a slot list to the main pause page (instead of unpausing).
+	if _sub and event.is_action_pressed("pause"):
+		_show_main()
+		get_viewport().set_input_as_handled()
+		return
+	if MenuKit.handle_nav(event, _box):
+		get_viewport().set_input_as_handled()
+
+
 func _show_main() -> void:
+	_sub = false
 	_clear()
 	_title.text = "Paused"
 	_box.add_child(MenuKit.button("Resume", _resume))
@@ -68,6 +82,7 @@ func _show_main() -> void:
 
 
 func _show_slots(saving: bool) -> void:
+	_sub = true
 	_clear()
 	_title.text = "Save to a slot" if saving else "Load a save"
 	for info: Dictionary in SaveManager.slot_infos():
@@ -108,13 +123,17 @@ func _resume() -> void:
 
 
 func _clear() -> void:
+	# queue_free (not free): _clear runs from a button's own pressed handler, and a
+	# node can't be freed while it's mid-emit. Hide now so the container drops it
+	# from layout this frame and the new buttons don't briefly overlap the old.
 	for child in _box.get_children():
-		child.free()
+		child.hide()
+		child.queue_free()
 
 
 func _focus_first() -> void:
 	await get_tree().process_frame
 	for child in _box.get_children():
-		if child is Button and not child.disabled:
+		if child is Button and child.visible and not child.disabled:
 			child.grab_focus()
 			return

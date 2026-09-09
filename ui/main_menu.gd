@@ -10,6 +10,7 @@ const FONT := preload("res://assets/fonts/Fredoka.ttf")
 
 var _box: VBoxContainer
 var _title: Label
+var _sub := false  # true while the Load slot list is showing (Esc goes back)
 
 
 func _ready() -> void:
@@ -72,7 +73,20 @@ func _build() -> void:
 	outer.add_child(_box)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	# Esc backs out of the load list; on the main page it's swallowed so it can't
+	# reach GameState and unpause the frozen sim behind the menu.
+	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+		if _sub:
+			_show_main()
+		get_viewport().set_input_as_handled()
+		return
+	if MenuKit.handle_nav(event, _box):
+		get_viewport().set_input_as_handled()
+
+
 func _show_main() -> void:
+	_sub = false
 	_clear()
 	_title.text = "TailorTown"
 	_box.add_child(MenuKit.button("New Game", _new_game))
@@ -84,6 +98,7 @@ func _show_main() -> void:
 
 
 func _show_load() -> void:
+	_sub = true
 	_clear()
 	_title.text = "Load a save"
 	for info: Dictionary in SaveManager.slot_infos():
@@ -113,13 +128,17 @@ func _load(slot: Variant) -> void:
 
 
 func _clear() -> void:
+	# queue_free (not free): _clear runs from a button's own pressed handler, and a
+	# node can't be freed while it's mid-emit. Hide now so the container drops it
+	# from layout this frame and the new buttons don't briefly overlap the old.
 	for child in _box.get_children():
-		child.free()
+		child.hide()
+		child.queue_free()
 
 
 func _focus_first() -> void:
 	await get_tree().process_frame
 	for child in _box.get_children():
-		if child is Button and not child.disabled:
+		if child is Button and child.visible and not child.disabled:
 			child.grab_focus()
 			return
