@@ -56,10 +56,11 @@ func _process(delta: float) -> void:
 # --- Public API ------------------------------------------------------------
 
 
-## Begin (or restart) the shift from the start hour.
-func start_shift() -> void:
-	_elapsed = 0.0
-	hour = start_hour()
+## Begin the shift. `at_progress` (0..1) is where in the day to start — 0 is the
+## morning open (a normal new day), a saved value resumes where the player left off.
+func start_shift(at_progress := 0.0) -> void:
+	_elapsed = clampf(at_progress, 0.0, 0.999) * _shift_seconds()
+	hour = lerpf(start_hour(), end_hour(), progress())
 	running = true
 	EventBus.shift_started.emit(hour)
 

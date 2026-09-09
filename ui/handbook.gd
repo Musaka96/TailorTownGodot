@@ -105,9 +105,9 @@ func _refresh() -> void:
 		_index.add_child(card)
 		if i == _topic:
 			selected_card = card
-	# Keep the highlighted topic in view as you page down a long chapter.
+	# Keep the highlighted topic in view, both directions, as you page a long chapter.
 	if _index_scroll != null and selected_card != null:
-		_index_scroll.call_deferred("ensure_control_visible", selected_card)
+		_scroll_into_view(_index_scroll, selected_card)
 
 	var entry: Dictionary = entries[_topic]
 	for child in _preview.get_children():
@@ -116,6 +116,15 @@ func _refresh() -> void:
 	if not preview.is_empty():
 		_preview.add_child(_make_preview(preview))
 	_body.text = "[b]%s[/b]\n\n%s" % [entry["title"], entry["body"]]
+
+
+## Scroll `card` into view after a frame, so the freshly rebuilt list has been laid
+## out first — otherwise ensure_control_visible reads stale positions and only ever
+## follows one direction.
+func _scroll_into_view(scroll: ScrollContainer, card: Control) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(scroll) and is_instance_valid(card):
+		scroll.ensure_control_visible(card)
 
 
 func _make_preview(preview: Dictionary) -> Control:
@@ -166,17 +175,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("move_right"):
 		_chapter = wrapi(_chapter + 1, 0, _chapters.size())
 		_topic = 0
-		Sfx.play("page_turn")
+		Sfx.play_single("page_turn")
 	elif event.is_action_pressed("move_left"):
 		_chapter = wrapi(_chapter - 1, 0, _chapters.size())
 		_topic = 0
-		Sfx.play("page_turn")
+		Sfx.play_single("page_turn")
 	elif event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
 		_topic = wrapi(_topic + 1, 0, count)
-		Sfx.play("page_turn", -8.0)
+		Sfx.play_single("page_turn", -8.0)
 	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
 		_topic = wrapi(_topic - 1, 0, count)
-		Sfx.play("page_turn", -8.0)
+		Sfx.play_single("page_turn", -8.0)
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		close()
 		get_viewport().set_input_as_handled()

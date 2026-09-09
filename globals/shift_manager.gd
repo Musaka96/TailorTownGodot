@@ -28,6 +28,16 @@ func is_open() -> bool:
 	return open
 
 
+## The wallet balance at the start of today, for the end-of-day "earned" tally.
+func day_start_money() -> int:
+	return _day_start_money
+
+
+## Restore that baseline after a mid-day load so the day's earnings read correctly.
+func set_day_baseline(amount: int) -> void:
+	_day_start_money = amount
+
+
 # --- Interactable target (the door) ----------------------------------------
 
 

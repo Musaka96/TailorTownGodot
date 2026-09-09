@@ -66,6 +66,7 @@ var music_volume := -17.0
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
 var _loops: Dictionary = {}
+var _singles: Dictionary = {}  # key -> its one dedicated player (play_single)
 var _music: AudioStreamPlayer
 var _next := 0
 
@@ -113,6 +114,26 @@ func play(key: String, volume_db := 0.0, pitch_min := 0.98, pitch_max := 1.02) -
 	p.play()
 
 
+## Like play(), but only one instance of `key` sounds at a time: each key gets its
+## own dedicated player and retriggering stops the previous hit instead of layering.
+## Use it for sounds that fire in quick succession (page turns, menu-move blips) so
+## they don't stack when the player scrubs fast.
+func play_single(key: String, volume_db := 0.0, pitch_min := 0.98, pitch_max := 1.02) -> void:
+	var stream := _pick(key)
+	if stream == null:
+		return
+	var p: AudioStreamPlayer = _singles.get(key)
+	if p == null:
+		p = AudioStreamPlayer.new()
+		add_child(p)
+		_singles[key] = p
+	p.stop()
+	p.stream = stream
+	p.volume_db = sfx_volume + volume_db
+	p.pitch_scale = randf_range(pitch_min, pitch_max)
+	p.play()
+
+
 ## Play the right navigation blip for a menu input event — call once at the top of a
 ## menu's _unhandled_input. Directional actions tick, accept confirms, cancel backs out.
 func ui(event: InputEvent) -> void:
@@ -136,7 +157,7 @@ func ui(event: InputEvent) -> void:
 		or event.is_action_pressed("ui_up")
 		or event.is_action_pressed("ui_down")
 	):
-		play("ui_move", -7.0)
+		play_single("ui_move", -7.0)
 
 
 ## Resolve a key to a single stream — a random one when the key holds a variant set.

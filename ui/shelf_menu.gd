@@ -90,9 +90,18 @@ func _rebuild() -> void:
 		_list.add_child(card)
 		if i == _index:
 			selected_card = card
-	# Follow the selection as you scroll past the visible rows.
+	# Follow the selection both ways as you scroll past the visible rows.
 	if _scroll != null and selected_card != null:
-		_scroll.call_deferred("ensure_control_visible", selected_card)
+		_scroll_into_view(selected_card)
+
+
+## Scroll the selected card into view after a frame, so the rebuilt list has laid
+## out first — otherwise ensure_control_visible reads stale positions and only
+## follows one direction.
+func _scroll_into_view(card: Control) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(_scroll) and is_instance_valid(card):
+		_scroll.ensure_control_visible(card)
 
 
 func _make_card(roll, selected: bool) -> Control:
