@@ -20,11 +20,15 @@ func open(customer, actor) -> void:
 	_style()
 	_fill()
 	visible = true
+	if _customer != null and _customer.has_method("set_talking"):
+		_customer.set_talking(true)
 
 
 func close() -> void:
 	visible = false
 	GameState.input_locked = false
+	if _customer != null and _customer.has_method("set_talking"):
+		_customer.set_talking(false)
 	_customer = null
 
 

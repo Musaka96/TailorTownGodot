@@ -111,6 +111,12 @@ func apply_look(skin: Color) -> void:
 
 
 ## Pick a hairstyle from the wardrobe library.
+## Flap the mouth while a line is being said (driven by the greeting/request UI).
+func set_talking(on: bool) -> void:
+	if _rig != null:
+		_rig.set_talking(on)
+
+
 func set_hair(index: int) -> void:
 	hair_index = index
 	if _rig != null:

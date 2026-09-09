@@ -31,10 +31,29 @@ const CLOTH_UV_SCALE := 6.0
 # One-off gestures that set_moving must not interrupt (they return to idle/walk).
 const ONE_SHOTS := ["wave", "accept"]
 
+# --- 2D face (cute animated eyes + mouth on the head) ----------------------
+# Head bone the face rides on (KayKit Rig_Medium), and where the sprites sit in the
+# skeleton's rest space (head front is ~z 0.44; tuned so they hug the face).
+const FACE_BONE := "head_2"
+const FACE_DIR := "res://assets/textures/faces/"
+const EYE_POS := Vector3(0.0, 1.73, 0.47)
+const MOUTH_POS := Vector3(0.0, 1.57, 0.47)
+const EYE_PIXEL := 0.0058
+const MOUTH_PIXEL := 0.0050
+const BLINK_MIN := 2.4
+const BLINK_MAX := 6.0
+
+# Shared across every character so the textures load once.
+static var _eyes_sf: SpriteFrames
+static var _mouth_sf: SpriteFrames
+
 var _pending := ""
 var _oneshot_done := Callable()
 
 var _skel: Skeleton3D
+var _eyes: AnimatedSprite3D
+var _mouth: AnimatedSprite3D
+var _blink: Timer
 # Each slot maps role -> MeshInstance3D currently filling it.
 var _top: Dictionary = {}
 var _bottom: Dictionary = {}
@@ -63,6 +82,101 @@ func _ready() -> void:
 		_anim.animation_finished.connect(_on_finished)
 		if not _anim.is_playing():
 			_anim.play("idle")
+	_build_face()
+
+
+# --- 2D face ---------------------------------------------------------------
+
+
+## Mount cute eyes + mouth on the head bone. Billboard is OFF (the camera is fixed
+## and characters turn away, so the face must rotate with the head, not the camera);
+## double-sided OFF means it simply vanishes when they face away. Eyes blink on their
+## own timer; the mouth flaps while set_talking(true).
+func _build_face() -> void:
+	if _skel == null:
+		return
+	var idx := _skel.find_bone(FACE_BONE)
+	if idx < 0:
+		return
+	var attach := BoneAttachment3D.new()
+	attach.name = "FaceAttach"
+	attach.bone_name = FACE_BONE
+	_skel.add_child(attach)
+	var inv := _skel.get_bone_global_pose(idx).affine_inverse()
+	_eyes = _face_sprite(_eyes_frames(), EYE_PIXEL, "open")
+	_eyes.transform = inv * Transform3D(Basis(), EYE_POS)
+	attach.add_child(_eyes)
+	_mouth = _face_sprite(_mouth_frames(), MOUTH_PIXEL, "closed")
+	_mouth.transform = inv * Transform3D(Basis(), MOUTH_POS)
+	attach.add_child(_mouth)
+	_eyes.animation_finished.connect(_on_blink_done)
+	_blink = Timer.new()
+	_blink.one_shot = true
+	add_child(_blink)
+	_blink.timeout.connect(_do_blink)
+	_schedule_blink()
+
+
+## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
+func set_talking(on: bool) -> void:
+	if _mouth != null:
+		_mouth.play("talk" if on else "closed")
+
+
+func _face_sprite(frames: SpriteFrames, pixel: float, anim: String) -> AnimatedSprite3D:
+	var s := AnimatedSprite3D.new()
+	s.sprite_frames = frames
+	s.pixel_size = pixel
+	s.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	s.shaded = false
+	s.double_sided = false
+	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	s.play(anim)
+	return s
+
+
+func _schedule_blink() -> void:
+	if _blink != null:
+		_blink.start(randf_range(BLINK_MIN, BLINK_MAX))
+
+
+func _do_blink() -> void:
+	if _eyes != null:
+		_eyes.play("blink")
+	_schedule_blink()
+
+
+func _on_blink_done() -> void:
+	if _eyes != null and _eyes.animation == "blink":
+		_eyes.play("open")
+
+
+static func _eyes_frames() -> SpriteFrames:
+	if _eyes_sf == null:
+		_eyes_sf = SpriteFrames.new()
+		_add_anim(_eyes_sf, "open", ["eyes_open"], 8.0, false)
+		_add_anim(_eyes_sf, "blink", ["eyes_blink", "eyes_blink"], 14.0, false)
+	return _eyes_sf
+
+
+static func _mouth_frames() -> SpriteFrames:
+	if _mouth_sf == null:
+		_mouth_sf = SpriteFrames.new()
+		_add_anim(_mouth_sf, "closed", ["mouth_closed"], 8.0, false)
+		_add_anim(
+			_mouth_sf, "talk", ["mouth_closed", "mouth_mid", "mouth_open", "mouth_mid"], 9.0, true
+		)
+	return _mouth_sf
+
+
+static func _add_anim(
+	sf: SpriteFrames, anim: String, files: Array, speed: float, loop: bool
+) -> void:
+	sf.add_animation(anim)
+	sf.set_animation_speed(anim, speed)
+	sf.set_animation_loop(anim, loop)
+	for f: String in files:
+		sf.add_frame(anim, load(FACE_DIR + f + ".png") as Texture2D)
 
 
 # --- Animation -------------------------------------------------------------
