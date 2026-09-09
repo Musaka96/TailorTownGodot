@@ -147,15 +147,56 @@ func _make_card(item, selected: bool) -> Control:
 
 
 func _make_swatch(item) -> Control:
+	if item is Suit:
+		return _suit_preview(item)
 	var mat: MaterialType = _material_of(item)
 	if mat != null:
 		var swatch := MaterialSwatch.new()
 		swatch.setup(mat, mat.roll_length_m)
 		return swatch
-	# A suit with no jacket cloth: fall back to a flat primary-colour chip.
+	return _color_chip(Style.CARD, 84)
+
+
+## A suit previews every part it was built from — a labelled mini swatch per piece.
+func _suit_preview(item) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", Style.S2)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	var any := false
+	for t in [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]:
+		if item.parts.has(t):
+			box.add_child(_part_swatch(t, item.parts[t]))
+			any = true
+	if not any:
+		var color: Color = item.primary_color if "primary_color" in item else Style.CARD
+		return _color_chip(color, 84)
+	return box
+
+
+func _part_swatch(garment_type: int, spec: Dictionary) -> Control:
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", Style.S1)
+	var mat: MaterialType = spec.get("material")
+	if mat != null:
+		var s := MaterialSwatch.new()
+		s.swatch_size = 52
+		s.setup(mat, mat.roll_length_m)
+		col.add_child(s)
+	else:
+		col.add_child(_color_chip(Style.CARD, 52))
+	var lbl := Label.new()
+	lbl.text = Enums.garment_type_name(garment_type)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
+	lbl.add_theme_font_size_override("font_size", 12)
+	col.add_child(lbl)
+	return col
+
+
+func _color_chip(color: Color, chip_size: int) -> Control:
 	var chip := Panel.new()
-	chip.custom_minimum_size = Vector2(84, 84)
-	var color: Color = item.primary_color if "primary_color" in item else Style.CARD
+	chip.custom_minimum_size = Vector2(chip_size, chip_size)
 	chip.add_theme_stylebox_override("panel", Style.bar(color, 12))
 	return chip
 
@@ -181,11 +222,7 @@ func _detail_of(item) -> String:
 
 
 func _material_of(item) -> MaterialType:
-	if item is GarmentPiece:
-		return item.material
-	if item is Suit and item.parts.has(Enums.GarmentType.JACKET):
-		return item.parts[Enums.GarmentType.JACKET].get("material")
-	return null
+	return item.material if item is GarmentPiece else null
 
 
 # --- Input -----------------------------------------------------------------
