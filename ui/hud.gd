@@ -218,11 +218,23 @@ func _show_held(item) -> void:
 	if item == null:
 		_held.text = ""
 		return
-	# Rolls report remaining_length_m; cut pieces report length_m.
-	var meters = item.get("remaining_length_m")
-	var noun := "left"
-	if meters == null:
-		meters = item.get("length_m")
-		noun = "piece"
-	var mat_name: String = item.material.display_name if item.material else "cloth"
-	_held.text = "Carrying: %s   (%.1f m %s)" % [mat_name, float(meters), noun]
+	_held.text = "Carrying: %s" % _held_desc(item)
+
+
+## A readable label for whatever is in hand — each carryable type reports different
+## things (rolls/pieces have length, garments have type/size, a suit has quality).
+func _held_desc(item) -> String:
+	if item is MaterialRoll:
+		return "%s  (%.1f m left)" % [_mat_name(item), item.remaining_length_m]
+	if item is FabricPiece:
+		return "%s  (%.1f m piece)" % [_mat_name(item), item.length_m]
+	if item is GarmentPiece:
+		var kind := Enums.garment_type_name(item.garment_type)
+		return "%s  (%s, %s)" % [kind, Enums.size_name(item.size), _mat_name(item)]
+	if item is Suit:
+		return "finished suit  (Q %d%%)" % roundi(item.quality * 100.0)
+	return "item"
+
+
+func _mat_name(item) -> String:
+	return item.material.display_name if item.material != null else "cloth"
