@@ -99,3 +99,34 @@ func _package(actor) -> void:
 	EventBus.suit_packaged.emit(suit)
 	# Deliver against an open order (pays out and consumes it) or hand it over.
 	Orders.submit(suit, actor)
+
+
+# --- Save / load -----------------------------------------------------------
+
+
+func save_state() -> Dictionary:
+	var dressed := {}
+	for t: Variant in _dressed.keys():
+		dressed[int(t)] = SaveCodec.item_to(_dressed[t])
+	var order: Array = []
+	for t in _order:
+		order.append(int(t))
+	return {"dressed": dressed, "order": order}
+
+
+func load_state(data: Dictionary) -> void:
+	for t: Variant in _dressed.keys():
+		_dressed[t].queue_free()
+	_dressed.clear()
+	_order.clear()
+	var dressed: Dictionary = data.get("dressed", {})
+	for t: Variant in dressed.keys():
+		var piece: Node = SaveCodec.item_from(dressed[t])
+		if piece == null:
+			continue
+		var gt := int(t)
+		add_child(piece)
+		piece.place_on(_slots[gt])
+		_dressed[gt] = piece
+	for t: Variant in data.get("order", []):
+		_order.append(int(t))

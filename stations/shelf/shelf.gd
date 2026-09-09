@@ -96,3 +96,27 @@ func _store(roll: Node) -> void:
 func _reflow() -> void:
 	for i in stored.size():
 		stored[i].place_on(_slots[i])
+
+
+# --- Save / load -----------------------------------------------------------
+
+
+func save_state() -> Dictionary:
+	var items: Array = []
+	for roll in stored:
+		items.append(SaveCodec.item_to(roll))
+	return {"rolls": items}
+
+
+func load_state(data: Dictionary) -> void:
+	for roll in stored:
+		roll.queue_free()
+	stored.clear()
+	for d: Dictionary in data.get("rolls", []):
+		if stored.size() >= _slots.size():
+			break
+		var roll: Node = SaveCodec.item_from(d)
+		if roll == null:
+			continue
+		add_child(roll)
+		_store(roll)

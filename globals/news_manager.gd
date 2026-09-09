@@ -83,6 +83,18 @@ func event_bias(day: int, rng: RandomNumberGenerator) -> Dictionary:
 	return {}
 
 
+## Restore which articles have already run (from a save). Call before the day's
+## shift_started so already-seen, non-repeatable stories don't reappear; the next
+## _compile then rebuilds today's edition and trend honouring this history.
+func restore_seen(seen: Dictionary) -> void:
+	_seen = seen.duplicate()
+
+
+## The set of article ids that have run, for the save file.
+func seen_snapshot() -> Dictionary:
+	return _seen.duplicate()
+
+
 # --- Internals -------------------------------------------------------------
 
 

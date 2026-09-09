@@ -104,6 +104,53 @@ func is_ready(order: SuitOrder) -> bool:
 	return order != null and order.state == SuitOrder.State.READY
 
 
+# --- Save / load -----------------------------------------------------------
+
+
+## Snapshot the open order book for a save file.
+func save_state() -> Array:
+	var out: Array = []
+	for order in active:
+		out.append(
+			{
+				"customer_name": order.customer_name,
+				"design": order.design.duplicate(true),
+				"price": order.price,
+				"skin": order.skin,
+				"hair_index": order.hair_index,
+				"hair_color": order.hair_color,
+				"deadline_days": order.deadline_days,
+				"days_left": order.days_left,
+				"state": order.state,
+				"filled": order.filled.duplicate(true),
+			}
+		)
+	return out
+
+
+## Rebuild the order book from a save and refresh the board. Any order already
+## past its deadline re-fires order_due (its due_fired stays false), so the
+## returning-customer flow resumes cleanly after loading.
+func restore(saved: Array) -> void:
+	active.clear()
+	for d: Dictionary in saved:
+		var order := SuitOrder.new()
+		order.customer_name = str(d.get("customer_name", "Customer"))
+		order.design = (d.get("design", {}) as Dictionary).duplicate(true)
+		order.price = int(d.get("price", 0))
+		order.skin = d.get("skin", Color(0.87, 0.72, 0.60))
+		order.hair_index = int(d.get("hair_index", 0))
+		order.hair_color = d.get("hair_color", Color(0.14, 0.11, 0.09))
+		order.deadline_days = int(d.get("deadline_days", 3))
+		order.days_left = float(d.get("days_left", 3.0))
+		order.state = int(d.get("state", SuitOrder.State.OPEN))
+		order.filled = (d.get("filled", {}) as Dictionary).duplicate(true)
+		active.append(order)
+		EventBus.order_created.emit(order)
+		if order.state == SuitOrder.State.READY:
+			EventBus.order_ready.emit(order)
+
+
 # --- Debug helpers (used by the F3 debug menu) -----------------------------
 
 

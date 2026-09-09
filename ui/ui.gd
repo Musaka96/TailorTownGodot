@@ -12,6 +12,7 @@ var clock: Control
 var reputation: Control
 var newspaper: Control
 var day_transition: Control
+var pause_menu: Control
 
 var _toast: Label
 
@@ -54,6 +55,7 @@ func _ready() -> void:
 	reputation = _build_reputation()
 	newspaper = _build_newspaper(theme)
 	day_transition = _build_day_transition()
+	pause_menu = _build_pause_menu(theme)
 
 
 func open_shelf_menu(shelf, actor) -> void:
@@ -236,6 +238,17 @@ func _build_newspaper(theme: Theme) -> Control:
 	paper.theme = theme
 	add_child(paper)
 	return paper
+
+
+## The pause overlay (Resume / Save / Load / Main Menu / Quit), attached above the
+## HUD. Processes while the tree is paused so its buttons stay live. Built in code.
+func _build_pause_menu(theme: Theme) -> Control:
+	var menu := Control.new()
+	menu.name = "PauseMenu"
+	menu.set_script(load("res://ui/pause_menu.gd"))
+	menu.theme = theme
+	add_child(menu)
+	return menu
 
 
 ## Full-screen day-change animation, attached to the root UI (above the HUD) so it

@@ -9,6 +9,7 @@ var _chapters: Array = []
 var _chapter := 0
 var _topic := 0
 var _decor_built := false
+var _index_scroll: ScrollContainer
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -49,7 +50,9 @@ func _style() -> void:
 	_body.bbcode_enabled = true
 	_body.scroll_active = true
 	_body.fit_content = false
-	_body.custom_minimum_size = Vector2(0, 380)
+	# A stable article width and a reserved-height preview keep the book the same
+	# size on every tab — short chapters/articles no longer shrink or grow it.
+	_body.custom_minimum_size = Vector2(360, 380)
 	_body.add_theme_color_override("default_color", Style.INK)
 	_body.add_theme_font_override("bold_font", Style.bold_font())
 	_body.add_theme_font_size_override("normal_font_size", 17)
@@ -73,6 +76,12 @@ func _build_decor_once() -> void:
 	pages.add_child(scroll)
 	pages.move_child(scroll, pos)
 	_index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_index_scroll = scroll
+
+	# Reserve a fixed slot for the preview so a tab with a big photo and one with a
+	# small swatch (or none) don't change the book's height.
+	_preview.custom_minimum_size = Vector2(230, 300)
+	_preview.alignment = BoxContainer.ALIGNMENT_CENTER
 
 	_hint.visible = false
 	var bar := Style.hint_bar([["A/D", "Chapter"], ["W/S", "Topic"], ["Esc", "Close"]])
@@ -90,8 +99,15 @@ func _refresh() -> void:
 	_topic = clampi(_topic, 0, entries.size() - 1)
 	for child in _index.get_children():
 		child.queue_free()
+	var selected_card: Control = null
 	for i in entries.size():
-		_index.add_child(_make_card(entries[i]["title"], i == _topic, 16))
+		var card := _make_card(entries[i]["title"], i == _topic, 16)
+		_index.add_child(card)
+		if i == _topic:
+			selected_card = card
+	# Keep the highlighted topic in view as you page down a long chapter.
+	if _index_scroll != null and selected_card != null:
+		_index_scroll.call_deferred("ensure_control_visible", selected_card)
 
 	var entry: Dictionary = entries[_topic]
 	for child in _preview.get_children():

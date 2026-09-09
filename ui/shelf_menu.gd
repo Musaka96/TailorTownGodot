@@ -13,6 +13,7 @@ var _actor = null
 var _index := 0
 var _cut_length := 1.0
 var _decor_built := false
+var _scroll: ScrollContainer
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -64,6 +65,7 @@ func _build_decor_once() -> void:
 	box.add_child(scroll)
 	box.move_child(scroll, pos)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll = scroll
 	_hint.visible = false
 	var pairs := [
 		["W/S", "Select"],
@@ -82,8 +84,15 @@ func _rebuild() -> void:
 	var rolls: Array = _shelf.stored
 	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [rolls.size(), _cut_length]
 
+	var selected_card: Control = null
 	for i in rolls.size():
-		_list.add_child(_make_card(rolls[i], i == _index))
+		var card := _make_card(rolls[i], i == _index)
+		_list.add_child(card)
+		if i == _index:
+			selected_card = card
+	# Follow the selection as you scroll past the visible rows.
+	if _scroll != null and selected_card != null:
+		_scroll.call_deferred("ensure_control_visible", selected_card)
 
 
 func _make_card(roll, selected: bool) -> Control:

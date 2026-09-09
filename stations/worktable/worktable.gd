@@ -65,3 +65,25 @@ func finish_cut(success: bool, type: int, size: int, style: String, quality: flo
 
 func _is_piece(node: Node) -> bool:
 	return node is FabricPiece or node is GarmentPiece
+
+
+# --- Save / load -----------------------------------------------------------
+
+
+func save_state() -> Dictionary:
+	return {"item": SaveCodec.item_to(_item) if _item != null else {}}
+
+
+func load_state(data: Dictionary) -> void:
+	if _item != null:
+		_item.queue_free()
+		_item = null
+	var d: Dictionary = data.get("item", {})
+	if d.is_empty():
+		return
+	var node: Node = SaveCodec.item_from(d)
+	if node == null:
+		return
+	_slot.add_child(node)
+	node.place_on(_slot)
+	_item = node

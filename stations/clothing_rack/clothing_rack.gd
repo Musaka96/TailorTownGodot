@@ -46,3 +46,28 @@ func interact(actor) -> void:
 func _reflow() -> void:
 	for i in stored.size():
 		stored[i].place_on(_slots[i])
+
+
+# --- Save / load -----------------------------------------------------------
+
+
+func save_state() -> Dictionary:
+	var items: Array = []
+	for piece in stored:
+		items.append(SaveCodec.item_to(piece))
+	return {"pieces": items}
+
+
+func load_state(data: Dictionary) -> void:
+	for piece in stored:
+		piece.queue_free()
+	stored.clear()
+	for d: Dictionary in data.get("pieces", []):
+		if stored.size() >= _slots.size():
+			break
+		var piece: Node = SaveCodec.item_from(d)
+		if piece == null:
+			continue
+		add_child(piece)
+		piece.place_on(_slots[stored.size()])
+		stored.append(piece)
