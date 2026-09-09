@@ -5,8 +5,10 @@ extends SceneTree
 ## an instance, so it is a fully functional shop for testing, yet writing it never
 ## touches the map or any other scene. Add scratch/test props under "DevProps".
 ##
-## Deliberately separate from build_phase1.gd (which regenerates every scene and
-## would clobber the hand-edited map). Run headless:
+## All the game scenes (main, room, stations, items, player, customer, UI) are now
+## hand-owned and edited in the Godot editor — the old build_phase1 generator was
+## retired. This dev sandbox is the one scene a builder still writes, and it only
+## nests those hand-edited scenes as instances, so it never clobbers them. Run:
 ##   godot --headless --path . --script res://tools/build_dev.gd
 
 const ROOM_SCENE := "res://scenes/world/shop_room.tscn"
