@@ -28,13 +28,22 @@ const CASUAL_BOTTOMS := [Color("39414f"), Color("5b4a3a"), Color("4a4a4a")]
 # Fabric tiling across the mesh UVs (UV-mapped so the weave locks to the surface).
 const CLOTH_UV_SCALE := 6.0
 
-# One-off gestures that set_moving must not interrupt (they return to idle/walk).
-const ONE_SHOTS := ["wave", "accept"]
+# --- Locomotion / carry blending (AnimationTree) ---------------------------
+# The rig blends on an AnimationTree: idle<->walk by speed, with the holding pose
+# layered over ONLY the arm bones while carrying (so the legs keep striding and the
+# torso keeps swaying). wave/accept fire as full-body one-shots over the blend.
+const ARM_BONES := [
+	"upperarm.l", "lowerarm.l", "wrist.l", "hand.l",
+	"upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
+]
+# How fast the blend params ease toward their targets (per second).
+const LOCO_BLEND_SPEED := 6.0
+const CARRY_BLEND_SPEED := 8.0
 
 # --- Carrying --------------------------------------------------------------
 # A carried item hangs off a point parented to the right-hand bone, so it moves
 # with the hand through the holding animation and turns with the character. The
-# offset seats the item into the hands (tuned against the Holding_A pose).
+# offset seats the item into the hands (tuned against the Holding_B pose).
 const CARRY_BONE := "hand.r"
 ## Seat the item across the front (rotated flat like a carried bolt), tuned against
 ## the Holding_B two-handed pose.
@@ -54,10 +63,11 @@ const BLINK_TIME := 0.11
 # Shared across every character so the mouth frames load once.
 static var _mouth_sf: SpriteFrames
 
-var _pending := ""
-var _oneshot_done := Callable()
-var _carrying := false
-var _moving := false
+var _tree: AnimationTree
+var _loco := 0.0  # current idle(0)->walk(1) blend
+var _loco_target := 0.0
+var _carry_amt := 0.0  # current carry-overlay blend
+var _carry_target := 0.0
 var _carry_hold: Node3D
 
 var _skel: Skeleton3D
@@ -95,11 +105,18 @@ func _ready() -> void:
 		if _anim.has_animation_library(""):
 			_anim.remove_animation_library("")
 		_anim.add_animation_library("", CharAnims.library())
-		_anim.animation_finished.connect(_on_finished)
-		if not _anim.is_playing():
-			_anim.play("idle")
+		_build_tree()
 	_build_face()
 	_build_carry()
+
+
+func _process(delta: float) -> void:
+	if _tree == null:
+		return
+	_loco = move_toward(_loco, _loco_target, LOCO_BLEND_SPEED * delta)
+	_carry_amt = move_toward(_carry_amt, _carry_target, CARRY_BLEND_SPEED * delta)
+	_tree.set("parameters/loco/blend_amount", _loco)
+	_tree.set("parameters/carry/blend_amount", _carry_amt)
 
 
 # --- 2D face ---------------------------------------------------------------
@@ -245,12 +262,10 @@ func carry_point() -> Node3D:
 	return _carry_hold
 
 
-## Whether the character is holding something; switches the holding pose on/off.
+## Whether the character is holding something; eases the arm-only holding overlay
+## in/out (see _process).
 func set_carrying(on: bool) -> void:
-	if on == _carrying:
-		return
-	_carrying = on
-	_refresh_locomotion()
+	_carry_target = 1.0 if on else 0.0
 
 
 ## Build the hand-bone attachment the carried item rides on.
@@ -270,56 +285,103 @@ func _build_carry() -> void:
 # --- Animation -------------------------------------------------------------
 
 
-## Report walking vs standing; the actual clip also depends on whether we're
-## carrying (see _refresh_locomotion).
+## Standing vs walking, as a boolean — eases the idle<->walk blend fully in/out.
+## For a smoother, speed-proportional blend, call set_locomotion instead.
 func set_moving(moving: bool) -> void:
-	if moving == _moving:
-		return
-	_moving = moving
-	_refresh_locomotion()
+	_loco_target = 1.0 if moving else 0.0
 
 
-## Pick the base clip from the current state: the holding pose while carrying,
-## otherwise walk/idle. A one-shot gesture defers the change until it finishes.
-func _refresh_locomotion() -> void:
-	if _anim == null:
-		return
-	var want := "carry" if _carrying else ("walk" if _moving else "idle")
-	if _anim.current_animation in ONE_SHOTS:
-		_pending = want
-		return
-	if _anim.current_animation == want or not _anim.has_animation(want):
-		return
-	_anim.play(want, 0.2)
+## Drive the idle<->walk blend directly from a 0..1 speed ratio (the player passes
+## its horizontal speed / max speed), so setting off and stopping ease naturally.
+func set_locomotion(speed_ratio: float) -> void:
+	_loco_target = clampf(speed_ratio, 0.0, 1.0)
 
 
+## A friendly wave — a full-body one-shot layered over the current blend.
 func wave() -> void:
-	_play_once("wave", Callable())
+	if _tree != null:
+		_tree.set("parameters/wave/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
+## Play the accept/celebrate gesture; `done` fires when it finishes (customers use
+## it to leave afterwards). A full-body one-shot over the blend.
 func celebrate(done := Callable()) -> void:
-	_play_once("accept", done)
-
-
-func _play_once(anim_name: String, done: Callable) -> void:
-	if _anim == null or not _anim.has_animation(anim_name):
+	if _tree == null:
 		if done.is_valid():
 			done.call()
 		return
-	if not (_anim.current_animation in ONE_SHOTS):
-		_pending = _anim.current_animation
-	_oneshot_done = done
-	_anim.play(anim_name, 0.15)
+	_tree.set("parameters/accept/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	if done.is_valid():
+		var length := 0.6
+		var clip := _anim.get_animation("accept") if _anim != null else null
+		if clip != null:
+			length = clip.length
+		get_tree().create_timer(length).timeout.connect(done)
 
 
-func _on_finished(anim_name: String) -> void:
-	if anim_name in ONE_SHOTS:
-		_pending = ""
-		_refresh_locomotion()  # return to carry / walk / idle per current state
-		var done := _oneshot_done
-		_oneshot_done = Callable()
-		if done.is_valid():
-			done.call()
+## Build the blend tree: idle<->walk by speed, the holding pose layered over only
+## the arm bones while carrying, and wave/accept as full-body one-shots on top.
+func _build_tree() -> void:
+	var tree := AnimationNodeBlendTree.new()
+	tree.add_node("idle", _anim_node("idle"))
+	tree.add_node("walk", _anim_node("walk"))
+	tree.add_node("carry_pose", _anim_node("carry"))
+	tree.add_node("wave_pose", _anim_node("wave"))
+	tree.add_node("accept_pose", _anim_node("accept"))
+
+	var loco := AnimationNodeBlend2.new()
+	tree.add_node("loco", loco)
+	tree.connect_node("loco", 0, "idle")
+	tree.connect_node("loco", 1, "walk")
+
+	# Arm-only holding overlay: filter the arm bone tracks so at amount 1 the arms
+	# come from the holding pose while everything else stays with locomotion.
+	var carry := AnimationNodeBlend2.new()
+	carry.filter_enabled = true
+	tree.add_node("carry", carry)
+	tree.connect_node("carry", 0, "loco")
+	tree.connect_node("carry", 1, "carry_pose")
+
+	var wave_os := AnimationNodeOneShot.new()
+	wave_os.fadein_time = 0.15
+	wave_os.fadeout_time = 0.25
+	tree.add_node("wave", wave_os)
+	tree.connect_node("wave", 0, "carry")
+	tree.connect_node("wave", 1, "wave_pose")
+
+	var accept_os := AnimationNodeOneShot.new()
+	accept_os.fadein_time = 0.15
+	accept_os.fadeout_time = 0.25
+	tree.add_node("accept", accept_os)
+	tree.connect_node("accept", 0, "wave")
+	tree.connect_node("accept", 1, "accept_pose")
+	tree.connect_node("output", 0, "accept")
+
+	_apply_arm_filter(carry)
+
+	_tree = AnimationTree.new()
+	_tree.tree_root = tree
+	add_child(_tree)
+	_tree.anim_player = _tree.get_path_to(_anim)
+	_tree.active = true
+
+
+func _anim_node(clip: String) -> AnimationNodeAnimation:
+	var node := AnimationNodeAnimation.new()
+	node.animation = clip
+	return node
+
+
+## Filter the carry blend to the arm bone tracks (matched against the real track
+## paths of the carry clip, so the path format is always exact).
+func _apply_arm_filter(blend: AnimationNodeBlend2) -> void:
+	var clip := _anim.get_animation("carry") if _anim != null else null
+	if clip == null:
+		return
+	for i in clip.get_track_count():
+		var path := clip.track_get_path(i)
+		if String(path).get_slice(":", 1) in ARM_BONES:
+			blend.set_filter_path(path, true)
 
 
 # --- Wardrobe --------------------------------------------------------------

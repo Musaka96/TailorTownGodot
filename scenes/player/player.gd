@@ -72,8 +72,11 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.001:
 		_face(direction, delta)
 
-	if _model.has_method("set_moving"):
-		_model.set_moving(Vector2(velocity.x, velocity.z).length() > 0.4)
+	var speed := Vector2(velocity.x, velocity.z).length()
+	if _model.has_method("set_locomotion"):
+		_model.set_locomotion(speed / maxf(move_speed, 0.01))  # smooth speed blend
+	elif _model.has_method("set_moving"):
+		_model.set_moving(speed > 0.4)
 	if _model.has_method("set_carrying"):
 		_model.set_carrying(not carry.is_empty())
 
