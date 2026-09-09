@@ -62,17 +62,32 @@ func _highlight(interactable: Interactable, on: bool) -> void:
 
 
 ## Prompts can depend on carry state (e.g. "Place roll" vs "Browse shelf"), so
-## recompute every frame and only emit when the text actually changes.
+## recompute every frame and only emit when the text actually changes. With nothing
+## to interact with but something in hand, offer to set it down.
 func _publish_prompt() -> void:
-	var text := _current.get_prompt(_player) if _current else ""
+	var text := ""
+	if _current:
+		text = _current.get_prompt(_player)
+	elif _is_carrying():
+		text = "Set down"
 	if text != _last_prompt:
 		_last_prompt = text
 		EventBus.interaction_prompt_changed.emit(text)
 
 
+func _is_carrying() -> bool:
+	return _player != null and _player.get("carry") != null and not _player.carry.is_empty()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if GameState.input_locked:
 		return
-	if event.is_action_pressed("interact") and _current:
+	if not event.is_action_pressed("interact"):
+		return
+	# A targeted station wins; otherwise interact sets a carried item down.
+	if _current:
 		_current.do_interact(_player)
+		get_viewport().set_input_as_handled()
+	elif _is_carrying() and _player.has_method("drop_held"):
+		_player.drop_held()
 		get_viewport().set_input_as_handled()

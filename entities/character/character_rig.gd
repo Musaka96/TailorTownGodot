@@ -31,6 +31,16 @@ const CLOTH_UV_SCALE := 6.0
 # One-off gestures that set_moving must not interrupt (they return to idle/walk).
 const ONE_SHOTS := ["wave", "accept"]
 
+# --- Carrying --------------------------------------------------------------
+# A carried item hangs off a point parented to the right-hand bone, so it moves
+# with the hand through the holding animation and turns with the character. The
+# offset seats the item into the hands (tuned against the Holding_A pose).
+const CARRY_BONE := "hand.r"
+## Seat the item across the front (rotated flat like a carried bolt), tuned against
+## the Holding_B two-handed pose.
+const CARRY_POS := Vector3(0.02, 0.03, 0.16)
+const CARRY_EULER := Vector3(0.0, PI * 0.5, 0.0)
+
 # --- 2D face (cute animated eyes + mouth on the head) ----------------------
 # Head bone the face rides on (KayKit Rig_Medium). Element positions, spacing and
 # scale come from a FaceLayout resource (data/face_layout.tres) tuned in the Face
@@ -46,6 +56,9 @@ static var _mouth_sf: SpriteFrames
 
 var _pending := ""
 var _oneshot_done := Callable()
+var _carrying := false
+var _moving := false
+var _carry_hold: Node3D
 
 var _skel: Skeleton3D
 var _layout: FaceLayout
@@ -86,6 +99,7 @@ func _ready() -> void:
 		if not _anim.is_playing():
 			_anim.play("idle")
 	_build_face()
+	_build_carry()
 
 
 # --- 2D face ---------------------------------------------------------------
@@ -222,18 +236,59 @@ static func _add_anim(
 		sf.add_frame(anim, load(FACE_DIR + f + ".png") as Texture2D)
 
 
+# --- Carrying --------------------------------------------------------------
+
+
+## The point a carried item attaches to — parented to the hand bone, so the item
+## follows the hand and turns with the character. Null until the rig is ready.
+func carry_point() -> Node3D:
+	return _carry_hold
+
+
+## Whether the character is holding something; switches the holding pose on/off.
+func set_carrying(on: bool) -> void:
+	if on == _carrying:
+		return
+	_carrying = on
+	_refresh_locomotion()
+
+
+## Build the hand-bone attachment the carried item rides on.
+func _build_carry() -> void:
+	if _skel == null or _skel.find_bone(CARRY_BONE) < 0:
+		return
+	var attach := BoneAttachment3D.new()
+	attach.name = "CarryAttach"
+	attach.bone_name = CARRY_BONE
+	_skel.add_child(attach)
+	_carry_hold = Node3D.new()
+	_carry_hold.name = "CarryHold"
+	_carry_hold.transform = Transform3D(Basis.from_euler(CARRY_EULER), CARRY_POS)
+	attach.add_child(_carry_hold)
+
+
 # --- Animation -------------------------------------------------------------
 
 
-## Toggle the walk cycle vs idle (no-op if already there / mid one-shot gesture).
+## Report walking vs standing; the actual clip also depends on whether we're
+## carrying (see _refresh_locomotion).
 func set_moving(moving: bool) -> void:
+	if moving == _moving:
+		return
+	_moving = moving
+	_refresh_locomotion()
+
+
+## Pick the base clip from the current state: the holding pose while carrying,
+## otherwise walk/idle. A one-shot gesture defers the change until it finishes.
+func _refresh_locomotion() -> void:
 	if _anim == null:
 		return
-	var want := "walk" if moving else "idle"
+	var want := "carry" if _carrying else ("walk" if _moving else "idle")
 	if _anim.current_animation in ONE_SHOTS:
 		_pending = want
 		return
-	if _anim.current_animation == want:
+	if _anim.current_animation == want or not _anim.has_animation(want):
 		return
 	_anim.play(want, 0.2)
 
@@ -259,9 +314,8 @@ func _play_once(anim_name: String, done: Callable) -> void:
 
 func _on_finished(anim_name: String) -> void:
 	if anim_name in ONE_SHOTS:
-		var back := _pending if _pending != "" else "idle"
 		_pending = ""
-		_anim.play(back, 0.2)
+		_refresh_locomotion()  # return to carry / walk / idle per current state
 		var done := _oneshot_done
 		_oneshot_done = Callable()
 		if done.is_valid():

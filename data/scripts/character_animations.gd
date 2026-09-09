@@ -49,8 +49,11 @@ static func make_default() -> CharacterAnimations:
 	var res := CharacterAnimations.new()
 	var general := load(_ANIM_DIR + "Rig_Medium_General.glb") as PackedScene
 	var movement := load(_ANIM_DIR + "Rig_Medium_MovementBasic.glb") as PackedScene
+	var tools := load(_ANIM_DIR + "Rig_Medium_Tools.glb") as PackedScene
 	res.entries.append(AnimEntry.make("idle", general, "Idle_A", true))
 	res.entries.append(AnimEntry.make("walk", movement, "Walking_A", true))
 	res.entries.append(AnimEntry.make("wave", general, "Interact", false))
 	res.entries.append(AnimEntry.make("accept", movement, "Jump_Full_Short", false))
+	# Two-handed holding pose used while carrying an item (KayKit tools pack).
+	res.entries.append(AnimEntry.make("carry", tools, "Holding_B", true))
 	return res

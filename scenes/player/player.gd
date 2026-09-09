@@ -42,6 +42,11 @@ func _ready() -> void:
 		var suit: MaterialType = Catalog.get_material(&"charcoal_worsted_solid")
 		if suit != null:
 			_model.set_outfit(suit, null, suit)
+	# Carry items from the rig's hand bone so they follow the hand and turn with us.
+	if _model.has_method("carry_point"):
+		var point: Node3D = _model.carry_point()
+		if point != null:
+			carry.set_hold_point(point)
 
 
 func _physics_process(delta: float) -> void:
@@ -69,8 +74,41 @@ func _physics_process(delta: float) -> void:
 
 	if _model.has_method("set_moving"):
 		_model.set_moving(Vector2(velocity.x, velocity.z).length() > 0.4)
+	if _model.has_method("set_carrying"):
+		_model.set_carrying(not carry.is_empty())
 
 	_footsteps(delta)
+
+
+## Set the held item down on the floor just ahead of the player. Returns whether
+## anything was put down. Called by the interaction controller when the interact
+## button is pressed with nothing else to interact with.
+func drop_held() -> bool:
+	if carry.is_empty():
+		return false
+	var item: Node = carry.release()
+	if item.get_parent() != null:
+		item.get_parent().remove_child(item)  # release() only clears the slot, not the hand
+	var parent: Node = _drop_parent()
+	parent.add_child(item)
+	var ahead := _model.global_transform.basis.z  # the way the model is facing
+	ahead.y = 0.0
+	item.global_position = global_position + ahead.normalized() * 0.7 + Vector3(0.0, 0.15, 0.0)
+	if item.has_method("set_pickable"):
+		item.set_pickable(true)
+	EventBus.item_dropped.emit(item)
+	return true
+
+
+## Loose items live under ShopRoom (so they're saved), falling back to the scene.
+func _drop_parent() -> Node:
+	var scene := get_tree().current_scene
+	if scene != null:
+		var room := scene.get_node_or_null("ShopRoom")
+		if room != null:
+			return room
+		return scene
+	return get_parent()
 
 
 ## Soft footstep pats on a steady, gentle cadence while walking.

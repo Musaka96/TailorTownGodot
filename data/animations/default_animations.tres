@@ -1,36 +1,44 @@
-[gd_resource type="Resource" script_class="CharacterAnimations" format=3 uid="uid://dvuidye16cein"]
+[gd_resource type="Resource" script_class="CharacterAnimations" format=3]
 
-[ext_resource type="Script" uid="uid://c04hljrwt2lmc" path="res://data/scripts/anim_entry.gd" id="1_jdrcn"]
-[ext_resource type="PackedScene" uid="uid://32txqx37yvjv" path="res://assets/characters/anim/Rig_Medium_General.glb" id="2_vo7as"]
-[ext_resource type="PackedScene" uid="uid://b4pmamd6vkmbv" path="res://assets/characters/anim/Rig_Medium_MovementBasic.glb" id="3_x0m4i"]
-[ext_resource type="Script" uid="uid://dldfvs77j0ltx" path="res://data/scripts/character_animations.gd" id="4_2vyph"]
+[ext_resource type="Script" path="res://data/scripts/anim_entry.gd" id="1_vo7as"]
+[ext_resource type="PackedScene" path="res://assets/characters/anim/Rig_Medium_General.glb" id="2_x0m4i"]
+[ext_resource type="PackedScene" path="res://assets/characters/anim/Rig_Medium_MovementBasic.glb" id="3_2vyph"]
+[ext_resource type="PackedScene" path="res://assets/characters/anim/Rig_Medium_Tools.glb" id="4_1qw2j"]
+[ext_resource type="Script" path="res://data/scripts/character_animations.gd" id="5_wjsyu"]
 
-[sub_resource type="Resource" id="Resource_1qw2j"]
-script = ExtResource("1_jdrcn")
+[sub_resource type="Resource" id="Resource_t1kd6"]
+script = ExtResource("1_vo7as")
 name = "idle"
-source = ExtResource("2_vo7as")
+source = ExtResource("2_x0m4i")
 clip = "Idle_A"
 loop = true
 
-[sub_resource type="Resource" id="Resource_wjsyu"]
-script = ExtResource("1_jdrcn")
+[sub_resource type="Resource" id="Resource_hhy8j"]
+script = ExtResource("1_vo7as")
 name = "walk"
-source = ExtResource("3_x0m4i")
-clip = "Walking_B"
+source = ExtResource("3_2vyph")
+clip = "Walking_A"
 loop = true
 
-[sub_resource type="Resource" id="Resource_t1kd6"]
-script = ExtResource("1_jdrcn")
+[sub_resource type="Resource" id="Resource_c6c0b"]
+script = ExtResource("1_vo7as")
 name = "wave"
-source = ExtResource("2_vo7as")
+source = ExtResource("2_x0m4i")
 clip = "Interact"
 
-[sub_resource type="Resource" id="Resource_hhy8j"]
-script = ExtResource("1_jdrcn")
+[sub_resource type="Resource" id="Resource_rwbqm"]
+script = ExtResource("1_vo7as")
 name = "accept"
-source = ExtResource("3_x0m4i")
+source = ExtResource("3_2vyph")
 clip = "Jump_Full_Short"
 
+[sub_resource type="Resource" id="Resource_wif7a"]
+script = ExtResource("1_vo7as")
+name = "carry"
+source = ExtResource("4_1qw2j")
+clip = "Holding_B"
+loop = true
+
 [resource]
-script = ExtResource("4_2vyph")
-entries = Array[ExtResource("1_jdrcn")]([SubResource("Resource_1qw2j"), SubResource("Resource_wjsyu"), SubResource("Resource_t1kd6"), SubResource("Resource_hhy8j")])
+script = ExtResource("5_wjsyu")
+entries = Array[ExtResource("1_vo7as")]([SubResource("Resource_t1kd6"), SubResource("Resource_hhy8j"), SubResource("Resource_c6c0b"), SubResource("Resource_rwbqm"), SubResource("Resource_wif7a")])
