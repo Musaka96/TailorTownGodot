@@ -111,19 +111,22 @@ func is_ready(order: SuitOrder) -> bool:
 func save_state() -> Array:
 	var out: Array = []
 	for order in active:
-		out.append(
-			{
-				"customer_name": order.customer_name,
-				"design": order.design.duplicate(true),
-				"price": order.price,
-				"skin": order.skin,
-				"hair_index": order.hair_index,
-				"hair_color": order.hair_color,
-				"deadline_days": order.deadline_days,
-				"days_left": order.days_left,
-				"state": order.state,
-				"filled": order.filled.duplicate(true),
-			}
+		(
+			out
+			. append(
+				{
+					"customer_name": order.customer_name,
+					"design": order.design.duplicate(true),
+					"price": order.price,
+					"skin": order.skin,
+					"hair_index": order.hair_index,
+					"hair_color": order.hair_color,
+					"deadline_days": order.deadline_days,
+					"days_left": order.days_left,
+					"state": order.state,
+					"filled": order.filled.duplicate(true),
+				}
+			)
 		)
 	return out
 
@@ -159,14 +162,21 @@ func debug_add_random() -> SuitOrder:
 	const NAMES := ["Mr. Rossi", "Ms. Byrne", "Dr. Vance", "Mr. Okafor", "Ms. Ito", "Mr. Kane"]
 	var design := {}
 	for t in [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]:
+		var fabs := Enums.fabrics_for(t)
+		var pats := Enums.patterns_for(t)
+		var cols := MaterialFactory.colors_for(t)
 		design[t] = {
-			"fabric": _rng.randi_range(0, 4),
-			"pattern": _rng.randi_range(0, 8),
-			"color": _rng.randi_range(0, maxi(MaterialFactory.color_count() - 1, 0)),
+			"fabric": fabs[_rng.randi() % fabs.size()],
+			"pattern": pats[_rng.randi() % pats.size()],
+			"color": cols[_rng.randi() % cols.size()],
 			"style_idx": 0,
 		}
-	var skin := Color(0.7 + _rng.randf() * 0.2, 0.6 + _rng.randf() * 0.15, 0.5 + _rng.randf() * 0.15)
-	return create_order(NAMES[_rng.randi() % NAMES.size()], design, _rng.randi_range(150, 450), skin)
+	var skin := Color(
+		0.7 + _rng.randf() * 0.2, 0.6 + _rng.randf() * 0.15, 0.5 + _rng.randf() * 0.15
+	)
+	return create_order(
+		NAMES[_rng.randi() % NAMES.size()], design, _rng.randi_range(150, 450), skin
+	)
 
 
 ## Instantly finish and pay out an order (fills every piece at full quality).

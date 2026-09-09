@@ -13,8 +13,10 @@ const SHADER_TRIPLANAR := preload("res://materials/cloth_triplanar.gdshader")
 const BASE_PATH := "res://materials/cloth.tres"
 const BASE_TRIPLANAR_PATH := "res://materials/cloth_triplanar.tres"
 
-# Indexed by Enums.Fabric / Enums.Pattern (mirrors the UI swatch mapping).
-const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen"]
+# Indexed by Enums.Fabric / Enums.Pattern (mirrors the UI swatch mapping). The
+# shirting fabrics/patterns reuse the closest existing weave texture (greybox) — see
+# _fabric_tex / _pattern_tex for the bounds-safe lookup.
+const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen", "linen", "linen", "linen"]
 const PATTERN_TEX := [
 	"solid",
 	"pinstripe",
@@ -25,6 +27,11 @@ const PATTERN_TEX := [
 	"birdseye",
 	"sharkskin",
 	"nailhead",
+	"pinstripe",
+	"pinstripe",
+	"windowpane",
+	"glen_check",
+	"solid",
 ]
 
 static var _base: ShaderMaterial
@@ -63,8 +70,16 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 		return
 	sm.set_shader_parameter("cloth_color", mat.cloth_color)
 	sm.set_shader_parameter("pattern_color", mat.pattern_color)
-	sm.set_shader_parameter("fabric_tex", _tex("fabrics", FABRIC_TEX[mat.fabric]))
-	sm.set_shader_parameter("pattern_tex", _tex("patterns", PATTERN_TEX[mat.pattern]))
+	sm.set_shader_parameter("fabric_tex", _tex("fabrics", _fabric_tex(mat.fabric)))
+	sm.set_shader_parameter("pattern_tex", _tex("patterns", _pattern_tex(mat.pattern)))
+
+
+static func _fabric_tex(f: int) -> String:
+	return FABRIC_TEX[f] if f >= 0 and f < FABRIC_TEX.size() else "linen"
+
+
+static func _pattern_tex(p: int) -> String:
+	return PATTERN_TEX[p] if p >= 0 and p < PATTERN_TEX.size() else "solid"
 
 
 static func _base_material(path: String) -> ShaderMaterial:

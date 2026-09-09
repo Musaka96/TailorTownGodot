@@ -10,15 +10,19 @@ extends Control
 
 const SHADER := preload("res://ui/material_swatch.gdshader")
 
-# Indexed by Enums.Fabric / Enums.Pattern.
-const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen"]
-const FABRIC_LETTER := ["W", "F", "T", "M", "L"]
+# Indexed by Enums.Fabric / Enums.Pattern. Shirtings (cotton family) and the shirting
+# patterns are appended; they reuse the nearest existing weave texture (greybox).
+const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen", "linen", "linen", "linen"]
+const FABRIC_LETTER := ["W", "F", "T", "M", "L", "C", "P", "O"]
 const FABRIC_BADGE := [
 	Color("55668c"),
 	Color("6d7075"),
 	Color("7a5a38"),
 	Color("7a4b57"),
 	Color("a99a5e"),
+	Color("9fb1c4"),
+	Color("8fa0b0"),
+	Color("7f93a6"),
 ]
 const PATTERN_TEX := [
 	"solid",
@@ -30,6 +34,11 @@ const PATTERN_TEX := [
 	"birdseye",
 	"sharkskin",
 	"nailhead",
+	"pinstripe",
+	"pinstripe",
+	"windowpane",
+	"glen_check",
+	"solid",
 ]
 
 @export var swatch_size := 84
@@ -102,17 +111,19 @@ func setup(mat: MaterialType, remaining: float) -> void:
 	_build()
 	if mat == null:
 		return
+	var fi := clampi(int(mat.fabric), 0, FABRIC_TEX.size() - 1)
+	var pi := clampi(int(mat.pattern), 0, PATTERN_TEX.size() - 1)
 	_shader_mat.set_shader_parameter("cloth_color", mat.cloth_color)
 	_shader_mat.set_shader_parameter("pattern_color", mat.pattern_color)
-	_shader_mat.set_shader_parameter("fabric_tex", _tex("fabrics", FABRIC_TEX[mat.fabric]))
-	_shader_mat.set_shader_parameter("pattern_tex", _tex("patterns", PATTERN_TEX[mat.pattern]))
+	_shader_mat.set_shader_parameter("fabric_tex", _tex("fabrics", FABRIC_TEX[fi]))
+	_shader_mat.set_shader_parameter("pattern_tex", _tex("patterns", PATTERN_TEX[pi]))
 
 	var frac := clampf(remaining / maxf(mat.roll_length_m, 0.001), 0.0, 1.0)
 	_fill_fg.anchor_right = frac
 	_fill_fg.add_theme_stylebox_override("panel", Style.bar(Style.fill_color(frac), 5))
 
-	_badge_label.text = FABRIC_LETTER[mat.fabric]
-	_badge.add_theme_stylebox_override("panel", Style.bar(FABRIC_BADGE[mat.fabric], 11))
+	_badge_label.text = FABRIC_LETTER[fi]
+	_badge.add_theme_stylebox_override("panel", Style.bar(FABRIC_BADGE[fi], 11))
 
 
 func _update_size() -> void:

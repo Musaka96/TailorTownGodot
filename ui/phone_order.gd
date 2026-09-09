@@ -258,12 +258,12 @@ func _adjust(dir: int) -> void:
 			if n > 0:
 				_premade = (_premade + dir + n) % n
 		Row.FABRIC:
-			_fabric = (_fabric + dir + 5) % 5
+			_fabric = (_fabric + dir + Enums.Fabric.size()) % Enums.Fabric.size()
 		Row.COLOR:
 			var c := MaterialFactory.color_count()
 			_color = (_color + dir + c) % c
 		Row.PATTERN:
-			_pattern = (_pattern + dir + 9) % 9
+			_pattern = (_pattern + dir + Enums.Pattern.size()) % Enums.Pattern.size()
 		Row.LENGTH:
 			_length = clampf(_length + dir * LENGTH_STEP, LENGTH_MIN, LENGTH_MAX)
 	_refresh()

@@ -11,6 +11,9 @@ const FABRIC_BASE := {
 	Enums.Fabric.TWEED: 18,
 	Enums.Fabric.MOHAIR_BLEND: 30,
 	Enums.Fabric.LINEN: 16,
+	Enums.Fabric.COTTON: 12,
+	Enums.Fabric.POPLIN: 16,
+	Enums.Fabric.OXFORD_CLOTH: 18,
 }
 
 # Per-metre surcharge by Enums.Pattern (weaving a pattern costs more).
@@ -24,6 +27,11 @@ const PATTERN_SURCHARGE := {
 	Enums.Pattern.BIRDSEYE: 6,
 	Enums.Pattern.SHARKSKIN: 5,
 	Enums.Pattern.NAILHEAD: 5,
+	Enums.Pattern.BENGAL_STRIPE: 4,
+	Enums.Pattern.UNIVERSITY_STRIPE: 4,
+	Enums.Pattern.GINGHAM: 5,
+	Enums.Pattern.TATTERSALL: 6,
+	Enums.Pattern.END_ON_END: 3,
 }
 
 # Cloth a finished suit consumes per part (metres), for quoting a bespoke order.

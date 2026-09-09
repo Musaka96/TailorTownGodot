@@ -61,7 +61,12 @@ func open(mirror, actor) -> void:
 	_status = ""
 	_design = {}
 	for t in PARTS:
-		_design[t] = {"fabric": 0, "color": 0, "pattern": 0, "style_idx": 0}
+		_design[t] = {
+			"fabric": Enums.fabrics_for(t)[0],
+			"color": MaterialFactory.colors_for(t)[0],
+			"pattern": Enums.patterns_for(t)[0],
+			"style_idx": 0,
+		}
 	GameState.input_locked = true
 	visible = true
 	_style()
@@ -308,11 +313,11 @@ func _adjust(dir: int) -> void:
 		var c := _cfg()
 		match row:
 			Row.FABRIC:
-				c["fabric"] = wrapi(c["fabric"] + dir, 0, 5)
+				c["fabric"] = _cycle(Enums.fabrics_for(_type()), int(c["fabric"]), dir)
 			Row.COLOR:
-				c["color"] = wrapi(c["color"] + dir, 0, MaterialFactory.color_count())
+				c["color"] = _cycle(MaterialFactory.colors_for(_type()), int(c["color"]), dir)
 			Row.PATTERN:
-				c["pattern"] = wrapi(c["pattern"] + dir, 0, 9)
+				c["pattern"] = _cycle(Enums.patterns_for(_type()), int(c["pattern"]), dir)
 			Row.STYLE:
 				c["style_idx"] = wrapi(c["style_idx"] + dir, 0, Enums.styles_for(_type()).size())
 	_apply_to_customer()
@@ -340,6 +345,17 @@ func _part_material(garment_type: int) -> MaterialType:
 	return MaterialFactory.make(c["fabric"], c["pattern"], c["color"], 1.0)
 
 
+## Step `current` to the next/previous value within a part's allowed option list
+## (wrapping), so a shirt only ever cycles shirt fabrics/colours/patterns.
+func _cycle(options: PackedInt32Array, current: int, dir: int) -> int:
+	if options.is_empty():
+		return current
+	var idx := options.find(current)
+	if idx < 0:
+		idx = 0
+	return options[(idx + dir + options.size()) % options.size()]
+
+
 # --- Stock indicator -------------------------------------------------------
 
 
@@ -365,7 +381,11 @@ func _cloth_in_stock(fabric: int, pattern: int, color_index: int) -> bool:
 	var target := MaterialFactory.color_value(color_index)
 	for n in scene.find_children("*", "MaterialRoll", true, false):
 		var roll := n as MaterialRoll
-		if roll != null and not roll.is_empty() and _mat_matches(roll.material, fabric, pattern, target):
+		if (
+			roll != null
+			and not roll.is_empty()
+			and _mat_matches(roll.material, fabric, pattern, target)
+		):
 			return true
 	for n in scene.find_children("*", "FabricPiece", true, false):
 		var piece := n as FabricPiece
@@ -456,7 +476,17 @@ func _acceptable_design() -> Dictionary:
 			pattern = int(rule.allowed_patterns[0])
 	var design := {}
 	for t in PARTS:
-		design[t] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+		# The brief only judges the jacket, so give the shirt a sensible shirting
+		# default rather than forcing a suiting fabric/colour onto it.
+		if t == Enums.GarmentType.SHIRT:
+			design[t] = {
+				"fabric": Enums.fabrics_for(t)[0],
+				"color": MaterialFactory.colors_for(t)[0],
+				"pattern": Enums.patterns_for(t)[0],
+				"style_idx": 0,
+			}
+		else:
+			design[t] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
 	return design
 
 

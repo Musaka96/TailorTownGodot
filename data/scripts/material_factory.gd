@@ -4,7 +4,10 @@ class_name MaterialFactory
 ## in the phone's custom-order maker. Not saved to disk — it lives only as long
 ## as the roll it becomes.
 
-# Suit-appropriate colour options: [display name, cloth colour].
+# Colour options: [display name, cloth colour]. The first SUIT_COLOR_COUNT are deep
+# suiting colours (jacket / trousers); the rest are pale shirting colours. colors_for()
+# hands each part the right slice; indices stay global so orders/matching are unchanged.
+const SUIT_COLOR_COUNT := 10
 const COLORS := [
 	["Navy", Color("1b2a4a")],
 	["Charcoal", Color("36393f")],
@@ -16,6 +19,14 @@ const COLORS := [
 	["Burgundy", Color("5c1f2a")],
 	["Olive", Color("5c5a35")],
 	["Forest", Color("2f4a39")],
+	["White", Color("f2f0e8")],
+	["Sky Blue", Color("bcd0e4")],
+	["Pink", Color("e6c6cc")],
+	["Lavender", Color("d0c8e2")],
+	["Ecru", Color("e9e1cf")],
+	["Mint", Color("cfe1d4")],
+	["Butter", Color("ece1b6")],
+	["Pale Grey", Color("d5d8dc")],
 ]
 
 # Typical weight per fabric (GSM), for display.
@@ -25,11 +36,27 @@ const FABRIC_GSM := {
 	Enums.Fabric.TWEED: 340,
 	Enums.Fabric.MOHAIR_BLEND: 230,
 	Enums.Fabric.LINEN: 200,
+	Enums.Fabric.COTTON: 120,
+	Enums.Fabric.POPLIN: 115,
+	Enums.Fabric.OXFORD_CLOTH: 150,
 }
 
 
 static func color_count() -> int:
 	return COLORS.size()
+
+
+## Global colour indices a garment type may use: pale shirtings for the shirt, deep
+## suitings for the jacket and trousers (the first is that part's default).
+static func colors_for(part: int) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	if part == Enums.GarmentType.SHIRT:
+		for i in range(SUIT_COLOR_COUNT, COLORS.size()):
+			out.append(i)
+	else:
+		for i in SUIT_COLOR_COUNT:
+			out.append(i)
+	return out
 
 
 static func color_name(index: int) -> String:
@@ -41,8 +68,8 @@ static func color_value(index: int) -> Color:
 
 
 static func make(
-		fabric: Enums.Fabric, pattern: Enums.Pattern, color_index: int,
-		length: float) -> MaterialType:
+	fabric: Enums.Fabric, pattern: Enums.Pattern, color_index: int, length: float
+) -> MaterialType:
 	var mat := MaterialType.new()
 	var cloth: Color = color_value(color_index)
 	mat.fabric = fabric

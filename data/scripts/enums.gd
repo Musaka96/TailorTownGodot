@@ -10,7 +10,11 @@ enum Stage { FABRIC_PART, CONFIGURED, CUT, SEWN }
 enum Size { S, M, L, XL }
 
 # --- Material rolls ---
-enum Fabric { WORSTED_WOOL, FLANNEL, TWEED, MOHAIR_BLEND, LINEN }
+# Suitings first (jacket/trousers), then light shirtings (cotton family) appended so
+# existing indices are unchanged. Which fabrics a part may use comes from fabrics_for().
+enum Fabric { WORSTED_WOOL, FLANNEL, TWEED, MOHAIR_BLEND, LINEN, COTTON, POPLIN, OXFORD_CLOTH }
+# Suiting patterns first, then crisp shirting patterns appended. patterns_for() decides
+# which a part may use.
 enum Pattern {
 	SOLID,
 	PINSTRIPE,
@@ -21,6 +25,11 @@ enum Pattern {
 	BIRDSEYE,
 	SHARKSKIN,
 	NAILHEAD,
+	BENGAL_STRIPE,
+	UNIVERSITY_STRIPE,
+	GINGHAM,
+	TATTERSALL,
+	END_ON_END,
 }
 
 # --- Bespoke brief: what the customer needs a suit for ---
@@ -47,6 +56,12 @@ static func fabric_name(f: Fabric) -> String:
 			return "Mohair Blend"
 		Fabric.LINEN:
 			return "Linen"
+		Fabric.COTTON:
+			return "Cotton"
+		Fabric.POPLIN:
+			return "Poplin"
+		Fabric.OXFORD_CLOTH:
+			return "Oxford Cloth"
 	return "?"
 
 
@@ -114,6 +129,46 @@ static func styles_for(t: GarmentType) -> PackedStringArray:
 	return PackedStringArray(["Classic"])
 
 
+## Fabrics a garment type may be made from (the first is the default): light, crisp
+## shirtings for the shirt; heavier suitings for the jacket and trousers. A shirt has
+## no business being cut from tweed, so it simply isn't offered.
+static func fabrics_for(t: GarmentType) -> PackedInt32Array:
+	if t == GarmentType.SHIRT:
+		return PackedInt32Array([Fabric.COTTON, Fabric.POPLIN, Fabric.OXFORD_CLOTH, Fabric.LINEN])
+	return PackedInt32Array(
+		[Fabric.WORSTED_WOOL, Fabric.FLANNEL, Fabric.TWEED, Fabric.MOHAIR_BLEND, Fabric.LINEN]
+	)
+
+
+## Patterns a garment type may use (the first is the default): shirting stripes and
+## checks for the shirt; classic suiting weaves for the jacket and trousers.
+static func patterns_for(t: GarmentType) -> PackedInt32Array:
+	if t == GarmentType.SHIRT:
+		return PackedInt32Array(
+			[
+				Pattern.SOLID,
+				Pattern.BENGAL_STRIPE,
+				Pattern.UNIVERSITY_STRIPE,
+				Pattern.GINGHAM,
+				Pattern.TATTERSALL,
+				Pattern.END_ON_END,
+			]
+		)
+	return PackedInt32Array(
+		[
+			Pattern.SOLID,
+			Pattern.PINSTRIPE,
+			Pattern.HERRINGBONE,
+			Pattern.HOUNDSTOOTH,
+			Pattern.WINDOWPANE,
+			Pattern.GLEN_CHECK,
+			Pattern.BIRDSEYE,
+			Pattern.SHARKSKIN,
+			Pattern.NAILHEAD,
+		]
+	)
+
+
 static func pattern_name(p: Pattern) -> String:
 	match p:
 		Pattern.SOLID:
@@ -134,4 +189,14 @@ static func pattern_name(p: Pattern) -> String:
 			return "Sharkskin"
 		Pattern.NAILHEAD:
 			return "Nailhead"
+		Pattern.BENGAL_STRIPE:
+			return "Bengal Stripe"
+		Pattern.UNIVERSITY_STRIPE:
+			return "University Stripe"
+		Pattern.GINGHAM:
+			return "Gingham"
+		Pattern.TATTERSALL:
+			return "Tattersall"
+		Pattern.END_ON_END:
+			return "End-on-End"
 	return "?"
