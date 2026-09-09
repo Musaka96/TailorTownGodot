@@ -58,6 +58,10 @@ const CARRY_EULER := Vector3(0.0, PI * 0.5, 0.0)
 # Editor dock; a single eye/brow sprite is mirrored for the other side.
 const FACE_BONE := "head_2"
 const FACE_DIR := "res://assets/textures/faces/"
+## Eye colours the art ships with; a customer is given one at random on spawn.
+const EYE_COLORS := ["brown", "green", "blue", "amber", "olive", "steel"]
+## Glasses overlays a customer may wear ("" = none), keyed to the sliced sprite name.
+const GLASSES_KINDS := {"sun": "glasses_sun", "round": "glasses_round"}
 const BLINK_MIN := 2.4
 const BLINK_MAX := 6.0
 const BLINK_TIME := 0.11
@@ -97,6 +101,9 @@ var _brow_l: Sprite3D
 var _brow_r: Sprite3D
 var _nose: Sprite3D
 var _mouth: AnimatedSprite3D
+var _glasses: Sprite3D
+var _eye_color := "brown"
+var _glasses_kind := ""  # "", "sun" or "round"; applied once the face is built
 var _blink: Timer
 # Each slot maps role -> MeshInstance3D currently filling it.
 var _top: Dictionary = {}
@@ -160,13 +167,15 @@ func _build_face() -> void:
 	attach.name = "FaceAttach"
 	attach.bone_name = FACE_BONE
 	_skel.add_child(attach)
-	_eye_l = _sprite(attach, _tex("eye"), false)
-	_eye_r = _sprite(attach, _tex("eye"), true)
+	_eye_l = _sprite(attach, _eye_tex(), false)
+	_eye_r = _sprite(attach, _eye_tex(), true)
 	_brow_l = _sprite(attach, _tex("brow"), false)
 	_brow_r = _sprite(attach, _tex("brow"), true)
 	_nose = _sprite(attach, _tex("nose"), false)
 	_mouth = _mouth_sprite(attach)
+	_glasses = _sprite(attach, null, false)
 	apply_layout(_layout)
+	_apply_glasses()  # honour any look set before the face was built
 	_blink = Timer.new()
 	_blink.one_shot = true
 	add_child(_blink)
@@ -186,6 +195,8 @@ func apply_layout(layout: FaceLayout) -> void:
 	_place(_brow_r, layout.brow_gap * 0.5, layout.brow_y, layout.brow_px)
 	_place(_nose, 0.0, layout.nose_y, layout.nose_px)
 	_place(_mouth, 0.0, layout.mouth_y, layout.mouth_px)
+	# Glasses ride just in front of the eyes so they never z-fight the coplanar face.
+	_place(_glasses, 0.0, layout.glasses_y, layout.glasses_px, 0.03)
 
 
 ## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
@@ -268,10 +279,10 @@ func _build_head_wobble() -> void:
 	_skel.add_child(_wobble)
 
 
-func _place(node: Node3D, x: float, y_off: float, px: float) -> void:
+func _place(node: Node3D, x: float, y_off: float, px: float, z_extra := 0.0) -> void:
 	if node == null or _layout == null:
 		return
-	var pos := Vector3(x, _layout.head_y + y_off, _layout.face_z)
+	var pos := Vector3(x, _layout.head_y + y_off, _layout.face_z + z_extra)
 	node.transform = _head_inv * Transform3D(Basis(), pos)
 	node.pixel_size = px
 
@@ -314,7 +325,7 @@ func _do_blink() -> void:
 
 
 func _open_eyes() -> void:
-	_set_eye_tex(_tex("eye"))
+	_set_eye_tex(_eye_tex())
 
 
 func _set_eye_tex(tex: Texture2D) -> void:
@@ -322,6 +333,36 @@ func _set_eye_tex(tex: Texture2D) -> void:
 		_eye_l.texture = tex
 	if _eye_r != null:
 		_eye_r.texture = tex
+
+
+## Set eye colour (one of EYE_COLORS; unknown falls back to brown so blinks never
+## break) and glasses ("sun" / "round", or "" for none) — the per-customer face look.
+func set_face_look(eye_color: String, glasses: String) -> void:
+	_eye_color = eye_color if eye_color in EYE_COLORS else "brown"
+	_glasses_kind = glasses
+	if not _is_blinking():
+		_set_eye_tex(_eye_tex())
+	_apply_glasses()
+
+
+## Show/hide the glasses overlay for the stored kind. Safe before the face is built
+## (the builder calls it again), so spawn-time set_face_look() never misses.
+func _apply_glasses() -> void:
+	if _glasses == null:
+		return
+	if GLASSES_KINDS.has(_glasses_kind):
+		_glasses.texture = _tex(GLASSES_KINDS[_glasses_kind])
+		_glasses.visible = true
+	else:
+		_glasses.visible = false
+
+
+func _eye_tex() -> Texture2D:
+	return _tex("eye_" + _eye_color)
+
+
+func _is_blinking() -> bool:
+	return _eye_l != null and _eye_l.texture == _tex("eye_closed")
 
 
 static func _tex(sprite_name: String) -> Texture2D:

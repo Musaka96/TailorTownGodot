@@ -1,57 +1,65 @@
 extends SceneTree
 
-## Slices the cute face sprites out of the face kit (assets/textures/pack.png) into
-## assets/textures/faces/*.png, keying the cream panel background to transparency
-## (border flood-fill over light/low-saturation pixels, so interior highlights
-## survive) and auto-trimming each. Also derives a squashed "closed" eye for blinks
-## and seeds the default face layout. Re-run after changing the source rects.
+## Slices the cute face sprites out of the two face kits into assets/textures/faces/*.png:
+##   - newPack1.png: the eyes (several colours), the closed-eye blink frame, the brow.
+##   - newPack2.png: the nose, the three talk mouths, and the glasses overlays.
+## The cream panel background is keyed to transparency (border flood-fill over
+## light/low-saturation pixels, so interior highlights survive) and each sprite is
+## auto-trimmed. On sheets whose background is already transparent the keying is a
+## harmless no-op, so re-running after a clean-alpha pass just sharpens the edges.
+## Re-run after changing the source rects:
 ##   godot --headless --path . --script res://tools/build_faces.gd
 ##
 ## One eye/brow is sliced and mirrored for the other side in the rig, so the gap
-## between them is adjustable (see FaceLayout / the Face Editor dock).
+## between them is adjustable (see FaceLayout / the Face Editor dock). Eyes are sliced
+## per colour; the rig picks one at random per customer. eye.png is a copy of the
+## default (brown) so the Face Editor dock and any default path keep working.
 
-const SRC := "res://assets/textures/pack.png"
+const P1 := "res://assets/textures/newPack1.png"
+const P2 := "res://assets/textures/newPack2.png"
 const OUT_DIR := "res://assets/textures/faces"
+const DEFAULT_EYE := "brown"
 
-# name -> source rect in pack.png (generous; auto-trimmed after keying).
+# Eye colour -> left-eye rect in newPack1's neutral row (mirrored for the right side).
+const EYE_CELLS := {
+	"brown": Rect2i(25, 64, 60, 77),
+	"green": Rect2i(221, 64, 58, 76),
+	"blue": Rect2i(411, 65, 59, 75),
+	"amber": Rect2i(790, 65, 64, 75),
+	"olive": Rect2i(977, 63, 65, 77),
+	"steel": Rect2i(1168, 65, 63, 76),
+}
+
+# Everything else -> [source sheet, rect, solid_key]. solid_key removes *every*
+# cream/light pixel (not just the border-connected ones), so a frame that encloses a
+# light region — the clear lenses of the round glasses — reads as see-through.
 const CELLS := {
-	"eye": Rect2i(836, 66, 46, 60),
-	"brow": Rect2i(1322, 60, 46, 34),
-	"nose": Rect2i(828, 455, 44, 64),
-	"mouth_closed": Rect2i(1245, 510, 74, 52),
-	"mouth_mid": Rect2i(1105, 512, 60, 52),
-	"mouth_open": Rect2i(1240, 455, 82, 58),
+	"eye_closed": [P1, Rect2i(22, 228, 62, 28), false],
+	"brow": [P1, Rect2i(24, 951, 60, 23), false],
+	"nose": [P2, Rect2i(282, 550, 43, 39), false],
+	"mouth_closed": [P2, Rect2i(39, 703, 82, 17), false],
+	"mouth_mid": [P2, Rect2i(1060, 794, 84, 28), false],
+	"mouth_open": [P2, Rect2i(188, 692, 98, 44), false],
+	"glasses_sun": [P2, Rect2i(31, 922, 145, 50), false],
+	"glasses_round": [P2, Rect2i(237, 918, 142, 58), true],
 }
 
 
 func _initialize() -> void:
 	if not DirAccess.dir_exists_absolute(OUT_DIR):
 		DirAccess.make_dir_recursive_absolute(OUT_DIR)
-	var src := Image.load_from_file(SRC)
-	var eye: Image = null
+	var sheets := {P1: Image.load_from_file(P1), P2: Image.load_from_file(P2)}
+	for color: String in EYE_CELLS:
+		var eye := _slice(sheets[P1], EYE_CELLS[color])
+		eye.save_png("%s/eye_%s.png" % [OUT_DIR, color])
+		if color == DEFAULT_EYE:
+			eye.save_png("%s/eye.png" % OUT_DIR)  # dock preview + default path
 	for name: String in CELLS:
-		var s := _slice(src, CELLS[name])
-		s.save_png("%s/%s.png" % [OUT_DIR, name])
-		if name == "eye":
-			eye = s
-	if eye != null:
-		_closed_eye(eye).save_png("%s/eye_closed.png" % OUT_DIR)
+		var spec: Array = CELLS[name]
+		_slice(sheets[spec[0]], spec[1], spec[2]).save_png("%s/%s.png" % [OUT_DIR, name])
 	_seed_layout()
 	print("sliced face sprites to ", OUT_DIR)
 	quit(0)
-
-
-## A blink frame: the open eye squashed to a thin slit, centred in the same canvas.
-func _closed_eye(eye: Image) -> Image:
-	var w := eye.get_width()
-	var h := eye.get_height()
-	var flat := eye.duplicate()
-	var sh := maxi(int(round(h * 0.32)), 2)
-	flat.resize(w, sh, Image.INTERPOLATE_LANCZOS)
-	var out := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	out.fill(Color(0, 0, 0, 0))
-	out.blit_rect(flat, Rect2i(0, 0, w, sh), Vector2i(0, int((h - sh) / 2.0)))
-	return out
 
 
 func _seed_layout() -> void:
@@ -64,11 +72,17 @@ func _seed_layout() -> void:
 # --- Slicing ---------------------------------------------------------------
 
 
-func _slice(src: Image, r: Rect2i) -> Image:
+func _slice(src: Image, r: Rect2i, solid_key := false) -> Image:
 	var img := src.get_region(r)
 	img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
 	var h := img.get_height()
+	if solid_key:
+		for y in h:
+			for x in w:
+				if _is_bg(img.get_pixel(x, y)):
+					img.set_pixel(x, y, Color(0, 0, 0, 0))
+		return _trim(img)
 	var bg := PackedByteArray()
 	bg.resize(w * h)
 	var q: Array[Vector2i] = []
@@ -100,12 +114,15 @@ func _seed(img: Image, bg: PackedByteArray, q: Array, x: int, y: int, w: int) ->
 		q.append(Vector2i(x, y))
 
 
-## Cream panel = light and only faintly warm; face parts are darker or saturated.
+## Cream panel = light and only faintly warm (or already transparent); face parts are
+## darker or saturated, so they survive the key.
 func _is_bg(c: Color) -> bool:
+	if c.a < 0.5:
+		return true
 	var lum := 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
 	var mx := maxf(c.r, maxf(c.g, c.b))
 	var mn := minf(c.r, minf(c.g, c.b))
-	return c.a > 0.5 and lum > 0.8 and (mx - mn) / maxf(mx, 0.001) < 0.2
+	return lum > 0.8 and (mx - mn) / maxf(mx, 0.001) < 0.2
 
 
 func _trim(img: Image) -> Image:

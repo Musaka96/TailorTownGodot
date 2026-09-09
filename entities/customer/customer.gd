@@ -110,11 +110,14 @@ func offer_greeting() -> void:
 		_rig.wave()
 
 
-## Set skin colour (called by the manager on spawn).
-func apply_look(skin: Color) -> void:
+## Set skin colour, and optionally eye colour + glasses (called by the manager on
+## spawn). Empty eye_color / glasses keep the rig defaults (brown eyes, no glasses).
+func apply_look(skin: Color, eye_color := "", glasses := "") -> void:
 	skin_color = skin
-	if _rig != null:
-		_rig.set_palette(skin)
+	if _rig == null:
+		return
+	_rig.set_palette(skin)
+	_rig.set_face_look(eye_color, glasses)
 
 
 ## Pick a hairstyle from the wardrobe library.

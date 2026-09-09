@@ -33,6 +33,11 @@ const PATH := "res://data/face_layout.tres"
 @export var mouth_y := -0.13
 @export var mouth_px := 0.0060
 
+@export_group("Glasses")
+## Glasses sit centred over the eyes; a single wide sprite (not paired).
+@export var glasses_y := 0.085
+@export var glasses_px := 0.0036
+
 
 ## The saved layout, or a fresh one with the defaults above if none exists yet.
 static func load_or_default() -> FaceLayout:

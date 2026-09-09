@@ -8,6 +8,8 @@ extends Node3D
 ## shoppers just walk past until the shop is free.
 
 const CUSTOMER_SCENE := preload("res://entities/customer/customer.tscn")
+## Roughly one in five customers wears glasses, split between shades and readers.
+const GLASSES_CHANCE := 0.2
 
 @export var mirror_path: NodePath
 @export var greet_path: NodePath
@@ -181,7 +183,11 @@ func _apply_event_bias(pref: CustomerPreference) -> void:
 
 
 func _dress(cust: Customer) -> void:
-	cust.apply_look(Wardrobe.random_skin(_rng))
+	var eye: String = CharacterRig.EYE_COLORS[_rng.randi() % CharacterRig.EYE_COLORS.size()]
+	var glasses := ""
+	if _rng.randf() < GLASSES_CHANCE:
+		glasses = "sun" if _rng.randf() < 0.5 else "round"
+	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses)
 	cust.set_hair(_rng.randi() % maxi(1, Wardrobe.hair_count()))
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
 	cust.wear_street()
