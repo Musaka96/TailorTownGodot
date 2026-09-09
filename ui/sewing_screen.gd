@@ -22,7 +22,10 @@ func open(machine, actor, piece) -> void:
 	_minigame.visible = true
 	var title := "%s · %s" % [
 		Enums.garment_type_name(piece.garment_type), Enums.size_name(piece.size)]
-	_minigame.start(title)
+	var cloth := SewMinigame.CLOTH_DEFAULT
+	if piece.material != null:
+		cloth = piece.material.cloth_color
+	_minigame.start(title, cloth)
 
 
 func close() -> void:
