@@ -32,26 +32,29 @@ const CLOTH_UV_SCALE := 6.0
 const ONE_SHOTS := ["wave", "accept"]
 
 # --- 2D face (cute animated eyes + mouth on the head) ----------------------
-# Head bone the face rides on (KayKit Rig_Medium), and where the sprites sit in the
-# skeleton's rest space (head front is ~z 0.44; tuned so they hug the face).
+# Head bone the face rides on (KayKit Rig_Medium). Element positions, spacing and
+# scale come from a FaceLayout resource (data/face_layout.tres) tuned in the Face
+# Editor dock; a single eye/brow sprite is mirrored for the other side.
 const FACE_BONE := "head_2"
 const FACE_DIR := "res://assets/textures/faces/"
-const EYE_POS := Vector3(0.0, 1.73, 0.47)
-const MOUTH_POS := Vector3(0.0, 1.57, 0.47)
-const EYE_PIXEL := 0.0058
-const MOUTH_PIXEL := 0.0050
 const BLINK_MIN := 2.4
 const BLINK_MAX := 6.0
+const BLINK_TIME := 0.11
 
-# Shared across every character so the textures load once.
-static var _eyes_sf: SpriteFrames
+# Shared across every character so the mouth frames load once.
 static var _mouth_sf: SpriteFrames
 
 var _pending := ""
 var _oneshot_done := Callable()
 
 var _skel: Skeleton3D
-var _eyes: AnimatedSprite3D
+var _layout: FaceLayout
+var _head_inv := Transform3D.IDENTITY
+var _eye_l: Sprite3D
+var _eye_r: Sprite3D
+var _brow_l: Sprite3D
+var _brow_r: Sprite3D
+var _nose: Sprite3D
 var _mouth: AnimatedSprite3D
 var _blink: Timer
 # Each slot maps role -> MeshInstance3D currently filling it.
@@ -88,33 +91,49 @@ func _ready() -> void:
 # --- 2D face ---------------------------------------------------------------
 
 
-## Mount cute eyes + mouth on the head bone. Billboard is OFF (the camera is fixed
-## and characters turn away, so the face must rotate with the head, not the camera);
-## double-sided OFF means it simply vanishes when they face away. Eyes blink on their
-## own timer; the mouth flaps while set_talking(true).
+## Mount cute eyes + brows + nose + mouth on the head bone, laid out from a
+## FaceLayout. Billboard is OFF (the camera is fixed and characters turn away, so the
+## face must rotate with the head, not the camera); double-sided OFF means it simply
+## vanishes when they face away. Eyes blink on their own timer; the mouth flaps while
+## set_talking(true). A single eye/brow sprite is mirrored for the other side.
 func _build_face() -> void:
 	if _skel == null:
 		return
 	var idx := _skel.find_bone(FACE_BONE)
 	if idx < 0:
 		return
+	_layout = FaceLayout.load_or_default()
+	_head_inv = _skel.get_bone_global_pose(idx).affine_inverse()
 	var attach := BoneAttachment3D.new()
 	attach.name = "FaceAttach"
 	attach.bone_name = FACE_BONE
 	_skel.add_child(attach)
-	var inv := _skel.get_bone_global_pose(idx).affine_inverse()
-	_eyes = _face_sprite(_eyes_frames(), EYE_PIXEL, "open")
-	_eyes.transform = inv * Transform3D(Basis(), EYE_POS)
-	attach.add_child(_eyes)
-	_mouth = _face_sprite(_mouth_frames(), MOUTH_PIXEL, "closed")
-	_mouth.transform = inv * Transform3D(Basis(), MOUTH_POS)
-	attach.add_child(_mouth)
-	_eyes.animation_finished.connect(_on_blink_done)
+	_eye_l = _sprite(attach, _tex("eye"), false)
+	_eye_r = _sprite(attach, _tex("eye"), true)
+	_brow_l = _sprite(attach, _tex("brow"), false)
+	_brow_r = _sprite(attach, _tex("brow"), true)
+	_nose = _sprite(attach, _tex("nose"), false)
+	_mouth = _mouth_sprite(attach)
+	apply_layout(_layout)
 	_blink = Timer.new()
 	_blink.one_shot = true
 	add_child(_blink)
 	_blink.timeout.connect(_do_blink)
 	_schedule_blink()
+
+
+## Reposition/scale every face element from a layout — live-editable by the Face
+## Editor dock, and read once at spawn for normal play.
+func apply_layout(layout: FaceLayout) -> void:
+	if layout == null:
+		return
+	_layout = layout
+	_place(_eye_l, -layout.eye_gap * 0.5, layout.eye_y, layout.eye_px)
+	_place(_eye_r, layout.eye_gap * 0.5, layout.eye_y, layout.eye_px)
+	_place(_brow_l, -layout.brow_gap * 0.5, layout.brow_y, layout.brow_px)
+	_place(_brow_r, layout.brow_gap * 0.5, layout.brow_y, layout.brow_px)
+	_place(_nose, 0.0, layout.nose_y, layout.nose_px)
+	_place(_mouth, 0.0, layout.mouth_y, layout.mouth_px)
 
 
 ## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
@@ -123,16 +142,37 @@ func set_talking(on: bool) -> void:
 		_mouth.play("talk" if on else "closed")
 
 
-func _face_sprite(frames: SpriteFrames, pixel: float, anim: String) -> AnimatedSprite3D:
+func _place(node: Node3D, x: float, y_off: float, px: float) -> void:
+	if node == null or _layout == null:
+		return
+	var pos := Vector3(x, _layout.head_y + y_off, _layout.face_z)
+	node.transform = _head_inv * Transform3D(Basis(), pos)
+	node.pixel_size = px
+
+
+func _sprite(parent: Node, tex: Texture2D, mirror: bool) -> Sprite3D:
+	var s := Sprite3D.new()
+	s.texture = tex
+	s.flip_h = mirror
+	_face_flags(s)
+	parent.add_child(s)
+	return s
+
+
+func _mouth_sprite(parent: Node) -> AnimatedSprite3D:
 	var s := AnimatedSprite3D.new()
-	s.sprite_frames = frames
-	s.pixel_size = pixel
+	s.sprite_frames = _mouth_frames()
+	_face_flags(s)
+	s.play("closed")
+	parent.add_child(s)
+	return s
+
+
+func _face_flags(s: SpriteBase3D) -> void:
 	s.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	s.shaded = false
 	s.double_sided = false
 	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	s.play(anim)
-	return s
 
 
 func _schedule_blink() -> void:
@@ -140,23 +180,26 @@ func _schedule_blink() -> void:
 		_blink.start(randf_range(BLINK_MIN, BLINK_MAX))
 
 
+## Blink by swapping the eyes to the squashed "closed" frame for a moment.
 func _do_blink() -> void:
-	if _eyes != null:
-		_eyes.play("blink")
+	_set_eye_tex(_tex("eye_closed"))
+	get_tree().create_timer(BLINK_TIME).timeout.connect(_open_eyes)
 	_schedule_blink()
 
 
-func _on_blink_done() -> void:
-	if _eyes != null and _eyes.animation == "blink":
-		_eyes.play("open")
+func _open_eyes() -> void:
+	_set_eye_tex(_tex("eye"))
 
 
-static func _eyes_frames() -> SpriteFrames:
-	if _eyes_sf == null:
-		_eyes_sf = SpriteFrames.new()
-		_add_anim(_eyes_sf, "open", ["eyes_open"], 8.0, false)
-		_add_anim(_eyes_sf, "blink", ["eyes_blink", "eyes_blink"], 14.0, false)
-	return _eyes_sf
+func _set_eye_tex(tex: Texture2D) -> void:
+	if _eye_l != null:
+		_eye_l.texture = tex
+	if _eye_r != null:
+		_eye_r.texture = tex
+
+
+static func _tex(sprite_name: String) -> Texture2D:
+	return load(FACE_DIR + sprite_name + ".png") as Texture2D
 
 
 static func _mouth_frames() -> SpriteFrames:

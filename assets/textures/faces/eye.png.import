@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tyebrycun88i"
-path="res://.godot/imported/eyes_open.png-5bcbc21b1edbe1f27bbb9358c1d6dcb2.ctex"
+uid="uid://c15junrnnna3b"
+path="res://.godot/imported/eye.png-59ef9f89ff5e56ea4f9897ca9dc1f8b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/faces/eyes_open.png"
-dest_files=["res://.godot/imported/eyes_open.png-5bcbc21b1edbe1f27bbb9358c1d6dcb2.ctex"]
+source_file="res://assets/textures/faces/eye.png"
+dest_files=["res://.godot/imported/eye.png-59ef9f89ff5e56ea4f9897ca9dc1f8b6.ctex"]
 
 [params]
 

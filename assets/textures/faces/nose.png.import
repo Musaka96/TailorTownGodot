@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://idybaulcpx17"
-path="res://.godot/imported/eyes_blink.png-d19e780ebbbfbfad48c2001c004303ad.ctex"
+uid="uid://dqaalhpm3lneo"
+path="res://.godot/imported/nose.png-2c6f14dfce757b1edb0ed6d2eb7251cc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/faces/eyes_blink.png"
-dest_files=["res://.godot/imported/eyes_blink.png-d19e780ebbbfbfad48c2001c004303ad.ctex"]
+source_file="res://assets/textures/faces/nose.png"
+dest_files=["res://.godot/imported/nose.png-2c6f14dfce757b1edb0ed6d2eb7251cc.ctex"]
 
 [params]
 
