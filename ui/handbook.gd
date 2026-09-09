@@ -97,8 +97,11 @@ func _refresh() -> void:
 
 	var entries: Array = _chapters[_chapter]["entries"]
 	_topic = clampi(_topic, 0, entries.size() - 1)
+	# free() (not queue_free): the old rows must be gone this frame, or the scroll
+	# content is briefly double-height and ensure_control_visible reads stale sizes.
 	for child in _index.get_children():
-		child.queue_free()
+		_index.remove_child(child)
+		child.free()
 	var selected_card: Control = null
 	for i in entries.size():
 		var card := _make_card(entries[i]["title"], i == _topic, 16)

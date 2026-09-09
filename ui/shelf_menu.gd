@@ -78,8 +78,12 @@ func _build_decor_once() -> void:
 
 
 func _rebuild() -> void:
+	# free() (not queue_free): the old cards must be gone this frame, or the scroll
+	# content is briefly double-height and ensure_control_visible reads stale sizes,
+	# which made scrolling follow only intermittently.
 	for child in _list.get_children():
-		child.queue_free()
+		_list.remove_child(child)
+		child.free()
 
 	var rolls: Array = _shelf.stored
 	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [rolls.size(), _cut_length]
