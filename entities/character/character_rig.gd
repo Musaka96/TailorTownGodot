@@ -39,6 +39,8 @@ const ARM_BONES := [
 # How fast the blend params ease toward their targets (per second).
 const LOCO_BLEND_SPEED := 6.0
 const CARRY_BLEND_SPEED := 8.0
+# How fast the walk-cycle playback speed eases toward its target (per second).
+const LOCO_SPEED_BLEND := 8.0
 
 # --- Carrying --------------------------------------------------------------
 # A carried item hangs off a point parented to the right-hand bone, so it moves
@@ -79,6 +81,8 @@ var _loco := 0.0  # current idle(0)->walk(1) blend
 var _loco_target := 0.0
 var _carry_amt := 0.0  # current carry-overlay blend
 var _carry_target := 0.0
+var _loco_speed := 1.0  # current walk-cycle playback speed (1 = normal, >1 = sprint)
+var _loco_speed_target := 1.0
 var _carry_hold: Node3D
 
 var _skel: Skeleton3D
@@ -130,8 +134,10 @@ func _process(delta: float) -> void:
 		return
 	_loco = move_toward(_loco, _loco_target, LOCO_BLEND_SPEED * delta)
 	_carry_amt = move_toward(_carry_amt, _carry_target, CARRY_BLEND_SPEED * delta)
+	_loco_speed = move_toward(_loco_speed, _loco_speed_target, LOCO_SPEED_BLEND * delta)
 	_tree.set("parameters/loco/blend_amount", _loco)
 	_tree.set("parameters/carry/blend_amount", _carry_amt)
+	_tree.set("parameters/loco_ts/scale", _loco_speed)
 
 
 # --- 2D face ---------------------------------------------------------------
@@ -386,6 +392,12 @@ func set_locomotion(speed_ratio: float) -> void:
 	_loco_target = clampf(speed_ratio, 0.0, 1.0)
 
 
+## Scale the walk-cycle playback speed (1 = normal, >1 = sprint), eased in _process
+## so the legs visibly quicken when the player sprints.
+func set_locomotion_speed(mult: float) -> void:
+	_loco_speed_target = maxf(0.1, mult)
+
+
 ## A friendly wave — a full-body one-shot layered over the current blend.
 func wave() -> void:
 	if _tree != null:
@@ -423,12 +435,17 @@ func _build_tree() -> void:
 	tree.connect_node("loco", 0, "idle")
 	tree.connect_node("loco", 1, "walk")
 
+	# Speed control on the locomotion (quickens the walk cycle when sprinting).
+	var loco_ts := AnimationNodeTimeScale.new()
+	tree.add_node("loco_ts", loco_ts)
+	tree.connect_node("loco_ts", 0, "loco")
+
 	# Arm-only holding overlay: filter the arm bone tracks so at amount 1 the arms
 	# come from the holding pose while everything else stays with locomotion.
 	var carry := AnimationNodeBlend2.new()
 	carry.filter_enabled = true
 	tree.add_node("carry", carry)
-	tree.connect_node("carry", 0, "loco")
+	tree.connect_node("carry", 0, "loco_ts")
 	tree.connect_node("carry", 1, "carry_pose")
 
 	var wave_os := AnimationNodeOneShot.new()

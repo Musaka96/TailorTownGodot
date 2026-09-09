@@ -16,6 +16,7 @@ const CROSS_SECONDS := 7.5
 const GOOD_WINDOW := 0.05  # in seam fraction (0..1)
 const PERFECT_WINDOW := 0.025
 const MAX_MISTAKES := 3
+const SPRINT_MULT := 1.7  # hold Shift: the needle races, so the timing is tighter
 
 const CANVAS_MIN := Vector2(600, 300)
 const CLOTH_DEFAULT := Color("c9b48c")  # linen fallback when no fabric colour known
@@ -74,10 +75,9 @@ func start(title: String, cloth := CLOTH_DEFAULT) -> void:
 	_state = State.RUNNING
 	_needle = 0.0
 	_mistakes = 0
-	_pts = PackedFloat32Array()
+	_pts = _random_points()
 	_judge = PackedInt32Array()
-	for i in _stitches:
-		_pts.append(lerpf(0.08, 0.92, float(i) / (_stitches - 1)))
+	for i in _pts.size():
 		_judge.append(Stitch.PENDING)
 	_sub_lbl.text = title
 	_refresh_pips()
@@ -99,7 +99,9 @@ func _process(delta: float) -> void:
 		_repaint()
 		return
 
-	_needle += delta / _cross_seconds
+	# Hold Shift to run the needle faster — quicker seam, tighter timing.
+	var boost := SPRINT_MULT if Input.is_action_pressed("sprint") else 1.0
+	_needle += (delta / _cross_seconds) * boost
 
 	# Points the needle has passed without a stitch are misses.
 	for i in _pts.size():
@@ -155,6 +157,28 @@ func _next_pending() -> int:
 		if _judge[i] == Stitch.PENDING:
 			return i
 	return -1
+
+
+## Stitch points at uneven, random spacing along the seam (scaled to fit 0.08..0.92),
+## so the rhythm isn't a metronome — the player has to watch the needle, not the beat.
+func _random_points() -> PackedFloat32Array:
+	var gaps: Array[float] = []
+	var total := 0.0
+	for i in _stitches - 1:
+		var g := randf_range(0.55, 1.55)
+		gaps.append(g)
+		total += g
+	var pts := PackedFloat32Array()
+	pts.append(_map01(0.0, total))
+	var acc := 0.0
+	for i in _stitches - 1:
+		acc += gaps[i]
+		pts.append(_map01(acc, total))
+	return pts
+
+
+func _map01(v: float, total: float) -> float:
+	return lerpf(0.08, 0.92, v / total if total > 0.0 else 0.0)
 
 
 func _register_mistake() -> void:
@@ -241,7 +265,9 @@ func _build_chrome() -> void:
 	_status_lbl.add_theme_font_size_override("font_size", 16)
 	box.add_child(_status_lbl)
 
-	box.add_child(Style.hint_bar([["E / Space", "Stitch on the beat"]]))
+	box.add_child(
+		Style.hint_bar([["E / Space", "Stitch"], ["Shift", "Speed up (riskier)"]])
+	)
 
 
 func _refresh_pips() -> void:

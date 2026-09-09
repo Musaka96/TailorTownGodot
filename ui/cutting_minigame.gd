@@ -16,6 +16,7 @@ const TARGET_SECONDS := 15.0  # time to cut the whole shape when aligned
 const MISTAKE_COST := 0.85  # accumulated error that equals one mistake
 const MAX_MISTAKES := 3
 const ROT_SPEED := 14.0
+const SPRINT_MULT := 1.8  # hold Shift: cut faster, but misalignment bites faster too
 
 # Normalized garment silhouettes (roughly [-1, 1]); jittered at generation.
 const SHAPES := {
@@ -157,6 +158,9 @@ func _process(delta: float) -> void:
 		_repaint()
 		return
 
+	# Hold Shift to race the cut along — faster progress, but a slip racks up faster.
+	var boost := SPRINT_MULT if Input.is_action_pressed("sprint") else 1.0
+
 	# Alignment is line-orientation (either blade direction is fine).
 	var tangent := _tangent_at(_cursor)
 	var err: float = minf(
@@ -165,16 +169,16 @@ func _process(delta: float) -> void:
 	_aligned = err <= _good_tol
 
 	if _aligned:
-		_cursor += (_total / _seconds) * delta
+		_cursor += (_total / _seconds) * boost * delta
 		_error = maxf(0.0, _error - delta * 0.7)
 		_snip_accum += delta
-		if _snip_accum >= 0.13:
+		if _snip_accum >= 0.13 / boost:
 			_snip_accum = 0.0
 			_play(_snip, 0.35)
 		if _cursor >= _total:
 			_succeed()
 	elif _cooldown <= 0.0:
-		_error += (err - _good_tol) * delta
+		_error += (err - _good_tol) * boost * delta
 		if _error >= MISTAKE_COST:
 			_register_mistake()
 
@@ -275,7 +279,9 @@ func _build_chrome() -> void:
 	_status_lbl.add_theme_font_size_override("font_size", 16)
 	box.add_child(_status_lbl)
 
-	box.add_child(Style.hint_bar([["WASD", "Aim the scissors along the line"]]))
+	box.add_child(
+		Style.hint_bar([["WASD", "Aim the scissors"], ["Shift", "Cut faster (riskier)"]])
+	)
 
 
 func _refresh_pips() -> void:

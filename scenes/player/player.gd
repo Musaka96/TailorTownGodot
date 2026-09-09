@@ -12,6 +12,10 @@ extends CharacterBody3D
 ## Seconds between footstep sounds while walking — a calm, steady cadence that
 ## reads as cute rather than a realistic run.
 const STEP_TIME := 0.5
+## Sprint (hold Shift / right shoulder): faster move speed, a quicker walk cycle and
+## snappier footsteps to match.
+const SPRINT_SPEED_MULT := 1.7
+const SPRINT_ANIM_MULT := 1.6
 
 ## Peak horizontal speed in metres/second.
 @export var move_speed: float = 6.0
@@ -27,6 +31,7 @@ const STEP_TIME := 0.5
 # the physics world instead of being a magic number.
 var _step_t := 0.0
 var _was_moving := false
+var _sprinting := false
 
 ## The player's hands. Stations reach it as `actor.carry`.
 @onready var carry: CarrySlot = $Carry
@@ -55,8 +60,15 @@ func _physics_process(delta: float) -> void:
 		input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := _to_world_direction(input)
 
+	_sprinting = (
+		not GameState.input_locked
+		and Input.is_action_pressed("sprint")
+		and input.length_squared() > 0.01
+	)
+	var top_speed := move_speed * (SPRINT_SPEED_MULT if _sprinting else 1.0)
+
 	# Horizontal movement with smooth accel/decel on the XZ plane.
-	var target := direction * move_speed
+	var target := direction * top_speed
 	velocity.x = move_toward(velocity.x, target.x, acceleration * delta)
 	velocity.z = move_toward(velocity.z, target.z, acceleration * delta)
 
@@ -77,6 +89,8 @@ func _physics_process(delta: float) -> void:
 		_model.set_locomotion(speed / maxf(move_speed, 0.01))  # smooth speed blend
 	elif _model.has_method("set_moving"):
 		_model.set_moving(speed > 0.4)
+	if _model.has_method("set_locomotion_speed"):
+		_model.set_locomotion_speed(SPRINT_ANIM_MULT if _sprinting else 1.0)
 	if _model.has_method("set_carrying"):
 		_model.set_carrying(not carry.is_empty())
 
@@ -117,11 +131,12 @@ func _drop_parent() -> Node:
 ## Soft footstep pats on a steady, gentle cadence while walking.
 func _footsteps(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.6 and is_on_floor()
+	var interval := STEP_TIME / (SPRINT_ANIM_MULT if _sprinting else 1.0)
 	if moving:
 		if not _was_moving:
-			_step_t = STEP_TIME  # land the first step promptly on setting off
+			_step_t = interval  # land the first step promptly on setting off
 		_step_t += delta
-		if _step_t >= STEP_TIME:
+		if _step_t >= interval:
 			_step_t = 0.0
 			Sfx.play("footstep_wood", -7.0)
 	_was_moving = moving
