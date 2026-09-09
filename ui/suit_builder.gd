@@ -23,7 +23,6 @@ var _actor = null
 var _customer = null
 var _pref = null  # CustomerPreference when fitting a real customer, else null
 var _awaiting := false  # customer loved it; next E finalises the order
-var _liked := false  # last judged suitability, so we only nod/shake on a change
 var _rig = null
 var _part_sel := -1  # -1 = overview, else index into PARTS
 var _row := 0
@@ -60,13 +59,11 @@ func open(mirror, actor) -> void:
 	_design = {}
 	for t in PARTS:
 		_design[t] = {"fabric": 0, "color": 0, "pattern": 0, "style_idx": 0}
-	_liked = false
 	GameState.input_locked = true
 	visible = true
 	_style()
 	_update_camera()
 	_apply_to_customer()
-	_react(false)  # set the opening expression, but don't nod/shake yet
 	_refresh()
 
 
@@ -76,7 +73,7 @@ func close() -> void:
 	if _rig != null:
 		_rig.unfocus()
 	if _customer != null and _customer.has_method("react"):
-		_customer.react(0, false)
+		_customer.react(Customer.REACT_NEUTRAL)
 	_mirror = null
 
 
@@ -304,7 +301,6 @@ func _adjust(dir: int) -> void:
 			Row.STYLE:
 				c["style_idx"] = wrapi(c["style_idx"] + dir, 0, Enums.styles_for(_type()).size())
 	_apply_to_customer()
-	_react(true)
 	_refresh()
 
 
@@ -329,18 +325,6 @@ func _part_material(garment_type: int) -> MaterialType:
 	return MaterialFactory.make(c["fabric"], c["pattern"], c["color"], 1.0)
 
 
-## Let the seated customer react to the current design: a held smile/frown that
-## follows suitability, plus a one-off nod/shake when their verdict flips (`gesture`
-## is false on open so they don't lurch the instant the menu appears). Free-design
-## mode (no real customer/brief) has nobody to please, so it's a no-op.
-func _react(gesture: bool) -> void:
-	if _customer == null or _pref == null or not _customer.has_method("react"):
-		return
-	var liked: bool = _pref.evaluate(_design).get("suitable", false)
-	_customer.react(1 if liked else -1, gesture and liked != _liked)
-	_liked = liked
-
-
 func _confirm() -> void:
 	# Free-design mode (no customer): just announce the design.
 	if _pref == null:
@@ -348,11 +332,15 @@ func _confirm() -> void:
 		_status = "     Design saved!"
 		_refresh()
 		return
-	# First E asks the customer for their reaction.
+	# First E asks the customer for their reaction — they light up or shake their head
+	# for a moment, then settle back to their normal face.
 	if not _awaiting:
 		var reaction: Dictionary = _pref.evaluate(_design)
+		var suitable: bool = reaction.get("suitable", false)
+		if _customer != null and _customer.has_method("react"):
+			_customer.react(Customer.REACT_LIKE if suitable else Customer.REACT_DISLIKE)
 		_status = "     %s: %s" % [_pref.display_name, reaction["reason"]]
-		_awaiting = reaction["suitable"]
+		_awaiting = suitable
 		_refresh()
 		return
 	# Second E finalises: create the order and send the customer on their way.
@@ -370,6 +358,8 @@ func _finalize() -> void:
 	var cust = _customer
 	close()
 	if cust != null:
+		if cust.has_method("react"):
+			cust.react(Customer.REACT_ACCEPT)  # keep a happy face as they leave
 		cust.finish_and_leave()
 
 

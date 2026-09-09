@@ -17,6 +17,13 @@ signal departed(customer: Node)  ## about to remove itself
 ## What interacting with the customer does right now.
 enum Mode { NONE, GREET, MIRROR, COLLECT }
 
+# Reaction kinds passed to react() (see there): momentary like/dislike, a lasting
+# accepted-happy, and back to the resting face.
+const REACT_NEUTRAL := 0
+const REACT_LIKE := 1
+const REACT_DISLIKE := -1
+const REACT_ACCEPT := 2
+
 @export var walk_speed: float = 2.6
 @export var turn_speed: float = 8.0
 
@@ -117,22 +124,22 @@ func set_talking(on: bool) -> void:
 		_rig.set_talking(on)
 
 
-## React to the suit being fitted. `mood`: 1 pleased, -1 displeased, 0 back to rest.
-## The held smile/frown always updates; `gesture` also plays a one-off nod (pleased)
-## or "no-no" head shake (displeased), used by the suit builder only when the verdict
-## actually flips, so they don't lurch on every tweak.
-func react(mood: int, gesture: bool) -> void:
-	if _rig == null or not _rig.has_method("set_expression"):
+## React to a suit design at the mirror. The customer rests on a normal face and only
+## reacts when the player suggests a design: LIKE/DISLIKE play a one-off grin+nod or
+## frown+shake and settle back to normal; ACCEPT holds a lasting happy face (they keep
+## it as they leave); NEUTRAL returns to rest (menu closed).
+func react(kind: int) -> void:
+	if _rig == null or not _rig.has_method("express_once"):
 		return
-	if mood == 0:
-		_rig.reset_expression()
-	else:
-		_rig.set_expression(mood > 0)
-	if gesture and mood != 0:
-		if mood > 0:
-			_rig.nod()
-		else:
-			_rig.shake()
+	match kind:
+		REACT_LIKE:
+			_rig.express_once(true)
+		REACT_DISLIKE:
+			_rig.express_once(false)
+		REACT_ACCEPT:
+			_rig.set_expression(true)
+		_:
+			_rig.reset_expression()
 
 
 func set_hair(index: int) -> void:

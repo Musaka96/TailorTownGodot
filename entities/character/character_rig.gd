@@ -203,6 +203,19 @@ func reset_expression() -> void:
 	_apply_expression(0)
 
 
+## A momentary reaction to a suggestion: grin + nod (liked) or frown + "no-no" shake
+## (disliked), which then eases back to the resting face on its own.
+func express_once(liked: bool) -> void:
+	_apply_expression(1 if liked else -1)
+	if liked:
+		nod()
+	else:
+		shake()
+	if _gesture != null and _gesture.is_valid():
+		_gesture.tween_interval(0.5)  # let the expression linger a beat past the swing
+		_gesture.tween_callback(func() -> void: _apply_expression(0))
+
+
 ## A happy yes-nod (pitch) — a quick swing that settles back to centre.
 func nod() -> void:
 	_swing("rotation:x", NOD_ANGLE, [1.0, -0.35, 0.5, 0.0])
