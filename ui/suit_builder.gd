@@ -33,6 +33,9 @@ var _name_label: Label
 var _sub_label: Label
 var _brief_label: Label
 var _hint_bar: HBoxContainer
+var _stock_badge: HBoxContainer
+var _stock_dot: Panel
+var _stock_label: Label
 var _decor_built := false
 
 @onready var _panel: PanelContainer = $Panel
@@ -92,6 +95,17 @@ func _build_preview() -> void:
 	_sub_label.add_theme_font_size_override("font_size", 14)
 	_sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_sub_label)
+	# A small "do I already have this cloth?" badge (dot + word) under the sub-line.
+	_stock_badge = HBoxContainer.new()
+	_stock_badge.add_theme_constant_override("separation", Style.S1 + 2)
+	_stock_dot = Panel.new()
+	_stock_dot.custom_minimum_size = Vector2(12, 12)
+	_stock_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_stock_badge.add_child(_stock_dot)
+	_stock_label = Label.new()
+	_stock_label.add_theme_font_size_override("font_size", 13)
+	_stock_badge.add_child(_stock_label)
+	info.add_child(_stock_badge)
 
 
 func _style() -> void:
@@ -201,6 +215,7 @@ func _refresh() -> void:
 		)
 	else:
 		_brief_label.text = _status.strip_edges()
+	_update_stock()
 	_rebuild_hint_bar()
 
 	var rows := _active_rows()
@@ -323,6 +338,47 @@ func _apply_to_customer() -> void:
 func _part_material(garment_type: int) -> MaterialType:
 	var c: Dictionary = _design[garment_type]
 	return MaterialFactory.make(c["fabric"], c["pattern"], c["color"], 1.0)
+
+
+# --- Stock indicator -------------------------------------------------------
+
+
+## Flag whether the shop already holds cloth matching the shown part's design, so
+## the player knows a fitting fabric is on hand (vs. one they'd have to order).
+func _update_stock() -> void:
+	if _stock_dot == null:
+		return
+	var c: Dictionary = _design[_type()] if _part_sel >= 0 else _design[Enums.GarmentType.JACKET]
+	var have := _cloth_in_stock(int(c["fabric"]), int(c["pattern"]), int(c["color"]))
+	var tint: Color = Style.FOREST if have else Style.CLAY
+	_stock_dot.add_theme_stylebox_override("panel", Style.bar(tint, 6))
+	_stock_label.text = "In stock" if have else "Not in your shop"
+	_stock_label.add_theme_color_override("font_color", tint)
+
+
+## True if any non-empty roll or cut piece in the shop matches this fabric + pattern
+## + colour (the three things that define a bolt of cloth).
+func _cloth_in_stock(fabric: int, pattern: int, color_index: int) -> bool:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return false
+	var target := MaterialFactory.color_value(color_index)
+	for n in scene.find_children("*", "MaterialRoll", true, false):
+		var roll := n as MaterialRoll
+		if roll != null and not roll.is_empty() and _mat_matches(roll.material, fabric, pattern, target):
+			return true
+	for n in scene.find_children("*", "FabricPiece", true, false):
+		var piece := n as FabricPiece
+		if piece != null and _mat_matches(piece.material, fabric, pattern, target):
+			return true
+	return false
+
+
+func _mat_matches(mat: MaterialType, fabric: int, pattern: int, target: Color) -> bool:
+	if mat == null or int(mat.fabric) != fabric or int(mat.pattern) != pattern:
+		return false
+	var c := mat.cloth_color
+	return absf(c.r - target.r) + absf(c.g - target.g) + absf(c.b - target.b) < 0.06
 
 
 func _confirm() -> void:
