@@ -4,6 +4,10 @@ extends Control
 ## tabs across the top, a topic index on the left page, the article on the right.
 ## Content comes from Handbook (real tailoring info + live dress-code rules).
 
+## The book's fixed size — the ONLY fixed element. Everything inside stacks and
+## scrolls within it (index on the left, preview + article on the right).
+const BOOK_SIZE := Vector2(780, 600)
+
 var _actor = null
 var _chapters: Array = []
 var _chapter := 0
@@ -38,21 +42,23 @@ func close() -> void:
 
 
 func _style() -> void:
-	# Fixed book (§3): a paper leather-bound volume; the topic index scrolls and
-	# the article scrolls, so neither a long chapter nor a long article resizes it.
-	_panel.custom_minimum_size = Style.FRAME_WIDE
+	# The book is a fixed size; everything inside fills it and scrolls when long, so
+	# no tab can resize it and empty space is never reserved.
+	_panel.custom_minimum_size = BOOK_SIZE
 	Style.apply_skin(_panel, Style.MenuSkin.BOOK)
 	_title.add_theme_font_override("font", Style.bold_font())
 	_title.add_theme_font_size_override("font_size", 26)
 	_title.add_theme_color_override("font_color", Style.ACC_BOOK)
 	_tabs.add_theme_constant_override("separation", Style.S1)
 	_index.add_theme_constant_override("separation", Style.S1)
+	# The body grows with its text (fit_content) and wraps to the page width; the
+	# article ScrollContainer handles overflow, so the label sets no fixed size.
 	_body.bbcode_enabled = true
-	_body.scroll_active = true
-	_body.fit_content = false
-	# A stable article width and a reserved-height preview keep the book the same
-	# size on every tab — short chapters/articles no longer shrink or grow it.
-	_body.custom_minimum_size = Vector2(360, 380)
+	_body.scroll_active = false
+	_body.fit_content = true
+	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_body.custom_minimum_size = Vector2.ZERO
+	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body.add_theme_color_override("default_color", Style.INK)
 	_body.add_theme_font_override("bold_font", Style.bold_font())
 	_body.add_theme_font_size_override("normal_font_size", 17)
@@ -60,28 +66,47 @@ func _style() -> void:
 	_build_decor_once()
 
 
-## One-time structure: key-cap hint bar and the scrolling wrapper around the topic
-## index so long chapters don't grow the book (the skin/frame is applied in _style).
+## One-time structure: wrap the index and the article each in a ScrollContainer
+## that fills the fixed panel and scrolls when its content is too tall, and add the
+## key-cap hint bar. Nothing here sets a fixed size — only the panel is fixed.
 func _build_decor_once() -> void:
 	if _decor_built:
 		return
 	_decor_built = true
-	var pages := _index.get_parent()
-	var pos := _index.get_index()
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(240, 380)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	pages.remove_child(_index)
-	scroll.add_child(_index)
-	pages.add_child(scroll)
-	pages.move_child(scroll, pos)
-	_index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_index_scroll = scroll
+	var pages := _index.get_parent()  # the Pages HBox
+	pages.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Reserve a fixed slot for the preview so a tab with a big photo and one with a
-	# small swatch (or none) don't change the book's height.
-	_preview.custom_minimum_size = Vector2(230, 300)
+	# Left page: the topic index, scrolling within the fixed panel.
+	var ipos := _index.get_index()
+	var idx_scroll := ScrollContainer.new()
+	idx_scroll.custom_minimum_size = Vector2(220, 0)
+	idx_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	idx_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pages.remove_child(_index)
+	idx_scroll.add_child(_index)
+	pages.add_child(idx_scroll)
+	pages.move_child(idx_scroll, ipos)
+	_index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_index_scroll = idx_scroll
+
+	# Right page: the preview + article stacked in one column that scrolls when long.
+	var right := _preview.get_parent()  # the Right VBox (Preview then Body)
+	var rpos := right.get_index()
+	var art_scroll := ScrollContainer.new()
+	art_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	art_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pages.remove_child(right)
+	art_scroll.add_child(right)
+	pages.add_child(art_scroll)
+	pages.move_child(art_scroll, rpos)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", Style.S3)
+
+	# The preview takes no space when a topic has none, and never stretches its art.
+	_preview.custom_minimum_size = Vector2.ZERO
 	_preview.alignment = BoxContainer.ALIGNMENT_CENTER
+	_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	_hint.visible = false
 	var bar := Style.hint_bar([["A/D", "Chapter"], ["W/S", "Topic"], ["Esc", "Close"]])
@@ -131,17 +156,16 @@ func _scroll_into_view(scroll: ScrollContainer, card: Control) -> void:
 
 
 func _make_preview(preview: Dictionary) -> Control:
-	# A reference photo (styles) …
+	# A reference photo (styles): scales to the page width keeping its aspect (height
+	# follows, and the article scroll handles it) — no fixed size, never stretched.
 	if preview.has("image"):
 		var rect := TextureRect.new()
 		rect.texture = load(preview["image"]) as Texture2D
-		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		rect.custom_minimum_size = Vector2(210, 285)
-		rect.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		rect.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		return rect
-	# … or a cloth swatch (fabrics/patterns).
+	# … or a cloth swatch (fabrics/patterns) at its own natural size, not stretched.
 	var mat: MaterialType
 	if preview.has("fabric"):
 		mat = MaterialFactory.make(preview["fabric"], Enums.Pattern.SOLID, 1, 1.0)
@@ -150,6 +174,8 @@ func _make_preview(preview: Dictionary) -> Control:
 	var swatch := MaterialSwatch.new()
 	swatch.swatch_size = 112
 	swatch.setup(mat, mat.roll_length_m)
+	swatch.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return swatch
 
 
