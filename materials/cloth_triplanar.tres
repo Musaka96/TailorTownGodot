@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/cloth_triplanar.gdshader" id="1_mdc5b"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_mdc5b")
+shader_parameter/cloth_color = null
+shader_parameter/pattern_color = null
+shader_parameter/fabric_strength = 0.5
+shader_parameter/pattern_strength = 0.85
+shader_parameter/tri_scale = 3.0

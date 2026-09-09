@@ -66,12 +66,14 @@ const FLOOR_ROLLS := [
 
 
 func _initialize() -> void:
-	# Order matters: fabric piece before shelf (shelf preloads it), roll before
-	# phone (phone preloads it).
-	_build_fabric_piece_scene()
-	_build_garment_piece_scene()
-	_build_suit_scene()
-	_build_roll_scene()
+	# The item scenes (roll / fabric piece / garment piece / suit) are now
+	# hand-owned so their meshes and materials can be edited in the Godot editor —
+	# they are deliberately NOT regenerated here. The builders below (kept for
+	# reference/history) would overwrite those edits, so leave them commented out.
+	#   _build_fabric_piece_scene()
+	#   _build_garment_piece_scene()
+	#   _build_suit_scene()
+	#   _build_roll_scene()
 	_build_shelf_scene()
 	_build_phone_scene()
 	_build_worktable_scene()
