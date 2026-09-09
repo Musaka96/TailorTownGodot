@@ -64,7 +64,7 @@ func evaluate(occasion: int, style: int, design: Dictionary, budget: int) -> Dic
 	reasons.append_array(_jacket_reasons(rule, occasion, jacket))
 	var pants: Dictionary = design.get(Enums.GarmentType.PANTS, {})
 	if not pants.is_empty():
-		reasons.append_array(_pants_reasons(jacket, pants))
+		reasons.append_array(_pants_reasons(style, jacket, pants))
 	var shirt: Dictionary = design.get(Enums.GarmentType.SHIRT, {})
 	if not shirt.is_empty():
 		reasons.append_array(_shirt_reasons(occasion, style, shirt))
@@ -94,9 +94,12 @@ func _jacket_reasons(rule: DressRule, occasion: int, jacket: Dictionary) -> Arra
 
 
 ## The trousers should read as a matched suit with the jacket: the same cloth and
-## colour, with a pattern that matches the jacket or stays plain.
-func _pants_reasons(jacket: Dictionary, pants: Dictionary) -> Array[String]:
+## colour, with a pattern that matches the jacket or stays plain. Fashion briefs are
+## the exception — they welcome contrasting jacket/trouser separates, so anything goes.
+func _pants_reasons(style: int, jacket: Dictionary, pants: Dictionary) -> Array[String]:
 	var reasons: Array[String] = []
+	if style == Enums.Style.FASHION:
+		return reasons
 	var same_fabric := int(pants.get("fabric", -1)) == int(jacket.get("fabric", -2))
 	var same_color := int(pants.get("color", -1)) == int(jacket.get("color", -2))
 	if not (same_fabric and same_color):
