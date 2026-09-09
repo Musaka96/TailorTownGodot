@@ -84,7 +84,7 @@ var _carry_hold: Node3D
 var _skel: Skeleton3D
 var _layout: FaceLayout
 var _head_inv := Transform3D.IDENTITY
-var _face_pivot: Node3D  # swings for nod/shake; face sprites hang under it
+var _wobble: HeadWobble  # rotates the head bone for nod/shake (face follows it)
 var _expr := 0  # -1 displeased, 0 neutral, 1 pleased
 var _gesture: Tween
 var _eye_l: Sprite3D
@@ -122,6 +122,7 @@ func _ready() -> void:
 		_build_tree()
 	_build_face()
 	_build_carry()
+	_build_head_wobble()
 
 
 func _process(delta: float) -> void:
@@ -153,17 +154,12 @@ func _build_face() -> void:
 	attach.name = "FaceAttach"
 	attach.bone_name = FACE_BONE
 	_skel.add_child(attach)
-	# A pivot between the bone attachment and the sprites: the attachment resyncs to
-	# the bone each frame, but the pivot's own rotation is ours to swing (nod/shake).
-	_face_pivot = Node3D.new()
-	_face_pivot.name = "FacePivot"
-	attach.add_child(_face_pivot)
-	_eye_l = _sprite(_face_pivot, _tex("eye"), false)
-	_eye_r = _sprite(_face_pivot, _tex("eye"), true)
-	_brow_l = _sprite(_face_pivot, _tex("brow"), false)
-	_brow_r = _sprite(_face_pivot, _tex("brow"), true)
-	_nose = _sprite(_face_pivot, _tex("nose"), false)
-	_mouth = _mouth_sprite(_face_pivot)
+	_eye_l = _sprite(attach, _tex("eye"), false)
+	_eye_r = _sprite(attach, _tex("eye"), true)
+	_brow_l = _sprite(attach, _tex("brow"), false)
+	_brow_r = _sprite(attach, _tex("brow"), true)
+	_nose = _sprite(attach, _tex("nose"), false)
+	_mouth = _mouth_sprite(attach)
 	apply_layout(_layout)
 	_blink = Timer.new()
 	_blink.one_shot = true
@@ -218,12 +214,12 @@ func express_once(liked: bool) -> void:
 
 ## A happy yes-nod (pitch) — a quick swing that settles back to centre.
 func nod() -> void:
-	_swing("rotation:x", NOD_ANGLE, [1.0, -0.35, 0.5, 0.0])
+	_swing("pitch", NOD_ANGLE, [1.0, -0.35, 0.5, 0.0])
 
 
 ## A no-no head shake (yaw) — used when the customer dislikes the design.
 func shake() -> void:
-	_swing("rotation:y", SHAKE_ANGLE, [1.0, -1.0, 0.6, -0.35, 0.0])
+	_swing("yaw", SHAKE_ANGLE, [1.0, -1.0, 0.6, -0.35, 0.0])
 
 
 func _apply_expression(mood: int) -> void:
@@ -239,16 +235,31 @@ func _apply_expression(mood: int) -> void:
 		_mouth.pixel_size = _layout.mouth_px * (EXPR_HAPPY_MOUTH if mood > 0 else 1.0)
 
 
-## Swing the face pivot through a sequence of angle multiples, back to rest.
+## Swing the head bone through a sequence of angle multiples, back to rest. `prop` is
+## the wobble axis to drive ("pitch" for a nod, "yaw" for a shake).
 func _swing(prop: String, angle: float, steps: Array) -> void:
-	if _face_pivot == null:
+	if _wobble == null:
 		return
 	if _gesture != null and _gesture.is_valid():
 		_gesture.kill()
-	_face_pivot.rotation = Vector3.ZERO
+	_wobble.set(prop, 0.0)
 	_gesture = create_tween()
 	for s: float in steps:
-		_gesture.tween_property(_face_pivot, prop, angle * s, GESTURE_STEP)
+		_gesture.tween_property(_wobble, prop, angle * s, GESTURE_STEP)
+
+
+## Attach the head-bone wobble modifier so nod/shake rotate the real head (the face,
+## riding the same bone, follows). Runs after the AnimationTree poses the skeleton.
+func _build_head_wobble() -> void:
+	if _skel == null:
+		return
+	var idx := _skel.find_bone(FACE_BONE)
+	if idx < 0:
+		return
+	_wobble = HeadWobble.new()
+	_wobble.name = "HeadWobble"
+	_wobble.bone = idx
+	_skel.add_child(_wobble)
 
 
 func _place(node: Node3D, x: float, y_off: float, px: float) -> void:
