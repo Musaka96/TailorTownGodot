@@ -14,6 +14,7 @@ var _index := 0
 var _cut_length := 1.0
 var _decor_built := false
 var _scroll: ScrollContainer
+var _cards: Array = []  # one card per stored roll, built once per open
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -30,7 +31,7 @@ func open(shelf, actor) -> void:
 	visible = true
 	_style()
 	_clamp_cut()
-	_rebuild()
+	_rebuild_list()
 
 
 func close() -> void:
@@ -77,34 +78,37 @@ func _build_decor_once() -> void:
 	box.add_child(Style.hint_bar(pairs))
 
 
-func _rebuild() -> void:
-	# free() (not queue_free): the old cards must be gone this frame, or the scroll
-	# content is briefly double-height and ensure_control_visible reads stale sizes,
-	# which made scrolling follow only intermittently.
+## Build the whole card list once (on open). The roll set doesn't change while
+## browsing — cutting or taking closes the menu — so navigation never rebuilds;
+## it just re-highlights and scrolls persistent, already-laid-out cards, which
+## makes ensure_control_visible reliable in both directions.
+func _rebuild_list() -> void:
 	for child in _list.get_children():
 		_list.remove_child(child)
 		child.free()
-
+	_cards.clear()
 	var rolls: Array = _shelf.stored
-	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [rolls.size(), _cut_length]
-
-	var selected_card: Control = null
 	for i in rolls.size():
 		var card := _make_card(rolls[i], i == _index)
 		_list.add_child(card)
-		if i == _index:
-			selected_card = card
-	# Follow the selection both ways as you scroll past the visible rows.
-	if _scroll != null and selected_card != null:
-		_scroll_into_view(selected_card)
+		_cards.append(card)
+	_update_title()
 
 
-## Scroll the selected card into view after a frame, so the rebuilt list has laid
-## out first — otherwise ensure_control_visible reads stale positions and only
-## follows one direction.
-func _scroll_into_view(card: Control) -> void:
-	await get_tree().process_frame
-	if is_instance_valid(_scroll) and is_instance_valid(card):
+func _update_title() -> void:
+	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [_shelf.stored.size(), _cut_length]
+
+
+## Move the highlight from `old` to the current `_index` and scroll it into view.
+## Cards are already laid out, so no wait is needed and it follows both ways.
+func _highlight(old: int) -> void:
+	if old >= 0 and old < _cards.size():
+		_cards[old].add_theme_stylebox_override("panel", Style.card())
+	if _index < 0 or _index >= _cards.size():
+		return
+	var card: Control = _cards[_index]
+	card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_SHELF))
+	if _scroll != null:
 		_scroll.ensure_control_visible(card)
 
 
@@ -185,15 +189,17 @@ func _move(delta: int) -> void:
 	var n: int = _shelf.stored.size()
 	if n == 0:
 		return
+	var old := _index
 	_index = (_index + delta + n) % n
 	_clamp_cut()
-	_rebuild()
+	_highlight(old)
+	_update_title()
 
 
 func _adjust_cut(delta: float) -> void:
 	_cut_length += delta
 	_clamp_cut()
-	_rebuild()
+	_update_title()
 
 
 ## Keep the requested cut length within [0.5 m, the selected roll's remaining].
