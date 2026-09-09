@@ -26,6 +26,10 @@ const CUSTOMER_SCENE := preload("res://entities/customer/customer.tscn")
 var _mirror: Node = null
 var _greet := Vector3.ZERO
 var _mirror_spot := Vector3.ZERO
+## Which way a fitted customer turns to face — taken from the MirrorSpot marker's
+## rotation, so moving/rotating that waypoint also re-aims the fitting camera (the
+## suit builder frames the customer from their front, i.e. along their facing).
+var _mirror_spot_yaw := 0.0
 var _door_in := Vector3.ZERO
 var _door_out := Vector3.ZERO
 var _street_west := Vector3.ZERO
@@ -46,6 +50,7 @@ func _start() -> void:
 	_mirror = get_node_or_null(mirror_path)
 	_greet = _pos(greet_path)
 	_mirror_spot = _pos(mirror_spot_path)
+	_mirror_spot_yaw = _yaw(mirror_spot_path)
 	_door_in = _pos(door_in_path)
 	_door_out = _pos(door_out_path)
 	_street_west = _pos(street_west_path)
@@ -186,7 +191,7 @@ func _dress(cust: Customer) -> void:
 
 
 func route_to_mirror(cust: Customer) -> void:
-	cust.walk([_mirror_spot], func() -> void: _on_seated(cust), 0.0)
+	cust.walk([_mirror_spot], func() -> void: _on_seated(cust), _mirror_spot_yaw)
 
 
 func _on_seated(cust: Customer) -> void:
@@ -208,3 +213,13 @@ func _on_departed(cust: Node) -> void:
 func _pos(path: NodePath) -> Vector3:
 	var node := get_node_or_null(path)
 	return (node as Node3D).global_position if node is Node3D else Vector3.ZERO
+
+
+## Global yaw a marker points along (its +Z), so a customer set to this heading has
+## the marker's facing — and the camera, which sits along that facing, respects it.
+func _yaw(path: NodePath) -> float:
+	var node := get_node_or_null(path)
+	if node is Node3D:
+		var z: Vector3 = (node as Node3D).global_transform.basis.z
+		return atan2(z.x, z.z)
+	return 0.0
