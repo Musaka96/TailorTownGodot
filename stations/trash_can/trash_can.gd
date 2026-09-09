@@ -4,6 +4,8 @@ extends Node3D
 ## Discard whatever the player is carrying — drop it in the bin and it's gone for
 ## good. Handy for scrapping mismatched cloth, a wrong piece, or an unclaimed suit.
 
+@onready var _poof: GPUParticles3D = $Poof
+
 
 func get_interaction_prompt(actor) -> String:
 	if actor.carry.is_empty():
@@ -18,5 +20,8 @@ func interact(actor) -> void:
 	if item.get_parent() != null:
 		item.get_parent().remove_child(item)  # release() only clears the slot, not the hand
 	item.queue_free()
+	if _poof != null:
+		_poof.restart()  # one-shot puff of dust at the bin's mouth
 	if Sfx != null:
 		Sfx.play("putdown")
+		Sfx.play("cloth_rustle", -3.0, 1.15, 1.3)  # airy poof over the thunk
