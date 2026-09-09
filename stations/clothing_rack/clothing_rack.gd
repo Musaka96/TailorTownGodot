@@ -1,8 +1,9 @@
 class_name ClothingRack
 extends Node3D
 
-## Storage for finished garment parts. Hang a GarmentPiece on a free hook;
-## empty-handed, take the most recently hung one back.
+## Storage for finished garment parts AND whole suits. Hang a GarmentPiece or a
+## Suit on a free hook; empty-handed with things stored, open the browse menu to
+## inspect and take one out.
 
 var stored: Array[Node] = []
 var _slots: Array[Node3D] = []
@@ -16,31 +17,49 @@ func _ready() -> void:
 			_slots.append(child)
 
 
+func capacity() -> int:
+	return _slots.size()
+
+
 func get_interaction_prompt(actor) -> String:
 	var held: Node = actor.carry.get_held()
-	if held is GarmentPiece:
-		return "Hang part" if stored.size() < _slots.size() else "Rack full"
+	if held is GarmentPiece or held is Suit:
+		return "Hang up" if stored.size() < _slots.size() else "Rack full"
 	if held != null:
-		return "Rack holds garment parts"
+		return "Rack holds garments and suits"
 	if stored.size() > 0:
-		return "Take part  (%d)" % stored.size()
+		return "Browse rack  (%d)" % stored.size()
 	return "Clothing rack"
 
 
 func interact(actor) -> void:
 	var held: Node = actor.carry.get_held()
-	if held is GarmentPiece:
+	if held is GarmentPiece or held is Suit:
 		if stored.size() >= _slots.size():
 			return
 		var piece: Node = actor.carry.release()
 		piece.place_on(_slots[stored.size()])
 		stored.append(piece)
+		EventBus.item_stored.emit(piece, self)
 	elif held != null:
 		return
 	elif stored.size() > 0:
-		var piece: Node = stored.pop_back()
-		actor.carry.take_item(piece)
-		_reflow()
+		UI.open_rack_menu(self, actor)
+
+
+## Take the stored item at `index` into your hands. Returns false (and changes
+## nothing) if your hands are full or the index is invalid.
+func take(index: int, actor) -> bool:
+	if not actor.carry.is_empty():
+		return false
+	if index < 0 or index >= stored.size():
+		return false
+	var piece: Node = stored[index]
+	stored.remove_at(index)
+	actor.carry.take_item(piece)
+	EventBus.item_taken.emit(piece, self)
+	_reflow()
+	return true
 
 
 func _reflow() -> void:

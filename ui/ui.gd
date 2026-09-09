@@ -13,6 +13,7 @@ var reputation: Control
 var newspaper: Control
 var day_transition: Control
 var pause_menu: Control
+var rack_menu: Control
 
 var _toast: Label
 
@@ -56,6 +57,7 @@ func _ready() -> void:
 	newspaper = _build_newspaper(theme)
 	day_transition = _build_day_transition()
 	pause_menu = _build_pause_menu(theme)
+	rack_menu = _build_rack_menu(theme)
 
 
 func open_shelf_menu(shelf, actor) -> void:
@@ -63,6 +65,11 @@ func open_shelf_menu(shelf, actor) -> void:
 		return
 	Sfx.play("drawer")
 	shelf_menu.open(shelf, actor)
+
+
+func open_rack_menu(rack, actor) -> void:
+	Sfx.play("cloth_rustle")
+	rack_menu.open(rack, actor)
 
 
 func open_phone(phone, actor) -> void:
@@ -246,6 +253,17 @@ func _build_pause_menu(theme: Theme) -> Control:
 	var menu := Control.new()
 	menu.name = "PauseMenu"
 	menu.set_script(load("res://ui/pause_menu.gd"))
+	menu.theme = theme
+	add_child(menu)
+	return menu
+
+
+## The clothing-rack browse menu (like the shelf's, fitting-room theme). Built in
+## code and attached to the root UI so no scene file is needed.
+func _build_rack_menu(theme: Theme) -> Control:
+	var menu := Control.new()
+	menu.name = "RackMenu"
+	menu.set_script(load("res://ui/rack_menu.gd"))
 	menu.theme = theme
 	add_child(menu)
 	return menu
