@@ -2,11 +2,16 @@ extends Node3D
 
 ## Dev harness for the character body-part system. Open this scene and press F6 to
 ## cycle heads / hair / suit tops / bottoms / skin / hair colour live, or roll a full
-## random look (gender-aware). Everything is read from the wardrobe, so any GLB you add
-## to assets/characters/parts/ (then rerun tools/build_wardrobe.gd) shows up here.
+## random look (gender-aware). Also changes the face (eye colour, glasses, expression)
+## and modifies the FaceLayout live — nudge eye/brow/nose/mouth placement per head and
+## ENTER to save it to data/face_layout.tres (same file the Face Editor dock writes).
+## Everything is read from the wardrobe, so any GLB you add to assets/characters/parts/
+## (then rerun tools/build_wardrobe.gd) shows up here.
 ##
-## Keys:  Q/A head   W/S hair   E/D top   R/F bottom   T skin   Y hair colour
-##        G cycle gender filter   SPACE random look   ←/→ turn   ESC quit
+## Body keys:  Q/A head   W/S hair   E/D top   R/F bottom   T skin   Y hair colour
+##             G gender   SPACE random look   ←/→ turn   ESC quit
+## Face keys:  C eye colour   V glasses   B expression
+##   Modify layout:  [ / ] pick field   ↑/↓ adjust   ENTER save   BACKSPACE reset
 
 const SKINS := [
 	Color(0.9, 0.76, 0.66), Color(0.8, 0.62, 0.48), Color(0.66, 0.48, 0.35), Color(0.55, 0.38, 0.27)
@@ -19,6 +24,25 @@ const HAIR_COLORS := [
 	Color(0.6, 0.6, 0.62),
 ]
 const GENDERS := [Enums.Gender.ANY, Enums.Gender.MALE, Enums.Gender.FEMALE]
+const GLASSES := ["", "sun", "round"]
+const EXPRS := ["neutral", "happy", "sad"]
+# FaceLayout fields you can nudge live: [property, step]. Mirrors the Face Editor dock.
+const FACE_FIELDS := [
+	["eye_y", 0.005],
+	["eye_gap", 0.005],
+	["eye_px", 0.0005],
+	["brow_y", 0.005],
+	["brow_gap", 0.005],
+	["brow_px", 0.0005],
+	["nose_y", 0.005],
+	["nose_px", 0.0005],
+	["mouth_y", 0.005],
+	["mouth_px", 0.0005],
+	["glasses_y", 0.005],
+	["glasses_px", 0.0005],
+	["face_z", 0.005],
+	["head_y", 0.01],
+]
 
 var _rig: Node3D
 var _label: Label
@@ -30,11 +54,18 @@ var _bottom := 0
 var _skin_i := 0
 var _hair_i := 0
 var _gender_i := 0
+var _eye_i := 0
+var _glasses_i := 0
+var _expr_i := 0
+var _field_i := 0
+var _layout: FaceLayout
+var _field_msg := ""
 var _mat: Resource
 
 
 func _ready() -> void:
 	_rng.randomize()
+	_layout = FaceLayout.load_or_default()
 	_mat = load("res://data/materials/navy_worsted_pinstripe.tres")
 	_build_world()
 	_rig = load("res://entities/character/character_rig.tscn").instantiate()
@@ -77,6 +108,25 @@ func _unhandled_input(e: InputEvent) -> void:
 			_hair_i = _wrap(_hair_i + 1, HAIR_COLORS.size())
 		KEY_G:
 			_gender_i = _wrap(_gender_i + 1, GENDERS.size())
+		KEY_C:
+			_eye_i = _wrap(_eye_i + 1, CharacterRig.EYE_COLORS.size())
+		KEY_V:
+			_glasses_i = _wrap(_glasses_i + 1, GLASSES.size())
+		KEY_B:
+			_expr_i = _wrap(_expr_i + 1, EXPRS.size())
+		KEY_BRACKETLEFT:
+			_field_i = _wrap(_field_i - 1, FACE_FIELDS.size())
+		KEY_BRACKETRIGHT:
+			_field_i = _wrap(_field_i + 1, FACE_FIELDS.size())
+		KEY_UP:
+			_adjust_field(1)
+		KEY_DOWN:
+			_adjust_field(-1)
+		KEY_ENTER, KEY_KP_ENTER:
+			_save_layout()
+			return
+		KEY_BACKSPACE:
+			_layout = FaceLayout.new()
 		KEY_SPACE:
 			_randomize()
 		KEY_LEFT:
@@ -100,20 +150,42 @@ func _randomize() -> void:
 	_hair_i = _rng.randi() % HAIR_COLORS.size()
 
 
+func _adjust_field(dir: int) -> void:
+	var field: Array = FACE_FIELDS[_field_i]
+	var prop: String = field[0]
+	var step: float = field[1]
+	_layout.set(prop, float(_layout.get(prop)) + dir * step)
+
+
+func _save_layout() -> void:
+	var err := ResourceSaver.save(_layout, FaceLayout.PATH)
+	_field_msg = "saved to face_layout.tres" if err == OK else "SAVE FAILED"
+	_refresh_label()
+
+
 func _apply() -> void:
 	_rig.set_head(_head)
 	_rig.set_hair(_hair)
 	_rig.set_palette(SKINS[_skin_i])
 	_rig.set_hair_color(HAIR_COLORS[_hair_i])
 	_rig.set_outfit(_mat, null, _mat, _top, _bottom)
-	_rig.set_face_look("brown", "")
+	_rig.set_face_look(CharacterRig.EYE_COLORS[_eye_i], GLASSES[_glasses_i])
+	_rig.apply_layout(_layout)
+	match _expr_i:
+		1:
+			_rig.set_expression(true)
+		2:
+			_rig.set_expression(false)
+		_:
+			_rig.reset_expression()
 	_refresh_label()
 
 
 func _refresh_label() -> void:
 	var lib := Wardrobe.library()
-	_label.text = (
-		"HEAD %d/%d  %s\nHAIR %d/%d  %s\nTOP %d/%d   BOTTOM %d/%d\ngender filter: %s\n\n%s"
+	var prop: String = FACE_FIELDS[_field_i][0]
+	var body := (
+		"HEAD %d/%d  %s\nHAIR %d/%d  %s\nTOP %d/%d   BOTTOM %d/%d\ngender filter: %s"
 		% [
 			_head + 1,
 			Wardrobe.head_count(),
@@ -126,9 +198,25 @@ func _refresh_label() -> void:
 			_bottom + 1,
 			lib.bottoms.size(),
 			Enums.gender_name(GENDERS[_gender_i]),
-			"Q/A head  W/S hair  E/D top  R/F bottom  T skin  Y hair  G gender  SPACE random  ←→ turn",
 		]
 	)
+	var face := (
+		"\n\nFACE  eyes: %s   glasses: %s   expr: %s\nedit: %s = %.4f   %s"
+		% [
+			CharacterRig.EYE_COLORS[_eye_i],
+			GLASSES[_glasses_i] if GLASSES[_glasses_i] != "" else "none",
+			EXPRS[_expr_i],
+			prop,
+			float(_layout.get(prop)),
+			_field_msg,
+		]
+	)
+	var keys := (
+		"\n\nBODY  Q/A head  W/S hair  E/D top  R/F bottom  T skin  Y hair  G gender  SPACE random"
+		+ "\nFACE  C eyes  V glasses  B expr   [ ] field  ↑↓ adjust  ENTER save  BACKSPACE reset"
+		+ "\n←→ turn   ESC quit"
+	)
+	_label.text = body + face + keys
 
 
 func _name(part) -> String:
