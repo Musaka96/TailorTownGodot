@@ -51,15 +51,16 @@ const PATH := "res://data/face_layout.tres"
 @export var nose_z := 0.0
 @export var mouth_z := 0.0
 @export var glasses_z := 0.03
-## Convex wrap: elements further from the face centre recede, so the flat face hugs a
-## round head. 0 = perfectly flat; raise it to round the face out.
+## Convex wrap: elements further left/right of the midline recede, so the flat face
+## hugs the horizontal round of the head. 0 = perfectly flat; raise it to round it out.
 @export var face_curve := 0.0
 
 
 ## Depth of an element at horizontal x / vertical y_off, for a head: the head's face_z
-## plus the element's own z offset, pulled back by the convex curve toward the edges.
-func element_z(head_index: int, x: float, y_off: float, z_off: float) -> float:
-	return face_z_for(head_index) + z_off - face_curve * (x * x + y_off * y_off)
+## plus the element's own z offset, pulled back by the horizontal convex curve toward
+## the left/right edges (y_off is unused — the curve wraps around the vertical axis).
+func element_z(head_index: int, x: float, _y_off: float, z_off: float) -> float:
+	return face_z_for(head_index) + z_off - face_curve * (x * x)
 
 
 ## The face depth for a given head index (its override, else the shared face_z).
