@@ -214,66 +214,67 @@ func apply_layout(layout: FaceLayout) -> void:
 		return
 	_layout = layout
 	var base := layout.face_curve
+	var ex := layout.eye_x
 	_place_pair(
 		_eye_l,
 		_eye_r,
-		layout,
-		layout.eye_gap,
-		layout.eye_x,
+		-layout.eye_gap * 0.5 + ex,
+		layout.eye_gap * 0.5 + ex,
+		layout.eye_y,
+		layout.eye_px,
+		layout.eye_z,
 		base + layout.eye_curve,
-		layout.eye_rot
+		layout.eye_rot,
+		layout.eye_scale
 	)
+	var bx := layout.brow_x
 	_place_pair(
 		_brow_l,
 		_brow_r,
-		layout,
-		layout.brow_gap,
-		layout.brow_x,
+		-layout.brow_gap * 0.5 + bx,
+		layout.brow_gap * 0.5 + bx,
+		layout.brow_y,
+		layout.brow_px,
+		layout.brow_z,
 		base + layout.brow_curve,
 		layout.brow_rot,
-		"brow"
+		layout.brow_scale
 	)
-	var nc := base + layout.nose_curve
-	var mc := base + layout.mouth_curve
-	var gc := base + layout.glasses_curve
-	_place(_nose, layout.nose_x, layout.nose_y, layout.nose_px, layout.nose_z, nc, layout.nose_rot)
+	_place_one(_nose, layout, "nose", base)
+	_place_one(_mouth, layout, "mouth", base)
+	_place_one(_glasses, layout, "glasses", base)
+
+
+## Place a single (centred) element by name, reading its x/y/px/z/curve/rot/scale fields.
+func _place_one(node: Node3D, layout: FaceLayout, key: String, base: float) -> void:
 	_place(
-		_mouth,
-		layout.mouth_x,
-		layout.mouth_y,
-		layout.mouth_px,
-		layout.mouth_z,
-		mc,
-		layout.mouth_rot
-	)
-	_place(
-		_glasses,
-		layout.glasses_x,
-		layout.glasses_y,
-		layout.glasses_px,
-		layout.glasses_z,
-		gc,
-		layout.glasses_rot
+		node,
+		layout.get(key + "_x"),
+		layout.get(key + "_y"),
+		layout.get(key + "_px"),
+		layout.get(key + "_z"),
+		base + layout.get(key + "_curve"),
+		layout.get(key + "_rot"),
+		layout.get(key + "_scale")
 	)
 
 
-## Place a mirrored pair (eyes/brows): they sit ±gap/2 around the midline (+ the shared
-## x offset) and roll symmetrically (left +rot, right -rot). `which` picks the y/px fields.
+## Place a mirrored pair (eyes/brows). The right element mirrors yaw+roll so a tilt reads
+## symmetrically; pitch and scale are shared.
 func _place_pair(
 	nl: Node3D,
 	nr: Node3D,
-	layout: FaceLayout,
-	gap: float,
-	x: float,
+	xl: float,
+	xr: float,
+	y: float,
+	px: float,
+	z: float,
 	curve: float,
-	rot: float,
-	which := "eye"
+	rot: Vector3,
+	scl: Vector3
 ) -> void:
-	var y: float = layout.brow_y if which == "brow" else layout.eye_y
-	var px: float = layout.brow_px if which == "brow" else layout.eye_px
-	var z: float = layout.brow_z if which == "brow" else layout.eye_z
-	_place(nl, -gap * 0.5 + x, y, px, z, curve, rot)
-	_place(nr, gap * 0.5 + x, y, px, z, curve, -rot)
+	_place(nl, xl, y, px, z, curve, rot, scl)
+	_place(nr, xr, y, px, z, curve, Vector3(rot.x, -rot.y, -rot.z), scl)
 
 
 ## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
@@ -334,9 +335,11 @@ func _apply_expression(mood: int) -> void:
 	var by := _layout.brow_y + lift
 	var bz := _layout.brow_z
 	var bpx := _layout.brow_px
-	var br := _layout.brow_rot
-	_place(_brow_l, -_layout.brow_gap * 0.5 + bx, by, bpx, bz, bc, br)
-	_place(_brow_r, _layout.brow_gap * 0.5 + bx, by, bpx, bz, bc, -br)
+	var br: Vector3 = _layout.brow_rot
+	var bs: Vector3 = _layout.brow_scale
+	var brm := Vector3(br.x, -br.y, -br.z)
+	_place(_brow_l, -_layout.brow_gap * 0.5 + bx, by, bpx, bz, bc, br, bs)
+	_place(_brow_r, _layout.brow_gap * 0.5 + bx, by, bpx, bz, bc, brm, bs)
 	if _mouth != null:
 		_mouth.flip_v = mood < 0  # the resting smile, flipped over into a frown
 		_mouth.pixel_size = _layout.mouth_px * (EXPR_HAPPY_MOUTH if mood > 0 else 1.0)
@@ -370,12 +373,19 @@ func _build_head_wobble() -> void:
 
 
 func _place(
-	node: Node3D, x: float, y_off: float, px: float, z_off := 0.0, curve := 0.0, roll := 0.0
+	node: Node3D,
+	x: float,
+	y_off: float,
+	px: float,
+	z_off := 0.0,
+	curve := 0.0,
+	rot := Vector3.ZERO,
+	scl := Vector3.ONE
 ) -> void:
 	if node == null or _layout == null:
 		return
 	node.transform = (
-		_head_inv * _layout.element_transform(_head_index, x, y_off, z_off, curve, roll)
+		_head_inv * _layout.element_transform(_head_index, x, y_off, z_off, curve, rot, scl)
 	)
 	node.pixel_size = px
 

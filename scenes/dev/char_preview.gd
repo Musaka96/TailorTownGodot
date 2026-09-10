@@ -32,47 +32,49 @@ const FIELDS := [
 	["eye_px", 0.0002, 0.01, 0.00005, false],
 	["eye_z", -0.15, 0.2, 0.002, false],
 	["eye_curve", -8.0, 8.0, 0.05, false],
-	["eye_rot", -45.0, 45.0, 1.0, false],
 	["brow_y", -0.2, 0.5, 0.002, false],
 	["brow_x", -0.3, 0.3, 0.002, false],
 	["brow_gap", 0.0, 0.6, 0.002, false],
 	["brow_px", 0.0002, 0.01, 0.00005, false],
 	["brow_z", -0.15, 0.2, 0.002, false],
 	["brow_curve", -8.0, 8.0, 0.05, false],
-	["brow_rot", -45.0, 45.0, 1.0, false],
 	["nose_y", -0.3, 0.3, 0.002, false],
 	["nose_x", -0.3, 0.3, 0.002, false],
 	["nose_px", 0.0005, 0.01, 0.0001, false],
 	["nose_z", -0.15, 0.25, 0.002, false],
 	["nose_curve", -8.0, 8.0, 0.05, false],
-	["nose_rot", -45.0, 45.0, 1.0, false],
 	["mouth_y", -0.4, 0.2, 0.002, false],
 	["mouth_x", -0.3, 0.3, 0.002, false],
 	["mouth_px", 0.0005, 0.01, 0.0001, false],
 	["mouth_z", -0.15, 0.2, 0.002, false],
 	["mouth_curve", -8.0, 8.0, 0.05, false],
-	["mouth_rot", -45.0, 45.0, 1.0, false],
 	["glasses_y", -0.3, 0.4, 0.002, false],
 	["glasses_x", -0.3, 0.3, 0.002, false],
 	["glasses_px", 0.0005, 0.01, 0.0001, false],
 	["glasses_z", -0.05, 0.25, 0.002, false],
 	["glasses_curve", -8.0, 8.0, 0.05, false],
-	["glasses_rot", -45.0, 45.0, 1.0, false],
 ]
 
-# Elements the gizmo can grab: [label, rig node name, x-field, y-field, rot-field, px-field].
+# Elements the gizmo can grab: [label, representative rig node name, field key prefix].
+# The gizmo builds field names from the key: <key>_x/_y/_z (move), <key>_rot (Vector3 deg,
+# rotate), <key>_scale (Vector3, scale).
 const ELEMENTS := [
-	["Eyes", "eye_l", "eye_x", "eye_y", "eye_rot", "eye_px"],
-	["Brows", "brow_l", "brow_x", "brow_y", "brow_rot", "brow_px"],
-	["Nose", "nose", "nose_x", "nose_y", "nose_rot", "nose_px"],
-	["Mouth", "mouth", "mouth_x", "mouth_y", "mouth_rot", "mouth_px"],
-	["Glasses", "glasses", "glasses_x", "glasses_y", "glasses_rot", "glasses_px"],
+	["Eyes", "eye_l", "eye"],
+	["Brows", "brow_l", "brow"],
+	["Nose", "nose", "nose"],
+	["Mouth", "mouth", "mouth"],
+	["Glasses", "glasses", "glasses"],
 ]
+const GIZ_MODES := ["Move", "Rotate", "Scale"]
+const AXIS_NAMES := ["x", "y", "z"]
+const ROT_SENS := 0.5  # degrees per pixel dragged
+const SCALE_SENS := 0.01  # scale units per pixel dragged
 
 var _view: SubViewport
 var _rig: Node3D
 var _cam: Camera3D
 var _active := 0  # which ELEMENTS entry the gizmo edits
+var _giz_mode := 0  # 0 move, 1 rotate, 2 scale
 var _giz: Control
 var _layout: FaceLayout
 var _rng := RandomNumberGenerator.new()
@@ -88,7 +90,7 @@ var _mouth_i := 0
 var _expr_i := 0
 var _skin_i := 0
 var _hairc_i := 0
-var _dist := 2.4
+var _dist := 1.25
 var _yaw := 0.0
 var _sliders := {}
 var _val_labels := {}
@@ -183,13 +185,14 @@ func _build_controls(col: VBoxContainer) -> void:
 	col.add_child(_dropdown("Nose", noses, _nose_i, _on_nose))
 	col.add_child(_dropdown("Mouth", mouths, _mouth_i, _on_mouth))
 	col.add_child(_dropdown("Expression", EXPRS, _expr_i, _on_expr))
-	col.add_child(_heading("Gizmo  (drag = move, ring = rotate, box = scale)"))
+	col.add_child(_heading("Gizmo  (drag an axis handle: R/G/B = X/Y/Z)"))
 	var elem_names: Array = []
 	for e: Array in ELEMENTS:
 		elem_names.append(e[0])
 	col.add_child(_dropdown("Active", elem_names, _active, _on_active))
+	col.add_child(_dropdown("Mode", GIZ_MODES, _giz_mode, _on_giz_mode))
 	col.add_child(_heading("View"))
-	col.add_child(_slider("Zoom", 0.8, 4.5, 0.05, _dist, _on_zoom))
+	col.add_child(_slider("Zoom", 0.6, 4.5, 0.05, _dist, _on_zoom))
 	col.add_child(_slider("Turn", -180, 180, 1, 0, _on_turn))
 	col.add_child(_heading("Layout  (scroll a slider; Shift = fine)"))
 	for f: Array in FIELDS:
@@ -349,6 +352,12 @@ func _on_active(i: int) -> void:
 		_giz.queue_redraw()
 
 
+func _on_giz_mode(i: int) -> void:
+	_giz_mode = i
+	if _giz != null:
+		_giz.queue_redraw()
+
+
 func _on_zoom(v: float) -> void:
 	_dist = v
 	_apply_view()
@@ -420,8 +429,10 @@ func _apply() -> void:
 func _apply_view() -> void:
 	if _cam == null:
 		return
-	_cam.position = Vector3(0, 1.15, _dist)
-	_cam.look_at_from_position(_cam.position, Vector3(0, 1.02, 0), Vector3.UP)
+	# Frame the face: sit at head height and look straight at the head/face front.
+	var y: float = _layout.head_y if _layout != null else 1.62
+	_cam.position = Vector3(0, y, _dist)
+	_cam.look_at_from_position(_cam.position, Vector3(0, y, 0.4), Vector3.UP)
 
 
 func _sync_face_z() -> void:
@@ -492,9 +503,10 @@ func _fmt(v: float, step: float) -> String:
 # --- Gizmo support (called by GizmoLayer) ----------------------------------
 
 
-## The active element row: [label, rig node name, x-field, y-field, rot-field, px-field].
-func _giz_elem() -> Array:
-	return ELEMENTS[_active]
+## Field key prefix of the active element (e.g. "eye"): fields are <key>_x/_y/_z (move),
+## <key>_rot (Vector3 deg), <key>_scale (Vector3).
+func _giz_key() -> String:
+	return ELEMENTS[_active][2]
 
 
 func _giz_node() -> Node3D:
@@ -511,11 +523,32 @@ func _giz_screen_pos() -> Vector2:
 	return _cam.unproject_position(n.global_position)
 
 
+## Screen-space vectors (pixels per metre) for the head's X/Y/Z axes at the element — used
+## to draw the axis handles and to map a drag back to metres. {} if unavailable.
+func _giz_axes() -> Dictionary:
+	var n := _giz_node()
+	if n == null or _cam == null or not n.visible:
+		return {}
+	var attach := n.get_parent() as Node3D
+	if attach == null:
+		return {}
+	var b := attach.global_transform.basis
+	var p := n.global_position
+	var s0 := _cam.unproject_position(p)
+	var e := 0.1
+	return {
+		"c": s0,
+		"x": (_cam.unproject_position(p + b.x * e) - s0) / e,
+		"y": (_cam.unproject_position(p + b.y * e) - s0) / e,
+		"z": (_cam.unproject_position(p + b.z * e) - s0) / e,
+	}
+
+
 func _giz_field(prop: String) -> float:
 	return float(_layout.get(prop))
 
 
-## Set a layout field from the gizmo, clamped to its slider range, syncing the slider.
+## Set a scalar layout field from the gizmo, clamped to its slider range, syncing the slider.
 func _giz_set(prop: String, value: float) -> void:
 	var v := value
 	if _sliders.has(prop):
@@ -528,57 +561,35 @@ func _giz_set(prop: String, value: float) -> void:
 	_update_val_label(prop)
 
 
-## Calibrate screen-pixels per unit for the active element's x/y fields (by nudging each
-## and measuring the projected move), so a drag maps back to layout units at any turn.
-func _giz_calibrate() -> Dictionary:
-	var n := _giz_node()
-	if n == null or _cam == null:
-		return {"ok": false}
-	var e: Array = ELEMENTS[_active]
-	var s0 := _cam.unproject_position(n.global_position)
-	var sx := _giz_probe(e[2], n, s0)
-	var sy := _giz_probe(e[3], n, s0)
-	var det := sx.x * sy.y - sx.y * sy.x
-	if absf(det) < 0.0001:
-		return {"ok": false}
-	return {"ok": true, "sx": sx, "sy": sy, "det": det}
+func _giz_get_vec(prop: String) -> Vector3:
+	return _layout.get(prop)
 
 
-func _giz_probe(prop: String, n: Node3D, s0: Vector2) -> Vector2:
-	var eps := 0.02
-	var base := float(_layout.get(prop))
-	_layout.set(prop, base + eps)
-	_rig.apply_layout(_layout)
-	var s := _cam.unproject_position(n.global_position)
-	_layout.set(prop, base)
-	_rig.apply_layout(_layout)
-	return (s - s0) / eps
+## Set a Vector3 field (rotation / scale); scale is clamped so it never collapses.
+func _giz_set_vec(prop: String, v: Vector3) -> void:
+	var out := v
+	if prop.ends_with("scale"):
+		out = Vector3(maxf(v.x, 0.05), maxf(v.y, 0.05), maxf(v.z, 0.05))
+	_layout.set(prop, out)
+	if _rig != null:
+		_rig.apply_layout(_layout)
 
 
-## Convert a screen drag (px) into (x-field, y-field) deltas using a calibration.
-func _giz_screen_to_field(d: Vector2, calib: Dictionary) -> Vector2:
-	var sx: Vector2 = calib["sx"]
-	var sy: Vector2 = calib["sy"]
-	var det: float = calib["det"]
-	return Vector2((sy.y * d.x - sy.x * d.y) / det, (-sx.y * d.x + sx.x * d.y) / det)
-
-
-## On-viewport transform gizmo for the active face element: a center handle + X/Y axes
-## (drag to move), a ring (drag to rotate), and a corner box (drag to scale). It edits the
-## same FaceLayout fields the sliders do, so both stay in sync.
+## On-viewport transform gizmo for the active face element. It shows the head's three axes
+## (X red, Y green, Z blue); drag an axis handle to apply the current Mode (Move / Rotate /
+## Scale) on that axis, or the centre dot for a plane-move / roll / uniform-scale. Writes the
+## same FaceLayout fields the sliders do.
 class GizmoLayer:
 	extends Control
 
-	const R := 46.0  # rotate-ring radius / axis reach
-	const HIT := 12.0
+	const LEN := 52.0  # axis handle length in px
+	const HIT := 14.0
 
 	var host  # CharPreview
-	var _mode := ""
+	var _axis := -2  # -2 none, -1 centre, 0/1/2 = x/y/z
 	var _press := Vector2.ZERO
-	var _center := Vector2.ZERO
-	var _calib := {}
-	var _start := {}
-	var _start_angle := 0.0
+	var _axes := {}
+	var _start := Vector3.ZERO  # move: start x/y/z; rotate/scale: start vector
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -588,65 +599,98 @@ class GizmoLayer:
 		queue_redraw()
 
 	func _draw() -> void:
-		var c: Vector2 = host._giz_screen_pos()
-		if c.x < 0:
+		var ax: Dictionary = host._giz_axes()
+		if ax.is_empty():
 			return
-		draw_arc(c, R, 0.0, TAU, 48, Color(0.92, 0.82, 0.35, 0.85), 2.0)
-		draw_line(c, c + Vector2(R, 0), Color(0.90, 0.35, 0.35), 3.0)  # X (red)
-		draw_line(c, c - Vector2(0, R), Color(0.40, 0.85, 0.45), 3.0)  # Y (green, up)
-		draw_rect(Rect2(c + Vector2(R, -R) - Vector2(6, 6), Vector2(12, 12)), Color(0.4, 0.7, 0.95))
-		draw_circle(c, 7.0, Color(0.96, 0.9, 0.5, 0.95))
+		var c: Vector2 = ax["c"]
+		_axis_line(c, ax["x"], Color(0.90, 0.35, 0.35))
+		_axis_line(c, ax["y"], Color(0.40, 0.85, 0.45))
+		_axis_line(c, ax["z"], Color(0.45, 0.6, 0.96))
+		draw_circle(c, 6.0, Color(0.96, 0.9, 0.5, 0.95))
+
+	func _axis_line(c: Vector2, s: Vector2, col: Color) -> void:
+		if s.length() < 0.001:
+			return
+		var end := c + s.normalized() * LEN
+		draw_line(c, end, col, 3.0)
+		draw_circle(end, 5.0, col)
 
 	func _gui_input(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
 			if ev.pressed:
 				_begin(ev.position)
 			else:
-				_mode = ""
-		elif ev is InputEventMouseMotion and _mode != "":
+				_axis = -2
+		elif ev is InputEventMouseMotion and _axis != -2:
 			_drag(ev.position)
 
 	func _begin(pos: Vector2) -> void:
-		_center = host._giz_screen_pos()
-		if _center.x < 0:
+		_axes = host._giz_axes()
+		if _axes.is_empty():
+			_axis = -2
 			return
 		_press = pos
-		var d := pos - _center
-		var scale_h := _center + Vector2(R, -R)
-		if d.length() <= HIT:
-			_mode = "move"
-		elif pos.distance_to(scale_h) <= HIT:
-			_mode = "scale"
-		elif absf(d.length() - R) <= 9.0:
-			_mode = "rotate"
-		elif absf(d.y) < 12.0 and d.x > HIT:
-			_mode = "movex"
-		elif absf(d.x) < 12.0 and d.y < -HIT:
-			_mode = "movey"
-		elif d.length() < R * 1.5:
-			_mode = "move"
-		else:
-			_mode = ""  # clicked away from the gizmo — ignore
+		_axis = _pick(pos, _axes["c"])
+		if _axis == -2:
 			return
-		var e: Array = host._giz_elem()
-		_start = {
-			e[2]: host._giz_field(e[2]),
-			e[3]: host._giz_field(e[3]),
-			e[4]: host._giz_field(e[4]),
-			e[5]: host._giz_field(e[5]),
-		}
-		_calib = host._giz_calibrate()
-		_start_angle = (pos - _center).angle()
+		var key: String = host._giz_key()
+		if host._giz_mode == 0:
+			_start = Vector3(
+				host._giz_field(key + "_x"),
+				host._giz_field(key + "_y"),
+				host._giz_field(key + "_z")
+			)
+		elif host._giz_mode == 1:
+			_start = host._giz_get_vec(key + "_rot")
+		else:
+			_start = host._giz_get_vec(key + "_scale")
+
+	func _pick(pos: Vector2, c: Vector2) -> int:
+		var best := -2
+		var best_d := HIT
+		for i in 3:
+			var s: Vector2 = _axes[host.AXIS_NAMES[i]]
+			if s.length() < 0.001:
+				continue
+			var d := pos.distance_to(c + s.normalized() * LEN)
+			if d < best_d:
+				best_d = d
+				best = i
+		if best != -2:
+			return best
+		return -1 if pos.distance_to(c) <= HIT else -2
 
 	func _drag(pos: Vector2) -> void:
-		var e: Array = host._giz_elem()
-		if _mode == "rotate":
-			host._giz_set(e[4], _start[e[4]] + rad_to_deg((pos - _center).angle() - _start_angle))
-		elif _mode == "scale":
-			host._giz_set(e[5], _start[e[5]] * maxf(0.05, 1.0 + (_press.y - pos.y) * 0.01))
-		elif _calib.get("ok", false):
-			var fd: Vector2 = host._giz_screen_to_field(pos - _press, _calib)
-			if _mode != "movey":
-				host._giz_set(e[2], _start[e[2]] + fd.x)
-			if _mode != "movex":
-				host._giz_set(e[3], _start[e[3]] + fd.y)
+		var key: String = host._giz_key()
+		var drag := pos - _press
+		if host._giz_mode == 0:
+			_do_move(key, drag)
+		elif host._giz_mode == 1:
+			_do_vec(key + "_rot", drag.x * host.ROT_SENS)
+		else:
+			_do_vec(key + "_scale", drag.x * host.SCALE_SENS)
+
+	func _do_move(key: String, drag: Vector2) -> void:
+		if _axis == -1:
+			_move_axis(key, 0, drag)
+			_move_axis(key, 1, drag)
+		else:
+			_move_axis(key, _axis, drag)
+
+	func _move_axis(key: String, i: int, drag: Vector2) -> void:
+		var s: Vector2 = _axes[host.AXIS_NAMES[i]]
+		if s.length_squared() < 0.0001:
+			return
+		var dm := drag.dot(s) / s.length_squared()
+		host._giz_set(key + "_" + host.AXIS_NAMES[i], _start[i] + dm)
+
+	func _do_vec(prop: String, amount: float) -> void:
+		var v := _start
+		if _axis == -1:
+			if prop.ends_with("rot"):
+				v.z += amount
+			else:
+				v += Vector3(amount, amount, amount)
+		else:
+			v[_axis] += amount
+		host._giz_set_vec(prop, v)
