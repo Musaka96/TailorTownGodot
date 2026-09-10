@@ -904,8 +904,11 @@ func _apply_flat(mi, color: Color, roughness: float) -> void:
 		mi.material_override = m
 
 
-func _flat(color: Color, roughness: float) -> StandardMaterial3D:
+func _flat(color: Color, _roughness: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
-	mat.roughness = roughness
+	# Fully matte: max roughness, no metal, no specular highlight or reflections.
+	mat.roughness = 1.0
+	mat.metallic = 0.0
+	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	return mat

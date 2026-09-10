@@ -23,7 +23,9 @@ void vertex() {
 }
 
 vec3 _weights(vec3 n) {
-	vec3 w = pow(abs(n), vec3(4.0));
+	// High power = pick (almost) only the dominant axis, so directional patterns like
+	// pinstripes don't ghost a second, cross-axis set over the fabric.
+	vec3 w = pow(abs(n), vec3(12.0));
 	return w / max(w.x + w.y + w.z, 0.0001);
 }
 
@@ -44,6 +46,7 @@ void fragment() {
 	col = mix(col, pattern_color.rgb, pat * pattern_strength);
 
 	ALBEDO = col;
-	ROUGHNESS = 0.9;
+	ROUGHNESS = 1.0;  // matte
 	METALLIC = 0.0;
+	SPECULAR = 0.0;  // no specular highlight / reflections
 }

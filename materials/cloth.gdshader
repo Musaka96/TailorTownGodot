@@ -23,6 +23,7 @@ void fragment() {
 	col = mix(col, pattern_color.rgb, pat.a * pattern_strength);
 
 	ALBEDO = col;
-	ROUGHNESS = 0.92;
+	ROUGHNESS = 1.0;  // matte
 	METALLIC = 0.0;
+	SPECULAR = 0.0;  // no specular highlight / reflections
 }
