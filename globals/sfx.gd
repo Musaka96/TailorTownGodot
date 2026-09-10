@@ -74,6 +74,7 @@ var _next := 0
 func _ready() -> void:
 	# Keep sounding while modal menus lock input or the day-change pauses the tree.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ensure_buses()
 	for key in LIB:
 		var val: Variant = LIB[key]
 		if val is Array:
@@ -91,13 +92,26 @@ func _ready() -> void:
 				_streams[key] = load(path)
 	for _i in POOL:
 		var p := AudioStreamPlayer.new()
+		p.bus = "SFX"
 		add_child(p)
 		_pool.append(p)
 	_music = AudioStreamPlayer.new()
+	_music.bus = "Music"
 	add_child(_music)
 	_connect_events()
 	play_music(THEME)
 	start_loop("ambience_loop", -18.0)
+
+
+## Create the Music and SFX buses (routed to Master) if they don't exist, so the
+## Settings sliders can set their volumes live. Runs before any player is created.
+func _ensure_buses() -> void:
+	for nm in ["Music", "SFX"]:
+		if AudioServer.get_bus_index(nm) == -1:
+			var i := AudioServer.bus_count
+			AudioServer.add_bus(i)
+			AudioServer.set_bus_name(i, nm)
+			AudioServer.set_bus_send(i, "Master")
 
 
 ## Fire a one-shot from the pool. `volume_db` trims this hit; a little random pitch
@@ -125,6 +139,7 @@ func play_single(key: String, volume_db := 0.0, pitch_min := 0.98, pitch_max := 
 	var p: AudioStreamPlayer = _singles.get(key)
 	if p == null:
 		p = AudioStreamPlayer.new()
+		p.bus = "SFX"
 		add_child(p)
 		_singles[key] = p
 	p.stop()
@@ -197,6 +212,7 @@ func start_loop(key: String, volume_db := 0.0) -> void:
 	var p := existing
 	if p == null:
 		p = AudioStreamPlayer.new()
+		p.bus = "SFX"
 		add_child(p)
 		_loops[key] = p
 	_set_loop(stream, true)

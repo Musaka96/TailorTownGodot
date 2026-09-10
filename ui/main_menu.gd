@@ -12,6 +12,7 @@ const CAM_SPEED := 3.2
 ## Which viewpoint marker each page frames.
 const VIEW_MAIN := "View_Main"
 const VIEW_LOAD := "View_Load"
+const VIEW_SETTINGS := "View_Settings"
 
 var _sub := false  # true while the Load slot list is showing (Esc goes back)
 var _target: Node3D
@@ -40,7 +41,9 @@ func _process(delta: float) -> void:
 	if _target == null:
 		return
 	var w := clampf(delta * CAM_SPEED, 0.0, 1.0)
-	_camera.global_transform = _camera.global_transform.interpolate_with(_target.global_transform, w)
+	_camera.global_transform = _camera.global_transform.interpolate_with(
+		_target.global_transform, w
+	)
 
 
 func _view(nm: String) -> Node3D:
@@ -73,7 +76,18 @@ func _show_main() -> void:
 	if SaveManager.has_any_save():
 		_buttons.add_child(MenuKit.button("Continue", _continue))
 	_buttons.add_child(MenuKit.button("Load Game", _show_load))
+	_buttons.add_child(MenuKit.button("Settings", _show_settings))
 	_buttons.add_child(MenuKit.button("Quit", func() -> void: get_tree().quit()))
+	_focus_first()
+
+
+func _show_settings() -> void:
+	_sub = true
+	_target = _view(VIEW_SETTINGS)
+	_clear()
+	_title.text = "Settings"
+	SettingsUI.build(_buttons)
+	_buttons.add_child(MenuKit.button("Back", _show_main))
 	_focus_first()
 
 

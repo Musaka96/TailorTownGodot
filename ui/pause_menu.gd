@@ -78,8 +78,18 @@ func _show_main() -> void:
 	_box.add_child(MenuKit.button("Resume", _resume))
 	_box.add_child(MenuKit.button("Save Game", func() -> void: _show_slots(true)))
 	_box.add_child(MenuKit.button("Load Game", func() -> void: _show_slots(false)))
+	_box.add_child(MenuKit.button("Settings", _show_settings))
 	_box.add_child(MenuKit.button("Main Menu", _to_menu))
 	_box.add_child(MenuKit.button("Quit to Desktop", func() -> void: get_tree().quit()))
+	_focus_first()
+
+
+func _show_settings() -> void:
+	_sub = true
+	_clear()
+	_title.text = "Settings"
+	SettingsUI.build(_box)
+	_box.add_child(MenuKit.button("Back", _show_main))
 	_focus_first()
 
 
