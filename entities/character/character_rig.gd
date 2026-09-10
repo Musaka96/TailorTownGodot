@@ -40,8 +40,14 @@ const CLOTH_UV_SCALE := 6.0
 # layered over ONLY the arm bones while carrying (so the legs keep striding and the
 # torso keeps swaying). wave/accept fire as full-body one-shots over the blend.
 const ARM_BONES := [
-	"upperarm.l", "lowerarm.l", "wrist.l", "hand.l",
-	"upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
+	"upperarm.l",
+	"lowerarm.l",
+	"wrist.l",
+	"hand.l",
+	"upperarm.r",
+	"lowerarm.r",
+	"wrist.r",
+	"hand.r",
 ]
 # How fast the blend params ease toward their targets (per second).
 const LOCO_BLEND_SPEED := 6.0
@@ -201,13 +207,43 @@ func apply_layout(layout: FaceLayout) -> void:
 	if layout == null:
 		return
 	_layout = layout
-	_place(_eye_l, -layout.eye_gap * 0.5, layout.eye_y, layout.eye_px, layout.eye_z)
-	_place(_eye_r, layout.eye_gap * 0.5, layout.eye_y, layout.eye_px, layout.eye_z)
-	_place(_brow_l, -layout.brow_gap * 0.5, layout.brow_y, layout.brow_px, layout.brow_z)
-	_place(_brow_r, layout.brow_gap * 0.5, layout.brow_y, layout.brow_px, layout.brow_z)
-	_place(_nose, 0.0, layout.nose_y, layout.nose_px, layout.nose_z)
-	_place(_mouth, 0.0, layout.mouth_y, layout.mouth_px, layout.mouth_z)
-	_place(_glasses, 0.0, layout.glasses_y, layout.glasses_px, layout.glasses_z)
+	var base := layout.face_curve
+	var ec := base + layout.eye_curve
+	var bc := base + layout.brow_curve
+	_place(
+		_eye_l, -layout.eye_gap * 0.5 + layout.eye_x, layout.eye_y, layout.eye_px, layout.eye_z, ec
+	)
+	_place(
+		_eye_r, layout.eye_gap * 0.5 + layout.eye_x, layout.eye_y, layout.eye_px, layout.eye_z, ec
+	)
+	_place(
+		_brow_l,
+		-layout.brow_gap * 0.5 + layout.brow_x,
+		layout.brow_y,
+		layout.brow_px,
+		layout.brow_z,
+		bc
+	)
+	_place(
+		_brow_r,
+		layout.brow_gap * 0.5 + layout.brow_x,
+		layout.brow_y,
+		layout.brow_px,
+		layout.brow_z,
+		bc
+	)
+	var nc := base + layout.nose_curve
+	var mc := base + layout.mouth_curve
+	_place(_nose, layout.nose_x, layout.nose_y, layout.nose_px, layout.nose_z, nc)
+	_place(_mouth, layout.mouth_x, layout.mouth_y, layout.mouth_px, layout.mouth_z, mc)
+	_place(
+		_glasses,
+		layout.glasses_x,
+		layout.glasses_y,
+		layout.glasses_px,
+		layout.glasses_z,
+		base + layout.glasses_curve
+	)
 
 
 ## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
@@ -255,8 +291,13 @@ func _apply_expression(mood: int) -> void:
 	if _layout == null:
 		return
 	var lift := EXPR_BROW_LIFT * mood
-	_place(_brow_l, -_layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px, _layout.brow_z)
-	_place(_brow_r, _layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px, _layout.brow_z)
+	var bc := _layout.face_curve + _layout.brow_curve
+	var bx := _layout.brow_x
+	var by := _layout.brow_y + lift
+	var bz := _layout.brow_z
+	var bpx := _layout.brow_px
+	_place(_brow_l, -_layout.brow_gap * 0.5 + bx, by, bpx, bz, bc)
+	_place(_brow_r, _layout.brow_gap * 0.5 + bx, by, bpx, bz, bc)
 	if _mouth != null:
 		_mouth.play("closed")
 		_mouth.flip_v = mood < 0  # the resting smile, flipped over into a frown
@@ -290,10 +331,10 @@ func _build_head_wobble() -> void:
 	_skel.add_child(_wobble)
 
 
-func _place(node: Node3D, x: float, y_off: float, px: float, z_off := 0.0) -> void:
+func _place(node: Node3D, x: float, y_off: float, px: float, z_off := 0.0, curve := 0.0) -> void:
 	if node == null or _layout == null:
 		return
-	node.transform = _head_inv * _layout.element_transform(_head_index, x, y_off, z_off)
+	node.transform = _head_inv * _layout.element_transform(_head_index, x, y_off, z_off, curve)
 	node.pixel_size = px
 
 
