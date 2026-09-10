@@ -79,9 +79,20 @@ func random_index(list: Array, want: int, rng: RandomNumberGenerator) -> int:
 
 
 ## Random combo index fitting `want` — heads[i] and hairs[i] are the same glb, so this
-## one index drives both the head and its own hair.
+## one index drives both the head and its own hair. Combos disabled in the face profiles
+## are skipped; if that leaves none, we ignore the filter so a customer always gets a head.
 func random_head_index(want: int, rng: RandomNumberGenerator) -> int:
-	return random_index(heads, want, rng)
+	if heads.is_empty():
+		return -1
+	var profiles := FaceProfiles.load_or_default()
+	var matching: Array[int] = []
+	for i in heads.size():
+		var part := heads[i] as WardrobePart
+		if part != null and part.fits(want) and profiles.is_enabled(i):
+			matching.append(i)
+	if matching.is_empty():
+		return random_index(heads, want, rng)
+	return matching[rng.randi() % matching.size()]
 
 
 func random_skin(rng: RandomNumberGenerator) -> Color:

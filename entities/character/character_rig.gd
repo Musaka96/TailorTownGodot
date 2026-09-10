@@ -179,7 +179,7 @@ func _build_face() -> void:
 	var idx := _skel.find_bone(FACE_BONE)
 	if idx < 0:
 		return
-	_layout = FaceLayout.load_or_default()
+	_layout = FaceProfiles.load_or_default().layout_for(_head_index)
 	_head_inv = _skel.get_bone_global_pose(idx).affine_inverse()
 	var attach := BoneAttachment3D.new()
 	attach.name = "FaceAttach"
@@ -656,8 +656,9 @@ func set_head(index: int) -> void:
 		_head = _adopt(BAKED_HEAD)  # fall back to the base head
 	_head_index = index
 	_apply_skin()
-	if _layout != null:
-		apply_layout(_layout)  # re-seat the 2D face at this head's depth
+	# Load this head/combo's own face profile so each head carries its own tuning.
+	_layout = FaceProfiles.load_or_default().layout_for(index)
+	apply_layout(_layout)
 
 
 func _apply_skin() -> void:

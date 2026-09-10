@@ -96,12 +96,15 @@ var _yaw := 0.0
 var _sliders := {}
 var _val_labels := {}
 var _undo_stack: Array = []  # FaceLayout snapshots (deep copies), newest last
+var _profiles: FaceProfiles
+var _enabled_check: CheckButton
 var _status: Label
 
 
 func _ready() -> void:
 	_rng.randomize()
-	_layout = FaceLayout.load_or_default()
+	_profiles = FaceProfiles.load_or_default()
+	_layout = _working_layout(_head)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build()
 	_apply()
@@ -181,8 +184,9 @@ func _build_controls(col: VBoxContainer) -> void:
 	_status = Label.new()
 	_status.add_theme_color_override("font_color", Color(0.6, 0.85, 0.6))
 	col.add_child(_heading("Body"))
-	col.add_child(_dropdown("Head", _head_names(), _head, _on_head))
-	col.add_child(_dropdown("Hair", _hair_names(), _hair, _on_hair))
+	# One profile = one head/hair combo (same glb index) + its own saved face settings.
+	col.add_child(_dropdown("Profile", _head_names(), _head, _on_profile))
+	col.add_child(_enabled_row())
 	var tops := _range_names(Wardrobe.library().tops.size(), "Top")
 	var bottoms := _range_names(Wardrobe.library().bottoms.size(), "Bottom")
 	col.add_child(_dropdown("Top", tops, _top, _on_top))
@@ -313,15 +317,53 @@ func _slider_wheel(event: InputEvent, s: HSlider, step: float, field := false) -
 	accept_event()
 
 
-func _on_head(i: int) -> void:
+## Switch to a profile: it drives the head + hair combo (same index) and loads that
+## combo's saved face settings into the editor.
+func _on_profile(i: int) -> void:
 	_head = i
-	_apply()
-	_sync_face_z()
-
-
-func _on_hair(i: int) -> void:
 	_hair = i
+	_layout = _working_layout(i)
+	_undo_stack.clear()
 	_apply()
+	_refresh_all_sliders()
+	_sync_face_z()
+	_sync_enabled()
+
+
+## The working FaceLayout to edit for a head: its saved profile if it has one, else a fresh
+## copy of the default so editing a new combo doesn't alias the shared default.
+func _working_layout(head: int) -> FaceLayout:
+	if _profiles.has_layout(head):
+		return _profiles.layout_for(head)
+	return FaceLayout.load_or_default().duplicate(true)
+
+
+func _enabled_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", Style.S2)
+	var l := Label.new()
+	l.text = "Use this combo"
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.add_theme_color_override("font_color", Color(0.95, 0.9, 0.7))
+	row.add_child(l)
+	_enabled_check = CheckButton.new()
+	_enabled_check.button_pressed = _profiles.is_enabled(_head)
+	_enabled_check.toggled.connect(_on_enabled)
+	row.add_child(_enabled_check)
+	return row
+
+
+## Toggle whether this combo is used in-game (disabled combos are skipped when spawning
+## customers). Persists immediately so the game picks it up.
+func _on_enabled(on: bool) -> void:
+	_profiles.set_enabled(_head, on)
+	_profiles.save()
+	_status.text = "Combo %s" % ("enabled" if on else "disabled (saved)")
+
+
+func _sync_enabled() -> void:
+	if _enabled_check != null:
+		_enabled_check.set_pressed_no_signal(_profiles.is_enabled(_head))
 
 
 func _on_top(i: int) -> void:
@@ -399,17 +441,25 @@ func _random() -> void:
 	var g: int = GENDERS[_gender_i]
 	_head = maxi(0, Wardrobe.random_head_index(g, _rng))
 	_hair = _head
+	_layout = _working_layout(_head)
+	_undo_stack.clear()
 	_skin_i = _rng.randi() % SKINS.size()
 	_hairc_i = _rng.randi() % HAIR_COLORS.size()
 	_eye_i = _rng.randi() % CharacterRig.EYE_COLORS.size()
 	_nose_i = _rng.randi() % maxi(1, CharacterRig.variant_count("nose"))
 	_mouth_i = _rng.randi() % maxi(1, CharacterRig.variant_count("mouth"))
 	_apply()
+	_refresh_all_sliders()
+	_sync_face_z()
+	_sync_enabled()
 
 
+## Save this combo's face settings into its profile (data/face_profiles.tres).
 func _save() -> void:
-	var err := ResourceSaver.save(_layout, FaceLayout.PATH)
-	_status.text = "Saved to face_layout.tres" if err == OK else "Save failed"
+	_profiles.set_layout(_head, _layout)
+	_profiles.save()
+	var nm: String = _head_names()[_head] if _head < _head_names().size() else str(_head)
+	_status.text = "Saved profile: %s" % nm
 
 
 func _reset() -> void:
@@ -465,6 +515,9 @@ func _apply() -> void:
 	_rig.set_hair_color(HAIR_COLORS[_hairc_i])
 	_rig.set_outfit(SUIT_MAT, null, SUIT_MAT, _top, _bottom)
 	_rig.set_face_look(CharacterRig.EYE_COLORS[_eye_i], GLASSES[_glasses_i], _nose_i, _mouth_i)
+	# set_head loaded the head's stored profile; re-assert the editor's working layout so
+	# unsaved edits (and a duplicated default for a new combo) stay visible.
+	_rig.apply_layout(_layout)
 	match _expr_i:
 		1:
 			_rig.set_expression(true)
