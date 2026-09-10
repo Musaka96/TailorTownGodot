@@ -293,9 +293,7 @@ func _build_head_wobble() -> void:
 func _place(node: Node3D, x: float, y_off: float, px: float, z_off := 0.0) -> void:
 	if node == null or _layout == null:
 		return
-	var z := _layout.element_z(_head_index, x, y_off, z_off)
-	var pos := Vector3(x, _layout.head_y + y_off, z)
-	node.transform = _head_inv * Transform3D(Basis(), pos)
+	node.transform = _head_inv * _layout.element_transform(_head_index, x, y_off, z_off)
 	node.pixel_size = px
 
 

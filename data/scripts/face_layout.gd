@@ -51,16 +51,28 @@ const PATH := "res://data/face_layout.tres"
 @export var nose_z := 0.0
 @export var mouth_z := 0.0
 @export var glasses_z := 0.03
-## Convex wrap: elements further left/right of the midline recede, so the flat face
-## hugs the horizontal round of the head. 0 = perfectly flat; raise it to round it out.
+## Convex wrap: the face bends around the head's horizontal round. Each element is set
+## on a cylinder about the head's vertical axis, so it curves back AND tilts to face
+## outward (not perpendicular-flat). face_curve is the curvature 1/radius: 0 = flat,
+## higher = rounder (e.g. ~5 ≈ a 0.2 m-radius head).
 @export var face_curve := 0.0
 
 
-## Depth of an element at horizontal x / vertical y_off, for a head: the head's face_z
-## plus the element's own z offset, pulled back by the horizontal convex curve toward
-## the left/right edges (y_off is unused — the curve wraps around the vertical axis).
-func element_z(head_index: int, x: float, _y_off: float, z_off: float) -> float:
-	return face_z_for(head_index) + z_off - face_curve * (x * x)
+## Skeleton-space transform for an element at arc-x / vertical y_off, for a head: its
+## position on the face cylinder plus a yaw so the sprite lies tangent to the head. x is
+## treated as arc length, so spacing stays even as it wraps; z_off pushes it out along z.
+func element_transform(head_index: int, x: float, y_off: float, z_off: float) -> Transform3D:
+	var fz := face_z_for(head_index)
+	var wx := x
+	var wz := fz + z_off
+	var yaw := 0.0
+	if absf(face_curve) > 0.0001:
+		var theta := x * face_curve  # arc angle for this element
+		var radius := 1.0 / face_curve
+		wx = sin(theta) * radius
+		wz = fz - (1.0 - cos(theta)) * radius + z_off
+		yaw = theta  # tilt the sprite to face outward along the cylinder normal
+	return Transform3D(Basis(Vector3.UP, yaw), Vector3(wx, head_y + y_off, wz))
 
 
 ## The face depth for a given head index (its override, else the shared face_z).
