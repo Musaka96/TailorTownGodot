@@ -78,12 +78,10 @@ func random_index(list: Array, want: int, rng: RandomNumberGenerator) -> int:
 	return matching[rng.randi() % matching.size()]
 
 
+## Random combo index fitting `want` — heads[i] and hairs[i] are the same glb, so this
+## one index drives both the head and its own hair.
 func random_head_index(want: int, rng: RandomNumberGenerator) -> int:
 	return random_index(heads, want, rng)
-
-
-func random_hair_index(want: int, rng: RandomNumberGenerator) -> int:
-	return random_index(hairs, want, rng)
 
 
 func random_skin(rng: RandomNumberGenerator) -> Color:

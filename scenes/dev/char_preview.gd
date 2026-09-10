@@ -92,8 +92,10 @@ func _unhandled_input(e: InputEvent) -> void:
 
 func _randomize() -> void:
 	var g: int = GENDERS[_gender_i]
-	_head = maxi(0, Wardrobe.random_head_index(g, _rng))
-	_hair = maxi(0, Wardrobe.random_hair_index(g, _rng))
+	# Head + hair are one combo; only the colours roll independently.
+	var combo := maxi(0, Wardrobe.random_head_index(g, _rng))
+	_head = combo
+	_hair = combo
 	_skin_i = _rng.randi() % SKINS.size()
 	_hair_i = _rng.randi() % HAIR_COLORS.size()
 

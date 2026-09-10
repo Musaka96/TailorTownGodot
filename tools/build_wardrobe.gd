@@ -2,13 +2,12 @@ extends SceneTree
 
 ## Generates the editable wardrobe asset data/wardrobe/default_wardrobe.tres.
 ## Starts from WardrobeLibrary.make_default() (the base CHARTGEN head/hair/suit +
-## colour palettes), then AUTO-SCANS assets/characters/parts/*.glb and appends parts.
-## Adding a head/hair to the game is just: drop a Rig_Medium .glb into
-## assets/characters/parts/ and rerun this tool. The filename decides what it holds:
-##   - "hair" in the name (and not "head")        -> hair-only part
-##   - "head" or "face" in the name (and not hair) -> head-only part
-##   - otherwise, a 2+-mesh glb is a head+hair COMBO (face = lower mesh, hair = higher)
-## Gender comes from the name too ("_f"/"female" -> FEMALE, "_m"/"male" -> MALE, else ANY).
+## colour palettes), then AUTO-SCANS assets/characters/parts/*.glb. Each glb is a
+## head+hair COMBO: its two meshes are split by height (face = lower, hair = higher)
+## and appended as a matching head/hair pair at the SAME index, so a character always
+## wears a head with its own hair (only the skin/hair COLOURS vary). Gender comes from
+## the filename ("_f"/"female" -> FEMALE, "_m"/"male" -> MALE, else ANY). Adding a look
+## is just: drop a Rig_Medium head+hair .glb into assets/characters/parts/ and rerun.
 ##   godot --headless --path . --script res://tools/build_wardrobe.gd
 
 const OUT_PATH := "res://data/wardrobe/default_wardrobe.tres"
@@ -55,56 +54,34 @@ func _scan_parts(lib: WardrobeLibrary) -> void:
 		var ps := load(PARTS_DIR + "/" + f) as PackedScene
 		if ps == null:
 			continue
-		var found := _detect_parts(ps, _kind_from_name(f))
-		if found.is_empty():
-			print("build_wardrobe: skipped ", f, " (no skinned meshes found)")
+		var pair := _detect_head_hair(ps)
+		if pair.is_empty():
+			print("build_wardrobe: skipped ", f, " (need a head+hair combo, >=2 meshes)")
 			continue
 		var g := _gender_from(f)
 		var label := f.get_basename()
-		if found.has("head"):
-			lib.heads.append(WardrobePart.make(label + " head", ps, {"head": found["head"]}, g))
-		if found.has("hair"):
-			lib.hairs.append(WardrobePart.make(label + " hair", ps, {"hair": found["hair"]}, g))
-		print("  + ", f, "  ", found, " gender=", g)
+		# Appended together so heads[i] and hairs[i] are always the same combo.
+		lib.heads.append(WardrobePart.make(label + " head", ps, {"head": pair["head"]}, g))
+		lib.hairs.append(WardrobePart.make(label + " hair", ps, {"hair": pair["hair"]}, g))
+		print("  + ", f, "  head=", pair["head"], " hair=", pair["hair"], " gender=", g)
 
 
-## What a filename says the glb holds: "head", "hair", or "combo" (auto).
-func _kind_from_name(fname: String) -> String:
-	var n := fname.to_lower()
-	var has_hair := n.contains("hair")
-	var has_head := n.contains("head") or n.contains("face")
-	if has_hair and not has_head:
-		return "hair"
-	if has_head and not has_hair:
-		return "head"
-	return "combo"
-
-
-## Resolve the mesh(es) to use. A combo glb (2+ meshes) splits by AABB centre Y —
-## the face sits lower than the hair. A head-/hair-only glb takes its representative
-## mesh (lowest for head, highest for hair). Returns {"head": name} and/or {"hair": name}.
-func _detect_parts(ps: PackedScene, kind: String) -> Dictionary:
+## Split a head+hair combo glb by AABB centre Y (face lower, hair higher).
+## Returns {"head": name, "hair": name}, or {} if it has fewer than 2 meshes.
+func _detect_head_hair(ps: PackedScene) -> Dictionary:
 	var inst := ps.instantiate()
 	var meshes := inst.find_children("*", "MeshInstance3D", true, false)
 	var out := {}
-	if not meshes.is_empty():
-		var lowest: MeshInstance3D = meshes[0]
-		var highest: MeshInstance3D = meshes[0]
+	if meshes.size() >= 2:
+		var head_mi: MeshInstance3D = meshes[0]
+		var hair_mi: MeshInstance3D = meshes[0]
 		for mi: MeshInstance3D in meshes:
 			var cy := mi.get_aabb().get_center().y
-			if cy < lowest.get_aabb().get_center().y:
-				lowest = mi
-			if cy > highest.get_aabb().get_center().y:
-				highest = mi
-		if kind == "head":
-			out = {"head": lowest.name}
-		elif kind == "hair":
-			out = {"hair": highest.name}
-		elif meshes.size() >= 2:  # combo
-			out = {"head": lowest.name, "hair": highest.name}
-		else:  # single mesh, no name hint: guess by absolute height
-			var key := "hair" if highest.get_aabb().get_center().y > 1.68 else "head"
-			out = {key: highest.name}
+			if cy < head_mi.get_aabb().get_center().y:
+				head_mi = mi
+			if cy > hair_mi.get_aabb().get_center().y:
+				hair_mi = mi
+		out = {"head": head_mi.name, "hair": hair_mi.name}
 	inst.free()
 	return out
 

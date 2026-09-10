@@ -76,12 +76,10 @@ static func hair_color_count() -> int:
 	return library().hair_colors.size()
 
 
+## Random combo index (a head and its matching hair share the same index) fitting the
+## given gender. Head + hair are never mixed — only their colours vary.
 static func random_head_index(gender: int, rng: RandomNumberGenerator) -> int:
 	return library().random_head_index(gender, rng)
-
-
-static func random_hair_index(gender: int, rng: RandomNumberGenerator) -> int:
-	return library().random_hair_index(gender, rng)
 
 
 static func random_skin(rng: RandomNumberGenerator) -> Color:

@@ -189,10 +189,11 @@ func _dress(cust: Customer) -> void:
 	var glasses := ""
 	if _rng.randf() < GLASSES_CHANCE:
 		glasses = "sun" if _rng.randf() < 0.5 else "round"
-	var head := maxi(0, Wardrobe.random_head_index(gender, _rng))
-	var hair := maxi(0, Wardrobe.random_hair_index(gender, _rng))
-	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses, head)
-	cust.set_hair(hair)
+	# A head and its own hair are one combo (same glb, same index) — never mixed. Only
+	# the skin and hair COLOURS vary independently.
+	var combo := maxi(0, Wardrobe.random_head_index(gender, _rng))
+	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses, combo)
+	cust.set_hair(combo)
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
 	cust.wear_street()
 
