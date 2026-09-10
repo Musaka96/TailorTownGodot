@@ -24,10 +24,6 @@ const HAIR_STRANDS := "res://assets/textures/hair/strands.png"
 const HAIR_OVERLAY_UV := 5.0
 const HAIR_OVERLAY_GROW := 0.004
 
-# The flat 2D face is auto-pushed to just in front of the current head mesh's front, so
-# a bulkier head never buries it. FaceLayout.face_z is the minimum (used for flat heads).
-const FACE_MARGIN := 0.04
-
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
 const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
@@ -128,8 +124,6 @@ var _bottom_style := 0
 var _hair_index := 0
 # Skin tint (kept so it re-applies whenever the head mesh is swapped).
 var _skin_color := DEFAULT_SKIN
-# Front Z of the current head mesh (skeleton space); the face plane sits just past it.
-var _head_front := 0.0
 # Tint applied to the hair mesh (kept so it survives a hairstyle swap).
 var _hair_color := DEFAULT_HAIR
 
@@ -192,7 +186,6 @@ func _build_face() -> void:
 	_nose = _sprite(attach, _tex("nose"), false)
 	_mouth = _mouth_sprite(attach)
 	_glasses = _sprite(attach, null, false)
-	_head_front = _measure_head_front()
 	apply_layout(_layout)
 	_apply_glasses()  # honour any look set before the face was built
 	_blink = Timer.new()
@@ -301,19 +294,9 @@ func _build_head_wobble() -> void:
 func _place(node: Node3D, x: float, y_off: float, px: float, z_extra := 0.0) -> void:
 	if node == null or _layout == null:
 		return
-	var z := maxf(_layout.face_z, _head_front + FACE_MARGIN) + z_extra
-	var pos := Vector3(x, _layout.head_y + y_off, z)
+	var pos := Vector3(x, _layout.head_y + y_off, _layout.face_z_for(_head_index) + z_extra)
 	node.transform = _head_inv * Transform3D(Basis(), pos)
 	node.pixel_size = px
-
-
-## Front Z (skeleton space) of the current head mesh — the face plane sits just past it.
-func _measure_head_front() -> float:
-	var mi = _head.get("head")
-	if mi is MeshInstance3D:
-		var a := (mi as MeshInstance3D).get_aabb()
-		return a.position.z + a.size.z
-	return 0.0
 
 
 func _sprite(parent: Node, tex: Texture2D, mirror: bool) -> Sprite3D:
@@ -584,9 +567,8 @@ func set_head(index: int) -> void:
 		_head = _adopt(BAKED_HEAD)  # fall back to the base head
 	_head_index = index
 	_apply_skin()
-	_head_front = _measure_head_front()
 	if _layout != null:
-		apply_layout(_layout)  # re-seat the 2D face at the new head's depth
+		apply_layout(_layout)  # re-seat the 2D face at this head's depth
 
 
 func _apply_skin() -> void:

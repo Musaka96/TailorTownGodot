@@ -12,8 +12,13 @@ extends Resource
 const PATH := "res://data/face_layout.tres"
 
 ## How far the whole face sits in front of the head, and the head-centre height.
+## Deeper head meshes need the face pushed further out, so face_z can be overridden
+## per head index in head_face_z (falling back to face_z when a head has no entry).
 @export var face_z := 0.47
 @export var head_y := 1.64
+## head index -> face_z override. Tune per head in the char preview (edit face_z),
+## which writes the current head's entry here.
+@export var head_face_z: Dictionary = {}
 
 @export_group("Eyes")
 @export var eye_y := 0.09
@@ -37,6 +42,16 @@ const PATH := "res://data/face_layout.tres"
 ## Glasses sit centred over the eyes; a single wide sprite (not paired).
 @export var glasses_y := 0.085
 @export var glasses_px := 0.0036
+
+
+## The face depth for a given head index (its override, else the shared face_z).
+func face_z_for(head_index: int) -> float:
+	return float(head_face_z.get(head_index, face_z))
+
+
+## Set the per-head face depth for a head index (used by the char preview's editor).
+func set_face_z_for(head_index: int, value: float) -> void:
+	head_face_z[head_index] = value
 
 
 ## The saved layout, or a fresh one with the defaults above if none exists yet.

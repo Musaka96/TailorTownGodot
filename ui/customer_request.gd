@@ -3,9 +3,10 @@ extends Control
 ## Shown when the player greets a waiting customer. Presents their brief (what
 ## suit they want + budget) and lets you send them to the fitting mirror.
 
-const PORTRAIT_SIZE := Vector2(154, 176)
-## How much of the TV's width sits inside the bubble; the rest overhangs to the right.
-const PORTRAIT_INSET := 0.4
+const PORTRAIT_SIZE := Vector2(160, 184)
+## Fraction of the TV that sits inside the bubble; the rest overhangs the top-right.
+const PORTRAIT_INSET := 0.5
+const PORTRAIT_RISE := 0.3  # how far the TV lifts above the panel's top edge
 
 var _customer = null
 var _actor = null
@@ -92,13 +93,13 @@ func _process(_delta: float) -> void:
 		_reposition_portrait()
 
 
-## Glue the TV to the panel's right edge, vertically centred, overhanging outward.
+## Perch the TV on the panel's top-right corner, overhanging up and to the right.
 func _reposition_portrait() -> void:
 	if _portrait == null or _panel == null:
 		return
 	var pr := _panel.get_global_rect()
 	var x := pr.end.x - _portrait.size.x * PORTRAIT_INSET
-	var y := pr.position.y + (pr.size.y - _portrait.size.y) * 0.5
+	var y := pr.position.y - _portrait.size.y * PORTRAIT_RISE
 	_portrait.global_position = Vector2(x, y)
 
 

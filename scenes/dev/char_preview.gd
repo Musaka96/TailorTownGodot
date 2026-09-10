@@ -154,7 +154,10 @@ func _adjust_field(dir: int, fine := false) -> void:
 	var field: Array = FACE_FIELDS[_field_i]
 	var prop: String = field[0]
 	var step: float = field[1] * (0.1 if fine else 1.0)  # hold Shift for 10x-finer steps
-	_layout.set(prop, snappedf(float(_layout.get(prop)) + dir * step, step))
+	if prop == "face_z":  # face depth is per-head
+		_layout.set_face_z_for(_head, snappedf(_layout.face_z_for(_head) + dir * step, step))
+	else:
+		_layout.set(prop, snappedf(float(_layout.get(prop)) + dir * step, step))
 
 
 func _save_layout() -> void:
@@ -184,6 +187,7 @@ func _apply() -> void:
 func _refresh_label() -> void:
 	var lib := Wardrobe.library()
 	var prop: String = FACE_FIELDS[_field_i][0]
+	var prop_val: float = _layout.face_z_for(_head) if prop == "face_z" else float(_layout.get(prop))
 	var body := (
 		"HEAD %d/%d  %s\nHAIR %d/%d  %s\nTOP %d/%d   BOTTOM %d/%d\ngender filter: %s"
 		% [
@@ -207,7 +211,7 @@ func _refresh_label() -> void:
 			GLASSES[_glasses_i] if GLASSES[_glasses_i] != "" else "none",
 			EXPRS[_expr_i],
 			prop,
-			float(_layout.get(prop)),
+			prop_val,
 			_field_msg,
 		]
 	)

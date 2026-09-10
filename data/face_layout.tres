@@ -1,16 +1,16 @@
-[gd_resource type="Resource" script_class="FaceLayout" format=3 uid="uid://bqgawp3kvjmfv"]
+[gd_resource type="Resource" script_class="FaceLayout" format=3]
 
-[ext_resource type="Script" uid="uid://c1114vjv8yf2s" path="res://data/scripts/face_layout.gd" id="1_e1r5u"]
+[ext_resource type="Script" path="res://data/scripts/face_layout.gd" id="1_e1r5u"]
 
 [resource]
 script = ExtResource("1_e1r5u")
 face_z = 0.41
-eye_y = 0.01
-eye_gap = 0.345
-eye_px = 0.0010750
+eye_y = -0.03
+eye_gap = 0.315
+eye_px = 0.0007
 brow_y = 0.12
 brow_gap = 0.35
-brow_px = 0.0010750
+brow_px = 0.001075
 nose_y = -0.13
 nose_px = 0.0038
 mouth_y = -0.25

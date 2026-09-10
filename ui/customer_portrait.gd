@@ -51,9 +51,10 @@ func _build_view() -> void:
 		ap.play("idle")
 
 	_cam = Camera3D.new()
-	_cam.fov = 32
-	_cam.position = Vector3(0.0, 1.63, 1.68)
-	_cam.look_at_from_position(_cam.position, Vector3(0, 1.60, 0.5), Vector3.UP)
+	_cam.fov = 34
+	# Framed on the head + the top half of the torso.
+	_cam.position = Vector3(0.0, 1.4, 2.35)
+	_cam.look_at_from_position(_cam.position, Vector3(0, 1.28, 0.4), Vector3.UP)
 	_view.add_child(_cam)
 	_cam.current = true
 
