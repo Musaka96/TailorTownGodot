@@ -10,7 +10,7 @@ const ROLL_SCENE := preload("res://entities/items/material_roll.tscn")
 
 
 func get_interaction_prompt(_actor) -> String:
-	return "Use phone   ($%d)" % GameState.money
+	return "Use phone"
 
 
 func interact(actor) -> void:

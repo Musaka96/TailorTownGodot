@@ -1,32 +1,39 @@
 extends Control
 
-## Phone screen. Three modes (cycle the top "Mode" row):
-##  - Premade: pick a catalogue roll.
-##  - Custom Maker: choose supplier + fabric + colour + pattern yourself. The supplier
-##    (unlocked by reputation) decides which fabrics you can buy — premium mills carry
-##    the finer cloth.
-##  - Upgrades: buy reputation-gated shop upgrades (faster machines, more hooks, bigger
-##    bolts). E orders / buys the selected row, Esc closes.
+## The phone. Opens onto a small HUB anchored up by the phone where you pick what to
+## do — Order Textiles or Shop Upgrades — then drills into that screen (Esc steps back).
+##  - Order Textiles: a phonebook of suppliers (unlocked by reputation) down the left;
+##    the chosen supplier decides which fabrics you can buy. Configure fabric / colour /
+##    pattern / length on the right, E to order.
+##  - Shop Upgrades: buy reputation-gated shop upgrades, grouped by machine. E buys.
 
-enum Row { MODE, VENDOR, MATERIAL, FABRIC, COLOR, PATTERN, LENGTH }
+enum Screen { HUB, TEXTILES, UPGRADES }
+enum TRow { SUPPLIER, FABRIC, COLOR, PATTERN, LENGTH }
 
+const PANEL_W := 520
 const LENGTH_MIN := 4.0
 const LENGTH_STEP := 2.0
-const ROW_NAME := {
-	Row.MODE: "Mode",
-	Row.VENDOR: "Supplier",
-	Row.MATERIAL: "Roll",
-	Row.FABRIC: "Fabric",
-	Row.COLOR: "Colour",
-	Row.PATTERN: "Pattern",
-	Row.LENGTH: "Length",
+const HUB_OPTIONS := [
+	{"title": "Order Textiles", "desc": "Ring a supplier and order a bolt of cloth."},
+	{"title": "Shop Upgrades", "desc": "Spend your standing on better tools and kit."},
+]
+const TROW_NAME := {
+	TRow.FABRIC: "Fabric",
+	TRow.COLOR: "Colour",
+	TRow.PATTERN: "Pattern",
+	TRow.LENGTH: "Length",
 }
-const MODE_NAMES := ["Premade Rolls", "Custom Maker", "Shop Upgrades"]
+## Short flavour per supplier (indexes Upgrades.VENDORS).
+const VENDOR_BLURB := [
+	"Reliable local staples.",
+	"Finer weaves and tweeds.",
+	"Premium silks and mohair.",
+]
 
 var _phone = null
 var _actor = null
-var _mode := 0  # 0 premade, 1 custom, 2 upgrades
-var _premade := 0
+var _screen := Screen.HUB
+var _hub_sel := 0
 var _vendor := 0
 var _fabric := 0
 var _color := 0
@@ -35,13 +42,16 @@ var _length := 10.0
 var _row := 0
 var _status := ""
 var _upg_ids: Array = []
+var _placed := false
 var _swatch: MaterialSwatch
+var _contacts: VBoxContainer
 var _name_label: Label
 var _summary_label: Label
 var _price_label: Label
-var _decor_built := false
+var _hint_bar: Control
 
 @onready var _panel: PanelContainer = $Center/Panel
+@onready var _dim: ColorRect = $Dim
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
 @onready var _money: Label = $Center/Panel/Margin/Box/Money
 @onready var _preview: HBoxContainer = $Center/Panel/Margin/Box/Preview
@@ -57,13 +67,18 @@ func _ready() -> void:
 func open(phone, actor) -> void:
 	_phone = phone
 	_actor = actor
+	_screen = Screen.HUB
 	_row = 0
+	_hub_sel = 0
 	_status = ""
-	_vendor = clampi(_vendor, 0, Upgrades.unlocked_vendors().size() - 1)
+	_vendor = clampi(_vendor, 0, Upgrades.VENDORS.size() - 1)
+	if _vendor_locked(_vendor):
+		_vendor = 0
 	_length = clampf(_length, LENGTH_MIN, Upgrades.max_roll_length())
 	GameState.input_locked = true
 	visible = true
 	_style()
+	_place_panel()
 	_refresh()
 
 
@@ -73,9 +88,17 @@ func close() -> void:
 	_phone = null
 
 
+# --- Layout ----------------------------------------------------------------
+
+
 func _build_preview() -> void:
+	_contacts = VBoxContainer.new()
+	_contacts.custom_minimum_size = Vector2(196, 0)
+	_contacts.add_theme_constant_override("separation", Style.S1)
+	_preview.add_child(_contacts)
+
 	_swatch = MaterialSwatch.new()
-	_swatch.swatch_size = 112
+	_swatch.swatch_size = 96
 	_preview.add_child(_swatch)
 
 	var info := VBoxContainer.new()
@@ -85,222 +108,269 @@ func _build_preview() -> void:
 	_preview.add_child(info)
 
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", 22)
+	_name_label.add_theme_font_size_override("font_size", 21)
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_name_label)
 	_summary_label = Label.new()
 	_summary_label.add_theme_font_size_override("font_size", 15)
 	_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_summary_label)
 	_price_label = Label.new()
-	_price_label.add_theme_font_size_override("font_size", 19)
+	_price_label.add_theme_font_size_override("font_size", 18)
 	info.add_child(_price_label)
 
 
+## Move the panel out of the centre and pin it top-right, near where the phone sits.
+func _place_panel() -> void:
+	if not _placed:
+		_placed = true
+		if _panel.get_parent() != self:
+			_panel.get_parent().remove_child(_panel)
+			add_child(_panel)
+		_panel.anchor_left = 1.0
+		_panel.anchor_right = 1.0
+		_panel.anchor_top = 0.0
+		_panel.anchor_bottom = 0.0
+		_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		_panel.grow_vertical = Control.GROW_DIRECTION_END
+	_panel.offset_left = -(PANEL_W + 28)
+	_panel.offset_right = -28
+	_panel.offset_top = 72
+	_panel.offset_bottom = 72
+
+
 func _style() -> void:
-	_panel.custom_minimum_size = Vector2(640, 0)
+	_dim.color = Color(0, 0, 0, 0.22)
+	_panel.custom_minimum_size = Vector2(PANEL_W, 0)
 	Style.apply_skin(_panel, Style.MenuSkin.ORDER)
 	_preview.add_theme_constant_override("separation", Style.S3)
 	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 26)
+	_title.add_theme_font_size_override("font_size", 24)
 	_title.add_theme_color_override("font_color", Style.ACC_ORDER.darkened(0.2))
-	_money.add_theme_font_size_override("font_size", 18)
+	_money.add_theme_font_size_override("font_size", 17)
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_summary_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
-	_rows.custom_minimum_size = Vector2(0, 250)
-	_build_decor_once()
-
-
-func _build_decor_once() -> void:
-	if _decor_built:
-		return
-	_decor_built = true
 	_hint.visible = false
-	var bar := Style.hint_bar(
-		[["W/S", "Select"], ["A/D", "Change"], ["E", "Order / Buy"], ["Esc", "Close"]]
-	)
-	_hint.get_parent().add_child(bar)
 
 
-# --- State helpers ---------------------------------------------------------
-
-
-func _active_rows() -> Array:
-	if _mode == 0:
-		return [Row.MODE, Row.MATERIAL, Row.LENGTH]
-	if _mode == 1:
-		return [Row.MODE, Row.VENDOR, Row.FABRIC, Row.COLOR, Row.PATTERN, Row.LENGTH]
-	return []  # upgrades mode renders its own list
-
-
-func _row_count() -> int:
-	if _mode == 2:
-		return 1 + _upg_ids.size()  # Mode row + one per upgrade
-	return _active_rows().size()
-
-
-func _vendor_fabrics() -> Array:
-	var vendors := Upgrades.unlocked_vendors()
-	return vendors[clampi(_vendor, 0, vendors.size() - 1)]["fabrics"]
-
-
-func _current_material() -> MaterialType:
-	if _mode == 0:
-		var all := Catalog.all_materials()
-		if all.is_empty():
-			return null
-		return all[_premade % all.size()]
-	return MaterialFactory.make(_fabric, _pattern, _color, _length)
-
-
-func _price() -> int:
-	var mat := _current_material()
-	return Pricing.roll_price(mat, _length) if mat != null else 0
-
-
-func _value_text(row: int) -> String:
-	match row:
-		Row.MODE:
-			return MODE_NAMES[_mode]
-		Row.FABRIC:
-			return Enums.fabric_name(_fabric)
-		Row.COLOR:
-			return MaterialFactory.color_name(_color)
-		Row.PATTERN:
-			return Enums.pattern_name(_pattern)
-		Row.LENGTH:
-			return "%.0f m" % _length
-	return _value_text_other(row)
-
-
-func _value_text_other(row: int) -> String:
-	if row == Row.VENDOR:
-		var v := Upgrades.unlocked_vendors()
-		return str(v[clampi(_vendor, 0, v.size() - 1)]["name"])
-	var mat := _current_material()
-	return mat.display_name if mat != null else "—"
+func _set_hint(pairs: Array) -> void:
+	if _hint_bar != null:
+		_hint_bar.queue_free()
+	_hint_bar = Style.hint_bar(pairs)
+	_hint.get_parent().add_child(_hint_bar)
 
 
 # --- Rendering -------------------------------------------------------------
 
 
 func _refresh() -> void:
-	_title.text = "Phone  ·  %s" % ("Shop Upgrades" if _mode == 2 else "Order Materials")
 	_money.text = "Budget:  $ %d" % GameState.money
-	if _mode == 2:
-		_refresh_upgrades()
-	else:
-		_refresh_order()
+	_money.add_theme_color_override("font_color", Style.INK)
+	for child in _rows.get_children():
+		child.queue_free()
+	match _screen:
+		Screen.HUB:
+			_refresh_hub()
+		Screen.TEXTILES:
+			_refresh_textiles()
+		Screen.UPGRADES:
+			_refresh_upgrades()
 
 
-func _refresh_order() -> void:
+func _refresh_hub() -> void:
+	_title.text = "Phone"
+	_preview.visible = false
+	_row = clampi(_row, 0, HUB_OPTIONS.size() - 1)
+	_hub_sel = _row
+	for i in HUB_OPTIONS.size():
+		var opt: Dictionary = HUB_OPTIONS[i]
+		_rows.add_child(_make_hub_card(opt["title"], opt["desc"], i == _row))
+	_set_hint([["W/S", "Select"], ["E", "Open"], ["Esc", "Hang up"]])
+
+
+func _refresh_textiles() -> void:
+	_preview.visible = true
+	_contacts.visible = true
 	_swatch.visible = true
-	var mat := _current_material()
-	var cost := _price()
+	_title.text = "Order Materials"
+	_row = clampi(_row, 0, TRow.size() - 1)
+	_build_contacts()
+	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length)
+	var cost := Pricing.roll_price(mat, _length) if mat != null else 0
 	var afford := GameState.can_afford(cost)
-	_money.add_theme_color_override("font_color", Style.INK if afford else Style.CLAY)
 	if mat != null:
 		_swatch.setup(mat, mat.roll_length_m)
 		_name_label.text = mat.display_name
 		_summary_label.text = mat.summary()
 	_price_label.text = "Order:  $ %d   for %.0f m%s" % [cost, _length, _status]
 	_price_label.add_theme_color_override("font_color", Style.FOREST if afford else Style.CLAY)
-
-	var rows := _active_rows()
-	_row = clampi(_row, 0, rows.size() - 1)
-	for child in _rows.get_children():
-		child.queue_free()
-	for i in rows.size():
-		_rows.add_child(_make_row(rows[i], i == _row))
+	for row in [TRow.FABRIC, TRow.COLOR, TRow.PATTERN, TRow.LENGTH]:
+		_rows.add_child(_make_cfg_row(row, _row == row))
+	_set_hint([["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Back"]])
 
 
 func _refresh_upgrades() -> void:
+	_preview.visible = true
+	_contacts.visible = false
 	_swatch.visible = false
-	_money.add_theme_color_override("font_color", Style.INK)
-	_row = clampi(_row, 0, _row_count() - 1)
-	# Preview shows the selected upgrade (or the Mode row).
-	if _row == 0:
-		_name_label.text = "Shop Upgrades"
-		_summary_label.text = "Spend your standing on the Row to improve the shop."
-		_price_label.text = _status
-		_price_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	else:
-		_show_upgrade_preview(_upg_ids[_row - 1])
-
-	for child in _rows.get_children():
-		child.queue_free()
-	_rows.add_child(_make_row(Row.MODE, _row == 0))
+	_title.text = "Shop Upgrades"
+	_row = clampi(_row, 0, _upg_ids.size() - 1)
+	_show_upgrade_preview(_upg_ids[_row])
+	var last_cat := ""
 	for i in _upg_ids.size():
-		_rows.add_child(_make_upgrade_row(_upg_ids[i], _row == i + 1))
+		var id: String = _upg_ids[i]
+		var cat := str(Upgrades.data(id).get("category", ""))
+		if cat != last_cat:
+			last_cat = cat
+			_rows.add_child(Style.header(cat, Style.ACC_ORDER))
+		_rows.add_child(_make_upgrade_row(id, _row == i))
+	_set_hint([["W/S", "Select"], ["E", "Buy"], ["Esc", "Back"]])
+
+
+## The supplier phonebook: every vendor, with locked mills dimmed and their unlock tier.
+func _build_contacts() -> void:
+	for child in _contacts.get_children():
+		child.queue_free()
+	_contacts.add_child(Style.header("Contacts", Style.ACC_ORDER))
+	for i in Upgrades.VENDORS.size():
+		_contacts.add_child(_make_contact_card(i))
 
 
 func _show_upgrade_preview(id: String) -> void:
 	var d := Upgrades.data(id)
-	_name_label.text = "%s  ·  %s" % [d.get("name", "?"), d.get("category", "")]
+	_name_label.text = str(d.get("name", "?"))
 	_summary_label.text = str(d.get("desc", ""))
 	if Upgrades.has(id):
-		_price_label.text = "Owned%s" % _status
+		_price_label.text = "Owned ✓%s" % _status
 		_price_label.add_theme_color_override("font_color", Style.FOREST)
 	elif not Upgrades.tier_met(id):
-		_price_label.text = "Locked — needs %s%s" % [_tier_name(id), _status]
+		_price_label.text = "Locked — %s%s" % [_tier_name(int(d.get("tier", 0))), _status]
 		_price_label.add_theme_color_override("font_color", Style.CLAY)
 	else:
 		var cost := int(d.get("cost", 0))
 		_price_label.text = "Buy:  $ %d%s" % [cost, _status]
-		_price_label.add_theme_color_override(
-			"font_color", Style.FOREST if GameState.can_afford(cost) else Style.CLAY
-		)
+		var ok := GameState.can_afford(cost)
+		_price_label.add_theme_color_override("font_color", Style.FOREST if ok else Style.CLAY)
 
 
-func _tier_name(id: String) -> String:
-	var t := int(Upgrades.data(id).get("tier", 0))
+func _tier_name(t: int) -> String:
 	return str(Reputation.TIERS[clampi(t, 0, Reputation.TIERS.size() - 1)]["name"])
 
 
-func _make_row(row: int, selected: bool) -> Control:
+# --- Cards -----------------------------------------------------------------
+
+
+func _card_panel(selected: bool) -> PanelContainer:
 	var card := PanelContainer.new()
 	var skin := (
 		Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_ORDER) if selected else Style.card()
 	)
 	card.add_theme_stylebox_override("panel", skin)
+	return card
+
+
+func _make_hub_card(title: String, desc: String, selected: bool) -> Control:
+	var card := _card_panel(selected)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	card.add_child(box)
+	var head := Label.new()
+	head.text = ("▸  %s" % title) if selected else title
+	head.add_theme_font_override("font", Style.bold_font())
+	head.add_theme_font_size_override("font_size", 21)
+	head.add_theme_color_override("font_color", Style.INK)
+	box.add_child(head)
+	var sub := Label.new()
+	sub.text = desc
+	sub.add_theme_font_size_override("font_size", 14)
+	sub.add_theme_color_override("font_color", Style.INK_SOFT)
+	box.add_child(sub)
+	return card
+
+
+func _make_cfg_row(row: int, selected: bool) -> Control:
+	var card := _card_panel(selected)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
 	var name_label := Label.new()
-	name_label.text = ROW_NAME[row]
-	name_label.custom_minimum_size = Vector2(120, 0)
+	name_label.text = TROW_NAME[row]
+	name_label.custom_minimum_size = Vector2(96, 0)
 	name_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.add_theme_font_size_override("font_size", 17)
 	hbox.add_child(name_label)
 	var value := Label.new()
 	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.text = ("‹  %s  ›" % _value_text(row)) if selected else _value_text(row)
+	value.text = ("‹  %s  ›" % _cfg_value(row)) if selected else _cfg_value(row)
 	value.add_theme_color_override("font_color", Style.INK)
-	value.add_theme_font_size_override("font_size", 19)
+	value.add_theme_font_size_override("font_size", 18)
 	hbox.add_child(value)
 	return card
 
 
+func _cfg_value(row: int) -> String:
+	match row:
+		TRow.FABRIC:
+			return Enums.fabric_name(_fabric)
+		TRow.COLOR:
+			return MaterialFactory.color_name(_color)
+		TRow.PATTERN:
+			return Enums.pattern_name(_pattern)
+	return "%.0f m" % _length
+
+
+func _make_contact_card(i: int) -> Control:
+	var v: Dictionary = Upgrades.VENDORS[i]
+	var locked := _vendor_locked(i)
+	var chosen := i == _vendor
+	var card := _card_panel(chosen and _row == TRow.SUPPLIER)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 1)
+	card.add_child(box)
+	box.add_child(_contact_title(v, i, locked, chosen))
+	var sub := Label.new()
+	sub.add_theme_font_size_override("font_size", 12)
+	if locked:
+		sub.text = "Unlocks at %s" % _tier_name(int(v["tier"]))
+		sub.add_theme_color_override("font_color", Style.CLAY)
+	else:
+		sub.text = VENDOR_BLURB[i] if i < VENDOR_BLURB.size() else ""
+		sub.add_theme_color_override("font_color", Style.INK_SOFT)
+	box.add_child(sub)
+	return card
+
+
+func _contact_title(v: Dictionary, i: int, locked: bool, chosen: bool) -> Label:
+	var head := Label.new()
+	var stars := "★".repeat(i + 1) + "☆".repeat(maxi(0, 2 - i))
+	var mark := "🔒 " if locked else ("▸ " if chosen else "")
+	head.text = "%s%s  %s" % [mark, str(v["name"]), stars]
+	head.add_theme_font_size_override("font_size", 15)
+	head.add_theme_color_override("font_color", Style.INK_SOFT if locked else Style.INK)
+	return head
+
+
 func _make_upgrade_row(id: String, selected: bool) -> Control:
 	var d := Upgrades.data(id)
-	var card := PanelContainer.new()
-	var skin := (
-		Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_ORDER) if selected else Style.card()
-	)
-	card.add_theme_stylebox_override("panel", skin)
+	var card := _card_panel(selected)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
 	var name_label := Label.new()
 	name_label.text = str(d.get("name", "?"))
-	name_label.custom_minimum_size = Vector2(220, 0)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_color_override("font_color", Style.INK)
-	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.add_theme_font_size_override("font_size", 17)
 	hbox.add_child(name_label)
+	hbox.add_child(_upgrade_status(id, d))
+	return card
+
+
+func _upgrade_status(id: String, d: Dictionary) -> Label:
 	var status := Label.new()
-	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.add_theme_font_size_override("font_size", 18)
+	status.add_theme_font_size_override("font_size", 17)
 	if Upgrades.has(id):
 		status.text = "Owned ✓"
 		status.add_theme_color_override("font_color", Style.FOREST)
@@ -310,8 +380,7 @@ func _make_upgrade_row(id: String, selected: bool) -> Control:
 	else:
 		status.text = "$ %d" % int(d.get("cost", 0))
 		status.add_theme_color_override("font_color", Style.INK_SOFT)
-	hbox.add_child(status)
-	return card
+	return status
 
 
 # --- Input -----------------------------------------------------------------
@@ -332,10 +401,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_confirm()
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
-		close()
+		_back()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+func _row_count() -> int:
+	match _screen:
+		Screen.HUB:
+			return HUB_OPTIONS.size()
+		Screen.TEXTILES:
+			return TRow.size()
+	return _upg_ids.size()
 
 
 func _move_row(delta: int) -> void:
@@ -346,35 +424,69 @@ func _move_row(delta: int) -> void:
 
 
 func _adjust(dir: int) -> void:
+	if _screen != Screen.TEXTILES:
+		return
 	_status = ""
-	# Row 0 in every mode is the Mode selector.
-	if _row == 0:
-		_mode = (_mode + dir + MODE_NAMES.size()) % MODE_NAMES.size()
-		_row = 0
-		_refresh()
-		return
-	if _mode == 2:
-		_refresh()  # upgrades don't cycle values; E buys
-		return
-	match int(_active_rows()[_row]):
-		Row.VENDOR:
-			var n := Upgrades.unlocked_vendors().size()
-			_vendor = (_vendor + dir + n) % n
-			_snap_fabric_to_vendor()
-		Row.MATERIAL:
-			var n := Catalog.all_materials().size()
-			if n > 0:
-				_premade = (_premade + dir + n) % n
-		Row.FABRIC:
+	match _row:
+		TRow.SUPPLIER:
+			_cycle_vendor(dir)
+		TRow.FABRIC:
 			_cycle_fabric(dir)
-		Row.COLOR:
+		TRow.COLOR:
 			var c := MaterialFactory.color_count()
 			_color = (_color + dir + c) % c
-		Row.PATTERN:
+		TRow.PATTERN:
 			_pattern = (_pattern + dir + Enums.Pattern.size()) % Enums.Pattern.size()
-		Row.LENGTH:
+		TRow.LENGTH:
 			_length = clampf(_length + dir * LENGTH_STEP, LENGTH_MIN, Upgrades.max_roll_length())
 	_refresh()
+
+
+func _confirm() -> void:
+	match _screen:
+		Screen.HUB:
+			_screen = Screen.TEXTILES if _hub_sel == 0 else Screen.UPGRADES
+			_row = 0
+			_status = ""
+			_refresh()
+		Screen.TEXTILES:
+			_order_roll()
+		Screen.UPGRADES:
+			_buy_upgrade()
+
+
+func _back() -> void:
+	if _screen == Screen.HUB:
+		close()
+		return
+	_screen = Screen.HUB
+	_row = 0
+	_status = ""
+	_refresh()
+
+
+# --- Suppliers & orders ----------------------------------------------------
+
+
+func _vendor_locked(i: int) -> bool:
+	var t: int = Reputation.tier() if Reputation != null else 0
+	return t < int(Upgrades.VENDORS[i]["tier"])
+
+
+func _vendor_fabrics() -> Array:
+	return Upgrades.VENDORS[_vendor]["fabrics"]
+
+
+## Step to the next unlocked supplier (skipping locked mills), then keep the fabric valid.
+func _cycle_vendor(dir: int) -> void:
+	var n := Upgrades.VENDORS.size()
+	var i := _vendor
+	for _k in n:
+		i = (i + dir + n) % n
+		if not _vendor_locked(i):
+			_vendor = i
+			break
+	_snap_fabric_to_vendor()
 
 
 ## Step the fabric within the current supplier's offered list (wrapping).
@@ -388,21 +500,17 @@ func _cycle_fabric(dir: int) -> void:
 	_fabric = int(fabrics[(idx + dir + fabrics.size()) % fabrics.size()])
 
 
-## When the supplier changes, keep the fabric valid for what they carry.
 func _snap_fabric_to_vendor() -> void:
 	var fabrics := _vendor_fabrics()
 	if not fabrics.has(_fabric) and not fabrics.is_empty():
 		_fabric = int(fabrics[0])
 
 
-func _confirm() -> void:
-	if _mode == 2:
-		_buy_upgrade()
-		return
-	var mat := _current_material()
+func _order_roll() -> void:
+	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length)
 	if mat == null:
 		return
-	var cost := _price()
+	var cost := Pricing.roll_price(mat, _length)
 	if not GameState.can_afford(cost):
 		_status = "     Not enough money!"
 		_refresh()
@@ -415,9 +523,7 @@ func _confirm() -> void:
 
 
 func _buy_upgrade() -> void:
-	if _row == 0:
-		return
-	var id: String = _upg_ids[_row - 1]
+	var id: String = _upg_ids[_row]
 	if Upgrades.has(id):
 		_status = "  (already owned)"
 	elif not Upgrades.tier_met(id):
