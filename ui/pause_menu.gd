@@ -62,8 +62,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	var vp := get_viewport()
 	if not visible or vp == null:
 		return
-	# Esc backs out of a slot list to the main pause page (instead of unpausing).
-	if _sub and event.is_action_pressed("pause"):
+	# Esc / B backs out of a sub-page to the main pause page (instead of unpausing).
+	if _sub and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel")):
 		_show_main()
 		vp.set_input_as_handled()
 		return
