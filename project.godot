@@ -40,7 +40,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/mcp_bridge/plugin.cfg", "res://addons/news_editor/plugin.cfg", "res://addons/face_editor/plugin.cfg")
+enabled=PackedStringArray("res://addons/mcp_bridge/plugin.cfg", "res://addons/news_editor/plugin.cfg", "res://addons/face_editor/plugin.cfg", "res://addons/tool_runner/plugin.cfg")
 
 [filesystem]
 
