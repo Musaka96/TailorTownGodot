@@ -90,9 +90,6 @@ const NOD_ANGLE := 0.30
 const SHAKE_ANGLE := 0.34
 const GESTURE_STEP := 0.13
 
-# Shared across every character so the mouth frames load once.
-static var _mouth_sf: SpriteFrames
-
 var _tree: AnimationTree
 var _loco := 0.0  # current idle(0)->walk(1) blend
 var _loco_target := 0.0
@@ -113,10 +110,13 @@ var _eye_r: Sprite3D
 var _brow_l: Sprite3D
 var _brow_r: Sprite3D
 var _nose: Sprite3D
-var _mouth: AnimatedSprite3D
+var _mouth: Sprite3D
 var _glasses: Sprite3D
 var _eye_color := "brown"
 var _glasses_kind := ""  # "", "sun" or "round"; applied once the face is built
+var _nose_index := 0  # which nose_N sprite (see assets/textures/faces/)
+var _mouth_index := 0  # which mouth_N sprite
+var _talk: Tween  # scale-pulse while talking
 var _blink: Timer
 # Each slot maps role -> MeshInstance3D currently filling it.
 var _head: Dictionary = {}
@@ -189,9 +189,15 @@ func _build_face() -> void:
 	_eye_r = _sprite(attach, _eye_tex(), true)
 	_brow_l = _sprite(attach, _tex("brow"), false)
 	_brow_r = _sprite(attach, _tex("brow"), true)
-	_nose = _sprite(attach, _tex("nose"), false)
-	_mouth = _mouth_sprite(attach)
+	_nose = _sprite(attach, _tex("nose_%d" % _nose_index), false)
+	_mouth = _sprite(attach, _tex("mouth_%d" % _mouth_index), false)
 	_glasses = _sprite(attach, null, false)
+	# Name them so tools (the char preview gizmo) can find the element to manipulate.
+	_eye_l.name = "eye_l"
+	_brow_l.name = "brow_l"
+	_nose.name = "nose"
+	_mouth.name = "mouth"
+	_glasses.name = "glasses"
 	apply_layout(_layout)
 	_apply_glasses()  # honour any look set before the face was built
 	_blink = Timer.new()
@@ -208,48 +214,80 @@ func apply_layout(layout: FaceLayout) -> void:
 		return
 	_layout = layout
 	var base := layout.face_curve
-	var ec := base + layout.eye_curve
-	var bc := base + layout.brow_curve
-	_place(
-		_eye_l, -layout.eye_gap * 0.5 + layout.eye_x, layout.eye_y, layout.eye_px, layout.eye_z, ec
+	_place_pair(
+		_eye_l,
+		_eye_r,
+		layout,
+		layout.eye_gap,
+		layout.eye_x,
+		base + layout.eye_curve,
+		layout.eye_rot
 	)
-	_place(
-		_eye_r, layout.eye_gap * 0.5 + layout.eye_x, layout.eye_y, layout.eye_px, layout.eye_z, ec
-	)
-	_place(
+	_place_pair(
 		_brow_l,
-		-layout.brow_gap * 0.5 + layout.brow_x,
-		layout.brow_y,
-		layout.brow_px,
-		layout.brow_z,
-		bc
-	)
-	_place(
 		_brow_r,
-		layout.brow_gap * 0.5 + layout.brow_x,
-		layout.brow_y,
-		layout.brow_px,
-		layout.brow_z,
-		bc
+		layout,
+		layout.brow_gap,
+		layout.brow_x,
+		base + layout.brow_curve,
+		layout.brow_rot,
+		"brow"
 	)
 	var nc := base + layout.nose_curve
 	var mc := base + layout.mouth_curve
-	_place(_nose, layout.nose_x, layout.nose_y, layout.nose_px, layout.nose_z, nc)
-	_place(_mouth, layout.mouth_x, layout.mouth_y, layout.mouth_px, layout.mouth_z, mc)
+	var gc := base + layout.glasses_curve
+	_place(_nose, layout.nose_x, layout.nose_y, layout.nose_px, layout.nose_z, nc, layout.nose_rot)
+	_place(
+		_mouth,
+		layout.mouth_x,
+		layout.mouth_y,
+		layout.mouth_px,
+		layout.mouth_z,
+		mc,
+		layout.mouth_rot
+	)
 	_place(
 		_glasses,
 		layout.glasses_x,
 		layout.glasses_y,
 		layout.glasses_px,
 		layout.glasses_z,
-		base + layout.glasses_curve
+		gc,
+		layout.glasses_rot
 	)
+
+
+## Place a mirrored pair (eyes/brows): they sit ±gap/2 around the midline (+ the shared
+## x offset) and roll symmetrically (left +rot, right -rot). `which` picks the y/px fields.
+func _place_pair(
+	nl: Node3D,
+	nr: Node3D,
+	layout: FaceLayout,
+	gap: float,
+	x: float,
+	curve: float,
+	rot: float,
+	which := "eye"
+) -> void:
+	var y: float = layout.brow_y if which == "brow" else layout.eye_y
+	var px: float = layout.brow_px if which == "brow" else layout.eye_px
+	var z: float = layout.brow_z if which == "brow" else layout.eye_z
+	_place(nl, -gap * 0.5 + x, y, px, z, curve, rot)
+	_place(nr, gap * 0.5 + x, y, px, z, curve, -rot)
 
 
 ## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
 func set_talking(on: bool) -> void:
-	if _mouth != null:
-		_mouth.play("talk" if on else "closed")
+	if _mouth == null:
+		return
+	if _talk != null and _talk.is_valid():
+		_talk.kill()
+	if on:
+		_talk = create_tween().set_loops()
+		_talk.tween_property(_mouth, "scale:y", 1.7, 0.09)
+		_talk.tween_property(_mouth, "scale:y", 1.0, 0.09)
+	else:
+		_mouth.scale.y = 1.0
 
 
 ## React while being fitted: a lasting smile (liked) or frown (disliked). Brows and
@@ -296,10 +334,10 @@ func _apply_expression(mood: int) -> void:
 	var by := _layout.brow_y + lift
 	var bz := _layout.brow_z
 	var bpx := _layout.brow_px
-	_place(_brow_l, -_layout.brow_gap * 0.5 + bx, by, bpx, bz, bc)
-	_place(_brow_r, _layout.brow_gap * 0.5 + bx, by, bpx, bz, bc)
+	var br := _layout.brow_rot
+	_place(_brow_l, -_layout.brow_gap * 0.5 + bx, by, bpx, bz, bc, br)
+	_place(_brow_r, _layout.brow_gap * 0.5 + bx, by, bpx, bz, bc, -br)
 	if _mouth != null:
-		_mouth.play("closed")
 		_mouth.flip_v = mood < 0  # the resting smile, flipped over into a frown
 		_mouth.pixel_size = _layout.mouth_px * (EXPR_HAPPY_MOUTH if mood > 0 else 1.0)
 
@@ -331,10 +369,14 @@ func _build_head_wobble() -> void:
 	_skel.add_child(_wobble)
 
 
-func _place(node: Node3D, x: float, y_off: float, px: float, z_off := 0.0, curve := 0.0) -> void:
+func _place(
+	node: Node3D, x: float, y_off: float, px: float, z_off := 0.0, curve := 0.0, roll := 0.0
+) -> void:
 	if node == null or _layout == null:
 		return
-	node.transform = _head_inv * _layout.element_transform(_head_index, x, y_off, z_off, curve)
+	node.transform = (
+		_head_inv * _layout.element_transform(_head_index, x, y_off, z_off, curve, roll)
+	)
 	node.pixel_size = px
 
 
@@ -343,15 +385,6 @@ func _sprite(parent: Node, tex: Texture2D, mirror: bool) -> Sprite3D:
 	s.texture = tex
 	s.flip_h = mirror
 	_face_flags(s)
-	parent.add_child(s)
-	return s
-
-
-func _mouth_sprite(parent: Node) -> AnimatedSprite3D:
-	var s := AnimatedSprite3D.new()
-	s.sprite_frames = _mouth_frames()
-	_face_flags(s)
-	s.play("closed")
 	parent.add_child(s)
 	return s
 
@@ -388,9 +421,13 @@ func _set_eye_tex(tex: Texture2D) -> void:
 
 ## Set eye colour (one of EYE_COLORS; unknown falls back to brown so blinks never
 ## break) and glasses ("sun" / "round", or "" for none) — the per-customer face look.
-func set_face_look(eye_color: String, glasses: String) -> void:
+func set_face_look(eye_color: String, glasses: String, nose := -1, mouth := -1) -> void:
 	_eye_color = eye_color if eye_color in EYE_COLORS else "brown"
 	_glasses_kind = glasses
+	if nose >= 0:
+		_set_nose(nose)
+	if mouth >= 0:
+		_set_mouth(mouth)
 	if not _is_blinking():
 		_set_eye_tex(_eye_tex())
 	_apply_glasses()
@@ -420,24 +457,27 @@ static func _tex(sprite_name: String) -> Texture2D:
 	return load(FACE_DIR + sprite_name + ".png") as Texture2D
 
 
-static func _mouth_frames() -> SpriteFrames:
-	if _mouth_sf == null:
-		_mouth_sf = SpriteFrames.new()
-		_add_anim(_mouth_sf, "closed", ["mouth_closed"], 8.0, false)
-		_add_anim(
-			_mouth_sf, "talk", ["mouth_closed", "mouth_mid", "mouth_open", "mouth_mid"], 9.0, true
-		)
-	return _mouth_sf
+# --- Nose / mouth selection ------------------------------------------------
 
 
-static func _add_anim(
-	sf: SpriteFrames, anim: String, files: Array, speed: float, loop: bool
-) -> void:
-	sf.add_animation(anim)
-	sf.set_animation_speed(anim, speed)
-	sf.set_animation_loop(anim, loop)
-	for f: String in files:
-		sf.add_frame(anim, load(FACE_DIR + f + ".png") as Texture2D)
+## Number of nose_N / mouth_N variants sliced into assets/textures/faces/.
+static func variant_count(prefix: String) -> int:
+	var n := 0
+	while ResourceLoader.exists("%s%s_%d.png" % [FACE_DIR, prefix, n]):
+		n += 1
+	return n
+
+
+func _set_nose(index: int) -> void:
+	_nose_index = posmod(index, maxi(1, variant_count("nose")))
+	if _nose != null:
+		_nose.texture = _tex("nose_%d" % _nose_index)
+
+
+func _set_mouth(index: int) -> void:
+	_mouth_index = posmod(index, maxi(1, variant_count("mouth")))
+	if _mouth != null:
+		_mouth.texture = _tex("mouth_%d" % _mouth_index)
 
 
 # --- Carrying --------------------------------------------------------------

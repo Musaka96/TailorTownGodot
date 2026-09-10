@@ -39,13 +39,16 @@ const EYE_CELLS := {
 const CELLS := {
 	"eye_closed": [P1, Rect2i(22, 228, 62, 28), false],
 	"brow": [P1, Rect2i(24, 951, 60, 23), false],
-	"nose": [P2, Rect2i(282, 550, 43, 39), false],
-	"mouth_closed": [P2, Rect2i(39, 703, 82, 17), false],
-	"mouth_mid": [P2, Rect2i(1060, 794, 84, 28), false],
-	"mouth_open": [P2, Rect2i(188, 692, 98, 44), false],
 	"glasses_sun": [P2, Rect2i(31, 922, 145, 50), false],
 	"glasses_round": [P2, Rect2i(237, 918, 142, 58), true],
 }
+
+# Noses and mouths are auto-segmented from their atlas rows (many variants), so adding
+# more art to the sheet needs no rect edits. [y0, y1] band(s) in the 1536-authored sheet;
+# columns of content within a band (gaps >= GAP) split into cells, trimmed per cell.
+const NOSE_BANDS := [[535, 615]]
+const MOUTH_BANDS := [[665, 752], [756, 850]]
+const SEG_GAP := 8
 
 
 func _initialize() -> void:
@@ -60,9 +63,69 @@ func _initialize() -> void:
 	for name: String in CELLS:
 		var spec: Array = CELLS[name]
 		_slice(sheets[spec[0]], spec[1], spec[2]).save_png("%s/%s.png" % [OUT_DIR, name])
+	var noses := _slice_row(sheets[P2], NOSE_BANDS, "nose")
+	var mouths := _slice_row(sheets[P2], MOUTH_BANDS, "mouth")
 	_seed_layout()
-	print("sliced face sprites to ", OUT_DIR)
+	print("sliced %d noses, %d mouths + eyes/brows/glasses to %s" % [noses, mouths, OUT_DIR])
 	quit(0)
+
+
+## Auto-segment each band into cells (columns of content split on wide gaps), slice each
+## with the flood-fill key (keeps interior whites like teeth), and save as prefix_0..n.
+## Also copies the first as prefix.png (default). Returns the number of cells.
+func _slice_row(src: Image, bands: Array, prefix: String) -> int:
+	var n := 0
+	for band: Array in bands:
+		for r: Rect2i in _segment(src, band[0], band[1]):
+			var img := _slice(src, r)
+			img.save_png("%s/%s_%d.png" % [OUT_DIR, prefix, n])
+			if n == 0:
+				img.save_png("%s/%s.png" % [OUT_DIR, prefix])
+			n += 1
+	return n
+
+
+## Column-segment a horizontal band into per-sprite rects (scaled for HD sheets).
+func _segment(src: Image, y0: int, y1: int) -> Array:
+	var b := _scaled(Rect2i(0, y0, src.get_width(), y1 - y0), src)
+	var by0 := b.position.y
+	var by1 := b.position.y + b.size.y
+	var w := src.get_width()
+	var content := PackedByteArray()
+	content.resize(w)
+	for x in w:
+		for y in range(by0, by1):
+			if not _is_bg(src.get_pixel(x, y)):
+				content[x] = 1
+				break
+	var cells: Array = []
+	var start := -1
+	var gap := 0
+	for x in w:
+		if content[x] == 1:
+			if start < 0:
+				start = x
+			gap = 0
+		elif start >= 0:
+			gap += 1
+			if gap >= SEG_GAP:
+				cells.append(_vtrim(src, start, x - gap + 1, by0, by1))
+				start = -1
+	if start >= 0:
+		cells.append(_vtrim(src, start, w, by0, by1))
+	return cells
+
+
+## Tighten a cell's vertical extent to its actual content.
+func _vtrim(src: Image, x0: int, x1: int, y0: int, y1: int) -> Rect2i:
+	var top := y1
+	var bot := y0
+	for x in range(x0, x1):
+		for y in range(y0, y1):
+			if not _is_bg(src.get_pixel(x, y)):
+				top = mini(top, y)
+				bot = maxi(bot, y)
+	return Rect2i(x0, top, x1 - x0, bot - top + 1)
 
 
 func _seed_layout() -> void:

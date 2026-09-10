@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddn6op5tb07f0"
-path="res://.godot/imported/mouth_closed.png-99e498fdc4045afa0a3f8e2f5266a5d7.ctex"
+uid="uid://c5v1lq7v4s06i"
+path="res://.godot/imported/nose_10.png-1f9da1871348d3190cf5f2eeea6ebc29.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/faces/mouth_closed.png"
-dest_files=["res://.godot/imported/mouth_closed.png-99e498fdc4045afa0a3f8e2f5266a5d7.ctex"]
+source_file="res://assets/textures/faces/nose_10.png"
+dest_files=["res://.godot/imported/nose_10.png-1f9da1871348d3190cf5f2eeea6ebc29.ctex"]
 
 [params]
 
