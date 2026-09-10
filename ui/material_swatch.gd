@@ -11,8 +11,11 @@ extends Control
 const SHADER := preload("res://ui/material_swatch.gdshader")
 
 # Indexed by Enums.Fabric / Enums.Pattern. Shirtings (cotton family) and the shirting
-# patterns are appended; they reuse the nearest existing weave texture (greybox).
-const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen", "linen", "linen", "linen"]
+# patterns are appended; they reuse the nearest existing weave texture (greybox). Cotton
+# and poplin use the fine worsted weave (smooth); only oxford keeps the coarser linen.
+const FABRIC_TEX := [
+	"worsted", "flannel", "tweed", "mohair", "linen", "worsted", "worsted", "linen"
+]
 const FABRIC_LETTER := ["W", "F", "T", "M", "L", "C", "P", "O"]
 const FABRIC_BADGE := [
 	Color("55668c"),

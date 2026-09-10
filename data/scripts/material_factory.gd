@@ -29,6 +29,19 @@ const COLORS := [
 	["Pale Grey", Color("d5d8dc")],
 ]
 
+# Pattern-thread colours. Index 0 is "Auto" — picked to contrast the cloth (dark
+# thread on pale cloth, chalk on dark cloth). The rest are explicit dyes premium
+# suppliers can thread a pattern in. [display name, colour] (Auto's colour unused).
+const PATTERN_ACCENTS := [
+	["Auto", Color(0, 0, 0)],
+	["Chalk", Color("f0efe6")],
+	["Ink", Color("20222a")],
+	["Crimson", Color("7a2230")],
+	["Gold", Color("c9a24a")],
+	["Sky", Color("9fc0e0")],
+	["Forest", Color("2f5d3e")],
+]
+
 # Typical weight per fabric (GSM), for display.
 const FABRIC_GSM := {
 	Enums.Fabric.WORSTED_WOOL: 250,
@@ -67,16 +80,39 @@ static func color_value(index: int) -> Color:
 	return COLORS[posmod(index, COLORS.size())][1]
 
 
+static func pattern_accent_count() -> int:
+	return PATTERN_ACCENTS.size()
+
+
+static func pattern_accent_name(index: int) -> String:
+	return PATTERN_ACCENTS[posmod(index, PATTERN_ACCENTS.size())][0]
+
+
+## Colour for a pattern's stripes/checks. accent_index 0 = auto-contrast; otherwise a
+## chosen dye from PATTERN_ACCENTS.
+static func pattern_color_for(cloth: Color, accent_index: int) -> Color:
+	if accent_index > 0 and accent_index < PATTERN_ACCENTS.size():
+		return PATTERN_ACCENTS[accent_index][1]
+	# Auto: contrast against the cloth so it always reads — dark thread on pale cloth,
+	# a chalky tone on dark cloth (keeps the classic chalk-stripe look on suitings).
+	if cloth.get_luminance() > 0.55:
+		return cloth.darkened(0.5)
+	return cloth.lerp(Color(0.95, 0.95, 0.92), 0.6)
+
+
 static func make(
-	fabric: Enums.Fabric, pattern: Enums.Pattern, color_index: int, length: float
+	fabric: Enums.Fabric,
+	pattern: Enums.Pattern,
+	color_index: int,
+	length: float,
+	pattern_accent := 0,
 ) -> MaterialType:
 	var mat := MaterialType.new()
 	var cloth: Color = color_value(color_index)
 	mat.fabric = fabric
 	mat.pattern = pattern
 	mat.cloth_color = cloth
-	# Chalky accent for stripes/checks that reads against the cloth colour.
-	mat.pattern_color = cloth.lerp(Color(0.95, 0.95, 0.92), 0.6)
+	mat.pattern_color = pattern_color_for(cloth, pattern_accent)
 	mat.weight_gsm = int(FABRIC_GSM.get(fabric, 250))
 	mat.super_number = 0
 	mat.price_per_meter = Pricing.per_meter(fabric, pattern)

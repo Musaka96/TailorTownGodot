@@ -15,8 +15,11 @@ const BASE_TRIPLANAR_PATH := "res://materials/cloth_triplanar.tres"
 
 # Indexed by Enums.Fabric / Enums.Pattern (mirrors the UI swatch mapping). The
 # shirting fabrics/patterns reuse the closest existing weave texture (greybox) — see
-# _fabric_tex / _pattern_tex for the bounds-safe lookup.
-const FABRIC_TEX := ["worsted", "flannel", "tweed", "mohair", "linen", "linen", "linen", "linen"]
+# _fabric_tex / _pattern_tex for the bounds-safe lookup. Cotton and poplin use the fine
+# worsted weave (smooth shirtings); only oxford keeps the coarser linen basketweave.
+const FABRIC_TEX := [
+	"worsted", "flannel", "tweed", "mohair", "linen", "worsted", "worsted", "linen"
+]
 const PATTERN_TEX := [
 	"solid",
 	"pinstripe",

@@ -8,7 +8,7 @@ extends Control
 ##  - Shop Upgrades -> buy reputation-gated shop upgrades, grouped by machine.
 
 enum Screen { HUB, SUPPLIERS, ORDER, UPGRADES }
-enum ORow { FABRIC, COLOR, PATTERN, LENGTH }
+enum ORow { FABRIC, COLOR, PATTERN, PATTERN_COLOR, LENGTH }
 
 const PANEL_W := 520
 const LENGTH_MIN := 4.0
@@ -21,6 +21,7 @@ const OROW_NAME := {
 	ORow.FABRIC: "Fabric",
 	ORow.COLOR: "Colour",
 	ORow.PATTERN: "Pattern",
+	ORow.PATTERN_COLOR: "Pattern Dye",
 	ORow.LENGTH: "Length",
 }
 ## Short flavour per supplier (indexes Upgrades.VENDORS).
@@ -38,6 +39,7 @@ var _vendor := 0
 var _fabric := 0
 var _color := 0
 var _pattern := 0
+var _pattern_dye := 0  # 0 = auto-contrast; else a chosen PATTERN_ACCENTS dye
 var _length := 10.0
 var _row := 0
 var _status := ""
@@ -209,8 +211,9 @@ func _refresh_order() -> void:
 	_contacts.visible = false
 	_swatch.visible = true
 	_title.text = "Order · %s" % str(Upgrades.VENDORS[_vendor]["name"])
-	_row = clampi(_row, 0, ORow.size() - 1)
-	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length)
+	var rows := _order_rows()
+	_row = clampi(_row, 0, rows.size() - 1)
+	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length, _pattern_dye)
 	var cost := Pricing.roll_price(mat, _length) if mat != null else 0
 	var afford := GameState.can_afford(cost)
 	if mat != null:
@@ -219,9 +222,19 @@ func _refresh_order() -> void:
 		_summary_label.text = mat.summary()
 	_price_label.text = "Order:  $ %d   for %.0f m%s" % [cost, _length, _status]
 	_price_label.add_theme_color_override("font_color", Style.FOREST if afford else Style.CLAY)
-	for row in [ORow.FABRIC, ORow.COLOR, ORow.PATTERN, ORow.LENGTH]:
-		_rows.add_child(_make_cfg_row(row, _row == row))
+	for i in rows.size():
+		_rows.add_child(_make_cfg_row(rows[i], _row == i))
 	_set_hint([["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Back"]])
+
+
+## Order-form rows for the current supplier. The Pattern Dye row only appears for premium
+## mills that offer it, and only when a pattern (not Solid) is chosen.
+func _order_rows() -> Array:
+	var rows := [ORow.FABRIC, ORow.COLOR, ORow.PATTERN]
+	if _vendor_dyes() and _pattern != Enums.Pattern.SOLID:
+		rows.append(ORow.PATTERN_COLOR)
+	rows.append(ORow.LENGTH)
+	return rows
 
 
 func _refresh_upgrades() -> void:
@@ -352,6 +365,8 @@ func _cfg_value(row: int) -> String:
 			return MaterialFactory.color_name(_color)
 		ORow.PATTERN:
 			return Enums.pattern_name(_pattern)
+		ORow.PATTERN_COLOR:
+			return MaterialFactory.pattern_accent_name(_pattern_dye)
 	return "%.0f m" % _length
 
 
@@ -448,7 +463,7 @@ func _row_count() -> int:
 		Screen.SUPPLIERS:
 			return Upgrades.VENDORS.size()
 		Screen.ORDER:
-			return ORow.size()
+			return _order_rows().size()
 	return _upg_ids.size()
 
 
@@ -463,7 +478,7 @@ func _adjust(dir: int) -> void:
 	if _screen != Screen.ORDER:
 		return
 	_status = ""
-	match _row:
+	match _order_rows()[_row]:
 		ORow.FABRIC:
 			_cycle_fabric(dir)
 		ORow.COLOR:
@@ -471,6 +486,9 @@ func _adjust(dir: int) -> void:
 			_color = (_color + dir + c) % c
 		ORow.PATTERN:
 			_pattern = (_pattern + dir + Enums.Pattern.size()) % Enums.Pattern.size()
+		ORow.PATTERN_COLOR:
+			var n := MaterialFactory.pattern_accent_count()
+			_pattern_dye = (_pattern_dye + dir + n) % n
 		ORow.LENGTH:
 			_length = clampf(_length + dir * LENGTH_STEP, LENGTH_MIN, Upgrades.max_roll_length())
 	_refresh()
@@ -535,6 +553,11 @@ func _vendor_fabrics() -> Array:
 	return Upgrades.VENDORS[_vendor]["fabrics"]
 
 
+## Premium mills let you choose the pattern's thread colour (the Pattern Dye row).
+func _vendor_dyes() -> bool:
+	return bool(Upgrades.VENDORS[_vendor].get("pattern_dye", false))
+
+
 ## Step the fabric within the current supplier's offered list (wrapping).
 func _cycle_fabric(dir: int) -> void:
 	var fabrics := _vendor_fabrics()
@@ -553,7 +576,7 @@ func _snap_fabric_to_vendor() -> void:
 
 
 func _order_roll() -> void:
-	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length)
+	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length, _pattern_dye)
 	if mat == null:
 		return
 	var cost := Pricing.roll_price(mat, _length)

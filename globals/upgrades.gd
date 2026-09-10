@@ -76,6 +76,7 @@ const VENDORS := [
 		"name": "Savile Silk & Co.",
 		"tier": 2,
 		"fabrics": [0, 1, 2, 3, 4, 5, 6, 7],  # + mohair blend (all)
+		"pattern_dye": true,  # premium: choose the pattern's thread colour
 	},
 ]
 
