@@ -3,6 +3,10 @@ extends Control
 ## Shown when the player greets a waiting customer. Presents their brief (what
 ## suit they want + budget) and lets you send them to the fitting mirror.
 
+const PORTRAIT_SIZE := Vector2(154, 176)
+## How much of the TV's width sits inside the bubble; the rest overhangs to the right.
+const PORTRAIT_INSET := 0.4
+
 var _customer = null
 var _actor = null
 var _decor_built := false
@@ -68,13 +72,12 @@ func _build_decor_once() -> void:
 	tail.name = "Tail"
 	_panel.add_child(tail)
 	tail.setup(Style.CREAM, Style.BROWN)
-	# A little TV portrait of the customer at the top of the bubble.
+	# A little TV portrait of the customer, floating off the bubble's right edge.
 	_portrait = CustomerPortrait.new()
-	var holder := CenterContainer.new()
-	holder.add_child(_portrait)
-	var box := _title.get_parent()
-	box.add_child(holder)
-	box.move_child(holder, 0)
+	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_portrait.size = PORTRAIT_SIZE
+	add_child(_portrait)  # overlay on the root, so it can overhang the panel
+	_reposition_portrait()
 	# Light prompts (no dark bar) to keep the bubble airy and simple.
 	_hint.visible = false
 	var row := HBoxContainer.new()
@@ -82,6 +85,21 @@ func _build_decor_once() -> void:
 	row.add_child(_prompt("E", "Send to mirror"))
 	row.add_child(_prompt("Esc", "Later"))
 	_hint.get_parent().add_child(row)
+
+
+func _process(_delta: float) -> void:
+	if visible:
+		_reposition_portrait()
+
+
+## Glue the TV to the panel's right edge, vertically centred, overhanging outward.
+func _reposition_portrait() -> void:
+	if _portrait == null or _panel == null:
+		return
+	var pr := _panel.get_global_rect()
+	var x := pr.end.x - _portrait.size.x * PORTRAIT_INSET
+	var y := pr.position.y + (pr.size.y - _portrait.size.y) * 0.5
+	_portrait.global_position = Vector2(x, y)
 
 
 func _prompt(key: String, verb: String) -> Control:
