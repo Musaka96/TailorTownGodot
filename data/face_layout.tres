@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1_e1r5u")
-face_z = 0.41000000000000003
-eye_y = 0.010000000000000009
+face_z = 0.41
+eye_y = 0.01
 eye_gap = 0.345
-eye_px = 0.0043
+eye_px = 0.0010750
 brow_y = 0.12
 brow_gap = 0.35
-brow_px = 0.0043
+brow_px = 0.0010750
 nose_y = -0.13
 nose_px = 0.0038
 mouth_y = -0.25

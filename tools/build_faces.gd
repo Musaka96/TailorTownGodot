@@ -19,6 +19,9 @@ const P1 := "res://assets/textures/newPack1.png"
 const P2 := "res://assets/textures/newPack2.png"
 const OUT_DIR := "res://assets/textures/faces"
 const DEFAULT_EYE := "brown"
+# The rects below are authored against a 1536-wide sheet; each sheet's rects are scaled
+# by its actual width / this, so an HD (e.g. 4x) sheet re-slices with no rect changes.
+const REF_WIDTH := 1536.0
 
 # Eye colour -> left-eye rect in newPack1's neutral row (mirrored for the right side).
 const EYE_CELLS := {
@@ -72,8 +75,19 @@ func _seed_layout() -> void:
 # --- Slicing ---------------------------------------------------------------
 
 
+## Scale a 1536-authored rect to the sheet's actual resolution (so HD sheets just work).
+func _scaled(r: Rect2i, src: Image) -> Rect2i:
+	var s := src.get_width() / REF_WIDTH
+	if is_equal_approx(s, 1.0):
+		return r
+	return Rect2i(
+		Vector2i(roundi(r.position.x * s), roundi(r.position.y * s)),
+		Vector2i(roundi(r.size.x * s), roundi(r.size.y * s))
+	)
+
+
 func _slice(src: Image, r: Rect2i, solid_key := false) -> Image:
-	var img := src.get_region(r)
+	var img := src.get_region(_scaled(r, src))
 	img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
 	var h := img.get_height()
