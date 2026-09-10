@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Opens the phone ordering screen and screenshots it. NOT headless.
 ##   godot --path . --script res://tools/shot_phone.gd -- [out.png] [screen]
-## screen: "hub" (default), "textiles", or "upgrades".
+## screen: "hub" (default), "suppliers", "order", or "upgrades".
 
 var _out := "res://.dev/phone.png"
 var _screen := "hub"
@@ -39,8 +39,11 @@ func _run() -> void:
 	await process_frame
 
 	var menu = get_root().find_child("PhoneOrder", true, false)
-	if _screen == "textiles":
-		menu._confirm()  # HUB row 0 -> Order Textiles
+	if _screen == "suppliers":
+		menu._confirm()  # HUB row 0 -> Suppliers phonebook
+	elif _screen == "order":
+		menu._confirm()  # -> Suppliers
+		menu._confirm()  # call the first (unlocked) supplier -> Order form
 	elif _screen == "upgrades":
 		menu._move_row(1)  # select second hub option
 		menu._confirm()  # -> Shop Upgrades

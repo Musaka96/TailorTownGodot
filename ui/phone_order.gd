@@ -1,14 +1,14 @@
 extends Control
 
 ## The phone. Opens onto a small HUB anchored up by the phone where you pick what to
-## do — Order Textiles or Shop Upgrades — then drills into that screen (Esc steps back).
-##  - Order Textiles: a phonebook of suppliers (unlocked by reputation) down the left;
-##    the chosen supplier decides which fabrics you can buy. Configure fabric / colour /
-##    pattern / length on the right, E to order.
-##  - Shop Upgrades: buy reputation-gated shop upgrades, grouped by machine. E buys.
+## do, then drills in (Esc steps back a screen):
+##  - Order Textiles -> a phonebook of suppliers you can browse (locked mills included,
+##    so you can see what better cloth awaits). Choose an unlocked one to open its order
+##    form (fabric / colour / pattern / length) — the supplier decides which fabrics stock.
+##  - Shop Upgrades -> buy reputation-gated shop upgrades, grouped by machine.
 
-enum Screen { HUB, TEXTILES, UPGRADES }
-enum TRow { SUPPLIER, FABRIC, COLOR, PATTERN, LENGTH }
+enum Screen { HUB, SUPPLIERS, ORDER, UPGRADES }
+enum ORow { FABRIC, COLOR, PATTERN, LENGTH }
 
 const PANEL_W := 520
 const LENGTH_MIN := 4.0
@@ -17,11 +17,11 @@ const HUB_OPTIONS := [
 	{"title": "Order Textiles", "desc": "Ring a supplier and order a bolt of cloth."},
 	{"title": "Shop Upgrades", "desc": "Spend your standing on better tools and kit."},
 ]
-const TROW_NAME := {
-	TRow.FABRIC: "Fabric",
-	TRow.COLOR: "Colour",
-	TRow.PATTERN: "Pattern",
-	TRow.LENGTH: "Length",
+const OROW_NAME := {
+	ORow.FABRIC: "Fabric",
+	ORow.COLOR: "Colour",
+	ORow.PATTERN: "Pattern",
+	ORow.LENGTH: "Length",
 }
 ## Short flavour per supplier (indexes Upgrades.VENDORS).
 const VENDOR_BLURB := [
@@ -93,7 +93,7 @@ func close() -> void:
 
 func _build_preview() -> void:
 	_contacts = VBoxContainer.new()
-	_contacts.custom_minimum_size = Vector2(196, 0)
+	_contacts.custom_minimum_size = Vector2(230, 0)
 	_contacts.add_theme_constant_override("separation", Style.S1)
 	_preview.add_child(_contacts)
 
@@ -117,6 +117,7 @@ func _build_preview() -> void:
 	info.add_child(_summary_label)
 	_price_label = Label.new()
 	_price_label.add_theme_font_size_override("font_size", 18)
+	_price_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_price_label)
 
 
@@ -172,8 +173,10 @@ func _refresh() -> void:
 	match _screen:
 		Screen.HUB:
 			_refresh_hub()
-		Screen.TEXTILES:
-			_refresh_textiles()
+		Screen.SUPPLIERS:
+			_refresh_suppliers()
+		Screen.ORDER:
+			_refresh_order()
 		Screen.UPGRADES:
 			_refresh_upgrades()
 
@@ -189,13 +192,24 @@ func _refresh_hub() -> void:
 	_set_hint([["W/S", "Select"], ["E", "Open"], ["Esc", "Hang up"]])
 
 
-func _refresh_textiles() -> void:
+## The supplier phonebook: browse every mill (locked ones too) and read what they stock.
+func _refresh_suppliers() -> void:
+	_title.text = "Suppliers"
 	_preview.visible = true
 	_contacts.visible = true
-	_swatch.visible = true
-	_title.text = "Order Materials"
-	_row = clampi(_row, 0, TRow.size() - 1)
+	_swatch.visible = false
+	_row = clampi(_row, 0, Upgrades.VENDORS.size() - 1)
 	_build_contacts()
+	_show_vendor_detail(_row)
+	_set_hint([["W/S", "Browse"], ["E", "Call"], ["Esc", "Back"]])
+
+
+func _refresh_order() -> void:
+	_preview.visible = true
+	_contacts.visible = false
+	_swatch.visible = true
+	_title.text = "Order · %s" % str(Upgrades.VENDORS[_vendor]["name"])
+	_row = clampi(_row, 0, ORow.size() - 1)
 	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length)
 	var cost := Pricing.roll_price(mat, _length) if mat != null else 0
 	var afford := GameState.can_afford(cost)
@@ -205,7 +219,7 @@ func _refresh_textiles() -> void:
 		_summary_label.text = mat.summary()
 	_price_label.text = "Order:  $ %d   for %.0f m%s" % [cost, _length, _status]
 	_price_label.add_theme_color_override("font_color", Style.FOREST if afford else Style.CLAY)
-	for row in [TRow.FABRIC, TRow.COLOR, TRow.PATTERN, TRow.LENGTH]:
+	for row in [ORow.FABRIC, ORow.COLOR, ORow.PATTERN, ORow.LENGTH]:
 		_rows.add_child(_make_cfg_row(row, _row == row))
 	_set_hint([["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Back"]])
 
@@ -228,13 +242,34 @@ func _refresh_upgrades() -> void:
 	_set_hint([["W/S", "Select"], ["E", "Buy"], ["Esc", "Back"]])
 
 
-## The supplier phonebook: every vendor, with locked mills dimmed and their unlock tier.
 func _build_contacts() -> void:
 	for child in _contacts.get_children():
 		child.queue_free()
 	_contacts.add_child(Style.header("Contacts", Style.ACC_ORDER))
 	for i in Upgrades.VENDORS.size():
-		_contacts.add_child(_make_contact_card(i))
+		_contacts.add_child(_make_contact_card(i, i == _row))
+
+
+## Right-hand detail for the highlighted supplier: what they stock, and whether it's open.
+func _show_vendor_detail(i: int) -> void:
+	var v: Dictionary = Upgrades.VENDORS[i]
+	var stars := "★".repeat(i + 1) + "☆".repeat(maxi(0, 2 - i))
+	_name_label.text = "%s  %s" % [str(v["name"]), stars]
+	var blurb: String = VENDOR_BLURB[i] if i < VENDOR_BLURB.size() else ""
+	_summary_label.text = "%s\n%s" % [blurb, _fabrics_text(v)]
+	if _vendor_locked(i):
+		_price_label.text = "Locked — unlocks at %s" % _tier_name(int(v["tier"]))
+		_price_label.add_theme_color_override("font_color", Style.CLAY)
+	else:
+		_price_label.text = "E — call this supplier"
+		_price_label.add_theme_color_override("font_color", Style.FOREST)
+
+
+func _fabrics_text(v: Dictionary) -> String:
+	var names: Array = []
+	for f in v["fabrics"]:
+		names.append(Enums.fabric_name(int(f)))
+	return "Stocks: %s" % ", ".join(names)
 
 
 func _show_upgrade_preview(id: String) -> void:
@@ -295,7 +330,7 @@ func _make_cfg_row(row: int, selected: bool) -> Control:
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
 	var name_label := Label.new()
-	name_label.text = TROW_NAME[row]
+	name_label.text = OROW_NAME[row]
 	name_label.custom_minimum_size = Vector2(96, 0)
 	name_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	name_label.add_theme_font_size_override("font_size", 17)
@@ -311,24 +346,23 @@ func _make_cfg_row(row: int, selected: bool) -> Control:
 
 func _cfg_value(row: int) -> String:
 	match row:
-		TRow.FABRIC:
+		ORow.FABRIC:
 			return Enums.fabric_name(_fabric)
-		TRow.COLOR:
+		ORow.COLOR:
 			return MaterialFactory.color_name(_color)
-		TRow.PATTERN:
+		ORow.PATTERN:
 			return Enums.pattern_name(_pattern)
 	return "%.0f m" % _length
 
 
-func _make_contact_card(i: int) -> Control:
+func _make_contact_card(i: int, selected: bool) -> Control:
 	var v: Dictionary = Upgrades.VENDORS[i]
 	var locked := _vendor_locked(i)
-	var chosen := i == _vendor
-	var card := _card_panel(chosen and _row == TRow.SUPPLIER)
+	var card := _card_panel(selected)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 1)
 	card.add_child(box)
-	box.add_child(_contact_title(v, i, locked, chosen))
+	box.add_child(_contact_title(v, i, locked, selected))
 	var sub := Label.new()
 	sub.add_theme_font_size_override("font_size", 12)
 	if locked:
@@ -341,10 +375,10 @@ func _make_contact_card(i: int) -> Control:
 	return card
 
 
-func _contact_title(v: Dictionary, i: int, locked: bool, chosen: bool) -> Label:
+func _contact_title(v: Dictionary, i: int, locked: bool, selected: bool) -> Label:
 	var head := Label.new()
 	var stars := "★".repeat(i + 1) + "☆".repeat(maxi(0, 2 - i))
-	var mark := "🔒 " if locked else ("▸ " if chosen else "")
+	var mark := "🔒 " if locked else ("▸ " if selected else "")
 	head.text = "%s%s  %s" % [mark, str(v["name"]), stars]
 	head.add_theme_font_size_override("font_size", 15)
 	head.add_theme_color_override("font_color", Style.INK_SOFT if locked else Style.INK)
@@ -411,8 +445,10 @@ func _row_count() -> int:
 	match _screen:
 		Screen.HUB:
 			return HUB_OPTIONS.size()
-		Screen.TEXTILES:
-			return TRow.size()
+		Screen.SUPPLIERS:
+			return Upgrades.VENDORS.size()
+		Screen.ORDER:
+			return ORow.size()
 	return _upg_ids.size()
 
 
@@ -424,20 +460,18 @@ func _move_row(delta: int) -> void:
 
 
 func _adjust(dir: int) -> void:
-	if _screen != Screen.TEXTILES:
+	if _screen != Screen.ORDER:
 		return
 	_status = ""
 	match _row:
-		TRow.SUPPLIER:
-			_cycle_vendor(dir)
-		TRow.FABRIC:
+		ORow.FABRIC:
 			_cycle_fabric(dir)
-		TRow.COLOR:
+		ORow.COLOR:
 			var c := MaterialFactory.color_count()
 			_color = (_color + dir + c) % c
-		TRow.PATTERN:
+		ORow.PATTERN:
 			_pattern = (_pattern + dir + Enums.Pattern.size()) % Enums.Pattern.size()
-		TRow.LENGTH:
+		ORow.LENGTH:
 			_length = clampf(_length + dir * LENGTH_STEP, LENGTH_MIN, Upgrades.max_roll_length())
 	_refresh()
 
@@ -445,27 +479,51 @@ func _adjust(dir: int) -> void:
 func _confirm() -> void:
 	match _screen:
 		Screen.HUB:
-			_screen = Screen.TEXTILES if _hub_sel == 0 else Screen.UPGRADES
-			_row = 0
-			_status = ""
-			_refresh()
-		Screen.TEXTILES:
+			_open_hub_choice()
+		Screen.SUPPLIERS:
+			_choose_supplier()
+		Screen.ORDER:
 			_order_roll()
 		Screen.UPGRADES:
 			_buy_upgrade()
 
 
 func _back() -> void:
-	if _screen == Screen.HUB:
-		close()
-		return
-	_screen = Screen.HUB
-	_row = 0
+	_status = ""
+	match _screen:
+		Screen.HUB:
+			close()
+		Screen.ORDER:
+			_screen = Screen.SUPPLIERS
+			_row = _vendor
+			_refresh()
+		_:
+			_screen = Screen.HUB
+			_row = 0
+			_refresh()
+
+
+# --- Suppliers & orders ----------------------------------------------------
+
+
+func _open_hub_choice() -> void:
+	_screen = Screen.SUPPLIERS if _hub_sel == 0 else Screen.UPGRADES
+	_row = _vendor if _hub_sel == 0 else 0
 	_status = ""
 	_refresh()
 
 
-# --- Suppliers & orders ----------------------------------------------------
+## Call the highlighted supplier — locked mills refuse; unlocked ones open the order form.
+func _choose_supplier() -> void:
+	if _vendor_locked(_row):
+		_status = ""
+		_refresh()
+		return
+	_vendor = _row
+	_snap_fabric_to_vendor()
+	_screen = Screen.ORDER
+	_row = 0
+	_refresh()
 
 
 func _vendor_locked(i: int) -> bool:
@@ -475,18 +533,6 @@ func _vendor_locked(i: int) -> bool:
 
 func _vendor_fabrics() -> Array:
 	return Upgrades.VENDORS[_vendor]["fabrics"]
-
-
-## Step to the next unlocked supplier (skipping locked mills), then keep the fabric valid.
-func _cycle_vendor(dir: int) -> void:
-	var n := Upgrades.VENDORS.size()
-	var i := _vendor
-	for _k in n:
-		i = (i + dir + n) % n
-		if not _vendor_locked(i):
-			_vendor = i
-			break
-	_snap_fabric_to_vendor()
 
 
 ## Step the fabric within the current supplier's offered list (wrapping).
