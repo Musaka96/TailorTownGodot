@@ -1,10 +1,100 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://ui/main_menu.gd" id="1_nl8w3"]
+[ext_resource type="Script" path="res://ui/main_menu.gd" id="1_247la"]
+[ext_resource type="PackedScene" path="res://scenes/world/shop_room.tscn" id="2_kiqgm"]
+[ext_resource type="FontFile" path="res://assets/fonts/Fredoka.ttf" id="3_hj162"]
 
-[node name="MainMenu" type="Control" unique_id=304760430]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xn6kt"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0.95686275, 0.91764706, 0.8235294, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.7882353, 0.63529414, 0.2901961, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 8
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="FontVariation" id="FontVariation_isoef"]
+base_font = ExtResource("3_hj162")
+variation_embolden = 0.4
+
+[node name="MainMenu" type="Node3D" unique_id=604309672]
+process_mode = 3
+script = ExtResource("1_247la")
+
+[node name="Shop" type="Node3D" parent="." unique_id=1507661624 instance=ExtResource("2_kiqgm")]
+process_mode = 1
+
+[node name="Camera" type="Camera3D" parent="." unique_id=508923697]
+transform = Transform3D(0.8099421, 0.061093286, -0.58331925, 0, 0.9945601, 0.10416414, 0.58650976, -0.084366925, 0.8055362, -1.2, 2.1, 7.8)
+current = true
+fov = 42.0
+
+[node name="Viewpoints" type="Node3D" parent="." unique_id=479114125]
+
+[node name="View_Main" type="Marker3D" parent="Viewpoints" unique_id=1590615953]
+transform = Transform3D(0.8099421, 0.061093286, -0.58331925, 0, 0.9945601, 0.10416414, 0.58650976, -0.084366925, 0.8055362, -1.2, 2.1, 7.8)
+
+[node name="View_Load" type="Marker3D" parent="Viewpoints" unique_id=601627134]
+transform = Transform3D(0.8320503, -0.10085458, 0.54545456, 0, 0.9833323, 0.18181819, -0.5547002, -0.15128188, 0.8181819, 5.6, 1.9, 6.2)
+
+[node name="View_Settings" type="Marker3D" parent="Viewpoints" unique_id=1565128747]
+transform = Transform3D(0.8087361, 0.10632696, -0.5784812, 0, 0.9835244, 0.18077539, 0.58817166, -0.14619958, 0.79541165, -2.6, 2.2, 6.6)
+
+[node name="MenuLayer" type="CanvasLayer" parent="." unique_id=2021464005]
+
+[node name="Root" type="Control" parent="MenuLayer" unique_id=1521145894]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_nl8w3")
+mouse_filter = 2
+
+[node name="Left" type="PanelContainer" parent="MenuLayer/Root" unique_id=811682486]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 48.0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_xn6kt")
+
+[node name="Margin" type="MarginContainer" parent="MenuLayer/Root/Left" unique_id=542562283]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="MenuLayer/Root/Left/Margin" unique_id=439273752]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="MenuLayer/Root/Left/Margin/Content" unique_id=1181649293]
+layout_mode = 2
+theme_override_fonts/font = SubResource("FontVariation_isoef")
+theme_override_font_sizes/font_size = 40
+theme_override_colors/font_color = Color(0.7882353, 0.63529414, 0.2901961, 1)
+text = "TailorTown"
+
+[node name="Sub" type="Label" parent="MenuLayer/Root/Left/Margin/Content" unique_id=1278683563]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.5411765, 0.45490196, 0.3529412, 1)
+text = "Bespoke tailoring on the Row"
+
+[node name="@HSeparator@4" type="HSeparator" parent="MenuLayer/Root/Left/Margin/Content" unique_id=1762177219]
+layout_mode = 2
+
+[node name="Buttons" type="VBoxContainer" parent="MenuLayer/Root/Left/Margin/Content" unique_id=2091978140]
+layout_mode = 2
+theme_override_constants/separation = 8
