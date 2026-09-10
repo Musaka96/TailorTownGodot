@@ -134,6 +134,7 @@ func capture(save_name := "") -> Dictionary:
 		"money": GameState.money,
 		"day": Shift.day if Shift != null else 1,
 		"reputation": Reputation.points if Reputation != null else 0,
+		"upgrades": Upgrades.save_state() if Upgrades != null else {},
 		"clock": DayNight.progress() if DayNight != null else 0.0,
 		"day_start_money": Shift.day_start_money() if Shift != null else GameState.money,
 		"news_seen": News.seen_snapshot() if News != null else {},
@@ -180,6 +181,8 @@ func _apply_pending() -> void:
 	GameState.money = int(d.get("money", 500))
 	Shift.day = int(d.get("day", 1))
 	Reputation.points = int(d.get("reputation", 0))
+	if Upgrades != null:
+		Upgrades.restore(d.get("upgrades", {}))
 	_resume_progress = float(d.get("clock", 0.0))
 	_resume_day_money = int(d.get("day_start_money", GameState.money))
 	if News != null:
@@ -236,6 +239,8 @@ func _reset_autoloads() -> void:
 	var start := Config.data.starting_money if Config != null and Config.data != null else 500
 	GameState.money = start
 	Reputation.points = 0
+	if Upgrades != null:
+		Upgrades.reset()
 	Orders.active.clear()
 	Shift.day = 1
 	if News != null:

@@ -7,6 +7,7 @@ extends Node3D
 
 var stored: Array[Node] = []
 var _slots: Array[Node3D] = []
+var _base_slots := 0
 
 @onready var _slots_root: Node3D = $Slots
 
@@ -15,6 +16,21 @@ func _ready() -> void:
 	for child in _slots_root.get_children():
 		if child is Marker3D:
 			_slots.append(child)
+	_base_slots = _slots.size()
+	_apply_extra_hooks()
+	if Upgrades != null:
+		Upgrades.changed.connect(_apply_extra_hooks)
+
+
+## The Extra Hooks upgrade adds slots by extending the rail's spacing past the last hook.
+func _apply_extra_hooks() -> void:
+	var want := _base_slots + (Upgrades.extra_rack_slots() if Upgrades != null else 0)
+	while _slots.size() < want and _slots.size() >= 2:
+		var step: Vector3 = _slots[-1].position - _slots[-2].position
+		var hook := Marker3D.new()
+		hook.position = _slots[-1].position + step
+		_slots_root.add_child(hook)
+		_slots.append(hook)
 
 
 func capacity() -> int:

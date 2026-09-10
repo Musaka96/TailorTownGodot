@@ -99,8 +99,11 @@ func _process(delta: float) -> void:
 		_repaint()
 		return
 
-	# Hold Shift to run the needle faster — quicker seam, tighter timing.
-	var boost := SPRINT_MULT if Input.is_action_pressed("sprint") else 1.0
+	# Oiled Machine upgrade: hold Shift to run the needle faster (tighter timing).
+	# Industrial Motor adds an always-on speed bump.
+	var boost := Upgrades.sewing_speed()
+	if Upgrades.sewing_sprint() and Input.is_action_pressed("sprint"):
+		boost *= SPRINT_MULT
 	_needle += (delta / _cross_seconds) * boost
 
 	# Points the needle has passed without a stitch are misses.

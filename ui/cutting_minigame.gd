@@ -158,8 +158,11 @@ func _process(delta: float) -> void:
 		_repaint()
 		return
 
-	# Hold Shift to race the cut along — faster progress, but a slip racks up faster.
-	var boost := SPRINT_MULT if Input.is_action_pressed("sprint") else 1.0
+	# Sharp Scissors upgrade: hold Shift to race the cut (faster, but slips rack up
+	# faster). Master Shears add an always-on speed bump.
+	var boost := Upgrades.cutting_speed()
+	if Upgrades.cutting_sprint() and Input.is_action_pressed("sprint"):
+		boost *= SPRINT_MULT
 
 	# Alignment is line-orientation (either blade direction is fine).
 	var tangent := _tangent_at(_cursor)
