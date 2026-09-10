@@ -201,14 +201,13 @@ func apply_layout(layout: FaceLayout) -> void:
 	if layout == null:
 		return
 	_layout = layout
-	_place(_eye_l, -layout.eye_gap * 0.5, layout.eye_y, layout.eye_px)
-	_place(_eye_r, layout.eye_gap * 0.5, layout.eye_y, layout.eye_px)
-	_place(_brow_l, -layout.brow_gap * 0.5, layout.brow_y, layout.brow_px)
-	_place(_brow_r, layout.brow_gap * 0.5, layout.brow_y, layout.brow_px)
-	_place(_nose, 0.0, layout.nose_y, layout.nose_px)
-	_place(_mouth, 0.0, layout.mouth_y, layout.mouth_px)
-	# Glasses ride just in front of the eyes so they never z-fight the coplanar face.
-	_place(_glasses, 0.0, layout.glasses_y, layout.glasses_px, 0.03)
+	_place(_eye_l, -layout.eye_gap * 0.5, layout.eye_y, layout.eye_px, layout.eye_z)
+	_place(_eye_r, layout.eye_gap * 0.5, layout.eye_y, layout.eye_px, layout.eye_z)
+	_place(_brow_l, -layout.brow_gap * 0.5, layout.brow_y, layout.brow_px, layout.brow_z)
+	_place(_brow_r, layout.brow_gap * 0.5, layout.brow_y, layout.brow_px, layout.brow_z)
+	_place(_nose, 0.0, layout.nose_y, layout.nose_px, layout.nose_z)
+	_place(_mouth, 0.0, layout.mouth_y, layout.mouth_px, layout.mouth_z)
+	_place(_glasses, 0.0, layout.glasses_y, layout.glasses_px, layout.glasses_z)
 
 
 ## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
@@ -256,8 +255,8 @@ func _apply_expression(mood: int) -> void:
 	if _layout == null:
 		return
 	var lift := EXPR_BROW_LIFT * mood
-	_place(_brow_l, -_layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px)
-	_place(_brow_r, _layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px)
+	_place(_brow_l, -_layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px, _layout.brow_z)
+	_place(_brow_r, _layout.brow_gap * 0.5, _layout.brow_y + lift, _layout.brow_px, _layout.brow_z)
 	if _mouth != null:
 		_mouth.play("closed")
 		_mouth.flip_v = mood < 0  # the resting smile, flipped over into a frown
@@ -291,10 +290,11 @@ func _build_head_wobble() -> void:
 	_skel.add_child(_wobble)
 
 
-func _place(node: Node3D, x: float, y_off: float, px: float, z_extra := 0.0) -> void:
+func _place(node: Node3D, x: float, y_off: float, px: float, z_off := 0.0) -> void:
 	if node == null or _layout == null:
 		return
-	var pos := Vector3(x, _layout.head_y + y_off, _layout.face_z_for(_head_index) + z_extra)
+	var z := _layout.element_z(_head_index, x, y_off, z_off)
+	var pos := Vector3(x, _layout.head_y + y_off, z)
 	node.transform = _head_inv * Transform3D(Basis(), pos)
 	node.pixel_size = px
 

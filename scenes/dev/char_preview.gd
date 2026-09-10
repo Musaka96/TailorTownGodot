@@ -42,6 +42,12 @@ const FACE_FIELDS := [
 	["glasses_px", 0.0005],
 	["face_z", 0.005],
 	["head_y", 0.01],
+	["eye_z", 0.005],
+	["brow_z", 0.005],
+	["nose_z", 0.005],
+	["mouth_z", 0.005],
+	["glasses_z", 0.005],
+	["face_curve", 0.05],
 ]
 
 var _rig: Node3D
