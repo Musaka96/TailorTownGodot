@@ -14,6 +14,12 @@ const ROW_NAME := {
 }
 # Display order of the parts.
 const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
+# Overview shot framing: how far in front of the customer the camera sits (smaller =
+# closer), its height, and how far to aim to the side so the customer sits toward the
+# left of the frame (clear of the fitting panel on the right). Tune to taste.
+const OVERVIEW_DIST := 2.1
+const OVERVIEW_HEIGHT := 0.5
+const OVERVIEW_SIDE := 0.5
 # Data fallbacks when there's no seated customer (not UI styling).
 const _SKIN_FALLBACK := Color(0.87, 0.72, 0.60)  # ui-check-ignore: skin data
 const _HAIR_FALLBACK := Color(0.14, 0.11, 0.09)  # ui-check-ignore: hair data
@@ -67,6 +73,9 @@ func open(mirror, actor) -> void:
 			"pattern": Enums.patterns_for(t)[0],
 			"style_idx": 0,
 		}
+	# Hide the player avatar so it doesn't block the view of the customer being fitted.
+	if _actor != null:
+		_actor.visible = false
 	GameState.input_locked = true
 	visible = true
 	_style()
@@ -78,6 +87,8 @@ func open(mirror, actor) -> void:
 func close() -> void:
 	visible = false
 	GameState.input_locked = false
+	if _actor != null:
+		_actor.visible = true
 	if _rig != null:
 		_rig.unfocus()
 	if _customer != null and _customer.has_method("react"):
@@ -190,7 +201,11 @@ func _update_camera() -> void:
 	var front: Vector3 = _customer.facing()
 	if _part_sel < 0:
 		var c: Vector3 = _customer.center()
-		_rig.focus(c + front * 3.2 + Vector3(0, 0.7, 0), c)
+		# Sit closer, and aim past the customer to one side so they land toward the left
+		# of the frame (clear of the fitting panel on the right).
+		var side := -front.cross(Vector3.UP).normalized() * OVERVIEW_SIDE
+		var eye := c + front * OVERVIEW_DIST + Vector3(0, OVERVIEW_HEIGHT, 0)
+		_rig.focus(eye, c + side)
 	else:
 		var p: Vector3 = _customer.part_position(_type())
 		_rig.focus(p + front * 1.7 + Vector3(0, 0.2, 0), p)
