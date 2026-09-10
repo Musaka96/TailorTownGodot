@@ -6,6 +6,7 @@ extends Control
 var _customer = null
 var _actor = null
 var _decor_built := false
+var _portrait: CustomerPortrait
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -20,6 +21,9 @@ func open(customer, actor) -> void:
 	_style()
 	_fill()
 	visible = true
+	if _portrait != null and _customer != null:
+		_portrait.configure(_customer)
+		_portrait.set_live(true)
 	if _customer != null and _customer.has_method("set_talking"):
 		_customer.set_talking(true)
 
@@ -27,6 +31,8 @@ func open(customer, actor) -> void:
 func close() -> void:
 	visible = false
 	GameState.input_locked = false
+	if _portrait != null:
+		_portrait.set_live(false)  # stop rendering the mini-scene while hidden
 	if _customer != null and _customer.has_method("set_talking"):
 		_customer.set_talking(false)
 	_customer = null
@@ -62,6 +68,13 @@ func _build_decor_once() -> void:
 	tail.name = "Tail"
 	_panel.add_child(tail)
 	tail.setup(Style.CREAM, Style.BROWN)
+	# A little TV portrait of the customer at the top of the bubble.
+	_portrait = CustomerPortrait.new()
+	var holder := CenterContainer.new()
+	holder.add_child(_portrait)
+	var box := _title.get_parent()
+	box.add_child(holder)
+	box.move_child(holder, 0)
 	# Light prompts (no dark bar) to keep the bubble airy and simple.
 	_hint.visible = false
 	var row := HBoxContainer.new()

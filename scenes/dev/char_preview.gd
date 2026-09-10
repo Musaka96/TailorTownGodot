@@ -119,9 +119,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		KEY_BRACKETRIGHT:
 			_field_i = _wrap(_field_i + 1, FACE_FIELDS.size())
 		KEY_UP:
-			_adjust_field(1)
+			_adjust_field(1, (e as InputEventKey).shift_pressed)
 		KEY_DOWN:
-			_adjust_field(-1)
+			_adjust_field(-1, (e as InputEventKey).shift_pressed)
 		KEY_ENTER, KEY_KP_ENTER:
 			_save_layout()
 			return
@@ -150,11 +150,11 @@ func _randomize() -> void:
 	_hair_i = _rng.randi() % HAIR_COLORS.size()
 
 
-func _adjust_field(dir: int) -> void:
+func _adjust_field(dir: int, fine := false) -> void:
 	var field: Array = FACE_FIELDS[_field_i]
 	var prop: String = field[0]
-	var step: float = field[1]
-	_layout.set(prop, float(_layout.get(prop)) + dir * step)
+	var step: float = field[1] * (0.1 if fine else 1.0)  # hold Shift for 10x-finer steps
+	_layout.set(prop, snappedf(float(_layout.get(prop)) + dir * step, step))
 
 
 func _save_layout() -> void:
@@ -201,7 +201,7 @@ func _refresh_label() -> void:
 		]
 	)
 	var face := (
-		"\n\nFACE  eyes: %s   glasses: %s   expr: %s\nedit: %s = %.4f   %s"
+		"\n\nFACE  eyes: %s   glasses: %s   expr: %s\nedit: %s = %.5f   %s"
 		% [
 			CharacterRig.EYE_COLORS[_eye_i],
 			GLASSES[_glasses_i] if GLASSES[_glasses_i] != "" else "none",
@@ -213,7 +213,7 @@ func _refresh_label() -> void:
 	)
 	var keys := (
 		"\n\nBODY  Q/A head  W/S hair  E/D top  R/F bottom  T skin  Y hair  G gender  SPACE random"
-		+ "\nFACE  C eyes  V glasses  B expr   [ ] field  ↑↓ adjust  ENTER save  BACKSPACE reset"
+		+ "\nFACE  C eyes  V glasses  B expr   [ ] field  ↑↓ adjust (Shift=fine)  ENTER save"
 		+ "\n←→ turn   ESC quit"
 	)
 	_label.text = body + face + keys

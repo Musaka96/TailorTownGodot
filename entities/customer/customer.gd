@@ -36,6 +36,9 @@ var hair_color := Color(0.14, 0.11, 0.09)
 ## Which head mesh + which gender's wardrobe this customer uses.
 var head_index := 0
 var gender := Enums.Gender.MALE
+## Face look, remembered so the speech-bubble portrait can match this customer.
+var eye_color := "brown"
+var glasses := ""
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -115,14 +118,16 @@ func offer_greeting() -> void:
 
 ## Set skin colour, head mesh, and optionally eye colour + glasses (called by the
 ## manager on spawn). Empty eye_color / glasses keep the rig defaults.
-func apply_look(skin: Color, eye_color := "", glasses := "", head := 0) -> void:
+func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 	skin_color = skin
 	head_index = head
+	eye_color = eyes if eyes != "" else "brown"
+	glasses = glasses_kind
 	if _rig == null:
 		return
 	_rig.set_head(head)
 	_rig.set_palette(skin)
-	_rig.set_face_look(eye_color, glasses)
+	_rig.set_face_look(eyes, glasses_kind)
 
 
 ## Pick a hairstyle from the wardrobe library.
