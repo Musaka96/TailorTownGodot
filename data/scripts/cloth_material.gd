@@ -6,6 +6,10 @@ class_name ClothMaterial
 
 const SHADER := preload("res://materials/cloth.gdshader")
 const SHADER_TRIPLANAR := preload("res://materials/cloth_triplanar.gdshader")
+const SHADER_OUTLINE := preload("res://materials/cloth_outline.gdshader")
+# Dark comic-style rim drawn around each garment part (as a next_pass) — see build(outline).
+const OUTLINE_WIDTH := 0.005
+const OUTLINE_COLOR := Color(0.06, 0.05, 0.07)
 # Editable base materials every item shares (tools/build_cloth_materials.gd). Each
 # build() duplicates the base and sets only the per-item colour/pattern/fabric, so
 # edits to these .tres (or the shader) flow to all cloth. Falls back to a bare
@@ -39,22 +43,39 @@ const PATTERN_TEX := [
 
 static var _base: ShaderMaterial
 static var _base_tri: ShaderMaterial
+static var _outline: ShaderMaterial
 
 
-static func build(mat: MaterialType, uv_scale := 2.5) -> ShaderMaterial:
+static func build(mat: MaterialType, uv_scale := 2.5, outline := false) -> ShaderMaterial:
 	var sm := _instance(_base_material(BASE_PATH), SHADER)
 	sm.set_shader_parameter("uv_scale", uv_scale)
 	_apply(sm, mat)
+	if outline:
+		sm.next_pass = outline_material()
 	return sm
 
 
 ## Triplanar variant for characters: projects the fabric in object space so it
 ## doesn't stretch over a hand-unwrapped mesh. `tri_scale` = repeats per metre.
-static func build_triplanar(mat: MaterialType, tri_scale := 3.0) -> ShaderMaterial:
+static func build_triplanar(
+	mat: MaterialType, tri_scale := 3.0, outline := false
+) -> ShaderMaterial:
 	var sm := _instance(_base_material(BASE_TRIPLANAR_PATH), SHADER_TRIPLANAR)
 	sm.set_shader_parameter("tri_scale", tri_scale)
 	_apply(sm, mat)
+	if outline:
+		sm.next_pass = outline_material()
 	return sm
+
+
+## Shared inverted-hull outline material, used as a next_pass to rim garment parts.
+static func outline_material() -> ShaderMaterial:
+	if _outline == null:
+		_outline = ShaderMaterial.new()
+		_outline.shader = SHADER_OUTLINE
+		_outline.set_shader_parameter("outline_width", OUTLINE_WIDTH)
+		_outline.set_shader_parameter("outline_color", OUTLINE_COLOR)
+	return _outline
 
 
 ## A per-item copy of the shared base (keeping its editable global look), or a bare
