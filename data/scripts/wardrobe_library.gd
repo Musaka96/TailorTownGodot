@@ -13,6 +13,9 @@ const _CHAR := "res://assets/characters/CHARTGEN1.glb"
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 
+## Heads — the face mesh (role "head"); customers pick one at random. Index 0 is the
+## base model's baked head (kept in the rig), so set_head(0) needs no swap.
+@export var heads: Array[WardrobePart] = []
 ## Hairstyles — customers pick one at random (role "hair").
 @export var hairs: Array[WardrobePart] = []
 ## Suit tops, indexed to Enums jacket styles (a top owns the jacket AND shirt mesh).
@@ -26,6 +29,14 @@ const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 @export var skin_colors: PackedColorArray = PackedColorArray()
 ## Natural hair colours customers spawn with.
 @export var hair_colors: PackedColorArray = PackedColorArray()
+
+
+func head(index: int) -> WardrobePart:
+	return _at(heads, index)
+
+
+func head_count() -> int:
+	return heads.size()
 
 
 func hair(index: int) -> WardrobePart:
@@ -50,6 +61,29 @@ func skin(index: int) -> Color:
 
 func hair_color(index: int) -> Color:
 	return _color(hair_colors, index, DEFAULT_HAIR)
+
+
+## A random index into `list` among the parts that fit `want` (ANY parts always fit).
+## Returns 0 if none match (so there is always a valid look), -1 if the list is empty.
+func random_index(list: Array, want: int, rng: RandomNumberGenerator) -> int:
+	if list.is_empty():
+		return -1
+	var matching: Array[int] = []
+	for i in list.size():
+		var part := list[i] as WardrobePart
+		if part != null and part.fits(want):
+			matching.append(i)
+	if matching.is_empty():
+		return 0
+	return matching[rng.randi() % matching.size()]
+
+
+func random_head_index(want: int, rng: RandomNumberGenerator) -> int:
+	return random_index(heads, want, rng)
+
+
+func random_hair_index(want: int, rng: RandomNumberGenerator) -> int:
+	return random_index(hairs, want, rng)
 
 
 func random_skin(rng: RandomNumberGenerator) -> Color:
@@ -83,6 +117,7 @@ static func make_default() -> WardrobeLibrary:
 	var model := load(_CHAR) as PackedScene
 	var suit_roles := {"jacket": "jacket", "shirt": "shirt"}
 	var pants_roles := {"pants": "legs"}
+	lib.heads.append(WardrobePart.make("Base", model, {"head": "head"}))
 	lib.hairs.append(WardrobePart.make("Default", model, {"hair": "Hair"}))
 	lib.tops.append(WardrobePart.make("Single-Breasted", model, suit_roles.duplicate()))
 	lib.bottoms.append(WardrobePart.make("Flat Front", model, pants_roles.duplicate()))

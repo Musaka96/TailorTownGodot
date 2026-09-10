@@ -33,6 +33,9 @@ var preference: CustomerPreference = null
 var skin_color := Color(0.87, 0.72, 0.60)
 var hair_index := 0
 var hair_color := Color(0.14, 0.11, 0.09)
+## Which head mesh + which gender's wardrobe this customer uses.
+var head_index := 0
+var gender := Enums.Gender.MALE
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -110,12 +113,14 @@ func offer_greeting() -> void:
 		_rig.wave()
 
 
-## Set skin colour, and optionally eye colour + glasses (called by the manager on
-## spawn). Empty eye_color / glasses keep the rig defaults (brown eyes, no glasses).
-func apply_look(skin: Color, eye_color := "", glasses := "") -> void:
+## Set skin colour, head mesh, and optionally eye colour + glasses (called by the
+## manager on spawn). Empty eye_color / glasses keep the rig defaults.
+func apply_look(skin: Color, eye_color := "", glasses := "", head := 0) -> void:
 	skin_color = skin
+	head_index = head
 	if _rig == null:
 		return
+	_rig.set_head(head)
 	_rig.set_palette(skin)
 	_rig.set_face_look(eye_color, glasses)
 

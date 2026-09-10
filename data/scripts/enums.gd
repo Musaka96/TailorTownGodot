@@ -36,6 +36,11 @@ enum Pattern {
 enum Occasion { WEDDING, FUNERAL, BUSINESS, PARTY }
 enum Style { OLDSCHOOL, CLASSIC, MODERN, FASHION }
 
+# --- Character identity ---
+# Gender tag for wardrobe parts and characters. ANY = unisex (usable by either);
+# a character is only ever MALE or FEMALE.
+enum Gender { ANY, MALE, FEMALE }
+
 # --- Garment styling (used from Phase 3+) ---
 enum JacketStyle { SINGLE_BREASTED, DOUBLE_BREASTED }
 enum Lapel { NOTCH, PEAK, SHAWL }
@@ -90,6 +95,17 @@ static func style_name(s: int) -> String:
 			return "Modern"
 		Style.FASHION:
 			return "Fashion"
+	return "?"
+
+
+static func gender_name(g: int) -> String:
+	match g:
+		Gender.ANY:
+			return "Any"
+		Gender.MALE:
+			return "Male"
+		Gender.FEMALE:
+			return "Female"
 	return "?"
 
 

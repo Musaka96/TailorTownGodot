@@ -183,12 +183,16 @@ func _apply_event_bias(pref: CustomerPreference) -> void:
 
 
 func _dress(cust: Customer) -> void:
+	var gender := Enums.Gender.MALE if _rng.randf() < 0.5 else Enums.Gender.FEMALE
+	cust.gender = gender
 	var eye: String = CharacterRig.EYE_COLORS[_rng.randi() % CharacterRig.EYE_COLORS.size()]
 	var glasses := ""
 	if _rng.randf() < GLASSES_CHANCE:
 		glasses = "sun" if _rng.randf() < 0.5 else "round"
-	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses)
-	cust.set_hair(_rng.randi() % maxi(1, Wardrobe.hair_count()))
+	var head := maxi(0, Wardrobe.random_head_index(gender, _rng))
+	var hair := maxi(0, Wardrobe.random_hair_index(gender, _rng))
+	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses, head)
+	cust.set_hair(hair)
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
 	cust.wear_street()
 

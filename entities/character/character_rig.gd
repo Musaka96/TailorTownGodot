@@ -10,12 +10,19 @@ extends Node3D
 ## same Rig_Medium, the animations drive it with no retargeting. Changing a suit
 ## style therefore changes the actual model, not just the colour.
 
-# Always-present skin meshes (never swapped).
-const SKIN_PARTS := ["head", "arms"]
+# Arms are always the base skin mesh (never swapped); the head is swappable now.
+const SKIN_ARMS := "arms"
 # The base model's default meshes per slot (adopted on _ready as style/index 0).
+const BAKED_HEAD := {"head": "head"}
 const BAKED_TOP := {"jacket": "jacket", "shirt": "shirt"}
 const BAKED_BOTTOM := {"pants": "legs"}
 const BAKED_HAIR := {"hair": "Hair"}
+
+# Two-layer hair: a flat base-colour mesh with a transparent strand-detail copy laid
+# just over it (grown slightly so it never z-fights). Swap the PNG for real hair art.
+const HAIR_STRANDS := "res://assets/textures/hair/strands.png"
+const HAIR_OVERLAY_UV := 5.0
+const HAIR_OVERLAY_GROW := 0.004
 
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
@@ -106,13 +113,17 @@ var _eye_color := "brown"
 var _glasses_kind := ""  # "", "sun" or "round"; applied once the face is built
 var _blink: Timer
 # Each slot maps role -> MeshInstance3D currently filling it.
+var _head: Dictionary = {}
 var _top: Dictionary = {}
 var _bottom: Dictionary = {}
 var _hair: Dictionary = {}
 # Currently-shown style/index, so we only re-instance a model when it changes.
+var _head_index := 0
 var _top_style := 0
 var _bottom_style := 0
 var _hair_index := 0
+# Skin tint (kept so it re-applies whenever the head mesh is swapped).
+var _skin_color := DEFAULT_SKIN
 # Tint applied to the hair mesh (kept so it survives a hairstyle swap).
 var _hair_color := DEFAULT_HAIR
 
@@ -121,6 +132,7 @@ var _hair_color := DEFAULT_HAIR
 
 func _ready() -> void:
 	_skel = find_child("Skeleton3D", true, false) as Skeleton3D
+	_head = _adopt(BAKED_HEAD)
 	_top = _adopt(BAKED_TOP)
 	_bottom = _adopt(BAKED_BOTTOM)
 	_hair = _adopt(BAKED_HAIR)
@@ -206,7 +218,7 @@ func set_talking(on: bool) -> void:
 
 
 ## React while being fitted: a lasting smile (liked) or frown (disliked). Brows and
-## mouth shift and hold until reset; pair with nod()/shake() for the one-off gesture.
+## mouth shift and hold until reset; express_once() pairs it with a one-off gesture.
 func set_expression(liked: bool) -> void:
 	_apply_expression(1 if liked else -1)
 
@@ -221,21 +233,21 @@ func reset_expression() -> void:
 func express_once(liked: bool) -> void:
 	_apply_expression(1 if liked else -1)
 	if liked:
-		nod()
+		_nod()
 	else:
-		shake()
+		_shake()
 	if _gesture != null and _gesture.is_valid():
 		_gesture.tween_interval(0.5)  # let the expression linger a beat past the swing
 		_gesture.tween_callback(func() -> void: _apply_expression(0))
 
 
 ## A happy yes-nod (pitch) — a quick swing that settles back to centre.
-func nod() -> void:
+func _nod() -> void:
 	_swing("pitch", NOD_ANGLE, [1.0, -0.35, 0.5, 0.0])
 
 
 ## A no-no head shake (yaw) — used when the customer dislikes the design.
-func shake() -> void:
+func _shake() -> void:
 	_swing("yaw", SHAKE_ANGLE, [1.0, -1.0, 0.6, -0.35, 0.0])
 
 
@@ -534,12 +546,37 @@ func _apply_arm_filter(blend: AnimationNodeBlend2) -> void:
 # --- Wardrobe --------------------------------------------------------------
 
 
-## Colour the exposed skin (head, arms).
+## Colour the exposed skin (the current head mesh + arms). Kept so a head swap
+## re-applies the same tone.
 func set_palette(skin: Color) -> void:
-	for part_name in SKIN_PARTS:
-		var node := find_child(part_name, true, false)
-		if node is MeshInstance3D:
-			node.material_override = _flat(skin, 0.7)
+	_skin_color = skin
+	_apply_skin()
+
+
+## Swap to head `index` from the Wardrobe (no-op if already shown). Index 0 is the base
+## baked head, so the common case never re-instances a model. The face mesh is given a
+## flat skin material, so the 2D animated eyes/brows/mouth read on top of it.
+func set_head(index: int) -> void:
+	if index == _head_index and not _head.is_empty():
+		return
+	_head = _clear(_head)
+	var part := Wardrobe.head(index)
+	if part != null and part.model != null:
+		_head = _attach_from(part.model, part.roles)
+	if _head.is_empty():
+		_head = _adopt(BAKED_HEAD)  # fall back to the base head
+	_head_index = index
+	_apply_skin()
+
+
+func _apply_skin() -> void:
+	var mat := _flat(_skin_color, 0.7)
+	var head_mi = _head.get("head")
+	if head_mi is MeshInstance3D:
+		head_mi.material_override = mat
+	var arms := find_child(SKIN_ARMS, true, false)
+	if arms is MeshInstance3D:
+		arms.material_override = _flat(_skin_color, 0.7)
 
 
 ## Swap to hairstyle `index` from the Wardrobe (no-op if already shown).
@@ -550,6 +587,7 @@ func set_hair(index: int) -> void:
 	var part := Wardrobe.hair(index)
 	if part != null and part.model != null:
 		_hair = _attach_from(part.model, part.roles)
+	_build_hair_overlay()
 	_hair_index = index
 	_apply_hair_color()
 
@@ -560,10 +598,42 @@ func set_hair_color(color: Color) -> void:
 	_apply_hair_color()
 
 
+## Lay a transparent strand-detail copy of the hair mesh just over the base mesh, so
+## the flat base colour shows through the gaps and the texture reads as strands.
+func _build_hair_overlay() -> void:
+	var base = _hair.get("hair")
+	if not (base is MeshInstance3D) or _skel == null:
+		return
+	var overlay := (base as MeshInstance3D).duplicate() as MeshInstance3D
+	overlay.name = "hair_overlay"
+	_skel.add_child(overlay)
+	overlay.skeleton = NodePath("..")
+	_hair["hair_overlay"] = overlay
+
+
 func _apply_hair_color() -> void:
 	var mi = _hair.get("hair")
 	if mi is MeshInstance3D:
 		mi.material_override = _flat(_hair_color, 0.85)
+	var overlay = _hair.get("hair_overlay")
+	if overlay is MeshInstance3D:
+		overlay.material_override = _hair_overlay_mat(_hair_color)
+
+
+## The strand overlay: the base hair colour multiplied by a transparent strand texture,
+## grown a hair's-breadth so it sits just proud of the flat base without z-fighting.
+func _hair_overlay_mat(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color.lightened(0.06)
+	mat.roughness = 0.7
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.uv1_scale = Vector3(HAIR_OVERLAY_UV, HAIR_OVERLAY_UV, 1.0)
+	mat.grow = true
+	mat.grow_amount = HAIR_OVERLAY_GROW
+	var tex := load(HAIR_STRANDS) as Texture2D
+	if tex != null:
+		mat.albedo_texture = tex
+	return mat
 
 
 ## Dress in a made suit: swap the top/bottom MODEL to the chosen styles (only when
@@ -625,22 +695,93 @@ func _adopt(roles: Dictionary) -> Dictionary:
 	return out
 
 
-## Pull the named meshes out of `model` and reparent them onto our skeleton.
-## Their Skin binds by bone name, so on the shared Rig_Medium they animate as-is.
+## Pull the named meshes out of `model` and reparent them onto our skeleton. Their
+## Skin binds by bone name; if the source rig names a bone differently (e.g. an
+## imported head skinned to "head" while ours is "head_2"), we remap the binds by
+## matching rest positions, so any same-geometry Rig_Medium .glb drops in as-is.
 func _attach_from(model: PackedScene, roles: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
 	if _skel == null or model == null:
 		return out
 	var inst := model.instantiate()
+	var src_skel := inst.find_child("Skeleton3D", true, false) as Skeleton3D
+	var remap := _bone_remap(src_skel)
 	for role in roles:
 		var mi := inst.find_child(roles[role], true, false)
 		if mi is MeshInstance3D:
 			mi.get_parent().remove_child(mi)
 			_skel.add_child(mi)
 			mi.skeleton = NodePath("..")
+			if not remap.is_empty() and src_skel != null:
+				_rebind_skin(mi, src_skel, remap)
 			out[role] = mi
 	inst.queue_free()
 	return out
+
+
+## Map source-skeleton bone names -> our bone index, but only when some source bone
+## name is missing from our skeleton (otherwise {} — the fast, no-op path). A missing
+## name is matched to our bone at the same rest position (the rigs share geometry).
+func _bone_remap(src: Skeleton3D) -> Dictionary:
+	if src == null:
+		return {}
+	var needs := false
+	for i in src.get_bone_count():
+		if _skel.find_bone(src.get_bone_name(i)) < 0:
+			needs = true
+			break
+	if not needs:
+		return {}
+	var map: Dictionary = {}
+	for i in src.get_bone_count():
+		var nm := src.get_bone_name(i)
+		var j := _skel.find_bone(nm)
+		if j < 0:
+			j = _nearest_bone(_skel, _global_rest(src, i).origin)
+		map[nm] = j
+	return map
+
+
+## Rewrite a reparented mesh's Skin binds to point at our bones (by the remap), so
+## name- or index-bound skins both resolve correctly on the shared skeleton.
+func _rebind_skin(mi: MeshInstance3D, src: Skeleton3D, remap: Dictionary) -> void:
+	var skin := mi.skin
+	if skin == null:
+		return
+	var s := skin.duplicate() as Skin
+	for bi in s.get_bind_count():
+		var bn := s.get_bind_name(bi)
+		if bn == StringName():
+			var bb := s.get_bind_bone(bi)
+			if bb >= 0 and bb < src.get_bone_count():
+				bn = src.get_bone_name(bb)
+		if remap.has(bn):
+			var dj: int = remap[bn]
+			s.set_bind_bone(bi, dj)
+			s.set_bind_name(bi, _skel.get_bone_name(dj))
+	mi.skin = s
+
+
+func _nearest_bone(sk: Skeleton3D, pos: Vector3) -> int:
+	var best := -1
+	var best_d := INF
+	for i in sk.get_bone_count():
+		var d := _global_rest(sk, i).origin.distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+
+## A bone's rest transform in skeleton space (animation-independent), by walking rests
+## up to the root — used to match bones between rigs by position.
+func _global_rest(sk: Skeleton3D, bone: int) -> Transform3D:
+	var t := Transform3D.IDENTITY
+	var b := bone
+	while b >= 0:
+		t = sk.get_bone_rest(b) * t
+		b = sk.get_bone_parent(b)
+	return t
 
 
 func _clear(slot: Dictionary) -> Dictionary:

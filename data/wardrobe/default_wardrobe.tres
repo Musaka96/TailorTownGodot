@@ -1,57 +1,100 @@
-[gd_resource type="Resource" script_class="WardrobeLibrary" format=3 uid="uid://u5idqehyarxi"]
+[gd_resource type="Resource" script_class="WardrobeLibrary" format=3]
 
-[ext_resource type="Script" uid="uid://dyxx0hmf05pj2" path="res://data/scripts/wardrobe_part.gd" id="1_ohx82"]
-[ext_resource type="PackedScene" uid="uid://4gjg2o3qcery" path="res://assets/characters/CHARTGEN1.glb" id="2_fibh6"]
-[ext_resource type="Script" uid="uid://d3cgw5h0qanbh" path="res://data/scripts/wardrobe_library.gd" id="3_uwj4j"]
+[ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_uwj4j"]
+[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN1.glb" id="2_2el7x"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-1.glb" id="3_pgict"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-2.glb" id="4_i7518"]
+[ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="5_hqymy"]
 
-[sub_resource type="Resource" id="Resource_2el7x"]
-script = ExtResource("1_ohx82")
+[sub_resource type="Resource" id="Resource_3wc3i"]
+script = ExtResource("1_uwj4j")
 display_name = "Flat Front"
-model = ExtResource("2_fibh6")
+model = ExtResource("2_2el7x")
 roles = {
 "pants": "legs"
 }
 
-[sub_resource type="Resource" id="Resource_pgict"]
-script = ExtResource("1_ohx82")
+[sub_resource type="Resource" id="Resource_4ejrc"]
+script = ExtResource("1_uwj4j")
 display_name = "Default"
-model = ExtResource("2_fibh6")
+model = ExtResource("2_2el7x")
 roles = {
 "hair": "Hair"
 }
 
-[sub_resource type="Resource" id="Resource_i7518"]
-script = ExtResource("1_ohx82")
+[sub_resource type="Resource" id="Resource_esk5f"]
+script = ExtResource("1_uwj4j")
+display_name = "KOSA+GLAVA-1 hair"
+model = ExtResource("3_pgict")
+roles = {
+"hair": &"a3b90c76_5396_4000_9693_ed15feb53145_021"
+}
+
+[sub_resource type="Resource" id="Resource_yfs0x"]
+script = ExtResource("1_uwj4j")
+display_name = "KOSA+GLAVA-2 hair"
+model = ExtResource("4_i7518")
+roles = {
+"hair": &"a3b90c76_5396_4000_9693_ed15feb53145_015"
+}
+
+[sub_resource type="Resource" id="Resource_q28yw"]
+script = ExtResource("1_uwj4j")
+display_name = "Base"
+model = ExtResource("2_2el7x")
+roles = {
+"head": "head"
+}
+
+[sub_resource type="Resource" id="Resource_g3eu7"]
+script = ExtResource("1_uwj4j")
+display_name = "KOSA+GLAVA-1 head"
+model = ExtResource("3_pgict")
+roles = {
+"head": &"a3b90c76_5396_4000_9693_ed15feb53145_007"
+}
+
+[sub_resource type="Resource" id="Resource_8sors"]
+script = ExtResource("1_uwj4j")
+display_name = "KOSA+GLAVA-2 head"
+model = ExtResource("4_i7518")
+roles = {
+"head": &"a3b90c76_5396_4000_9693_ed15feb53145_022"
+}
+
+[sub_resource type="Resource" id="Resource_d8neq"]
+script = ExtResource("1_uwj4j")
 display_name = "Casual Bottom"
-model = ExtResource("2_fibh6")
+model = ExtResource("2_2el7x")
 roles = {
 "pants": "legs"
 }
 
-[sub_resource type="Resource" id="Resource_hqymy"]
-script = ExtResource("1_ohx82")
+[sub_resource type="Resource" id="Resource_w2cmp"]
+script = ExtResource("1_uwj4j")
 display_name = "Casual Top"
-model = ExtResource("2_fibh6")
+model = ExtResource("2_2el7x")
 roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
 
-[sub_resource type="Resource" id="Resource_3wc3i"]
-script = ExtResource("1_ohx82")
+[sub_resource type="Resource" id="Resource_yrp6t"]
+script = ExtResource("1_uwj4j")
 display_name = "Single-Breasted"
-model = ExtResource("2_fibh6")
+model = ExtResource("2_2el7x")
 roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
 
 [resource]
-script = ExtResource("3_uwj4j")
-hairs = Array[ExtResource("1_ohx82")]([SubResource("Resource_pgict")])
-tops = Array[ExtResource("1_ohx82")]([SubResource("Resource_3wc3i")])
-bottoms = Array[ExtResource("1_ohx82")]([SubResource("Resource_2el7x")])
-street_top = SubResource("Resource_hqymy")
-street_bottom = SubResource("Resource_i7518")
+script = ExtResource("5_hqymy")
+heads = Array[ExtResource("1_uwj4j")]([SubResource("Resource_q28yw"), SubResource("Resource_g3eu7"), SubResource("Resource_8sors")])
+hairs = Array[ExtResource("1_uwj4j")]([SubResource("Resource_4ejrc"), SubResource("Resource_esk5f"), SubResource("Resource_yfs0x")])
+tops = Array[ExtResource("1_uwj4j")]([SubResource("Resource_yrp6t")])
+bottoms = Array[ExtResource("1_uwj4j")]([SubResource("Resource_3wc3i")])
+street_top = SubResource("Resource_w2cmp")
+street_bottom = SubResource("Resource_d8neq")
 skin_colors = PackedColorArray(0.87, 0.72, 0.6, 1, 0.8, 0.62, 0.48, 1, 0.93, 0.81, 0.69, 1, 0.66, 0.48, 0.35, 1, 0.55, 0.38, 0.27, 1)
 hair_colors = PackedColorArray(0.1, 0.08, 0.07, 1, 0.28, 0.18, 0.1, 1, 0.45, 0.3, 0.16, 1, 0.72, 0.55, 0.3, 1, 0.55, 0.2, 0.1, 1, 0.6, 0.6, 0.62, 1)

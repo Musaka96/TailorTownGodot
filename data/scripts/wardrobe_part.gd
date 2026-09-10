@@ -15,11 +15,22 @@ extends Resource
 @export var model: PackedScene
 ## Role -> mesh node name inside `model` (e.g. {"jacket": "jacket", "shirt": "shirt"}).
 @export var roles: Dictionary = {}
+## Who this part suits: ANY (unisex, the default), MALE or FEMALE. Customers are only
+## given parts whose gender is ANY or matches their own.
+@export var gender: Enums.Gender = Enums.Gender.ANY
 
 
-static func make(name: String, part_model: PackedScene, part_roles: Dictionary) -> WardrobePart:
+static func make(
+	name: String, part_model: PackedScene, part_roles: Dictionary, part_gender := Enums.Gender.ANY
+) -> WardrobePart:
 	var part := WardrobePart.new()
 	part.display_name = name
 	part.model = part_model
 	part.roles = part_roles
+	part.gender = part_gender
 	return part
+
+
+## True when this part may be worn by a character of `want` (ANY parts fit everyone).
+func fits(want: int) -> bool:
+	return gender == Enums.Gender.ANY or want == Enums.Gender.ANY or int(gender) == want

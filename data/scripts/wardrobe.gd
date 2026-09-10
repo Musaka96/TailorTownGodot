@@ -25,6 +25,14 @@ static func library() -> WardrobeLibrary:
 # --- Clothing parts --------------------------------------------------------
 
 
+static func head(index: int) -> WardrobePart:
+	return library().head(index)
+
+
+static func head_count() -> int:
+	return library().head_count()
+
+
 static func hair(index: int) -> WardrobePart:
 	return library().hair(index)
 
@@ -66,6 +74,14 @@ static func hair_color(index: int) -> Color:
 
 static func hair_color_count() -> int:
 	return library().hair_colors.size()
+
+
+static func random_head_index(gender: int, rng: RandomNumberGenerator) -> int:
+	return library().random_head_index(gender, rng)
+
+
+static func random_hair_index(gender: int, rng: RandomNumberGenerator) -> int:
+	return library().random_hair_index(gender, rng)
 
 
 static func random_skin(rng: RandomNumberGenerator) -> Color:
