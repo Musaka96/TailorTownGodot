@@ -2,17 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://balx67wljkjhu"
-path.s3tc="res://.godot/imported/KOSA+GLAVA-1_stylized+3d+character+heads_Clone1_basecolor.jpg-d9d012e1800707ab1c68d4604e501c22.s3tc.ctex"
+uid="uid://c6lnxtm3d1sla"
+path.s3tc="res://.godot/imported/KOSA+GLAVA-3_stylized+3d+character+heads_Clone1_basecolor.jpg-8156a6303905fcfb299b14de97581850.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "7eea18f0cd439098e92c51f356ebc256"
+}
 
 [deps]
 
-source_file="res://assets/characters/parts/KOSA+GLAVA-1_stylized+3d+character+heads_Clone1_basecolor.jpg"
-dest_files=["res://.godot/imported/KOSA+GLAVA-1_stylized+3d+character+heads_Clone1_basecolor.jpg-d9d012e1800707ab1c68d4604e501c22.s3tc.ctex"]
+source_file="res://assets/characters/parts/KOSA+GLAVA-3_stylized+3d+character+heads_Clone1_basecolor.jpg"
+dest_files=["res://.godot/imported/KOSA+GLAVA-3_stylized+3d+character+heads_Clone1_basecolor.jpg-8156a6303905fcfb299b14de97581850.s3tc.ctex"]
 
 [params]
 
