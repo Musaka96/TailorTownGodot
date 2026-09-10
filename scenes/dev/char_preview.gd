@@ -69,6 +69,7 @@ const GIZ_MODES := ["Move", "Rotate", "Scale"]
 const AXIS_NAMES := ["x", "y", "z"]
 const ROT_SENS := 0.5  # degrees per pixel dragged
 const SCALE_SENS := 0.01  # scale units per pixel dragged
+const UNDO_MAX := 80  # how many layout states the undo stack keeps
 
 var _view: SubViewport
 var _rig: Node3D
@@ -94,6 +95,7 @@ var _dist := 1.25
 var _yaw := 0.0
 var _sliders := {}
 var _val_labels := {}
+var _undo_stack: Array = []  # FaceLayout snapshots (deep copies), newest last
 var _status: Label
 
 
@@ -104,6 +106,15 @@ func _ready() -> void:
 	_build()
 	_apply()
 	_apply_view()
+
+
+## Ctrl+Z undoes the last layout change.
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		var k := event as InputEventKey
+		if k.keycode == KEY_Z and k.ctrl_pressed:
+			_undo()
+			get_viewport().set_input_as_handled()
 
 
 func _build() -> void:
@@ -198,6 +209,7 @@ func _build_controls(col: VBoxContainer) -> void:
 	for f: Array in FIELDS:
 		col.add_child(_field_slider(f))
 	var buttons := HBoxContainer.new()
+	buttons.add_child(_button("Undo", _undo))
 	buttons.add_child(_button("Random", _random))
 	buttons.add_child(_button("Save", _save))
 	buttons.add_child(_button("Reset", _reset))
@@ -233,7 +245,7 @@ func _dropdown(label: String, items: Array, current: int, cb: Callable) -> HBoxC
 
 
 func _slider(
-	label: String, lo: float, hi: float, step: float, value: float, cb: Callable
+	label: String, lo: float, hi: float, step: float, value: float, cb: Callable, field := false
 ) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	var head := HBoxContainer.new()
@@ -253,7 +265,10 @@ func _slider(
 	s.scrollable = false
 	s.value_changed.connect(func(v: float) -> void: val.text = _fmt(v, step))
 	s.value_changed.connect(cb)
-	s.gui_input.connect(_slider_wheel.bind(s, step))
+	s.gui_input.connect(_slider_wheel.bind(s, step, field))
+	# Snapshot for undo at the start of a handle drag (layout sliders only).
+	if field:
+		s.drag_started.connect(_push_undo)
 	box.add_child(s)
 	return box
 
@@ -263,7 +278,7 @@ func _field_slider(f: Array) -> VBoxContainer:
 	var prop: String = f[0]
 	var step: float = f[3]
 	var value := _field_value(prop)
-	var box := _slider(prop, f[1], f[2], step, value, _on_field.bind(prop))
+	var box := _slider(prop, f[1], f[2], step, value, _on_field.bind(prop), true)
 	_sliders[prop] = box.get_child(1)
 	_val_labels[prop] = box.get_child(0).get_child(1)
 	return box
@@ -280,7 +295,7 @@ func _button(text: String, cb: Callable) -> Button:
 # --- Handlers --------------------------------------------------------------
 
 
-func _slider_wheel(event: InputEvent, s: HSlider, step: float) -> void:
+func _slider_wheel(event: InputEvent, s: HSlider, step: float, field := false) -> void:
 	if not (event is InputEventMouseButton and event.pressed):
 		return
 	var mb := event as InputEventMouseButton
@@ -291,6 +306,8 @@ func _slider_wheel(event: InputEvent, s: HSlider, step: float) -> void:
 		dir = -1
 	if dir == 0:
 		return
+	if field:
+		_push_undo()
 	var mult := 0.1 if Input.is_key_pressed(KEY_SHIFT) else 1.0
 	s.value = snappedf(s.value + dir * step * mult, step * mult)
 	accept_event()
@@ -396,13 +413,44 @@ func _save() -> void:
 
 
 func _reset() -> void:
+	_push_undo()
 	_layout = FaceLayout.new()
 	if _rig != null:
 		_rig.apply_layout(_layout)
+	_refresh_all_sliders()
+	_status.text = "Reset (not saved)"
+
+
+# --- Undo ------------------------------------------------------------------
+
+
+## Snapshot the current layout onto the undo stack (called at the start of each edit).
+func _push_undo() -> void:
+	_undo_stack.append(_layout.duplicate(true))
+	if _undo_stack.size() > UNDO_MAX:
+		_undo_stack.pop_front()
+
+
+## Restore the most recent snapshot (Ctrl+Z or the Undo button); stacks many levels.
+func _undo() -> void:
+	if _undo_stack.is_empty():
+		if _status != null:
+			_status.text = "Nothing to undo"
+		return
+	_layout = _undo_stack.pop_back()
+	if _rig != null:
+		_rig.apply_layout(_layout)
+	_refresh_all_sliders()
+	_sync_face_z()
+	if _status != null:
+		_status.text = "Undo  (%d left)" % _undo_stack.size()
+
+
+## Push every layout slider back to the current layout's values (after undo / reset).
+func _refresh_all_sliders() -> void:
 	for prop: String in _sliders:
 		(_sliders[prop] as HSlider).set_value_no_signal(_field_value(prop))
 		_update_val_label(prop)
-	_status.text = "Reset (not saved)"
 
 
 # --- Applying --------------------------------------------------------------
@@ -633,6 +681,7 @@ class GizmoLayer:
 		_axis = _pick(pos, _axes["c"])
 		if _axis == -2:
 			return
+		host._push_undo()  # snapshot before this drag
 		var key: String = host._giz_key()
 		if host._giz_mode == 0:
 			_start = Vector3(
