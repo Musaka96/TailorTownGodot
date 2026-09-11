@@ -113,6 +113,8 @@ func notify_game_ready() -> void:
 		"new":
 			await get_tree().process_frame
 			DayNight.start_shift()
+			if Tutorial != null:
+				Tutorial.offer()  # first-run: offer the guided walkthrough
 		_:
 			pass  # booted straight into main.tscn — DayNight already started at boot
 	_mode = ""

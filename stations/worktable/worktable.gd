@@ -61,6 +61,7 @@ func finish_cut(success: bool, type: int, size: int, style: String, quality: flo
 	_slot.add_child(part)
 	part.transform = Transform3D.IDENTITY
 	_item = part
+	EventBus.piece_cut.emit(part)
 
 
 func _is_piece(node: Node) -> bool:

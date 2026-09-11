@@ -52,3 +52,4 @@ func finish_sew(success: bool, quality: float) -> void:
 	# Final quality combines the cut and sew performance.
 	_item.quality = clampf(_item.quality * quality, 0.05, 1.0)
 	_item.stage = Enums.Stage.SEWN
+	EventBus.piece_sewn.emit(_item)

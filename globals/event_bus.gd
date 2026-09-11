@@ -22,6 +22,8 @@ signal order_delivered(roll: Node)
 
 # --- Cutting ---
 signal cloth_cut(piece: Node, source_roll: Node)
+signal piece_cut(piece: Node)  # a garment part was cut at the worktable
+signal piece_sewn(piece: Node)  # a garment part was sewn at the machine
 
 # --- Assembly ---
 signal suit_packaged(suit: Node)
