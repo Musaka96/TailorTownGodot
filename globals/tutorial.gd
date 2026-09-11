@@ -168,6 +168,9 @@ func _choose_done() -> void:
 func _start() -> void:
 	_active = true
 	_step = 0
+	# Fold the morning paper away if it's up — the tutorial takes the stage.
+	if UI != null and UI.newspaper != null and UI.newspaper.has_method("close"):
+		UI.newspaper.close()
 	_choose_done()  # the player chose the tutorial — let the day begin
 	_apply_step()
 

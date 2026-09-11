@@ -124,7 +124,11 @@ func notify_game_ready() -> void:
 			else:
 				_begin_new_day()
 		_:
-			get_tree().paused = false  # booted straight into main.tscn
+			# Booted straight into main.tscn (dev): start the day here since DayNight no
+			# longer auto-starts at boot.
+			if not DayNight.running:
+				DayNight.start_shift()
+			get_tree().paused = false
 
 
 ## Start the first day (called immediately for a fresh game, or once the tutorial prompt is

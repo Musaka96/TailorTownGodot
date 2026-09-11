@@ -30,6 +30,11 @@ func _run() -> void:
 
 	_player = _main.find_child("Player", true, false)
 	var mirror: Node = _main.find_child("Mirror", true, false)
+	# The always-present starting customer was removed; spawn one via the manager.
+	var mgr := get_first_node_in_group("customer_manager")
+	if mgr != null:
+		mgr.spawn_tutorial_customer()
+		await process_frame
 	var customer: Node = _main.find_child("Customer", true, false)
 	if _player == null or mirror == null or customer == null:
 		_check(false, "player + mirror + spawned customer present")

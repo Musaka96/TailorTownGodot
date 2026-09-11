@@ -37,7 +37,8 @@ func _ready() -> void:
 	_bell = AudioStreamPlayer.new()
 	_bell.stream = _make_bell()
 	add_child(_bell)
-	start_shift()
+	# The day is started by SaveManager once a game is actually running (new / load /
+	# direct-boot) — NOT here, so the day-1 newspaper never fires behind the main menu.
 
 
 func _process(delta: float) -> void:
