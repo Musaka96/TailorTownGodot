@@ -20,6 +20,9 @@ const BLADE_COUNT := 420
 const BLADE_W := 0.34
 const BLADE_H := 0.42
 
+const RUG_SIZE := Vector2(2.4, 1.6)
+const SHELL_COUNT := 16  # carpet pile shell layers
+
 
 func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SCENE_DIR))
@@ -85,11 +88,15 @@ func _carpet_material() -> ShaderMaterial:
 	m.set_shader_parameter("carpet_texture", _carpet_texture())
 	m.set_shader_parameter("use_texture", true)
 	m.set_shader_parameter("tint", Color(1, 1, 1, 1))
-	m.set_shader_parameter("tiling", Vector2(2.0, 2.0))
-	m.set_shader_parameter("pile_strength", 0.18)
-	m.set_shader_parameter("pile_scale", 90.0)
-	m.set_shader_parameter("fringe_width", 0.045)
-	m.set_shader_parameter("fringe_color", Color(0.86, 0.80, 0.66))
+	m.set_shader_parameter("tiling", Vector2(1.0, 1.0))
+	# Pile look (shell texturing) — carpet.gd keeps shell_count matched to the instances.
+	m.set_shader_parameter("shell_count", SHELL_COUNT)
+	m.set_shader_parameter("pile_height", 0.06)
+	m.set_shader_parameter("tuft_density", 48.0)
+	m.set_shader_parameter("tuft_thickness", 0.7)
+	m.set_shader_parameter("tuft_shape", 0)
+	m.set_shader_parameter("length_variation", 0.4)
+	m.set_shader_parameter("base_shade", 0.45)
 	return m
 
 
@@ -211,15 +218,22 @@ func _carpet_scene() -> PackedScene:
 	var root := Node3D.new()
 	root.name = "Carpet"
 	root.set_script(load("res://scenes/props/carpet.gd"))
-	var rug := MeshInstance3D.new()
-	rug.name = "Rug"
+	root.set("rug_size", RUG_SIZE)
+	root.set("shell_count", SHELL_COUNT)
+	# The pile is a MultiMesh of shell layers; carpet.gd (@tool) fills the instances (the
+	# transform buffer doesn't serialise reliably from a headless build).
+	var pile := MultiMeshInstance3D.new()
+	pile.name = "Pile"
+	pile.position = Vector3(0, 0.01, 0)  # just above the floor to avoid z-fighting
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(2.4, 1.6)
-	rug.mesh = plane
-	rug.position = Vector3(0, 0.01, 0)  # just above the floor to avoid z-fighting
-	rug.material_override = load(MAT_DIR + "carpet.tres")
-	root.add_child(rug)
-	rug.owner = root
+	plane.size = RUG_SIZE
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = plane
+	pile.multimesh = mm
+	pile.material_override = load(MAT_DIR + "carpet.tres")
+	root.add_child(pile)
+	pile.owner = root
 	var packed := PackedScene.new()
 	packed.pack(root)
 	return packed

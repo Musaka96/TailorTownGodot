@@ -6,10 +6,14 @@
 [sub_resource type="PlaneMesh" id="PlaneMesh_kcuwm"]
 size = Vector2(2.4, 1.6)
 
-[node name="Carpet" type="Node3D" unique_id=908518310]
+[sub_resource type="MultiMesh" id="MultiMesh_evpwt"]
+transform_format = 1
+mesh = SubResource("PlaneMesh_kcuwm")
+
+[node name="Carpet" type="Node3D" unique_id=1373321547]
 script = ExtResource("1_eynuv")
 
-[node name="Rug" type="MeshInstance3D" parent="." unique_id=1434712395]
+[node name="Pile" type="MultiMeshInstance3D" parent="." unique_id=31802489]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
 material_override = ExtResource("2_l1f2m")
-mesh = SubResource("PlaneMesh_kcuwm")
+multimesh = SubResource("MultiMesh_evpwt")
