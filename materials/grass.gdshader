@@ -100,6 +100,8 @@ void fragment() {
 	}
 	vec4 color = texture(color_gradient, vec2(noise_value, 0.0));
 	ALBEDO = color.rgb;
+	ROUGHNESS = 1.0;  // matte — no shiny/blown-out blades
+	SPECULAR = 0.0;
 
 	float alpha = shape_value;
 	if (alpha_mode == 0) {
@@ -115,7 +117,4 @@ void fragment() {
 	}
 }
 
-void light() {
-	float ndotl = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
-	DIFFUSE_LIGHT += ndotl * ALBEDO * LIGHT_COLOR;
-}
+// No custom light() — use Godot's standard matte diffuse so blades never over-brighten.

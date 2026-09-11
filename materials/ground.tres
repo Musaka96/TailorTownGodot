@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/ground.gdshader" id="1_xygne"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_xygne")
+shader_parameter/color_a = Color(0.36, 0.56, 0.22, 1)
+shader_parameter/color_b = Color(0.2, 0.38, 0.14, 1)
+shader_parameter/use_texture = false
+shader_parameter/tiling = null
+shader_parameter/patch_scale = 12.0
+shader_parameter/patch_amount = 0.5
+shader_parameter/patch_softness = 0.18
