@@ -169,8 +169,9 @@ Smoke tests: `test_phase1..6`, `test_save`, `test_shift`, `test_news`,
 
 > **The `build_phase1.gd` all-scene generator is GONE.** All game scenes are
 > hand-owned and edited in the Godot editor. Do not recreate a scene generator or
-> bulk-regenerate `.tscn`. (The dev skill doc's "rebuild order" still lists
-> build_phase1 — that is stale; ignore it.)
+> bulk-regenerate `.tscn`. (If any cached tooling doc shows a "rebuild order" that
+> includes `build_phase1`, it is stale — the repo's `.claude/skills/tailortown-dev/
+> SKILL.md` already documents the hand-owned model.)
 
 ## 7. Known issues / accepted debt
 
