@@ -1,0 +1,36 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/toon.gdshader" id="1_vbnu1"]
+
+[sub_resource type="Image" id="Image_j2eds"]
+data = {
+"data": PackedByteArray(255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255),
+"format": "RGB8",
+"height": 2,
+"mipmaps": false,
+"width": 2
+}
+
+[sub_resource type="ImageTexture" id="ImageTexture_b5jgc"]
+image = SubResource("Image_j2eds")
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_vbnu1")
+shader_parameter/albedo = Color(0.85, 0.85, 0.88, 1)
+shader_parameter/albedo_texture = SubResource("ImageTexture_b5jgc")
+shader_parameter/clamp_diffuse_to_max = null
+shader_parameter/cuts = 3
+shader_parameter/wrap = null
+shader_parameter/steepness = null
+shader_parameter/use_attenuation = null
+shader_parameter/use_specular = true
+shader_parameter/specular_strength = null
+shader_parameter/specular_shininess = null
+shader_parameter/specular_map = SubResource("ImageTexture_b5jgc")
+shader_parameter/use_rim = true
+shader_parameter/rim_width = null
+shader_parameter/rim_color = null
+shader_parameter/use_ramp = null
+shader_parameter/use_borders = null
+shader_parameter/border_width = null

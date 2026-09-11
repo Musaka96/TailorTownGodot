@@ -11,10 +11,7 @@ extends Node
 ## set_enabled(on) / toggle() to flip it, and `profile` to read/tweak the live one.
 
 const SHADER_PATH := "res://assets/shaders/retro_postfx.gdshader"
-## The toon/cel-shaded look is on by default. Edit data/postfx/toon.tres to tune it (band
-## count = posterize, ink = outline_strength), or point this at another data/postfx/*.tres
-## (e.g. chew.tres) to switch looks.
-const DEFAULT_PROFILE := "res://data/postfx/toon.tres"
+const DEFAULT_PROFILE := "res://data/postfx/chew.tres"
 ## Above UI (ui.tscn's CanvasLayer) so the filter covers the HUD too.
 const LAYER := 100
 

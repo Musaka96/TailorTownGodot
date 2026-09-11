@@ -1,15 +1,17 @@
 extends SceneTree
 
-## Builds the decorative prop scenes + materials for the grass and carpet shaders:
-##   materials/grass.tres, materials/carpet.tres
+## Builds the decorative prop scenes + materials for the grass, carpet and toon shaders:
+##   materials/grass.tres, materials/carpet.tres, materials/toon.tres
 ##   scenes/props/grass_patch.tscn  (a turf block with wind-swayed billboard blades)
 ##   scenes/props/carpet.tscn       (a flat rug you can drop any carpet texture onto)
+## toon.tres is a ready-to-apply cel material (drop on any mesh's Material Override).
 ## Default textures are embedded in the materials (no PNG/import step needed); swap the
 ## carpet's texture in the inspector to recreate any rug.
 ##   godot --headless --path . --script res://tools/build_props.gd
 
 const GRASS_SHADER := "res://materials/grass.gdshader"
 const CARPET_SHADER := "res://materials/carpet.gdshader"
+const TOON_SHADER := "res://materials/toon.gdshader"
 const MAT_DIR := "res://materials/"
 const SCENE_DIR := "res://scenes/props/"
 
@@ -24,6 +26,7 @@ func _initialize() -> void:
 	var fails := 0
 	fails += _save(_grass_material(), MAT_DIR + "grass.tres")
 	fails += _save(_carpet_material(), MAT_DIR + "carpet.tres")
+	fails += _save(_toon_material(), MAT_DIR + "toon.tres")
 	fails += _save(_grass_scene(), SCENE_DIR + "grass_patch.tscn")
 	fails += _save(_carpet_scene(), SCENE_DIR + "carpet.tscn")
 	print("build_props: done, %d failure(s)" % fails)
@@ -55,6 +58,24 @@ func _grass_material() -> ShaderMaterial:
 	m.set_shader_parameter("alpha_mode", 2)  # Cut — clean opaque blades
 	m.set_shader_parameter("alpha_cut_start", 0.25)
 	m.set_shader_parameter("alpha_cut_end", 0.6)
+	return m
+
+
+## A ready-to-apply cel-shading material using the untouched linked toon shader. Drop it on
+## any mesh's Material Override. A white albedo/specular texture is supplied so meshes render
+## in the `albedo` colour (the shader multiplies albedo by these textures).
+func _toon_material() -> ShaderMaterial:
+	var white := Image.create(2, 2, false, Image.FORMAT_RGB8)
+	white.fill(Color(1, 1, 1))
+	var tex := ImageTexture.create_from_image(white)
+	var m := ShaderMaterial.new()
+	m.shader = load(TOON_SHADER)
+	m.set_shader_parameter("albedo", Color(0.85, 0.85, 0.88))
+	m.set_shader_parameter("albedo_texture", tex)
+	m.set_shader_parameter("specular_map", tex)
+	m.set_shader_parameter("cuts", 3)
+	m.set_shader_parameter("use_specular", true)
+	m.set_shader_parameter("use_rim", true)
 	return m
 
 
@@ -189,6 +210,7 @@ func _grass_scene() -> PackedScene:
 func _carpet_scene() -> PackedScene:
 	var root := Node3D.new()
 	root.name = "Carpet"
+	root.set_script(load("res://scenes/props/carpet.gd"))
 	var rug := MeshInstance3D.new()
 	rug.name = "Rug"
 	var plane := PlaneMesh.new()

@@ -18,14 +18,14 @@ center_offset = Vector3(0, 0.21, 0)
 transform_format = 1
 mesh = SubResource("QuadMesh_7xt4x")
 
-[node name="GrassPatch" type="Node3D" unique_id=2080438238]
+[node name="GrassPatch" type="Node3D" unique_id=1838257969]
 script = ExtResource("1_j74kf")
 
-[node name="Turf" type="MeshInstance3D" parent="." unique_id=1918466430]
+[node name="Turf" type="MeshInstance3D" parent="." unique_id=2035162011]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
 material_override = SubResource("StandardMaterial3D_rogjq")
 mesh = SubResource("BoxMesh_t7wdc")
 
-[node name="Blades" type="MultiMeshInstance3D" parent="." unique_id=1715509617]
+[node name="Blades" type="MultiMeshInstance3D" parent="." unique_id=35735444]
 material_override = ExtResource("2_44g6m")
 multimesh = SubResource("MultiMesh_gahno")
