@@ -603,3 +603,19 @@ func _buy_upgrade() -> void:
 		Sfx.play("coins")
 		_status = "  — purchased!"
 	_refresh()
+
+
+## Global screen centre of the choice the player should act on now — used by the tutorial's
+## hand pointer. Returns the selected card (hub option / supplier / order row); (-1,-1) none.
+func tutorial_hint_point() -> Vector2:
+	var card: Control = null
+	if _screen == Screen.SUPPLIERS and _contacts != null:
+		var idx := _row + 1  # _contacts[0] is the "Contacts" header
+		if idx < _contacts.get_child_count():
+			card = _contacts.get_child(idx) as Control
+	elif _rows != null and _row < _rows.get_child_count():
+		card = _rows.get_child(_row) as Control
+	if card == null:
+		return Vector2(-1, -1)
+	var r := card.get_global_rect()
+	return r.position + r.size * 0.5

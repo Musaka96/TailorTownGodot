@@ -34,6 +34,9 @@ func _find_nearest() -> Interactable:
 	var best_dist := INF
 	for area in get_overlapping_areas():
 		if area is Interactable and area.is_in_group("interactable"):
+			# During the tutorial, ignore stations that aren't the current step's target.
+			if Tutorial != null and Tutorial.blocks(area.target):
+				continue
 			var d := global_position.distance_squared_to(area.global_position)
 			if d < best_dist:
 				best_dist = d

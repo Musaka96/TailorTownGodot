@@ -42,6 +42,7 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	add_to_group("customer_manager")  # the tutorial finds us here to poof a customer in
 	EventBus.order_due.connect(_on_order_due)
 	# Defer so all sibling markers/stations exist and report global positions.
 	call_deferred("_start")
@@ -57,12 +58,6 @@ func _start() -> void:
 	_door_out = _pos(door_out_path)
 	_street_west = _pos(street_west_path)
 	_street_east = _pos(street_east_path)
-
-	# One customer is already inside, waiting to be greeted.
-	var first := _spawn(_greet, true)
-	_served = first
-	first.offer_greeting()
-	EventBus.customer_waiting.emit(first)
 
 	var timer := Timer.new()
 	timer.wait_time = spawn_interval
@@ -89,6 +84,53 @@ func _spawn_tick() -> void:
 	else:
 		var walker := _spawn(start, false)
 		walker.walk([far_end], walker.despawn)
+
+
+## Poof a customer into the shop at the greet spot for the tutorial fitting step.
+func spawn_tutorial_customer() -> void:
+	if _served != null or _greet == Vector3.ZERO:
+		return
+	var cust := _spawn(_greet, true)
+	_served = cust
+	_poof_at(cust.global_position)
+	cust.offer_greeting()
+	EventBus.customer_waiting.emit(cust)
+
+
+## A quick "magic" puff of warm motes at `pos` (used when a customer poofs in).
+func _poof_at(pos: Vector3) -> void:
+	if Sfx != null:
+		Sfx.play("cloth_rustle", 0.0, 1.1, 1.35)
+	var qm := QuadMesh.new()
+	qm.size = Vector2(0.14, 0.14)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.vertex_color_use_as_albedo = true
+	qm.material = mat
+	var p := CPUParticles3D.new()
+	p.mesh = qm
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 30
+	p.lifetime = 0.7
+	p.direction = Vector3.UP
+	p.spread = 80.0
+	p.initial_velocity_min = 1.2
+	p.initial_velocity_max = 2.8
+	p.gravity = Vector3(0, -2.5, 0)
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.5
+	p.color = Color(0.98, 0.95, 0.86)
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 1))
+	ramp.set_color(1, Color(1, 1, 1, 0))
+	p.color_ramp = ramp
+	add_child(p)
+	p.global_position = pos + Vector3(0, 0.9, 0)
+	p.emitting = true
+	get_tree().create_timer(1.4).timeout.connect(p.queue_free)
 
 
 func _send_shopper(start: Vector3) -> void:

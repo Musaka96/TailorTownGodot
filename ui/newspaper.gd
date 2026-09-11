@@ -50,6 +50,9 @@ func close() -> void:
 
 
 func _on_newspaper_ready(_day: int) -> void:
+	# Don't slide the paper up over the first-run tutorial.
+	if Tutorial != null and Tutorial.is_active():
+		return
 	open()
 
 

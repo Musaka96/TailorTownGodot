@@ -72,17 +72,31 @@ const STEPS := [
 		"event": "item_stored",
 		"match": "ClothingRack",
 	},
-	{"id": "greet", "text": T_GREET, "point": "Mirror", "event": "customer_seated"},
+	{"id": "greet", "text": T_GREET, "point": "", "event": "customer_seated", "customer": true},
 	{"id": "design", "text": "", "point": "Mirror", "event": "design_confirmed"},
 	{"id": "orders", "text": T_ORDERS, "point": "", "event": ""},
 	{"id": "reputation", "text": T_REP, "point": "", "event": ""},
 	{"id": "handbook", "text": T_HANDBOOK, "point": "Bookshelf", "event": ""},
 ]
 
+# Station node-name prefixes gated during a make step (only the step's own is usable).
+const STATIONS := [
+	"Phone",
+	"Shelf",
+	"Worktable",
+	"SewingMachine",
+	"ClothingRack",
+	"Mirror",
+	"Bookshelf",
+	"Mannequin",
+	"TrashCan",
+]
+
 var _active := false
 var _step := 0
 var _customer: Node = null
 var _time := 0.0
+var _on_choose := Callable()
 
 var _layer: CanvasLayer
 var _bubble: PanelContainer
@@ -99,20 +113,53 @@ func _ready() -> void:
 	EventBus.piece_cut.connect(func(_p): _try("piece_cut"))
 	EventBus.piece_sewn.connect(func(_p): _try("piece_sewn"))
 	EventBus.customer_seated.connect(_on_customer_seated)
+	EventBus.customer_waiting.connect(func(cust): _customer = cust)
 	EventBus.design_confirmed.connect(func(_d): _try("design_confirmed"))
 
 
-## Offer the tutorial (called on a new game). Shows a small yes/no prompt.
-func offer() -> void:
+## Offer the tutorial (called on a new game). Shows a yes/no prompt; `on_choose` runs once
+## the player picks either way (so the caller can start the day only after the choice).
+func offer(on_choose := Callable()) -> void:
 	if _active:
 		return
+	_on_choose = on_choose
 	_build()
 	_show_prompt()
+
+
+func is_active() -> bool:
+	return _active
+
+
+## True while a make step is running and `target` is a DIFFERENT station than this step's —
+## used to lock the player to the current step's station (items/customer are never blocked).
+func blocks(target: Node) -> bool:
+	if not _active or target == null:
+		return false
+	var step: Dictionary = STEPS[_step]
+	if step.get("event", "") == "":
+		return false  # info steps: roam freely
+	var nm := str(target.name)
+	var is_station := false
+	for s: String in STATIONS:
+		if nm.begins_with(s):
+			is_station = true
+			break
+	if not is_station:
+		return false
+	var want: String = step.get("point", "")
+	return want == "" or not nm.begins_with(want)
 
 
 func _on_customer_seated(cust: Node) -> void:
 	_customer = cust
 	_try("customer_seated")
+
+
+func _choose_done() -> void:
+	if _on_choose.is_valid():
+		_on_choose.call()
+		_on_choose = Callable()
 
 
 # --- Flow ------------------------------------------------------------------
@@ -121,12 +168,13 @@ func _on_customer_seated(cust: Node) -> void:
 func _start() -> void:
 	_active = true
 	_step = 0
-	_next.get_parent().get_parent().visible = true  # the bubble
+	_choose_done()  # the player chose the tutorial — let the day begin
 	_apply_step()
 
 
 func _finish() -> void:
 	_active = false
+	_choose_done()  # skipped before starting: still begin the day
 	if _layer != null:
 		_layer.visible = false
 
@@ -154,11 +202,20 @@ func _advance() -> void:
 
 func _apply_step() -> void:
 	var step: Dictionary = STEPS[_step]
+	if step.get("id", "") == "greet" and _customer == null:
+		_spawn_customer()
 	_text.text = _step_text(step)
 	# Info steps (no gameplay event) advance with the Next button.
 	_next.visible = step.get("event", "") == ""
 	if _hand != null:
-		_hand.visible = step.get("point", "") != ""
+		_hand.visible = step.get("point", "") != "" or step.get("customer", false)
+
+
+## Poof a customer into the shop for the fitting step (via the customer manager).
+func _spawn_customer() -> void:
+	var mgr := get_tree().get_first_node_in_group("customer_manager")
+	if mgr != null and mgr.has_method("spawn_tutorial_customer"):
+		mgr.spawn_tutorial_customer()
 
 
 ## The step's text, with the customer brief spliced into the design step.
@@ -168,7 +225,7 @@ func _step_text(step: Dictionary) -> String:
 	var pref = _customer.get("preference") if _customer != null else null
 	if pref == null:
 		return "Design a suit at the mirror to match the customer, then press E to confirm."
-	return "This customer wants: %s.\n\n%s" % [pref.summary(), T_DESIGN]
+	return "This customer wants: %s.\n\n%s" % [pref.describe(), T_DESIGN]
 
 
 # --- Pointer ---------------------------------------------------------------
@@ -187,19 +244,30 @@ func _process(delta: float) -> void:
 	_hand.position = pos + Vector2(-16, 24 + sin(_time * 6.0) * 6.0)
 
 
-## Screen position of the current step's target, or (-1,-1) if not visible.
+## Screen position of the current step's target, or (-1,-1) if not shown.
 func _point_screen() -> Vector2:
-	var name: String = STEPS[_step].get("point", "")
+	var step: Dictionary = STEPS[_step]
+	# While the phone menu is open on the order step, point at the choice to make in it.
+	if step.get("id", "") == "order" and UI != null and UI.phone_order != null:
+		if UI.phone_order.visible and UI.phone_order.has_method("tutorial_hint_point"):
+			var p: Vector2 = UI.phone_order.tutorial_hint_point()
+			if p.x >= 0.0:
+				return p
+	if step.get("customer", false):
+		return _project(_customer)
+	var name: String = step.get("point", "")
 	if name == "":
 		return Vector2(-1, -1)
 	var scene: Node = get_tree().current_scene
 	if scene == null:
 		scene = get_tree().root
+	return _project(scene.find_child(name, true, false) as Node3D)
+
+
+## Project a Node3D's upper body to the screen; (-1,-1) if missing or behind the camera.
+func _project(node: Node3D) -> Vector2:
 	var cam := get_viewport().get_camera_3d()
-	if scene == null or cam == null:
-		return Vector2(-1, -1)
-	var node := scene.find_child(name, true, false) as Node3D
-	if node == null:
+	if node == null or cam == null or not is_instance_valid(node):
 		return Vector2(-1, -1)
 	var world := node.global_position + Vector3(0, POINT_Y, 0)
 	if cam.is_position_behind(world):
@@ -226,7 +294,9 @@ func _build() -> void:
 	_hand.text = HAND
 	# Fredoka has no emoji glyph — use a system font that carries the colour hand emoji.
 	var emoji := SystemFont.new()
-	emoji.font_names = PackedStringArray(["Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji"])
+	emoji.font_names = PackedStringArray(
+		["Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji"]
+	)
 	emoji.allow_system_fallback = true
 	_hand.add_theme_font_override("font", emoji)
 	_hand.add_theme_font_size_override("font_size", 44)

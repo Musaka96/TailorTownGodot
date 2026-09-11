@@ -104,23 +104,34 @@ func has_any_save() -> bool:
 ## Called from main.gd._ready. Applies a queued load to the fresh scene (or just
 ## kicks off a new day) and starts the clock. A no-op on a direct boot.
 func notify_game_ready() -> void:
-	match _mode:
+	var mode := _mode
+	_mode = ""
+	if UI != null:
+		UI.visible = true  # reveal the HUD/newspaper now that a game is running
+	match mode:
 		"load":
 			await _apply_pending()
 			DayNight.start_shift(_resume_progress)  # resume the day where it was saved
 			if Shift != null:
 				Shift.set_day_baseline(_resume_day_money)
+			get_tree().paused = false
 		"new":
 			await get_tree().process_frame
-			DayNight.start_shift()
 			if Tutorial != null:
-				Tutorial.offer()  # first-run: offer the guided walkthrough
+				# Freeze the shop (no day, no newspaper) until the tutorial is chosen/skipped.
+				get_tree().paused = true
+				Tutorial.offer(_begin_new_day)
+			else:
+				_begin_new_day()
 		_:
-			pass  # booted straight into main.tscn — DayNight already started at boot
-	_mode = ""
-	if UI != null:
-		UI.visible = true  # reveal the HUD/newspaper now that a game is running
+			get_tree().paused = false  # booted straight into main.tscn
+
+
+## Start the first day (called immediately for a fresh game, or once the tutorial prompt is
+## answered so the newspaper never pops before the player has chosen).
+func _begin_new_day() -> void:
 	get_tree().paused = false
+	DayNight.start_shift()
 
 
 # --- Capture ---------------------------------------------------------------
