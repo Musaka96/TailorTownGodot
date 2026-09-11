@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3 uid="uid://bvbr6mt5ls6gf"]
+
+[ext_resource type="Script" uid="uid://ctmohy5qr8o4u" path="res://data/scripts/postfx_profile.gd" id="1_5f4ej"]
+
+[resource]
+script = ExtResource("1_5f4ej")
+film_preset = 1
+film_strength = 0.065
+tilt_shift = 1.0
+tilt_focus_size = 1.0
+scanline_strength = 0.049
+scanline_count = 500.0
+chromatic_aberration = 0.069
+barrel_distortion = 0.184
