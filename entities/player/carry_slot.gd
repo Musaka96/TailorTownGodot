@@ -35,11 +35,14 @@ func try_pick_up(item: Node) -> bool:
 
 
 ## Put an item into the hands from a station (already removed from that station).
-func take_item(item: Node) -> void:
+## Returns false (leaving the item untouched) if the hands are already full, so callers
+## never silently orphan the node.
+func take_item(item: Node) -> bool:
 	if _held != null:
-		return
+		return false
 	_held = item
 	item.attach_to(_point())
+	return true
 
 
 ## Where held items attach: the rig's hand point if set, else the local marker.

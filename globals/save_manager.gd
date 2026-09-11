@@ -162,12 +162,14 @@ func capture(save_name := "") -> Dictionary:
 	}
 
 
+## Persist every in-scene node that implements save_state/load_state, keyed by its scene
+## path. Scanning by capability (not a fixed class list) means a new stateful station is
+## saved automatically — no edit here needed.
 func _capture_stations(scene: Node) -> Dictionary:
 	var out := {}
-	for cls in ["Shelf", "ClothingRack", "Mannequin", "Worktable"]:
-		for node in scene.find_children("*", cls, true, false):
-			if node.has_method("save_state"):
-				out[str(scene.get_path_to(node))] = node.save_state()
+	for node in scene.find_children("*", "Node", true, false):
+		if node.has_method("save_state") and node.has_method("load_state"):
+			out[str(scene.get_path_to(node))] = node.save_state()
 	return out
 
 

@@ -8,8 +8,8 @@ extends Node
 ## current fashion trend (News.current_fashion). Missing a deadline costs standing.
 ## Points map to named tiers that later gate which customers and content unlock.
 ##
-## Session state: it persists across days (it's an autoload, above the scene tree)
-## but resets on a fresh run. Saving to disk is a later concern.
+## State persists across days (it's an autoload, above the scene tree), resets on a fresh
+## run, and is captured/restored by SaveManager.
 
 ## Cumulative point thresholds and their rank names, low to high.
 const TIERS := [

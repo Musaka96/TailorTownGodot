@@ -48,8 +48,6 @@ signal order_due(order: Resource)
 signal order_fulfilled(order: Resource, payout: int)
 ## An order's deadline passed without it being finished; it was lost.
 signal order_expired(order: Resource)
-## A customer left the shop (served or gave up).
-signal customer_left(customer: Node)
 
 # --- Day / night shift ---
 ## A new work shift began at `start_hour` (midday).

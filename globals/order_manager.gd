@@ -68,17 +68,28 @@ func submit(suit: Node, actor: Node) -> void:
 	if suit == null or not (suit.get("parts") is Dictionary):
 		return
 	var parts: Dictionary = suit.parts
-	var used := 0
+	var matched: Array = []
 	for t in parts.keys():
 		var order := _first_open_for(int(t), parts[t])
 		if order != null:
 			_fill(order, int(t), parts[t])
-			used += 1
-	if used == 0:
-		if actor != null and actor.carry != null:
-			actor.carry.take_item(suit)
+			matched.append(t)
+	# Consume ONLY the pieces that were checked off against an order. Anything that
+	# matched nothing stays in the suit and is handed back — never silently destroyed.
+	for t in matched:
+		parts.erase(t)
+	if parts.is_empty():
+		suit.queue_free()
 		return
-	suit.queue_free()
+	if suit.has_method("_apply_visual"):
+		suit.call("_apply_visual")  # refresh the look now that some parts are gone
+	# Put the remaining suit in the player's hands; if their hands are full, leave it
+	# where it is and make it pickable so the work is never lost.
+	var taken := false
+	if actor != null and actor.carry != null:
+		taken = actor.carry.take_item(suit)
+	if not taken and suit.has_method("set_pickable"):
+		suit.call("set_pickable", true)
 
 
 ## The customer arrived and the order is READY: pay out and clear it.

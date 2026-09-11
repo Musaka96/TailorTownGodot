@@ -42,14 +42,19 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if running:
-		_elapsed += delta
-		var p := clampf(_elapsed / _shift_seconds(), 0.0, 1.0)
-		hour = lerpf(start_hour(), end_hour(), p)
-		if p >= 1.0:
-			running = false
-			EventBus.shift_ended.emit()
-			_ring()
+	if not running:
+		# Not counting time — the sun look is static, so only (re)position it the frame a
+		# new scene's sun turns up rather than rewriting it every idle frame.
+		if _locate():
+			_drive()
+		return
+	_elapsed += delta
+	var p := clampf(_elapsed / _shift_seconds(), 0.0, 1.0)
+	hour = lerpf(start_hour(), end_hour(), p)
+	if p >= 1.0:
+		running = false
+		EventBus.shift_ended.emit()
+		_ring()
 	_locate()
 	_drive()
 
@@ -102,14 +107,16 @@ func _shift_seconds() -> float:
 
 ## Find the sun in the current scene (re-finds when the scene changes, detected by
 ## the cached sun going invalid).
-func _locate() -> void:
+## Returns true only on the frame it (re)assigns the sun, so callers can drive it once.
+func _locate() -> bool:
 	if _sun != null and is_instance_valid(_sun):
-		return
+		return false
 	var scene := get_tree().current_scene
 	if scene == null:
-		return
+		return false
 	var lights := scene.find_children("*", "DirectionalLight3D", true, false)
 	_sun = lights[0] if not lights.is_empty() else null
+	return _sun != null
 
 
 ## Sweep the sun across the sky over the shift: a gentle elevation arc (low → midday

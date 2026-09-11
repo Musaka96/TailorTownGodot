@@ -75,6 +75,12 @@ func _run() -> void:
 		"only the matching jacket is checked off"
 	)
 	_check(not partial.is_complete(), "an order with unmade pieces stays open")
+	# The partial submit hands the unmatched pieces back (never destroyed); the leftover
+	# suit now sits in the player's hands. Confirm that, then clear it for later checks.
+	_check(not _player.carry.is_empty(), "unmatched pieces are handed back, not destroyed")
+	var leftover: Node = _player.carry.release()
+	if leftover != null:
+		leftover.queue_free()
 	orders.expire(partial)
 
 	# --- Approve a design: an order is created with a 1-5 day deadline ---

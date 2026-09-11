@@ -37,7 +37,9 @@ func _run() -> void:
 	_give(_make(SHIRT, SEWN, 0.9))
 	rack.interact(_player)
 	_check(rack.stored.size() == 1 and _player.carry.is_empty(), "hung a part on the rack")
-	rack.interact(_player)
+	# Empty-handed interact now opens the browse menu (a no-op headless); the menu calls
+	# rack.take() to retrieve a piece, so exercise that path directly.
+	rack.take(0, _player)
 	_check(rack.stored.size() == 0 and not _player.carry.is_empty(), "took the part back")
 	_drop()
 
