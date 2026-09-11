@@ -40,7 +40,10 @@ signal customer_seated(customer: Node)
 signal order_created(order: Resource)
 ## A made piece was checked off against an order (garment_type of Enums.GarmentType).
 signal order_part_filled(order: Resource, garment_type: int)
-## Every piece of an order is checked off; it now waits for the customer to collect.
+## Every piece of an order has been made — it now needs assembling into a suit at the
+## mannequin before it can be collected.
+signal order_pieces_ready(order: Resource)
+## The suit was assembled at the mannequin; the order now waits for the customer to collect.
 signal order_ready(order: Resource)
 ## An order's deadline arrived — the customer is on their way back to collect it.
 signal order_due(order: Resource)

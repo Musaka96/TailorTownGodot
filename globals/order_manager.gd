@@ -21,6 +21,7 @@ const SECONDS_PER_DAY_DEFAULT := 120.0
 
 var active: Array[SuitOrder] = []
 
+var _next_id := 1
 var _rng := RandomNumberGenerator.new()
 
 
@@ -48,6 +49,8 @@ func create_order(
 	hair_color := Color(0.14, 0.11, 0.09)
 ) -> SuitOrder:
 	var order := SuitOrder.new()
+	order.id = _next_id
+	_next_id += 1
 	order.customer_name = customer_name
 	order.design = design.duplicate(true)
 	order.price = price
@@ -61,35 +64,41 @@ func create_order(
 	return order
 
 
-## Deliver a freshly packaged suit. Each of its pieces is checked off against the
-## first open order that still needs a matching piece. Any piece that fits nowhere
-## is left in the suit; if nothing at all matched, the suit is handed back.
-func submit(suit: Node, actor: Node) -> void:
-	if suit == null or not (suit.get("parts") is Dictionary):
-		return
-	var parts: Dictionary = suit.parts
-	var matched: Array = []
-	for t in parts.keys():
-		var order := _first_open_for(int(t), parts[t])
-		if order != null:
-			_fill(order, int(t), parts[t])
-			matched.append(t)
-	# Consume ONLY the pieces that were checked off against an order. Anything that
-	# matched nothing stays in the suit and is handed back — never silently destroyed.
-	for t in matched:
-		parts.erase(t)
-	if parts.is_empty():
-		suit.queue_free()
-		return
-	if suit.has_method("_apply_visual"):
-		suit.call("_apply_visual")  # refresh the look now that some parts are gone
-	# Put the remaining suit in the player's hands; if their hands are full, leave it
-	# where it is and make it pickable so the work is never lost.
-	var taken := false
-	if actor != null and actor.carry != null:
-		taken = actor.carry.take_item(suit)
-	if not taken and suit.has_method("set_pickable"):
-		suit.call("set_pickable", true)
+## Check a freshly-sewn piece off the first open order that still needs a matching
+## piece, stamping the piece with that order's number. Returns the order it filled (or
+## null if the piece fits no open order — a spare/speculative piece).
+func register_piece(piece: Node) -> SuitOrder:
+	if piece == null:
+		return null
+	var part := {"material": piece.get("material"), "quality": float(piece.quality)}
+	var order := _first_open_for(int(piece.garment_type), part)
+	if order == null:
+		return null
+	piece.set("order_id", order.id)
+	_fill(order, int(piece.get("garment_type")), part)
+	return order
+
+
+## Assemble the order with this number: mark it READY (the suit has been built at the
+## mannequin) so the customer can return to collect it. Returns the order, or null if
+## the id isn't an open order whose pieces are all made.
+func assemble(order_id: int) -> SuitOrder:
+	if order_id <= 0:
+		return null
+	for order in active:
+		if order.id == order_id and order.state == SuitOrder.State.OPEN and order.is_complete():
+			order.state = SuitOrder.State.READY
+			EventBus.order_ready.emit(order)
+			return order
+	return null
+
+
+## The open order with this number, or null.
+func by_id(order_id: int) -> SuitOrder:
+	for order in active:
+		if order.id == order_id:
+			return order
+	return null
 
 
 ## The customer arrived and the order is READY: pay out and clear it.
@@ -126,6 +135,7 @@ func save_state() -> Array:
 			out
 			. append(
 				{
+					"id": order.id,
 					"customer_name": order.customer_name,
 					"design": order.design.duplicate(true),
 					"price": order.price,
@@ -147,8 +157,11 @@ func save_state() -> Array:
 ## returning-customer flow resumes cleanly after loading.
 func restore(saved: Array) -> void:
 	active.clear()
+	_next_id = 1
 	for d: Dictionary in saved:
 		var order := SuitOrder.new()
+		order.id = int(d.get("id", _next_id))
+		_next_id = maxi(_next_id, order.id + 1)
 		order.customer_name = str(d.get("customer_name", "Customer"))
 		order.design = (d.get("design", {}) as Dictionary).duplicate(true)
 		order.price = int(d.get("price", 0))
@@ -226,9 +239,10 @@ func _fill(order: SuitOrder, garment_type: int, part: Dictionary) -> void:
 	var quality := clampf(float(part.get("quality", 1.0)), 0.0, 1.0)
 	order.fill_part(garment_type, score, quality)
 	EventBus.order_part_filled.emit(order, garment_type)
+	# All pieces made — but NOT ready yet: the player must assemble them into a suit at
+	# the mannequin, which is what flips the order to READY (see assemble()).
 	if order.is_complete():
-		order.state = SuitOrder.State.READY
-		EventBus.order_ready.emit(order)
+		EventBus.order_pieces_ready.emit(order)
 
 
 ## First open order (FIFO) that still needs this garment type and is matched well.

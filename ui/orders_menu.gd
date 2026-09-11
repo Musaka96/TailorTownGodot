@@ -27,6 +27,7 @@ var _decor_built := false
 func _ready() -> void:
 	EventBus.order_created.connect(_on_changed)
 	EventBus.order_part_filled.connect(func(_o, _t): _on_changed(null))
+	EventBus.order_pieces_ready.connect(_on_changed)
 	EventBus.order_ready.connect(_on_changed)
 	EventBus.order_fulfilled.connect(func(_o, _p): _on_changed(null))
 	EventBus.order_expired.connect(_on_changed)
@@ -132,7 +133,7 @@ func _make_list_card(order, selected: bool) -> Control:
 	card.add_child(box)
 	var head := HBoxContainer.new()
 	box.add_child(head)
-	var who := _line(order.customer_name, 17, Style.INK)
+	var who := _line("#%d  %s" % [order.id, order.customer_name], 17, Style.INK)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(who)
 	head.add_child(_status_label(order))
@@ -150,7 +151,7 @@ func _make_list_card(order, selected: bool) -> Control:
 
 
 func _fill_detail(order) -> void:
-	_detail.add_child(_line(order.customer_name, 22, Style.INK))
+	_detail.add_child(_line("Order #%d  ·  %s" % [order.id, order.customer_name], 22, Style.INK))
 	_detail.add_child(_status_line(order))
 	_detail.add_child(_line("Agreed price: $%d" % order.price, 16, Style.LEAF))
 
@@ -195,7 +196,9 @@ func _status_line(order) -> Label:
 	var days: int = order.days_left_ceil()
 	var noun := "day" if days == 1 else "days"
 	if order.state == SuitOrder.State.READY:
-		return _line("Ready — collected in %d %s" % [days, noun], 16, Style.LEAF)
+		return _line("Ready for pickup — order #%d" % order.id, 16, Style.LEAF)
+	if order.is_complete():
+		return _line("Pieces made — assemble at the mannequin", 16, Style.BRASS)
 	return _line(
 		"In progress — due in %d %s" % [days, noun],
 		16,
@@ -206,6 +209,8 @@ func _status_line(order) -> Label:
 func _status_label(order) -> Label:
 	if order.state == SuitOrder.State.READY:
 		return _line("READY", 14, Style.LEAF)
+	if order.is_complete():
+		return _line("ASSEMBLE", 14, Style.BRASS)
 	return _line(
 		"%dd" % order.days_left_ceil(), 14, Style.fill_color(order.days_left / order.deadline_days)
 	)

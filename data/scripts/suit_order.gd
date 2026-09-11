@@ -8,13 +8,18 @@ extends Resource
 ## is READY and waits for the customer to return on their deadline day to collect
 ## and pay. Matching is forgiving: payout scales with match and craft quality.
 
-## Lifecycle: OPEN (pieces still being made) → READY (all pieces done, awaiting
-## collection). Fulfilled and expired orders are removed from the list entirely.
+## Lifecycle: OPEN (pieces still being made — each is checked off as it is sewn) →
+## (all pieces made) still OPEN, now awaiting assembly at the mannequin → READY (the
+## suit has been assembled and tagged with this order's number, awaiting the customer
+## to return and collect it in person). Fulfilled/expired orders leave the list.
 enum State { OPEN, READY }
 
 ## Colour counts as matched when the delivered cloth is this close (RGB distance).
 const COLOR_TOLERANCE := 0.14
 
+## Human-facing order number (#1, #2, …). Stamped on the pieces and the assembled suit
+## so the returning customer's suit can be told apart from everyone else's.
+@export var id: int = 0
 @export var customer_name: String = "Customer"
 ## GarmentType(int) -> { fabric, color, pattern, style_idx } (from the suit builder).
 @export var design: Dictionary = {}

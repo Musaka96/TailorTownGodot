@@ -89,6 +89,7 @@ func _package(actor) -> void:
 	var jacket = _dressed[Enums.GarmentType.JACKET]
 	if jacket.material != null:
 		suit.primary_color = jacket.material.cloth_color
+	suit.order_id = _pieces_order_id()
 
 	for t in _dressed.keys():
 		_dressed[t].queue_free()
@@ -97,8 +98,27 @@ func _package(actor) -> void:
 
 	add_child(suit)
 	EventBus.suit_packaged.emit(suit)
-	# Deliver against an open order (pays out and consumes it) or hand it over.
-	Orders.submit(suit, actor)
+	# Mark that order READY for pickup (its pieces were checked off when sewn). The suit
+	# itself stays a physical item: hand it to the player to hang on the rack / deliver.
+	if Orders != null:
+		Orders.assemble(suit.order_id)
+	if actor == null or actor.carry == null or not actor.carry.take_item(suit):
+		suit.set_pickable(true)
+
+
+## The order number these three pieces belong to — the id they all share (0 if they
+## were made for different orders or none, in which case the suit fulfils no order).
+func _pieces_order_id() -> int:
+	var id := 0
+	for t in _dressed.keys():
+		var piece_id := int(_dressed[t].get("order_id"))
+		if piece_id == 0:
+			return 0
+		if id == 0:
+			id = piece_id
+		elif id != piece_id:
+			return 0
+	return id
 
 
 # --- Save / load -----------------------------------------------------------

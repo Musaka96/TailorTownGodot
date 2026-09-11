@@ -7,6 +7,8 @@ extends Node3D
 
 @export var quality: float = 1.0
 @export var primary_color: Color = Color(0.2, 0.2, 0.24)
+## The order this suit fulfils, stamped at assembly (0 = a speculative suit for no order).
+@export var order_id: int = 0
 
 ## GarmentType(int) -> { material, quality, size, style }
 var parts := {}
@@ -20,6 +22,8 @@ func _ready() -> void:
 
 
 func get_interaction_prompt(_actor) -> String:
+	if order_id > 0:
+		return "Pick up suit for order #%d  (Q %d%%)" % [order_id, roundi(quality * 100.0)]
 	return "Pick up finished suit  (Q %d%%)" % roundi(quality * 100.0)
 
 

@@ -74,12 +74,14 @@ static func item_to(node: Node) -> Dictionary:
 			"style": node.style,
 			"quality": node.quality,
 			"stage": int(node.stage),
+			"order_id": int(node.order_id),
 		}
 	if node is Suit:
 		return {
 			"kind": "suit",
 			"quality": node.quality,
 			"primary_color": node.primary_color,
+			"order_id": int(node.order_id),
 			"parts": _suit_parts_to(node.parts),
 		}
 	return {}
@@ -107,11 +109,13 @@ static func item_from(d: Dictionary) -> Node:
 			g.style = str(d.get("style", "Classic"))
 			g.quality = float(d.get("quality", 1.0))
 			g.stage = int(d.get("stage", Enums.Stage.CUT))
+			g.order_id = int(d.get("order_id", 0))
 			return g
 		"suit":
 			var s: Node = SUIT_SCENE.instantiate()
 			s.quality = float(d.get("quality", 1.0))
 			s.primary_color = d.get("primary_color", Color(0.2, 0.2, 0.24))
+			s.order_id = int(d.get("order_id", 0))
 			s.parts = _suit_parts_from(d.get("parts", {}))
 			return s
 	return null

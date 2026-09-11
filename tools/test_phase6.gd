@@ -9,6 +9,7 @@ extends SceneTree
 const SHIRT := 0
 const PANTS := 1
 const JACKET := 2
+const SEWN := 3  # Enums.Stage.SEWN
 
 var _main: Node
 var _player: Node
@@ -62,49 +63,60 @@ func _run() -> void:
 	var orders: Node = root.get_node("Orders")
 	var game: Node = root.get_node("GameState")
 
-	# --- Per-piece: a suit matching only some pieces checks off just those ---
-	# (run in isolation first — piece matching is FIFO across open orders.)
-	var partial = orders.create_order("Partial", design, quote, Color.WHITE)
-	var mixed := _suit_from(design, 0.9)
-	var off = _mismatch_material(design[JACKET])
-	mixed.parts[SHIRT]["material"] = off
-	mixed.parts[PANTS]["material"] = off
-	orders.submit(mixed, _player)
-	_check(
-		partial.is_part_done(JACKET) and not partial.is_part_done(SHIRT),
-		"only the matching jacket is checked off"
-	)
-	_check(not partial.is_complete(), "an order with unmade pieces stays open")
-	# The partial submit hands the unmatched pieces back (never destroyed); the leftover
-	# suit now sits in the player's hands. Confirm that, then clear it for later checks.
-	_check(not _player.carry.is_empty(), "unmatched pieces are handed back, not destroyed")
-	var leftover: Node = _player.carry.release()
-	if leftover != null:
-		leftover.queue_free()
-	orders.expire(partial)
-
-	# --- Approve a design: an order is created with a 1-5 day deadline ---
+	# --- Approve a design: a numbered order is created with a 1-5 day deadline ---
 	var order = orders.create_order(pref.display_name, design, quote, Color.WHITE)
+	_check(order.id > 0, "order gets a number (#%d)" % order.id)
 	_check(orders.active.size() == 1, "approving a design creates an order")
 	_check(order.deadline_days >= 1 and order.deadline_days <= 5, "order gets a 1-5 day deadline")
 
-	# --- A matching suit checks off every piece → order becomes READY ---
-	var money_before: int = game.money
+	# --- Pieces check off the order as they're sewn, stamped with the order number ---
+	var jacket_piece := _piece_from(design, JACKET, 0.9)
+	var filled_by = orders.register_piece(jacket_piece)
+	_check(filled_by == order and order.is_part_done(JACKET), "a sewn jacket checks off the order")
+	_check(int(jacket_piece.order_id) == order.id, "the sewn piece is stamped with the order number")
+
+	# A piece that breaks the brief matches no open slot — it's a spare (order 0).
+	var bad_shirt := _piece_from(design, SHIRT, 0.9)
+	bad_shirt.material = _mismatch_material(design[SHIRT])
+	_check(orders.register_piece(bad_shirt) == null, "a mismatched piece matches no order")
+	_check(
+		int(bad_shirt.order_id) == 0 and not order.is_part_done(SHIRT),
+		"the mismatched piece is a spare, order slot still open"
+	)
+
+	# Finish the rest: all pieces made, but the order is NOT ready until it's assembled.
+	orders.register_piece(_piece_from(design, SHIRT, 0.9))
+	orders.register_piece(_piece_from(design, PANTS, 0.9))
+	_check(order.is_complete(), "all pieces made completes the order's checklist")
+	_check(not orders.is_ready(order), "pieces made is NOT yet READY (needs assembly)")
+
+	# --- Assemble at the mannequin → the order goes READY for pickup ---
 	var suit := _suit_from(design, 0.9)
-	orders.submit(suit, _player)
-	_check(order.is_complete(), "a matching suit checks off all three pieces")
-	_check(orders.is_ready(order), "a fully-made order is READY (awaiting collection)")
-	_check(game.money == money_before, "no payment until the customer collects")
+	suit.order_id = order.id  # the mannequin stamps this from the pieces' order number
+	_check(orders.assemble(order.id) == order, "assembling marks the order READY")
+	_check(orders.is_ready(order), "an assembled order is READY (awaiting collection)")
 
-	# --- The customer collects: the shop is paid and the order clears ---
-	var payout: int = orders.collect(order)
-	_check(payout > 0 and orders.active.is_empty(), "collecting pays out and clears the order")
-	_check(game.money > money_before, "shop was paid (%d -> %d)" % [money_before, game.money])
+	# --- Delivery: the customer only takes the suit with their order number ---
+	var money_before: int = game.money
+	customer.offer_collection(order)
+	var wrong := _suit_from(design, 0.9)  # untagged (order 0)
+	_player.carry.take_item(wrong)
+	customer.interact(_player)
+	_check(
+		not orders.active.is_empty() and game.money == money_before,
+		"the wrong suit is refused (no payment, order still open)"
+	)
+	var w: Node = _player.carry.release()
+	if w != null:
+		w.queue_free()
 
-	# --- Edge: a suit with no open order is handed to the player ---
-	var stray := _suit_from(design, 0.9)
-	orders.submit(stray, _player)
-	_check(not _player.carry.is_empty(), "suit with no order is kept by the player")
+	# The right suit hands over: paid and the order clears.
+	_player.carry.take_item(suit)
+	customer.interact(_player)
+	_check(orders.active.is_empty(), "delivering the matching suit clears the order")
+	_check(
+		game.money > money_before, "shop was paid on delivery (%d -> %d)" % [money_before, game.money]
+	)
 
 	_finish()
 
@@ -158,6 +170,19 @@ func _all_parts(fabric: int, color: int, pattern: int) -> Dictionary:
 	for t in [JACKET, SHIRT, PANTS]:
 		d[t] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
 	return d
+
+
+## A single SEWN garment piece cut from the design's cloth for `garment_type`.
+func _piece_from(design: Dictionary, garment_type: int, quality: float) -> Node:
+	var g: Node = load("res://entities/items/garment_piece.tscn").instantiate()
+	_main.add_child(g)
+	var c: Dictionary = design[garment_type]
+	g.material = _factory().make(c["fabric"], c["pattern"], c["color"], 2.0)
+	g.garment_type = garment_type
+	g.size = 1
+	g.stage = SEWN
+	g.quality = quality
+	return g
 
 
 func _suit_from(design: Dictionary, quality: float) -> Node:

@@ -17,6 +17,9 @@ const MODEL_NAME := {
 @export var style: String = "Classic"
 @export var quality: float = 1.0
 @export var stage: Enums.Stage = Enums.Stage.CUT
+## The order number this piece was checked off against when sewn (0 = not matched to
+## any order — a speculative/spare piece).
+@export var order_id: int = 0
 
 @onready var _models: Node3D = $Models
 @onready var _interactable: Interactable = $Interactable

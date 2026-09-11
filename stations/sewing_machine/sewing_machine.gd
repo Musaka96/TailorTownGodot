@@ -56,6 +56,10 @@ func finish_sew(success: bool, quality: float) -> void:
 	# Final quality combines the cut and sew performance.
 	_item.quality = clampf(_item.quality * quality, 0.05, 1.0)
 	_item.stage = Enums.Stage.SEWN
+	# Check the finished piece off the first open order that needs it (stamps its order #),
+	# so the order card fills in as you work. A spare piece just matches nothing.
+	if Orders != null:
+		Orders.register_piece(_item)
 	EventBus.piece_sewn.emit(_item)
 
 

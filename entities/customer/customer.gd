@@ -247,15 +247,17 @@ func _leave() -> void:
 		manager.dismiss(self)
 
 
-func get_interaction_prompt(_actor) -> String:
+func get_interaction_prompt(actor) -> String:
 	match _mode:
 		Mode.GREET:
 			return "Greet %s" % _label()
 		Mode.MIRROR:
 			return "Design %s's suit" % _label()
 		Mode.COLLECT:
-			var pay := collect_order.payout() if collect_order != null else 0
-			return "Hand %s their suit  (+$%d)" % [_label(), pay]
+			if _carrying_my_suit(_actor_suit(actor)):
+				var pay := collect_order.payout() if collect_order != null else 0
+				return "Hand %s order #%d  (+$%d)" % [_label(), collect_order.id, pay]
+			return "Bring %s their suit (order #%d)" % [_label(), _order_id()]
 	return ""
 
 
@@ -267,12 +269,53 @@ func interact(actor) -> void:
 			if mirror != null:
 				UI.open_suit_builder(mirror, actor)
 		Mode.COLLECT:
-			var order := collect_order
-			Orders.collect(order)
-			collect_order = null
-			if order != null:
-				wear_suit_from_design(order.design)  # put the finished suit on
-			finish_and_leave()
+			_try_collect(actor)
+
+
+## Hand over the suit if the player is carrying the one that matches this order's number;
+## otherwise the customer states their order and brief, and keeps waiting.
+func _try_collect(actor) -> void:
+	var suit := _actor_suit(actor)
+	if not _carrying_my_suit(suit):
+		_ask_for_suit()
+		return
+	var order := collect_order
+	collect_order = null
+	actor.carry.release()
+	suit.queue_free()  # handed over
+	if order != null:
+		wear_suit_from_design(order.design)  # put the finished suit on
+		Orders.collect(order)  # pays out
+	finish_and_leave()
+
+
+## The Suit the player is carrying, or null.
+func _actor_suit(actor) -> Node:
+	if actor == null or actor.carry == null:
+		return null
+	var held: Node = actor.carry.get_held()
+	return held if held is Suit else null
+
+
+func _carrying_my_suit(suit: Node) -> bool:
+	return suit != null and collect_order != null and int(suit.order_id) == collect_order.id
+
+
+func _order_id() -> int:
+	return collect_order.id if collect_order != null else 0
+
+
+## "I'm here for order #N — my Navy Worsted suit. Have you got it?"
+func _ask_for_suit() -> void:
+	if collect_order == null:
+		return
+	UI.toast(
+		(
+			"%s: \"I'm here for order #%d — my %s suit.\""
+			% [_label(), collect_order.id, collect_order.describe()]
+		)
+	)
+	Sfx.play("menu_open")
 
 
 func _label() -> String:

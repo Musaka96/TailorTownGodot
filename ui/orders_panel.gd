@@ -28,6 +28,7 @@ func _ready() -> void:
 	_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	EventBus.order_created.connect(_on_created)
 	EventBus.order_part_filled.connect(func(order, _t): _refresh(order))
+	EventBus.order_pieces_ready.connect(_refresh)
 	EventBus.order_ready.connect(_refresh)
 	EventBus.order_due.connect(_refresh)
 	EventBus.order_fulfilled.connect(_on_fulfilled)
@@ -87,7 +88,9 @@ func _make_ticket(order) -> Dictionary:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", Style.S1)
 	box.add_child(head)
-	var who := _label(order.customer_name, 13, Style.INK, HORIZONTAL_ALIGNMENT_LEFT)
+	var who := _label(
+		"#%d %s" % [order.id, order.customer_name], 13, Style.INK, HORIZONTAL_ALIGNMENT_LEFT
+	)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(who)
 	var days := _label("", 12, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
@@ -137,6 +140,10 @@ func _update_days(ticket: Dictionary) -> void:
 		days.text = "READY"
 		days.add_theme_color_override("font_color", Style.LEAF)
 		return
+	if order.is_complete():
+		days.text = "ASSEMBLE"
+		days.add_theme_color_override("font_color", Style.BRASS)
+		return
 	var left: int = order.days_left_ceil()
 	days.text = "%dd" % left
 	days.add_theme_color_override(
@@ -182,6 +189,8 @@ func _ticket_style(order) -> StyleBoxFlat:
 func _state_color(order) -> Color:
 	if order.state == SuitOrder.State.READY:
 		return Style.LEAF
+	if order.is_complete():
+		return Style.BRASS  # pieces made — take them to the mannequin to assemble
 	if order.days_left_ceil() <= 1:
 		return Style.CLAY
 	return Style.AMBER

@@ -26,8 +26,11 @@ Phone (order cloth $) → bolt delivered → Shelf (store; cut a length → Fabr
 → Worktable (pick type/size/style + CUTTING minigame → GarmentPiece[CUT])
 → Sewing machine (SEWING minigame → GarmentPiece[SEWN])
 → Clothing rack (hang finished pieces) → Mannequin (assemble → Suit)
-Customer at Mirror → suit builder (design to brief within budget) → Order created
-Suit vs open orders → matched pieces paid on collection → money + reputation
+Customer at Mirror → suit builder (design to brief within budget) → Order #N created
+Each piece checks off its order as it's SEWN (stamped with the order #) → assembling
+all its pieces at the mannequin flips the order to READY and yields a physical, order-
+stamped Suit → the customer returns on the deadline, states their order #, and you
+carry the matching suit to them to hand over → paid → money + reputation
 ```
 
 Reputation unlocks premium fabric suppliers and shop upgrades (bought at the
@@ -45,7 +48,7 @@ briefs. The whole thing saves/loads and has a guided first-run tutorial.
 | **Config** | `globals/config.gd` | Loads `data/game_config.tres` (`GameConfig`) — all tunables. |
 | **GameState** | `globals/game_state.gd` | `money`, `is_paused`, `input_locked`; top-level pause/quit input. |
 | **Catalog** | `globals/catalog.gd` | Content DB: all `MaterialType` + the `DressCode` rulebook. |
-| **Orders** | `globals/order_manager.gd` | Order lifecycle: create / submit (per-piece match) / collect / expire; deadlines. |
+| **Orders** | `globals/order_manager.gd` | Order lifecycle: create (numbered) / register_piece (sew-time per-piece match) / assemble (mannequin → READY) / collect (on delivery) / expire; deadlines. |
 | **Reputation** | `globals/reputation.gd` | Points + 5 tiers; gains on fulfil (incl. fashion bonus), loses on expire. |
 | **Upgrades** | `globals/upgrades.gd` | Reputation-gated machine upgrades + fabric vendors, bought at the phone. |
 | **News** | `globals/news_manager.gd` | Daily paper: fashion trend + city events; biases customer briefs. |
@@ -96,7 +99,7 @@ Tutorial last. `UI` is referenced by Tutorial/Reputation but always null-guarded
 | Worktable | `FabricPiece` | `GarmentPiece[CUT]` | `piece_cut` | config + cutting minigame |
 | SewingMachine | `GarmentPiece[CUT]` | `GarmentPiece[SEWN]` | `piece_sewn` | sewing minigame |
 | ClothingRack | `GarmentPiece`/`Suit` | storage | `item_stored/taken` | rack browse menu |
-| Mannequin | 3× SEWN pieces | `Suit` → `Orders.submit` | `suit_packaged` | — (direct) |
+| Mannequin | 3× SEWN pieces | `Suit` (order-stamped) → `Orders.assemble` (order → READY), handed to player | `suit_packaged` | — (direct) |
 | Mirror | (customer) | order (via builder) | — | suit builder |
 | Bookshelf | — | — | — | handbook |
 | TrashCan | any item | destroys it | — | — (poof) |
@@ -136,7 +139,8 @@ classes (`FaceLayout`, `FaceProfiles`, `Wardrobe`/`WardrobeLibrary`/`WardrobePar
 Emitted: `item_picked_up/dropped/stored/taken`, `interaction_prompt_changed`,
 `money_changed`, `order_placed/delivered`, `cloth_cut`, `piece_cut`, `piece_sewn`,
 `suit_packaged` (no listeners — informational), `design_confirmed`,
-`customer_waiting/seated`, `order_created/part_filled/ready/due/fulfilled/expired`,
+`customer_waiting/seated`,
+`order_created/part_filled/pieces_ready/ready/due/fulfilled/expired`,
 `shift_started/ended`, `reputation_changed`, `newspaper_ready`. The customer
 departure flow uses `Customer.departed` directly (not an EventBus signal).
 
