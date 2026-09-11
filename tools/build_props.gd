@@ -21,7 +21,6 @@ const BLADE_W := 0.34
 const BLADE_H := 0.42
 
 const RUG_SIZE := Vector2(2.4, 1.6)
-const SHELL_COUNT := 16  # carpet pile shell layers
 
 
 func _initialize() -> void:
@@ -85,17 +84,6 @@ func _toon_material() -> ShaderMaterial:
 func _carpet_material() -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load(CARPET_SHADER)
-	m.set_shader_parameter("carpet_texture", _carpet_texture())
-	m.set_shader_parameter("use_texture", true)
-	m.set_shader_parameter("tint", Color(1, 1, 1, 1))
-	m.set_shader_parameter("tiling", Vector2(1.0, 1.0))
-	# Pile look (shell texturing) — carpet.gd keeps shell_count matched to the instances.
-	m.set_shader_parameter("shell_count", SHELL_COUNT)
-	m.set_shader_parameter("pile_height", 0.06)
-	m.set_shader_parameter("tuft_density", 48.0)
-	m.set_shader_parameter("tuft_thickness", 0.7)
-	m.set_shader_parameter("tuft_shape", 0)
-	m.set_shader_parameter("length_variation", 0.4)
 	m.set_shader_parameter("base_shade", 0.45)
 	return m
 
@@ -219,21 +207,32 @@ func _carpet_scene() -> PackedScene:
 	root.name = "Carpet"
 	root.set_script(load("res://scenes/props/carpet.gd"))
 	root.set("rug_size", RUG_SIZE)
-	root.set("shell_count", SHELL_COUNT)
-	# The pile is a MultiMesh of shell layers; carpet.gd (@tool) fills the instances (the
-	# transform buffer doesn't serialise reliably from a headless build).
-	var pile := MultiMeshInstance3D.new()
-	pile.name = "Pile"
-	pile.position = Vector3(0, 0.01, 0)  # just above the floor to avoid z-fighting
+	root.set("carpet_texture", _carpet_texture())
+
+	# Flat backing so gaps between strands show the carpet pattern, not the floor.
+	var backing := MeshInstance3D.new()
+	backing.name = "Backing"
+	backing.position = Vector3(0, 0.01, 0)  # just above the floor to avoid z-fighting
 	var plane := PlaneMesh.new()
 	plane.size = RUG_SIZE
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = plane
-	pile.multimesh = mm
-	pile.material_override = load(MAT_DIR + "carpet.tres")
-	root.add_child(pile)
-	pile.owner = root
+	backing.mesh = plane
+	var back_mat := StandardMaterial3D.new()
+	back_mat.roughness = 1.0
+	back_mat.metallic_specular = 0.0
+	back_mat.albedo_texture = _carpet_texture()
+	backing.material_override = back_mat
+	root.add_child(backing)
+	backing.owner = root
+
+	# The pile: real tuft strands scattered by carpet.gd (@tool) at runtime/in-editor.
+	var tufts := MultiMeshInstance3D.new()
+	tufts.name = "Tufts"
+	tufts.position = Vector3(0, 0.01, 0)
+	tufts.multimesh = MultiMesh.new()
+	tufts.material_override = load(MAT_DIR + "carpet.tres")
+	root.add_child(tufts)
+	tufts.owner = root
+
 	var packed := PackedScene.new()
 	packed.pack(root)
 	return packed
