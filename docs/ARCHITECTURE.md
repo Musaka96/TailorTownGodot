@@ -1,80 +1,59 @@
 # Architecture & conventions
 
-This document captures how the project is organised and *why*, so the codebase
-stays consistent as it grows. It follows the official Godot GDScript style guide
-and common community practice.
+How the project is organised and *why*. For the full implemented-system inventory
+see [`PROJECT_STATE.md`](PROJECT_STATE.md); for the day-to-day workflow, commands,
+and gotchas see [`HANDOFF.md`](HANDOFF.md). This file is the short "principles"
+reference.
 
 ## Guiding principles
 
-- **Composition over inheritance.** Build behaviour by combining nodes and small
-  scripts rather than deep class hierarchies. Each scene owns one responsibility.
-- **Scenes are the unit of reuse.** A "thing" in the game (player, enemy, pickup,
-  level) is a `.tscn` with its script beside it, instanced wherever needed.
-- **Autoloads are for cross-cutting state, not gameplay.** `GameState` holds
-  things many systems read (pause, later: score/level). Gameplay logic lives on
-  the entities that own it.
-- **Greybox first.** Prototype with primitive meshes (`res://scenes/world`),
-  get the *feel* right, then swap in real art from `res://assets` later without
-  touching gameplay code.
+- **Data-driven content.** Definitions are `Resource` classes authored as `.tres`
+  (materials, dress rules, news, config, wardrobe). Adding content = adding a
+  resource, not code. Tunables live in `data/game_config.tres` (`GameConfig`, read
+  via the `Config` autoload) — don't hardcode economy/minigame numbers.
+- **Decoupled systems via EventBus.** Systems emit/listen on
+  `globals/event_bus.gd` signals instead of referencing each other. A handful of
+  read-only cross-manager lookups exist and are accepted (see PROJECT_STATE §7),
+  but new coupling should go through a signal.
+- **Composition over inheritance.** Behaviour is assembled from small components —
+  `Interactable` (Area3D) and `CarrySlot` — not deep class trees. Each station and
+  entity is its own scene with one responsibility.
+- **Separation of data and view.** A garment's *state* is data on a node; the node
+  visualises it. Customers/orders/materials follow the same split.
+- **Explicit state machines.** Garment lifecycle (CUT→SEWN), customer modes, the
+  day cycle, and the minigames are explicit states, not boolean soup.
+- **Autoload discipline.** Global & save-worthy → autoload; gameplay that should
+  reset with the scene → a node in the scene. Null-guard optional autoloads
+  (`UI`, `Shift`, `News`, `Tutorial`, `Upgrades`) and reference them lazily.
 
 ## Naming & style
 
-- Files and folders: `snake_case` (`camera_rig.gd`, `level_playground.tscn`).
-- Classes / nodes in scenes: `PascalCase`.
-- Private members and helper methods: prefix with `_` (`_to_world_direction`).
-- Prefer **typed GDScript** everywhere (`var speed: float`, typed params/returns)
-  and `@export` for anything a designer should tune in the Inspector.
-- Read shared constants from Project Settings (e.g. gravity) instead of hardcoding.
+- Files/folders `snake_case`; classes/nodes `PascalCase`; private members and
+  helpers prefixed `_`.
+- **Typed GDScript everywhere** (`var speed: float`, typed params/returns);
+  `@export` anything a designer should tune. `var x := <Variant>` is an error.
+- Member order (gdlint): consts → `@export` → public vars → private vars →
+  `@onready` → funcs. Funcs ≤6 returns, lines ≤100 cols.
 
 ## Input
 
-Actions are defined in `project.godot` under `[input]`. Every action binds
-**both** keyboard and gamepad, and every event uses device `-1` (all devices).
-Gameplay reads *actions*, never raw keys, so bindings can be remapped later:
+Actions are defined in `project.godot [input]`, each binding **both** keyboard and
+gamepad on device `-1`. Gameplay reads *actions*, never raw keys, so bindings are
+remappable (see `globals/settings.gd`). Movement uses
+`Input.get_vector(...)` projected onto the camera's ground axes (camera-relative).
 
-```gdscript
-var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-```
+## Scenes are hand-owned
 
-`Input.get_vector` gives a single analog vector that works identically for WASD
-and an analog stick (with the action deadzone applied).
+**All `.tscn` are edited directly in the Godot editor and are the source of truth.**
+There is no all-scene generator (the old `build_phase1.gd` was deleted). Add nodes/
+models in-editor. The only builders that still touch scenes are
+`tools/build_character.gd` (the character-rig import pipeline) and
+`tools/build_dev.gd` (the `scenes/dev/` sandbox, which nests hand-owned scenes as
+instances). Never bulk-regenerate scenes — it clobbers the map.
 
-## Key systems
+## Verification
 
-### Player (`scenes/player/`)
-`CharacterBody3D`. Movement is **camera-relative**: input is projected onto the
-camera's forward/right axes flattened to the ground plane, so controls feel
-consistent regardless of camera angle. Uses `move_and_slide()` with Jolt physics,
-`move_toward` for accel/decel, gravity + jump, and smoothly rotates the model to
-face travel direction.
-
-### Camera (`scenes/camera/`)
-A **rig** node smoothly follows the target's *position* while the child
-`Camera3D` holds a fixed downward angle. Only the rig translates — it never
-rotates — which keeps the top-down framing steady and readable.
-
-### GameState (`globals/game_state.gd`)
-Autoloaded singleton. Owns pause state (`get_tree().paused`) and the top-level
-pause/quit input. Runs with `PROCESS_MODE_ALWAYS` so it can unpause the game.
-
-## Regenerating the base scenes
-
-The base scenes, input map and core project settings were generated by
-`tools/build_project.gd` so the serialized files are guaranteed engine-valid.
-It is a one-shot generator, **not** part of the running game:
-
-```bash
-godot --headless --path . --script res://tools/build_project.gd
-```
-
-After generation, the committed `.tscn` / `.gd` / `project.godot` files are the
-source of truth — edit them directly (in the editor or by hand). Re-running the
-builder overwrites the generated scenes, so only do so intentionally.
-
-## Suggested next steps
-
-- Add an `entities/` folder as enemies/NPCs/pickups appear, each as its own scene.
-- Introduce a `LevelManager` (or extend `main.gd`) to load/swap levels.
-- Add a pause menu UI (CanvasLayer) that listens to `GameState.pause_toggled`.
-- Wire the `interact` action to an `Area3D`-based interaction system.
-- Replace greybox meshes with imported `.glb` assets under `assets/models`.
+Every change is checked headlessly before commit: `tools/validate.gd` (loads all
+scripts/scenes), `gdlint`, `tools/check_ui.gd` (UI style guide), and the relevant
+`tools/test_phase*.gd` smoke tests. Prefer asking the owner to playtest feel/motion;
+headless checks are guardrails. See `HANDOFF.md` for exact commands.

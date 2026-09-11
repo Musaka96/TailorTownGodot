@@ -1,5 +1,11 @@
 # TailorTown — Game Design & Architecture
 
+> ⚠️ **Historical plan.** This is the *original* design/phase plan. Phases 0–7 are
+> now built and the implementation has diverged in places (e.g. runtime items are
+> Node3D scenes, not `RefCounted`; the day is a timed shift). For the **current,
+> accurate** state read [`PROJECT_STATE.md`](PROJECT_STATE.md); for what's next,
+> [`ROADMAP.md`](ROADMAP.md). Kept here for design intent and rationale.
+
 > Living document. This is the *base* plan; we add detail per phase. Status
 > markers: ✅ done · 🔜 next · ⬜ later.
 
