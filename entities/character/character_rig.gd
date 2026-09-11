@@ -32,11 +32,9 @@ const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 const CASUAL_TOPS := [Color("6d7f9c"), Color("8a6d5b"), Color("5f7d5f"), Color("9c6d78")]
 const CASUAL_BOTTOMS := [Color("39414f"), Color("5b4a3a"), Color("4a4a4a")]
 
-# Fabric tiling across the mesh UVs (UV-mapped so the weave locks to the surface).
+# Fabric tiling across the mesh UVs (UV-mapped so the weave locks to the surface). Worn
+# suits get a dark inverted-hull outline (next_pass) that reads each garment part apart.
 const CLOTH_UV_SCALE := 6.0
-# Worn suits use triplanar projection (repeats/metre) so the fabric doesn't stretch on
-# hand-authored Blender UVs, plus a dark inverted-hull outline that reads each part apart.
-const SUIT_TRI_SCALE := 3.0
 
 # --- Locomotion / carry blending (AnimationTree) ---------------------------
 # The rig blends on an AnimationTree: idle<->walk by speed, with the holding pose
@@ -894,7 +892,8 @@ func _clear(slot: Dictionary) -> Dictionary:
 
 func _apply_cloth(mi, mat: MaterialType) -> void:
 	if mi is MeshInstance3D and mat != null:
-		mi.material_override = ClothMaterial.build_triplanar(mat, SUIT_TRI_SCALE, true)
+		# UV-mapped fabric (follows the mesh UVs) + the dark element outline.
+		mi.material_override = ClothMaterial.build(mat, CLOTH_UV_SCALE, true)
 
 
 func _apply_flat(mi, color: Color, roughness: float) -> void:
