@@ -148,8 +148,16 @@ func blocks(target: Node) -> bool:
 			break
 	if not is_station:
 		return false
+	# Allow the current step's station.
 	var want: String = step.get("point", "")
-	return want == "" or not nm.begins_with(want)
+	if want != "" and nm.begins_with(want):
+		return false
+	# Also allow the PREVIOUS step's station: the piece the player just made (cut, sewn) sits
+	# on it, and they must be able to pick it back up to carry it to the next station.
+	var prev: String = str(STEPS[_step - 1].get("point", "")) if _step > 0 else ""
+	if prev != "" and nm.begins_with(prev):
+		return false
+	return true
 
 
 func _on_customer_seated(cust: Node) -> void:
