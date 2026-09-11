@@ -17,9 +17,6 @@ const HAND := "👆"
 const TUT_OCCASION := Enums.Occasion.BUSINESS
 const TUT_STYLE := Enums.Style.CLASSIC
 const TUT_BUDGET := 1000
-## The tutorial shirt colour — a pale shirting (white) so the shirt reads light, not the
-## suit cloth. Shirtings are indices 10..17; 10 is white.
-const TUT_SHIRT_COLOR := 10
 
 const T_ORDER := (
 	"Welcome to the shop! Let's make your first suit.\n\nGo to the PHONE and order a bolt of "
@@ -307,25 +304,28 @@ func _part_desc(garment_type: int) -> String:
 	]
 
 
-## Build the fixed premade suit for the tutorial brief: a matched jacket + trousers in the
-## brief's cloth, plus a proper light shirt (white cotton) — a real, sensible combination.
+## Build the tutorial's target suit: a matched jacket + trousers plus a light shirt. We
+## deliberately pick valid values that DIFFER from the builder's defaults (first of each
+## list), so the player has to actually change fabric/colour/pattern to learn the controls.
+## Fabrics are limited to what a starting shop can order (unlocked suppliers).
 func _compute_recipe() -> Dictionary:
-	var fabric := 0
-	var color := 0
+	var jt := int(Enums.GarmentType.JACKET)
+	var def_fabric := int(Enums.fabrics_for(jt)[0])
+	var def_color := int(MaterialFactory.colors_for(jt)[0])
+	var fabric := def_fabric
+	var color := def_color
 	var pattern := int(Enums.Pattern.SOLID)
 	var dc = Catalog.dress_code if Catalog != null else null
 	var rule = dc.rule_for(TUT_OCCASION, TUT_STYLE) if dc != null else null
 	if rule != null:
-		if not rule.allowed_fabrics.is_empty():
-			fabric = int(rule.allowed_fabrics[0])
-		if not rule.allowed_colors.is_empty():
-			color = int(rule.allowed_colors[0])
-		pattern = _pick_pattern(rule)
+		color = _diff_pick(rule.allowed_colors, def_color)
+		fabric = _diff_pick(_recipe_fabric_pool(rule), def_fabric)
+		pattern = _recipe_pattern(rule)
 	var suit_cloth := {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
-	# Shirts are a light cloth in a pale colour — white cotton is the safe classic.
+	# Shirts are a light cloth in a pale colour, different again from the suit.
 	var shirt := {
 		"fabric": int(Enums.Fabric.COTTON),
-		"color": TUT_SHIRT_COLOR,
+		"color": _recipe_shirt_color(),
 		"pattern": int(Enums.Pattern.SOLID),
 		"style_idx": 0,
 	}
@@ -336,15 +336,48 @@ func _compute_recipe() -> Dictionary:
 	}
 
 
-## A pattern the jacket rule accepts (a bold one if the rule demands it, else plain).
-func _pick_pattern(rule) -> int:
-	if rule.require_pattern:
-		for p in rule.allowed_patterns:
-			if int(p) != Enums.Pattern.SOLID:
-				return int(p)
-	if rule.allowed_patterns.is_empty() or Enums.Pattern.SOLID in rule.allowed_patterns:
-		return int(Enums.Pattern.SOLID)
-	return int(rule.allowed_patterns[0])
+## The first value in `allowed` that ISN'T the builder default, so the player must change
+## it. Falls back to the first allowed (or the default if the list is empty).
+func _diff_pick(allowed: Array, default_value: int) -> int:
+	for v in allowed:
+		if int(v) != default_value:
+			return int(v)
+	return int(allowed[0]) if not allowed.is_empty() else default_value
+
+
+## Jacket fabrics the brief allows AND a starting shop can order (unlocked suppliers).
+func _recipe_fabric_pool(rule) -> Array:
+	var supplied := {}
+	if Upgrades != null:
+		for v in Upgrades.unlocked_vendors():
+			for f in v.get("fabrics", []):
+				supplied[int(f)] = true
+	var base: Array = rule.allowed_fabrics
+	if base.is_empty():
+		base = Array(Enums.fabrics_for(Enums.GarmentType.JACKET))
+	var pool: Array = []
+	for f in base:
+		if supplied.is_empty() or int(f) in supplied:
+			pool.append(int(f))
+	return pool
+
+
+## A bold (non-solid) pattern the brief allows, to teach changing the pattern; else solid.
+func _recipe_pattern(rule) -> int:
+	var pats: Array = rule.allowed_patterns
+	if pats.is_empty():
+		pats = Array(Enums.patterns_for(Enums.GarmentType.JACKET))
+	for p in pats:
+		if int(p) != Enums.Pattern.SOLID:
+			return int(p)
+	return int(Enums.Pattern.SOLID)
+
+
+## A pale shirt colour the occasion allows, different from the builder's default shirting.
+func _recipe_shirt_color() -> int:
+	var def_color := int(MaterialFactory.colors_for(Enums.GarmentType.SHIRT)[0])
+	var allowed: Array = DressCode.SHIRT_COLORS.get(TUT_OCCASION, [])
+	return _diff_pick(allowed, def_color)
 
 
 ## The item the player is currently carrying (for the store-step pointer), or null.

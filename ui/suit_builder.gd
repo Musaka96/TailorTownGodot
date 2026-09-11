@@ -68,7 +68,7 @@ func open(mirror, actor) -> void:
 	_design = {}
 	for t in PARTS:
 		_design[t] = {
-			"fabric": Enums.fabrics_for(t)[0],
+			"fabric": _available_fabrics(t)[0],
 			"color": MaterialFactory.colors_for(t)[0],
 			"pattern": Enums.patterns_for(t)[0],
 			"style_idx": 0,
@@ -328,7 +328,7 @@ func _adjust(dir: int) -> void:
 		var c := _cfg()
 		match row:
 			Row.FABRIC:
-				c["fabric"] = _cycle(Enums.fabrics_for(_type()), int(c["fabric"]), dir)
+				c["fabric"] = _cycle(_available_fabrics(_type()), int(c["fabric"]), dir)
 			Row.COLOR:
 				c["color"] = _cycle(MaterialFactory.colors_for(_type()), int(c["color"]), dir)
 			Row.PATTERN:
@@ -495,7 +495,7 @@ func _acceptable_design() -> Dictionary:
 		# default rather than forcing a suiting fabric/colour onto it.
 		if t == Enums.GarmentType.SHIRT:
 			design[t] = {
-				"fabric": Enums.fabrics_for(t)[0],
+				"fabric": _available_fabrics(t)[0],
 				"color": MaterialFactory.colors_for(t)[0],
 				"pattern": Enums.patterns_for(t)[0],
 				"style_idx": 0,
@@ -505,16 +505,20 @@ func _acceptable_design() -> Dictionary:
 	return design
 
 
-## Cheapest fabric among `allowed` (or all fabrics if unrestricted), to stay in budget.
+## Cheapest fabric among `allowed` (or all fabrics if unrestricted), restricted to what
+## the shop's unlocked suppliers can actually provide, to stay in budget.
 func _cheapest_fabric(allowed: Array) -> int:
 	var prices: Array = Config.data.fabric_price_per_m if Config.data != null else []
+	var supplied := _supplied_fabrics()
 	var pool: Array = []
 	if allowed != null and not allowed.is_empty():
 		for f in allowed:
-			pool.append(int(f))
-	else:
+			if supplied.is_empty() or int(f) in supplied:
+				pool.append(int(f))
+	if pool.is_empty():  # nothing allowed is stocked (or no restriction) — fall back to all supplied
 		for i in prices.size():
-			pool.append(i)
+			if supplied.is_empty() or i in supplied:
+				pool.append(i)
 	if pool.is_empty():
 		return 0
 	var best: int = pool[0]
@@ -522,3 +526,28 @@ func _cheapest_fabric(allowed: Array) -> int:
 		if f < prices.size() and best < prices.size() and prices[f] < prices[best]:
 			best = f
 	return best
+
+
+## The set of fabric ids (Enums.Fabric) the shop's currently-unlocked suppliers offer.
+## Empty only if the Upgrades autoload is missing.
+func _supplied_fabrics() -> Dictionary:
+	var out := {}
+	if Upgrades != null:
+		for v in Upgrades.unlocked_vendors():
+			for f in v.get("fabrics", []):
+				out[int(f)] = true
+	return out
+
+
+## Fabrics offered for `garment_type` by the suppliers the shop has unlocked — so the
+## designer only ever shows cloth you could actually order. Unlock more vendors → more
+## fabrics appear here. Never returns empty (falls back to the full type list).
+func _available_fabrics(garment_type: int) -> PackedInt32Array:
+	var supplied := _supplied_fabrics()
+	var out := PackedInt32Array()
+	for f in Enums.fabrics_for(garment_type):
+		if supplied.is_empty() or int(f) in supplied:
+			out.append(int(f))
+	if out.is_empty():
+		out = Enums.fabrics_for(garment_type)
+	return out
