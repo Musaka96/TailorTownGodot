@@ -171,13 +171,16 @@ func _start() -> void:
 	# Fold the morning paper away if it's up — the tutorial takes the stage.
 	if UI != null and UI.newspaper != null and UI.newspaper.has_method("close"):
 		UI.newspaper.close()
-	_choose_done()  # the player chose the tutorial — let the day begin
+	# Unpause so the player can move/interact, but DON'T start the day — no customers or
+	# passing time during the tutorial. Stations work via the _shop_closed() exception; the
+	# real day begins in _finish().
+	get_tree().paused = false
 	_apply_step()
 
 
 func _finish() -> void:
 	_active = false
-	_choose_done()  # skipped before starting: still begin the day
+	_choose_done()  # NOW begin the real day (on completion, or an immediate skip)
 	if _layer != null:
 		_layer.visible = false
 
@@ -286,7 +289,7 @@ func _build() -> void:
 		_layer.visible = true
 		return
 	_layer = CanvasLayer.new()
-	_layer.layer = 60
+	_layer.layer = 128  # above the HUD and open menus (e.g. the phone) so the hand shows on top
 	add_child(_layer)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -140,6 +140,9 @@ func toast(text: String) -> void:
 
 ## True while the shop is shut for the night — work stations refuse and show a hint.
 func _shop_closed() -> bool:
+	# Tutorial exception: the day hasn't started yet, but stations must work during it.
+	if Tutorial != null and Tutorial.is_active():
+		return false
 	if Shift != null and not Shift.is_open():
 		Sfx.play("error")
 		toast("The shop's closed — lock up at the door")
