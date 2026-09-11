@@ -26,6 +26,8 @@
 [ext_resource type="PackedScene" path="res://entities/items/suit.tscn" id="35_knglg"]
 [ext_resource type="Script" uid="uid://clfnpwwjvwxfb" path="res://scenes/world/roof_manager.gd" id="40_roofm"]
 [ext_resource type="PackedScene" uid="uid://s8v4bsnqp5up" path="res://stations/trash_can/trash_can.tscn" id="41_trash"]
+[ext_resource type="PackedScene" path="res://scenes/props/grass_patch.tscn" id="50_grass"]
+[ext_resource type="PackedScene" path="res://scenes/props/carpet.tscn" id="51_carpet"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
@@ -287,3 +289,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 1, 2.5)
 script = ExtResource("40_roofm")
 roof_path = NodePath("../NewHouseRoof")
 interior_extents = Vector3(7.53, 1.8, 5.9)
+
+[node name="GrassPatch" parent="." instance=ExtResource("50_grass")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -5)
+
+[node name="Carpet" parent="." instance=ExtResource("51_carpet")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 2.5)

@@ -166,3 +166,15 @@ static func make_pixel_toy() -> PostFxProfile:
 	p.outline_strength = 0.15
 	p.vignette_strength = 0.18
 	return p
+
+
+## Toon / cel-shaded: hard colour banding + inked edges, punchy and clean. This is the
+## screen-space toon post-process — tweak posterize (band count), outline_strength (ink),
+## saturation and contrast in data/postfx/toon.tres to taste; it updates live.
+static func make_toon() -> PostFxProfile:
+	var p := PostFxProfile.new()
+	p.contrast = 1.06
+	p.saturation = 1.2
+	p.posterize = 8.0  # colour bands = the cel look; LOWER for a chunkier, more graphic look
+	p.outline_strength = 0.22  # inked edges; RAISE for heavier lines
+	return p

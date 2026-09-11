@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/carpet.tres" id="1_m0xjt"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_eynuv"]
+size = Vector2(2.4, 1.6)
+
+[node name="Carpet" type="Node3D" unique_id=615893411]
+
+[node name="Rug" type="MeshInstance3D" parent="." unique_id=393609914]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+material_override = ExtResource("1_m0xjt")
+mesh = SubResource("PlaneMesh_eynuv")
