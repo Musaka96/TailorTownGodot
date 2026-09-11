@@ -81,9 +81,11 @@ func _build_layer(
 ) -> Node:
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "Elem%d" % idx
+	var flat := el.horizontal
 	var quad := QuadMesh.new()
 	quad.size = Vector2(el.width, el.height)
-	quad.center_offset = Vector3(0, el.height * 0.5, 0)  # sit the card base on the ground
+	# Upright cards pivot at their base; flat cards lie centred on the ground.
+	quad.center_offset = Vector3.ZERO if flat else Vector3(0, el.height * 0.5, 0)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = quad
@@ -91,19 +93,23 @@ func _build_layer(
 	for i in el.count:
 		var pos := Vector3(rng.randf_range(-hx, hx), 0.0, rng.randf_range(-hz, hz))
 		var s := rng.randf_range(el.size_min, el.size_max)
-		var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
+		var basis := Basis(Vector3.UP, rng.randf() * TAU)
+		if flat:
+			basis = basis * Basis(Vector3.RIGHT, -PI * 0.5)  # tip the card flat, facing up
+		basis = basis.scaled(Vector3(s, s, s))
 		mm.set_instance_transform(i, Transform3D(basis, pos))
 	mmi.multimesh = mm
-	mmi.material_override = _flora_material(el)
+	mmi.material_override = _flora_material(el, flat)
 	return mmi
 
 
-func _flora_material(el: FloraElement) -> ShaderMaterial:
+func _flora_material(el: FloraElement, flat: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load("res://materials/flora.gdshader")
 	m.set_shader_parameter("color_texture", el.color_texture)
 	m.set_shader_parameter("mask_texture", el.mask_texture)
 	m.set_shader_parameter("tint", el.tint)
+	m.set_shader_parameter("billboard", el.billboard and not flat)
 	m.set_shader_parameter("wind_noise", _wind_noise)
 	m.set_shader_parameter("wind_velocity", wind_velocity)
 	m.set_shader_parameter("sway", el.sway)

@@ -36,9 +36,12 @@ func _ground_material() -> ShaderMaterial:
 	m.set_shader_parameter("color_a", Color(0.36, 0.56, 0.22))
 	m.set_shader_parameter("color_b", Color(0.20, 0.38, 0.14))
 	m.set_shader_parameter("use_texture", false)
+	m.set_shader_parameter("use_patches", true)
 	m.set_shader_parameter("patch_scale", 12.0)
 	m.set_shader_parameter("patch_amount", 0.5)
 	m.set_shader_parameter("patch_softness", 0.18)
+	m.set_shader_parameter("patch_detail", 0.35)
+	m.set_shader_parameter("patch_warp", 0.25)
 	return m
 
 

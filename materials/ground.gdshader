@@ -9,12 +9,18 @@ uniform vec4 color_b : source_color = vec4(0.20, 0.38, 0.14, 1.0);  // darker gr
 uniform sampler2D base_texture : source_color, hint_default_white;
 uniform bool use_texture = false;
 uniform vec2 tiling = vec2(1.0, 1.0);
+// Turn the noisy green patches on/off. Off + a texture = just the texture (clean).
+uniform bool use_patches = true;
 // Size of the patches (higher = smaller, more frequent patches).
 uniform float patch_scale : hint_range(1.0, 64.0, 0.5) = 12.0;
 // How much of the lighter colour shows (its "spawn rate"): 0 = all dark, 1 = all light.
 uniform float patch_amount : hint_range(0.0, 1.0, 0.01) = 0.5;
 // Edge softness between patches.
 uniform float patch_softness : hint_range(0.01, 0.5, 0.01) = 0.18;
+// Fine-grain vs broad blotches in the noise (0 = big soft blobs, 1 = busy/speckled).
+uniform float patch_detail : hint_range(0.0, 1.0, 0.01) = 0.35;
+// Warps the noise for a more organic, less regular look.
+uniform float patch_warp : hint_range(0.0, 1.0, 0.01) = 0.25;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -32,12 +38,21 @@ float vnoise(vec2 p) {
 }
 
 void fragment() {
-	float n = vnoise(UV * patch_scale) * 0.65 + vnoise(UV * patch_scale * 2.7) * 0.35;
-	float t = smoothstep(
-		1.0 - patch_amount - patch_softness, 1.0 - patch_amount + patch_softness, n);
-	vec3 col = mix(color_b.rgb, color_a.rgb, t);
+	vec3 col = color_a.rgb;
+	if (use_patches) {
+		// Domain-warped, two-octave value noise → organic patches.
+		vec2 uv = UV * patch_scale;
+		uv += (vnoise(UV * patch_scale * 0.6) - 0.5) * patch_warp * 4.0;
+		float coarse = vnoise(uv);
+		float fine = vnoise(uv * 2.7);
+		float n = mix(coarse, coarse * 0.6 + fine * 0.4, patch_detail);
+		float t = smoothstep(
+			1.0 - patch_amount - patch_softness, 1.0 - patch_amount + patch_softness, n);
+		col = mix(color_b.rgb, color_a.rgb, t);
+	}
 	if (use_texture) {
-		col *= texture(base_texture, UV * tiling).rgb;
+		vec3 tex = texture(base_texture, UV * tiling).rgb;
+		col = use_patches ? col * tex : tex;  // patches off + texture = clean texture
 	}
 	ALBEDO = col;
 	ROUGHNESS = 1.0;

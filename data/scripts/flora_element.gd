@@ -23,3 +23,8 @@ extends Resource
 @export_range(0.0, 1.0) var sway: float = 0.15
 ## Colour multiplier over the sprite.
 @export var tint: Color = Color(1, 1, 1, 1)
+## Turn each card to always face the camera (upright). Ignored when `horizontal` is on.
+@export var billboard: bool = false
+## Lay the cards flat on the ground (e.g. lily pads, fallen leaves, ground moss) instead of
+## standing them up.
+@export var horizontal: bool = false

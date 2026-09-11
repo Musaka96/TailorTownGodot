@@ -177,14 +177,14 @@ sway = 0.1
 [sub_resource type="PlaneMesh" id="PlaneMesh_fivsq"]
 size = Vector2(3, 3)
 
-[node name="FloraPatch" type="Node3D" unique_id=1775032799]
+[node name="FloraPatch" type="Node3D" unique_id=723723458]
 script = ExtResource("1_udrlq")
 ground_material = ExtResource("2_2hppk")
 elements = Array[ExtResource("3_vla4f")]([SubResource("Resource_oolyc"), SubResource("Resource_l6w1h"), SubResource("Resource_1y5e2"), SubResource("Resource_eurj6"), SubResource("Resource_oj7bd")])
 
-[node name="Ground" type="MeshInstance3D" parent="." unique_id=1864398034]
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=683845443]
 material_override = ExtResource("2_2hppk")
 mesh = SubResource("PlaneMesh_fivsq")
 
-[node name="Flora" type="Node3D" parent="." unique_id=1498611287]
+[node name="Flora" type="Node3D" parent="." unique_id=558601750]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
