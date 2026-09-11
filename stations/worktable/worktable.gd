@@ -47,11 +47,17 @@ func interact(actor) -> void:
 func finish_cut(success: bool, type: int, size: int, style: String, quality: float) -> void:
 	if not (_item is FabricPiece):
 		return
+	if not success:
+		# A ruined cut wastes the cloth — but during the tutorial keep it on the table so
+		# the player can just try the cut again instead of being stranded with nothing.
+		if Tutorial != null and Tutorial.is_active():
+			return
+		_item.queue_free()
+		_item = null
+		return
 	var mat: MaterialType = _item.material
 	_item.queue_free()
 	_item = null
-	if not success:
-		return  # cloth wasted
 	var part: Node = GARMENT_PIECE_SCENE.instantiate()
 	part.material = mat
 	part.garment_type = type

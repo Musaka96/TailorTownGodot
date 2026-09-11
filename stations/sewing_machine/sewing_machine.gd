@@ -46,7 +46,11 @@ func finish_sew(success: bool, quality: float) -> void:
 	if not (_item is GarmentPiece) or _item.stage != Enums.Stage.CUT:
 		return
 	if not success:
-		_item.queue_free()  # ruined seam wastes the piece
+		# A ruined seam wastes the piece — but during the tutorial keep it so the player can
+		# retry the seam instead of being stranded.
+		if Tutorial != null and Tutorial.is_active():
+			return
+		_item.queue_free()
 		_item = null
 		return
 	# Final quality combines the cut and sew performance.

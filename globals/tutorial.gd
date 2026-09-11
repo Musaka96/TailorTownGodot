@@ -100,6 +100,7 @@ var _on_choose := Callable()
 
 var _layer: CanvasLayer
 var _bubble: PanelContainer
+var _bubble_docked := false
 var _text: Label
 var _hand: Label
 var _next: Button
@@ -238,7 +239,10 @@ func _step_text(step: Dictionary) -> String:
 
 
 func _process(delta: float) -> void:
-	if not _active or _hand == null or not _hand.visible:
+	if not _active:
+		return
+	_position_bubble()
+	if _hand == null or not _hand.visible:
 		return
 	_time += delta
 	var pos := _point_screen()
@@ -248,6 +252,54 @@ func _process(delta: float) -> void:
 	_hand.visible = true
 	# Sit just below the target and bob up toward it.
 	_hand.position = pos + Vector2(-16, 24 + sin(_time * 6.0) * 6.0)
+
+
+## True while any full-screen station menu is on screen (so the bubble should step aside).
+func _menu_open() -> bool:
+	if UI == null:
+		return false
+	for m in [
+		UI.phone_order,
+		UI.worktable_screen,
+		UI.sewing_screen,
+		UI.suit_builder,
+		UI.shelf_menu,
+		UI.customer_request,
+		UI.handbook,
+		UI.rack_menu,
+		UI.orders_menu,
+	]:
+		if m != null and m.visible:
+			return true
+	return false
+
+
+## Tuck the bubble into the bottom-left corner (narrower) while a station menu is open — the
+## menus sit centre-screen, so the corner keeps the tutorial text clear of both the menu and
+## the hand pointing into it. With no menu, use the roomy bottom-centre placement.
+func _position_bubble() -> void:
+	if _bubble == null:
+		return
+	var docked := _menu_open()
+	if docked == _bubble_docked:
+		return
+	_bubble_docked = docked
+	if docked:
+		_bubble.anchor_left = 0.0
+		_bubble.anchor_right = 0.0
+		_bubble.grow_horizontal = Control.GROW_DIRECTION_END
+		_bubble.offset_left = 24
+		_bubble.offset_bottom = -24
+		_bubble.custom_minimum_size = Vector2(360, 0)
+		_text.custom_minimum_size = Vector2(320, 0)
+	else:
+		_bubble.anchor_left = 0.5
+		_bubble.anchor_right = 0.5
+		_bubble.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_bubble.offset_left = 0
+		_bubble.offset_bottom = -84
+		_bubble.custom_minimum_size = Vector2(680, 0)
+		_text.custom_minimum_size = Vector2(640, 0)
 
 
 ## Screen position of the current step's target, or (-1,-1) if not shown.

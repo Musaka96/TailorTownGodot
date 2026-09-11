@@ -70,6 +70,10 @@ func _start() -> void:
 
 
 func _spawn_tick() -> void:
+	# During the tutorial the day hasn't started — no street traffic (the only customer is
+	# the one the tutorial poofs in for the fitting step).
+	if Tutorial != null and Tutorial.is_active():
+		return
 	# Labour laws: once the shift's over, no new shoppers wander in.
 	if Shift != null and not Shift.is_open():
 		return
