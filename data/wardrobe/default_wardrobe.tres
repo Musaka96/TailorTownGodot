@@ -1,134 +1,168 @@
 [gd_resource type="Resource" script_class="WardrobeLibrary" format=3]
 
-[ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_pgict"]
-[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN1.glb" id="2_i7518"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-1.glb" id="3_hqymy"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-2.glb" id="4_3wc3i"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-3.glb" id="5_4ejrc"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-4.glb" id="6_esk5f"]
-[ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="7_yfs0x"]
+[ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_hqymy"]
+[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN1.glb" id="2_3wc3i"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-1.glb" id="3_4ejrc"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-2.glb" id="4_esk5f"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-3.glb" id="5_yfs0x"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-4.glb" id="6_q28yw"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-5-TEST.glb" id="7_g3eu7"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/KOSA+GLAVA-6.glb" id="8_8sors"]
+[ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="9_d8neq"]
 
-[sub_resource type="Resource" id="Resource_q28yw"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_w2cmp"]
+script = ExtResource("1_hqymy")
 display_name = "Flat Front"
-model = ExtResource("2_i7518")
+model = ExtResource("2_3wc3i")
 roles = {
 "pants": "legs"
 }
 
-[sub_resource type="Resource" id="Resource_g3eu7"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_yrp6t"]
+script = ExtResource("1_hqymy")
 display_name = "Default"
-model = ExtResource("2_i7518")
+model = ExtResource("2_3wc3i")
 roles = {
 "hair": "Hair"
 }
 
-[sub_resource type="Resource" id="Resource_8sors"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_x33lo"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-1 hair"
-model = ExtResource("3_hqymy")
+model = ExtResource("3_4ejrc")
 roles = {
 "hair": &"a3b90c76_5396_4000_9693_ed15feb53145_021"
 }
 
-[sub_resource type="Resource" id="Resource_d8neq"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_lf20t"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-2 hair"
-model = ExtResource("4_3wc3i")
+model = ExtResource("4_esk5f")
 roles = {
 "hair": &"a3b90c76_5396_4000_9693_ed15feb53145_015"
 }
 
-[sub_resource type="Resource" id="Resource_w2cmp"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_htogs"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-3 hair"
-model = ExtResource("5_4ejrc")
+model = ExtResource("5_yfs0x")
 roles = {
 "hair": &"a3b90c76_5396_4000_9693_ed15feb53145_011"
 }
 
-[sub_resource type="Resource" id="Resource_yrp6t"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_2hbeg"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-4 hair"
-model = ExtResource("6_esk5f")
+model = ExtResource("6_q28yw")
 roles = {
 "hair": &"a3b90c76_5396_4000_9693_ed15feb53145_002"
 }
 
-[sub_resource type="Resource" id="Resource_x33lo"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_561n5"]
+script = ExtResource("1_hqymy")
+display_name = "KOSA+GLAVA-5-TEST hair"
+model = ExtResource("7_g3eu7")
+roles = {
+"hair": &"tripo_6902c619_cc95_4213_ba24_bc1b507126c9_001"
+}
+
+[sub_resource type="Resource" id="Resource_iae66"]
+script = ExtResource("1_hqymy")
+display_name = "KOSA+GLAVA-6 hair"
+model = ExtResource("8_8sors")
+roles = {
+"hair": &"tripo_6902c619_cc95_4213_ba24_bc1b507126c9_002"
+}
+
+[sub_resource type="Resource" id="Resource_a6e2m"]
+script = ExtResource("1_hqymy")
 display_name = "Base"
-model = ExtResource("2_i7518")
+model = ExtResource("2_3wc3i")
 roles = {
 "head": "head"
 }
 
-[sub_resource type="Resource" id="Resource_lf20t"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_o82gf"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-1 head"
-model = ExtResource("3_hqymy")
+model = ExtResource("3_4ejrc")
 roles = {
 "head": &"a3b90c76_5396_4000_9693_ed15feb53145_007"
 }
 
-[sub_resource type="Resource" id="Resource_htogs"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_uog13"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-2 head"
-model = ExtResource("4_3wc3i")
+model = ExtResource("4_esk5f")
 roles = {
 "head": &"a3b90c76_5396_4000_9693_ed15feb53145_022"
 }
 
-[sub_resource type="Resource" id="Resource_2hbeg"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_r7yri"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-3 head"
-model = ExtResource("5_4ejrc")
+model = ExtResource("5_yfs0x")
 roles = {
 "head": &"a3b90c76_5396_4000_9693_ed15feb53145_007"
 }
 
-[sub_resource type="Resource" id="Resource_561n5"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_o03s2"]
+script = ExtResource("1_hqymy")
 display_name = "KOSA+GLAVA-4 head"
-model = ExtResource("6_esk5f")
+model = ExtResource("6_q28yw")
 roles = {
 "head": &"a3b90c76_5396_4000_9693_ed15feb53145_019"
 }
 
-[sub_resource type="Resource" id="Resource_iae66"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_35g23"]
+script = ExtResource("1_hqymy")
+display_name = "KOSA+GLAVA-5-TEST head"
+model = ExtResource("7_g3eu7")
+roles = {
+"head": &"tripo_6902c619_cc95_4213_ba24_bc1b507126c9_013"
+}
+
+[sub_resource type="Resource" id="Resource_rprfk"]
+script = ExtResource("1_hqymy")
+display_name = "KOSA+GLAVA-6 head"
+model = ExtResource("8_8sors")
+roles = {
+"head": &"tripo_6902c619_cc95_4213_ba24_bc1b507126c9_014"
+}
+
+[sub_resource type="Resource" id="Resource_dcrae"]
+script = ExtResource("1_hqymy")
 display_name = "Casual Bottom"
-model = ExtResource("2_i7518")
+model = ExtResource("2_3wc3i")
 roles = {
 "pants": "legs"
 }
 
-[sub_resource type="Resource" id="Resource_a6e2m"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_lv2yj"]
+script = ExtResource("1_hqymy")
 display_name = "Casual Top"
-model = ExtResource("2_i7518")
+model = ExtResource("2_3wc3i")
 roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
 
-[sub_resource type="Resource" id="Resource_o82gf"]
-script = ExtResource("1_pgict")
+[sub_resource type="Resource" id="Resource_y7m5a"]
+script = ExtResource("1_hqymy")
 display_name = "Single-Breasted"
-model = ExtResource("2_i7518")
+model = ExtResource("2_3wc3i")
 roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
 
 [resource]
-script = ExtResource("7_yfs0x")
-heads = Array[ExtResource("1_pgict")]([SubResource("Resource_x33lo"), SubResource("Resource_lf20t"), SubResource("Resource_htogs"), SubResource("Resource_2hbeg"), SubResource("Resource_561n5")])
-hairs = Array[ExtResource("1_pgict")]([SubResource("Resource_g3eu7"), SubResource("Resource_8sors"), SubResource("Resource_d8neq"), SubResource("Resource_w2cmp"), SubResource("Resource_yrp6t")])
-tops = Array[ExtResource("1_pgict")]([SubResource("Resource_o82gf")])
-bottoms = Array[ExtResource("1_pgict")]([SubResource("Resource_q28yw")])
-street_top = SubResource("Resource_a6e2m")
-street_bottom = SubResource("Resource_iae66")
+script = ExtResource("9_d8neq")
+heads = Array[ExtResource("1_hqymy")]([SubResource("Resource_a6e2m"), SubResource("Resource_o82gf"), SubResource("Resource_uog13"), SubResource("Resource_r7yri"), SubResource("Resource_o03s2"), SubResource("Resource_35g23"), SubResource("Resource_rprfk")])
+hairs = Array[ExtResource("1_hqymy")]([SubResource("Resource_yrp6t"), SubResource("Resource_x33lo"), SubResource("Resource_lf20t"), SubResource("Resource_htogs"), SubResource("Resource_2hbeg"), SubResource("Resource_561n5"), SubResource("Resource_iae66")])
+tops = Array[ExtResource("1_hqymy")]([SubResource("Resource_y7m5a")])
+bottoms = Array[ExtResource("1_hqymy")]([SubResource("Resource_w2cmp")])
+street_top = SubResource("Resource_lv2yj")
+street_bottom = SubResource("Resource_dcrae")
 skin_colors = PackedColorArray(0.87, 0.72, 0.6, 1, 0.8, 0.62, 0.48, 1, 0.93, 0.81, 0.69, 1, 0.66, 0.48, 0.35, 1, 0.55, 0.38, 0.27, 1)
 hair_colors = PackedColorArray(0.1, 0.08, 0.07, 1, 0.28, 0.18, 0.1, 1, 0.45, 0.3, 0.16, 1, 0.72, 0.55, 0.3, 1, 0.55, 0.2, 0.1, 1, 0.6, 0.6, 0.62, 1)

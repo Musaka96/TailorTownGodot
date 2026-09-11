@@ -1,7 +1,11 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://s8v4bsnqp5up"]
 
-[ext_resource type="Script" path="res://stations/trash_can/trash_can.gd" id="1_trash"]
-[ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="2_inter"]
+[ext_resource type="Script" uid="uid://26j8b5cf3rwc" path="res://stations/trash_can/trash_can.gd" id="1_trash"]
+[ext_resource type="Script" uid="uid://dvfh4yjr6xhqm" path="res://entities/scripts/interactable.gd" id="2_inter"]
+
+[sub_resource type="CylinderShape3D" id="Col_body"]
+height = 0.55
+radius = 0.21
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_body"]
 top_radius = 0.2
@@ -9,33 +13,26 @@ bottom_radius = 0.155
 height = 0.52
 radial_segments = 20
 
+[sub_resource type="StandardMaterial3D" id="Mat_metal"]
+albedo_color = Color(0.5, 0.53, 0.57, 1)
+metallic = 0.25
+roughness = 0.55
+
 [sub_resource type="CylinderMesh" id="CylinderMesh_rim"]
 top_radius = 0.21
 bottom_radius = 0.205
 height = 0.055
 radial_segments = 20
 
+[sub_resource type="StandardMaterial3D" id="Mat_dark"]
+albedo_color = Color(0.12, 0.12, 0.14, 1)
+roughness = 0.85
+
 [sub_resource type="CylinderMesh" id="CylinderMesh_inner"]
 top_radius = 0.175
 bottom_radius = 0.16
 height = 0.02
 radial_segments = 20
-
-[sub_resource type="StandardMaterial3D" id="Mat_metal"]
-albedo_color = Color(0.5, 0.53, 0.57, 1)
-metallic = 0.25
-roughness = 0.55
-
-[sub_resource type="StandardMaterial3D" id="Mat_dark"]
-albedo_color = Color(0.12, 0.12, 0.14, 1)
-roughness = 0.85
-
-[sub_resource type="CylinderShape3D" id="Col_body"]
-radius = 0.21
-height = 0.55
-
-[sub_resource type="BoxShape3D" id="Col_interact"]
-size = Vector3(0.62, 1.0, 0.62)
 
 [sub_resource type="Gradient" id="Grad_poof"]
 offsets = PackedFloat32Array(0, 0.25, 1)
@@ -60,8 +57,8 @@ color = Color(0.9, 0.9, 0.94, 1)
 color_ramp = SubResource("GradTex_poof")
 
 [sub_resource type="StandardMaterial3D" id="Mat_poof"]
-shading_mode = 0
 transparency = 1
+shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(0.92, 0.92, 0.95, 1)
 
@@ -72,47 +69,50 @@ height = 0.1
 radial_segments = 6
 rings = 4
 
-[node name="TrashCan" type="Node3D"]
+[sub_resource type="BoxShape3D" id="Col_interact"]
+size = Vector3(0.62, 1, 0.62)
+
+[node name="TrashCan" type="Node3D" unique_id=1938077389]
 script = ExtResource("1_trash")
 
-[node name="Body" type="StaticBody3D" parent="."]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1623195731]
 
-[node name="Collision" type="CollisionShape3D" parent="Body"]
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=1365148471]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.275, 0)
 shape = SubResource("Col_body")
 
-[node name="Bin" type="MeshInstance3D" parent="."]
+[node name="Bin" type="MeshInstance3D" parent="." unique_id=591352937]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.26, 0)
 mesh = SubResource("CylinderMesh_body")
 surface_material_override/0 = SubResource("Mat_metal")
 
-[node name="Rim" type="MeshInstance3D" parent="."]
+[node name="Rim" type="MeshInstance3D" parent="." unique_id=139441375]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, 0)
 mesh = SubResource("CylinderMesh_rim")
 surface_material_override/0 = SubResource("Mat_dark")
 
-[node name="Inner" type="MeshInstance3D" parent="."]
+[node name="Inner" type="MeshInstance3D" parent="." unique_id=2035658636]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 mesh = SubResource("CylinderMesh_inner")
 surface_material_override/0 = SubResource("Mat_dark")
 
-[node name="Poof" type="GPUParticles3D" parent="."]
+[node name="Poof" type="GPUParticles3D" parent="." unique_id=1249105024]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 emitting = false
-amount = 16
+amount = 27
 lifetime = 0.55
 one_shot = true
 explosiveness = 1.0
 process_material = SubResource("Proc_poof")
 draw_pass_1 = SubResource("Mesh_poof")
 
-[node name="Interactable" type="Area3D" parent="." node_paths=PackedStringArray("target")]
+[node name="Interactable" type="Area3D" parent="." unique_id=893948858 node_paths=PackedStringArray("target")]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 script = ExtResource("2_inter")
 target = NodePath("..")
 
-[node name="InteractCol" type="CollisionShape3D" parent="Interactable"]
+[node name="InteractCol" type="CollisionShape3D" parent="Interactable" unique_id=1851690994]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("Col_interact")

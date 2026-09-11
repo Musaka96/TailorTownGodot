@@ -3,23 +3,41 @@ extends Node3D
 
 ## Storage station. Carrying a roll → place it in the next free slot. Empty-handed
 ## with rolls stored → open the browse menu to inspect and take one out.
+##
+## The shelf model (RolneIzdeljene.glb) ships with a stand plus display roll meshes
+## (roll1, roll2, …). Those start hidden; storing a bolt keeps the real MaterialRoll
+## node internally (hidden) and lights up the next display mesh in the bolt's fabric.
+## Taking the bolt back hides its display mesh again.
 
 const FABRIC_PIECE_SCENE := preload("res://entities/items/fabric_piece.tscn")
 
-var stored: Array[Node] = []   # MaterialRoll nodes, index-aligned to _slots
-var _slots: Array[Node3D] = []
-
-@onready var _slots_root: Node3D = $Slots
+var stored: Array[Node] = []  # MaterialRoll nodes, index-aligned to _roll_meshes
+var _roll_meshes: Array[MeshInstance3D] = []
 
 
 func _ready() -> void:
-	for child in _slots_root.get_children():
-		if child is Marker3D:
-			_slots.append(child)
+	_collect_roll_meshes()
+	_refresh_display()
+
+
+## Gather the model's display roll meshes (roll1, roll2, …) in order, then hide them.
+func _collect_roll_meshes() -> void:
+	var i := 1
+	while true:
+		var node := find_child("roll%d" % i, true, false)
+		if node == null:
+			break
+		var mesh := node as MeshInstance3D
+		if mesh == null:
+			var found := node.find_children("*", "MeshInstance3D", true, false)
+			mesh = found[0] if not found.is_empty() else null
+		if mesh != null:
+			_roll_meshes.append(mesh)
+		i += 1
 
 
 func capacity() -> int:
-	return _slots.size()
+	return _roll_meshes.size()
 
 
 func get_interaction_prompt(actor) -> String:
@@ -27,7 +45,7 @@ func get_interaction_prompt(actor) -> String:
 	if held != null:
 		if not (held is MaterialRoll):
 			return "Shelf holds material rolls"
-		return "Place roll" if stored.size() < _slots.size() else "Shelf full"
+		return "Place roll" if stored.size() < capacity() else "Shelf full"
 	if stored.size() > 0:
 		return "Browse shelf (%d)" % stored.size()
 	return "Shelf (empty)"
@@ -39,7 +57,7 @@ func interact(actor) -> void:
 		# The shelf only holds material rolls (cut pieces go to the worktable).
 		if not (held is MaterialRoll):
 			return
-		if stored.size() >= _slots.size():
+		if stored.size() >= capacity():
 			return
 		var roll: Node = actor.carry.release()
 		_store(roll)
@@ -57,9 +75,10 @@ func take(index: int, actor) -> bool:
 		return false
 	var roll: Node = stored[index]
 	stored.remove_at(index)
+	roll.visible = true
 	actor.carry.take_item(roll)
 	EventBus.item_taken.emit(roll, self)
-	_reflow()
+	_refresh_display()
 	return true
 
 
@@ -83,19 +102,34 @@ func cut_piece(index: int, length: float, actor) -> bool:
 	if roll.is_empty():
 		stored.remove_at(index)
 		roll.queue_free()
-		_reflow()
+	_refresh_display()
 	return true
 
 
+## Park the real bolt inside the shelf (hidden, not pickable) and record it.
 func _store(roll: Node) -> void:
-	roll.place_on(_slots[stored.size()])
+	if roll.get_parent() == null:
+		add_child(roll)
+	elif roll.get_parent() != self:
+		roll.reparent(self)
+	roll.visible = false
+	if roll.has_method("set_pickable"):
+		roll.set_pickable(false)
 	stored.append(roll)
+	_refresh_display()
 
 
-## Re-seat remaining rolls into the first slots after one is removed.
-func _reflow() -> void:
-	for i in stored.size():
-		stored[i].place_on(_slots[i])
+## Show one display mesh per stored bolt (tinted to its fabric); hide the rest.
+func _refresh_display() -> void:
+	for i in _roll_meshes.size():
+		var mesh := _roll_meshes[i]
+		if i < stored.size():
+			mesh.visible = true
+			# Triplanar: the imported roll meshes aren't UV-unwrapped for the weave.
+			mesh.material_override = ClothMaterial.build_triplanar(stored[i].material)
+		else:
+			mesh.visible = false
+			mesh.material_override = null
 
 
 # --- Save / load -----------------------------------------------------------
@@ -113,10 +147,9 @@ func load_state(data: Dictionary) -> void:
 		roll.queue_free()
 	stored.clear()
 	for d: Dictionary in data.get("rolls", []):
-		if stored.size() >= _slots.size():
+		if stored.size() >= capacity():
 			break
 		var roll: Node = SaveCodec.item_from(d)
 		if roll == null:
 			continue
-		add_child(roll)
 		_store(roll)

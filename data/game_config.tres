@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="GameConfig" format=3]
+[gd_resource type="Resource" script_class="GameConfig" format=3 uid="uid://qfge2v347tr3"]
 
-[ext_resource type="Script" path="res://data/scripts/game_config.gd" id="1_pwh6o"]
+[ext_resource type="Script" uid="uid://6xe6fpbqc1x5" path="res://data/scripts/game_config.gd" id="1_pwh6o"]
 
 [resource]
 script = ExtResource("1_pwh6o")
+shift_end_hour = 16.0

@@ -1,44 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bp2junry4wnt8"]
 
-[ext_resource type="Script" path="res://stations/worktable/worktable.gd" id="1_5k201"]
-[ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="2_s7wjo"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3i1h0"]
-albedo_color = Color(0.52, 0.4, 0.28, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_bj8w4"]
-size = Vector3(1.6, 0.12, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_v1jqv"]
-size = Vector3(1.6, 0.12, 1)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j1g0i"]
-albedo_color = Color(0.4, 0.3, 0.2, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_hw8ih"]
-size = Vector3(1.5, 0.85, 0.9)
+[ext_resource type="Script" uid="uid://brpfpr15c42ja" path="res://stations/worktable/worktable.gd" id="1_5k201"]
+[ext_resource type="Script" uid="uid://dvfh4yjr6xhqm" path="res://entities/scripts/interactable.gd" id="2_s7wjo"]
+[ext_resource type="PackedScene" uid="uid://dlpktmuivs8q" path="res://IMPORT/RadniSto.glb" id="3_s7wjo"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_3bv5e"]
-size = Vector3(1.8, 1.6, 1.5)
+size = Vector3(1.422107, 1.6, 1.6855469)
 
 [node name="Worktable" type="Node3D" unique_id=2080952600]
 script = ExtResource("1_5k201")
 
 [node name="Body" type="StaticBody3D" parent="." unique_id=691361686]
-
-[node name="TopMesh" type="MeshInstance3D" parent="Body" unique_id=459029925]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-material_override = SubResource("StandardMaterial3D_3i1h0")
-mesh = SubResource("BoxMesh_bj8w4")
-
-[node name="TopCol" type="CollisionShape3D" parent="Body" unique_id=518035051]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("BoxShape3D_v1jqv")
-
-[node name="Leg" type="MeshInstance3D" parent="Body" unique_id=379823831]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
-material_override = SubResource("StandardMaterial3D_j1g0i")
-mesh = SubResource("BoxMesh_hw8ih")
 
 [node name="Slot" type="Marker3D" parent="." unique_id=1952096864]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.99, 0)
@@ -51,5 +23,8 @@ script = ExtResource("2_s7wjo")
 target = NodePath("..")
 
 [node name="@CollisionShape3D@10" type="CollisionShape3D" parent="Interactable" unique_id=12969217]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.040277123, 0.9, 0.69277346)
 shape = SubResource("BoxShape3D_3bv5e")
+
+[node name="RadniSto" parent="." unique_id=2039381041 instance=ExtResource("3_s7wjo")]
+transform = Transform3D(2.64, 0, 0, 0, 2.64, 0, 0, 0, 2.64, 0.0775677, 0, 0.28087717)

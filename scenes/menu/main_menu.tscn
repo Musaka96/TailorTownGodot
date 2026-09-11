@@ -1,8 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bag5qvvx5jbid"]
 
-[ext_resource type="Script" path="res://ui/main_menu.gd" id="1_247la"]
-[ext_resource type="PackedScene" path="res://scenes/world/shop_room.tscn" id="2_kiqgm"]
-[ext_resource type="FontFile" path="res://assets/fonts/Fredoka.ttf" id="3_hj162"]
+[ext_resource type="Script" uid="uid://de37m2dly5lwx" path="res://ui/main_menu.gd" id="1_247la"]
+[ext_resource type="PackedScene" uid="uid://cf88wtft1fjxt" path="res://scenes/world/shop_room.tscn" id="2_kiqgm"]
+[ext_resource type="FontFile" uid="uid://bg7kr73wl4tjk" path="res://assets/fonts/Fredoka.ttf" id="3_hj162"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xn6kt"]
 content_margin_left = 16.0
@@ -31,7 +31,7 @@ variation_embolden = 0.4
 process_mode = 3
 script = ExtResource("1_247la")
 
-[node name="Shop" type="Node3D" parent="." unique_id=1507661624 instance=ExtResource("2_kiqgm")]
+[node name="Shop" parent="." unique_id=1507661624 instance=ExtResource("2_kiqgm")]
 process_mode = 1
 
 [node name="Camera" type="Camera3D" parent="." unique_id=508923697]
@@ -42,7 +42,7 @@ fov = 42.0
 [node name="Viewpoints" type="Node3D" parent="." unique_id=479114125]
 
 [node name="View_Main" type="Marker3D" parent="Viewpoints" unique_id=1590615953]
-transform = Transform3D(0.8099421, 0.061093286, -0.58331925, 0, 0.9945601, 0.10416414, 0.58650976, -0.084366925, 0.8055362, -1.2, 2.1, 7.8)
+transform = Transform3D(0.85630834, -0.05379713, 0.5136554, 0, 0.9945601, 0.10416414, -0.51646495, -0.08919661, 0.8516501, 5.5548105, 2.1, 14.6646385)
 
 [node name="View_Load" type="Marker3D" parent="Viewpoints" unique_id=601627134]
 transform = Transform3D(0.8320503, -0.10085458, 0.54545456, 0, 0.9833323, 0.18181819, -0.5547002, -0.15128188, 0.8181819, 5.6, 1.9, 6.2)
@@ -57,6 +57,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
 [node name="Left" type="PanelContainer" parent="MenuLayer/Root" unique_id=811682486]
@@ -81,15 +83,15 @@ theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="MenuLayer/Root/Left/Margin/Content" unique_id=1181649293]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.7882353, 0.63529414, 0.2901961, 1)
 theme_override_fonts/font = SubResource("FontVariation_isoef")
 theme_override_font_sizes/font_size = 40
-theme_override_colors/font_color = Color(0.7882353, 0.63529414, 0.2901961, 1)
 text = "TailorTown"
 
 [node name="Sub" type="Label" parent="MenuLayer/Root/Left/Margin/Content" unique_id=1278683563]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.5411765, 0.45490196, 0.3529412, 1)
+theme_override_font_sizes/font_size = 15
 text = "Bespoke tailoring on the Row"
 
 [node name="@HSeparator@4" type="HSeparator" parent="MenuLayer/Root/Left/Margin/Content" unique_id=1762177219]

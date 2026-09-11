@@ -1,22 +1,37 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://qihyb862x8a7"]
 
-[ext_resource type="Script" path="res://main.gd" id="1_7mycd"]
-[ext_resource type="PackedScene" path="res://scenes/world/shop_room.tscn" id="2_272bh"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_5vw27"]
-[ext_resource type="Script" path="res://scenes/player/player.gd" id="4_kek77"]
-[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="5_4c57u"]
-[ext_resource type="Script" path="res://scenes/camera/camera_rig.gd" id="6_efxa6"]
+[ext_resource type="Script" uid="uid://dnncrqa07eagc" path="res://main.gd" id="1_7mycd"]
+[ext_resource type="PackedScene" uid="uid://cf88wtft1fjxt" path="res://scenes/world/shop_room.tscn" id="2_272bh"]
+[ext_resource type="PackedScene" uid="uid://j7f17grkjgtt" path="res://scenes/player/player.tscn" id="3_5vw27"]
+[ext_resource type="PackedScene" uid="uid://cvt2773d8i654" path="res://scenes/camera/camera_rig.tscn" id="5_4c57u"]
+
+[sub_resource type="Compositor" id="Compositor_der6t"]
 
 [node name="Main" type="Node3D" unique_id=1192454281]
 process_mode = 3
 script = ExtResource("1_7mycd")
 
-[node name="ShopRoom" type="Node3D" parent="." unique_id=1507661624 instance=ExtResource("2_272bh")]
+[node name="ShopRoom" parent="." unique_id=1507661624 instance=ExtResource("2_272bh")]
 
-[node name="Player" type="CharacterBody3D" parent="." unique_id=1939422080 instance=ExtResource("3_5vw27")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 4.5)
-script = ExtResource("4_kek77")
+[node name="WorldEnvironment" parent="ShopRoom" index="0" unique_id=563568563]
+compositor = SubResource("Compositor_der6t")
 
-[node name="CameraRig" type="Node3D" parent="." unique_id=1061975554 instance=ExtResource("5_4c57u")]
-script = ExtResource("6_efxa6")
+[node name="Phone" parent="ShopRoom" index="6" unique_id=244267950]
+transform = Transform3D(0.89149976, 0, 0.45302138, 0, 1, 0, -0.45302138, 0, 0.89149976, -1.6477284, 0.0065555573, 1.4496336)
+
+[node name="SewingMachine" parent="ShopRoom" index="8" unique_id=1098430318]
+transform = Transform3D(0.9999785, 0, 0.0065644975, 0, 1, 0, -0.0065644975, 0, 0.9999785, 2.6124086, 0.072193146, 1.7883277)
+
+[node name="Mirror" parent="ShopRoom" index="12" unique_id=270766224]
+transform = Transform3D(0.99992734, 0, 0.012056653, 0, 1, 0, -0.012056653, 0, 0.99992734, 5.4987683, 0, 0.3293171)
+
+[node name="NewHouseBase" parent="ShopRoom" index="28" unique_id=239109748]
+transform = Transform3D(2.17, 0, 0, 0, 2.17, 0, 0, 0, 2.17, 3.8211222, 0.0081784725, 6.3219213)
+
+[node name="Player" parent="." unique_id=1939422080 instance=ExtResource("3_5vw27")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.97494555, 0.1, 4.5)
+
+[node name="CameraRig" parent="." unique_id=1061975554 instance=ExtResource("5_4c57u")]
 target_path = NodePath("../Player")
+
+[editable path="ShopRoom"]

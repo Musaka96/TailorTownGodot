@@ -1,9 +1,9 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cvt2773d8i654"]
 
-[ext_resource type="Script" path="res://scenes/camera/camera_rig.gd" id="1_tr2gj"]
+[ext_resource type="Script" uid="uid://d2kn7o87p5hv1" path="res://scenes/camera/camera_rig.gd" id="1_tr2gj"]
 
 [node name="CameraRig" type="Node3D" unique_id=1061975554]
 script = ExtResource("1_tr2gj")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1142475963]
-transform = Transform3D(1, 0, 0, 0, 0.5734623, 0.8192319, 0, -0.8192319, 0.5734623, 0, 12, 8.4)
+transform = Transform3D(1, 0, 0, 0, 0.5734623, 0.8192319, 0, -0.8192319, 0.5734623, 0, 6.271325, 4.392928)

@@ -1,15 +1,15 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bagv7d8ldyuqy"]
 
-[ext_resource type="Script" path="res://ui/ui.gd" id="1_wl5ax"]
-[ext_resource type="Script" path="res://ui/hud.gd" id="2_vkava"]
-[ext_resource type="Script" path="res://ui/orders_panel.gd" id="3_pa1oa"]
-[ext_resource type="Script" path="res://ui/shelf_menu.gd" id="3_wl5ax"]
-[ext_resource type="Script" path="res://ui/phone_order.gd" id="4_vkava"]
-[ext_resource type="Script" path="res://ui/worktable_screen.gd" id="5_tf0e0"]
-[ext_resource type="Script" path="res://ui/sewing_screen.gd" id="6_obcwv"]
-[ext_resource type="Script" path="res://ui/suit_builder.gd" id="7_bo1jx"]
-[ext_resource type="Script" path="res://ui/customer_request.gd" id="9_ay4pc"]
-[ext_resource type="Script" path="res://ui/handbook.gd" id="10_ay4pc"]
+[ext_resource type="Script" uid="uid://r8kwf10xdeqh" path="res://ui/ui.gd" id="1_wl5ax"]
+[ext_resource type="Script" uid="uid://d1sm2dv2llnv6" path="res://ui/hud.gd" id="2_vkava"]
+[ext_resource type="Script" uid="uid://dncyctir85g3t" path="res://ui/orders_panel.gd" id="3_pa1oa"]
+[ext_resource type="Script" uid="uid://bh14wv6cb7425" path="res://ui/shelf_menu.gd" id="3_wl5ax"]
+[ext_resource type="Script" uid="uid://b30ge53cc8nln" path="res://ui/phone_order.gd" id="4_vkava"]
+[ext_resource type="Script" uid="uid://b2rmqd5ht6nur" path="res://ui/worktable_screen.gd" id="5_tf0e0"]
+[ext_resource type="Script" uid="uid://i26imbvlxskx" path="res://ui/sewing_screen.gd" id="6_obcwv"]
+[ext_resource type="Script" uid="uid://dr7hj8hgy1s5y" path="res://ui/suit_builder.gd" id="7_bo1jx"]
+[ext_resource type="Script" uid="uid://rx1yuguohrym" path="res://ui/customer_request.gd" id="9_ay4pc"]
+[ext_resource type="Script" uid="uid://cf8bow5e2w104" path="res://ui/handbook.gd" id="10_ay4pc"]
 
 [node name="UI" type="CanvasLayer" unique_id=663429624]
 script = ExtResource("1_wl5ax")
@@ -19,6 +19,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_vkava")
 
@@ -73,6 +75,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("3_wl5ax")
 
 [node name="Dim" type="ColorRect" parent="ShelfMenu" unique_id=1161819680]
@@ -116,6 +120,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("4_vkava")
 
 [node name="Dim" type="ColorRect" parent="PhoneOrder" unique_id=2063791424]
@@ -165,6 +171,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("5_tf0e0")
 
 [node name="Dim" type="ColorRect" parent="WorktableScreen" unique_id=1806731455]
@@ -216,6 +224,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("6_obcwv")
 
 [node name="Dim" type="ColorRect" parent="SewingScreen" unique_id=200889084]
@@ -229,6 +239,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("7_bo1jx")
 
@@ -271,6 +283,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("9_ay4pc")
 
 [node name="Dim" type="ColorRect" parent="CustomerRequest" unique_id=1626199933]
@@ -313,6 +327,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("10_ay4pc")
 
 [node name="Dim" type="ColorRect" parent="Handbook" unique_id=2126550916]

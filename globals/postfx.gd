@@ -11,7 +11,7 @@ extends Node
 ## set_enabled(on) / toggle() to flip it, and `profile` to read/tweak the live one.
 
 const SHADER_PATH := "res://assets/shaders/retro_postfx.gdshader"
-const DEFAULT_PROFILE := "res://data/postfx/retro_70s.tres"
+const DEFAULT_PROFILE := "res://data/postfx/chew.tres"
 ## Above UI (ui.tscn's CanvasLayer) so the filter covers the HUD too.
 const LAYER := 100
 

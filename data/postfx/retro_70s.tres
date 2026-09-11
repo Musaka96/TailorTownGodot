@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+[gd_resource type="Resource" script_class="PostFxProfile" format=3 uid="uid://c5t835hx7xckb"]
 
-[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_5f4ej"]
+[ext_resource type="Script" uid="uid://ctmohy5qr8o4u" path="res://data/scripts/postfx_profile.gd" id="1_5f4ej"]
 
 [resource]
 script = ExtResource("1_5f4ej")
+enabled = false
 temperature = 0.15
 tint = 0.03
 brightness = -0.02

@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+[gd_resource type="Resource" script_class="PostFxProfile" format=3 uid="uid://7lr7k2mb8cik"]
 
-[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_qg2ui"]
+[ext_resource type="Script" uid="uid://ctmohy5qr8o4u" path="res://data/scripts/postfx_profile.gd" id="1_qg2ui"]
 
 [resource]
 script = ExtResource("1_qg2ui")

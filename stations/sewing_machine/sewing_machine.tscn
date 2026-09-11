@@ -1,22 +1,14 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dwmvby0t0h8mq"]
 
-[ext_resource type="Script" path="res://stations/sewing_machine/sewing_machine.gd" id="1_lp63i"]
-[ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="2_2vebb"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ci6qi"]
-albedo_color = Color(0.5, 0.38, 0.26, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_t3ibc"]
-size = Vector3(1.5, 0.9, 0.8)
+[ext_resource type="Script" uid="uid://225ofjh6uwri" path="res://stations/sewing_machine/sewing_machine.gd" id="1_lp63i"]
+[ext_resource type="Script" uid="uid://dvfh4yjr6xhqm" path="res://entities/scripts/interactable.gd" id="2_2vebb"]
+[ext_resource type="PackedScene" uid="uid://b3maxj8ppuitm" path="res://IMPORT/MasinaZaSivenje.glb" id="3_2vebb"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_g7ajy"]
 size = Vector3(1.5, 0.9, 0.8)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5iiqe"]
 albedo_color = Color(0.2, 0.22, 0.26, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_fnnug"]
-size = Vector3(0.6, 0.32, 0.28)
 
 [sub_resource type="BoxMesh" id="BoxMesh_rhhoe"]
 size = Vector3(0.1, 0.22, 0.1)
@@ -29,19 +21,9 @@ script = ExtResource("1_lp63i")
 
 [node name="Body" type="StaticBody3D" parent="." unique_id=122581036]
 
-[node name="TableMesh" type="MeshInstance3D" parent="Body" unique_id=1503978256]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-material_override = SubResource("StandardMaterial3D_ci6qi")
-mesh = SubResource("BoxMesh_t3ibc")
-
 [node name="TableCol" type="CollisionShape3D" parent="Body" unique_id=418814371]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 shape = SubResource("BoxShape3D_g7ajy")
-
-[node name="Machine" type="MeshInstance3D" parent="Body" unique_id=904084573]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 1.06, -0.05)
-material_override = SubResource("StandardMaterial3D_5iiqe")
-mesh = SubResource("BoxMesh_fnnug")
 
 [node name="Arm" type="MeshInstance3D" parent="Body" unique_id=464611449]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 1.15, -0.05)
@@ -61,3 +43,6 @@ target = NodePath("..")
 [node name="@CollisionShape3D@11" type="CollisionShape3D" parent="Interactable" unique_id=2101531947]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.6)
 shape = SubResource("BoxShape3D_73p8g")
+
+[node name="MasinaZaSivenje" parent="." unique_id=1700084758 instance=ExtResource("3_2vebb")]
+transform = Transform3D(3.31, 0, 0, 0, 2.505, 0, 0, 0, 2.655, -16.811691, 0, 9.450606)
