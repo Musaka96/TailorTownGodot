@@ -95,6 +95,9 @@ func spawn_tutorial_customer() -> void:
 	if _served != null or _greet == Vector3.ZERO:
 		return
 	var cust := _spawn(_greet, true)
+	# The tutorial teaches a fixed, premade brief so it can spell out exactly what to make.
+	if Tutorial != null and Tutorial.is_active() and Tutorial.has_method("tutorial_pref"):
+		cust.preference = Tutorial.tutorial_pref()
 	_served = cust
 	_poof_at(cust.global_position)
 	cust.offer_greeting()

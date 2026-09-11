@@ -164,11 +164,10 @@ func _process(delta: float) -> void:
 	if Upgrades.cutting_sprint() and Input.is_action_pressed("sprint"):
 		boost *= SPRINT_MULT
 
-	# Alignment is line-orientation (either blade direction is fine).
+	# The scissors must point the way the cut is travelling — facing backwards (180° off)
+	# does NOT count, so the player actually steers along the line.
 	var tangent := _tangent_at(_cursor)
-	var err: float = minf(
-		absf(angle_difference(_angle, tangent)), absf(angle_difference(_angle, tangent + PI))
-	)
+	var err := absf(angle_difference(_angle, tangent))
 	_aligned = err <= _good_tol
 
 	if _aligned:

@@ -11,6 +11,14 @@ extends Node
 const POINT_Y := 1.0
 const HAND := "👆"
 
+## The tutorial customer's fixed, premade brief. Party is the most forgiving occasion
+## (any shirt colour/pattern), so an all-one-cloth suit is valid — the player can order a
+## single textile and make all three parts identical. Kept simple on purpose for a
+## first-timer who hasn't read the handbook yet.
+const TUT_OCCASION := Enums.Occasion.PARTY
+const TUT_STYLE := Enums.Style.CLASSIC
+const TUT_BUDGET := 1000
+
 const T_ORDER := (
 	"Welcome to the shop! Let's make your first suit.\n\nGo to the PHONE and order a bolt of "
 	+ "cloth: Order Textiles, call a supplier, pick a fabric, then Order."
@@ -98,12 +106,19 @@ var _customer: Node = null
 var _time := 0.0
 var _on_choose := Callable()
 
+## The premade suit the tutorial customer wants — all three parts the same simple cloth,
+## computed once at start so the order + design steps can spell out exactly what to make.
+var _recipe: Dictionary = {}
+## The bolt delivered by the phone this run, so the store step can point right at it.
+var _delivered_roll: Node = null
+
 var _layer: CanvasLayer
 var _bubble: PanelContainer
 var _bubble_docked := false
 var _text: Label
 var _hand: Label
 var _next: Button
+var _skip: Button
 
 
 func _ready() -> void:
@@ -116,6 +131,7 @@ func _ready() -> void:
 	EventBus.customer_seated.connect(_on_customer_seated)
 	EventBus.customer_waiting.connect(func(cust): _customer = cust)
 	EventBus.design_confirmed.connect(func(_d): _try("design_confirmed"))
+	EventBus.order_delivered.connect(func(roll): _delivered_roll = roll)
 
 
 ## Offer the tutorial (called on a new game). Shows a yes/no prompt; `on_choose` runs once
@@ -177,6 +193,10 @@ func _choose_done() -> void:
 func _start() -> void:
 	_active = true
 	_step = 0
+	_recipe = _compute_recipe()  # the exact suit we'll walk the player through making
+	# The tutorial is a commitment — no skipping once it's begun (only the prompt offers out).
+	if _skip != null:
+		_skip.visible = false
 	# Fold the morning paper away if it's up — the tutorial takes the stage.
 	if UI != null and UI.newspaper != null and UI.newspaper.has_method("close"):
 		UI.newspaper.close()
@@ -233,14 +253,94 @@ func _spawn_customer() -> void:
 		mgr.spawn_tutorial_customer()
 
 
-## The step's text, with the customer brief spliced into the design step.
+## The step's text. The order and design steps splice in the premade recipe so a
+## first-timer is told exactly what cloth to buy and what to make (no handbook needed yet).
 func _step_text(step: Dictionary) -> String:
-	if step.get("id", "") != "design":
-		return str(step.get("text", ""))
-	var pref = _customer.get("preference") if _customer != null else null
-	if pref == null:
-		return "Design a suit at the mirror to match the customer, then press E to confirm."
-	return "This customer wants: %s.\n\n%s" % [pref.describe(), T_DESIGN]
+	match str(step.get("id", "")):
+		"order":
+			return (
+				"Welcome to the shop! Let's make your first suit.\n\n"
+				+ "Go to the PHONE → Order Textiles → pick a supplier, then order %s. " % _cloth_desc()
+				+ "Set the Fabric, Colour and Pattern with A/D, then Order."
+			)
+		"design":
+			return (
+				"This customer wants a %s suit. For your first one, keep it simple — " % _brief_desc()
+				+ "make ALL THREE parts the same:\n\n        %s\n\n" % _cloth_desc()
+				+ "Pick each part with W/S and set its Fabric, Colour and Pattern with A/D to "
+				+ "match, then press E to confirm."
+			)
+	return str(step.get("text", ""))
+
+
+# --- Premade recipe --------------------------------------------------------
+
+
+## A CustomerPreference for the tutorial's fixed brief (used by the CustomerManager when it
+## poofs the fitting customer in, so the brief matches the recipe we teach).
+func tutorial_pref() -> CustomerPreference:
+	var p := CustomerPreference.new()
+	p.occasion = TUT_OCCASION
+	p.style = TUT_STYLE
+	p.budget = TUT_BUDGET
+	return p
+
+
+## The brief label, e.g. "Party · Classic".
+func _brief_desc() -> String:
+	return "%s · %s" % [Enums.occasion_name(TUT_OCCASION), Enums.style_name(TUT_STYLE)]
+
+
+## The single cloth all three parts use, e.g. "Navy Worsted Wool (Solid)".
+func _cloth_desc() -> String:
+	var part: Dictionary = _recipe.get(Enums.GarmentType.JACKET, {})
+	if part.is_empty():
+		return "a simple cloth"
+	var col := MaterialFactory.color_name(int(part.get("color", 0)))
+	var fab := Enums.fabric_name(int(part.get("fabric", 0)))
+	var pat := Enums.pattern_name(int(part.get("pattern", 0)))
+	return "%s %s (%s)" % [col, fab, pat]
+
+
+## Build the fixed premade suit for the tutorial brief: the same simple cloth on all three
+## parts (valid because Party accepts any shirt, and matching trousers read as a suit).
+func _compute_recipe() -> Dictionary:
+	var fabric := 0
+	var color := 0
+	var pattern := int(Enums.Pattern.SOLID)
+	var dc = Catalog.dress_code if Catalog != null else null
+	var rule = dc.rule_for(TUT_OCCASION, TUT_STYLE) if dc != null else null
+	if rule != null:
+		if not rule.allowed_fabrics.is_empty():
+			fabric = int(rule.allowed_fabrics[0])
+		if not rule.allowed_colors.is_empty():
+			color = int(rule.allowed_colors[0])
+		pattern = _pick_pattern(rule)
+	var part := {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+	return {
+		Enums.GarmentType.JACKET: part.duplicate(),
+		Enums.GarmentType.PANTS: part.duplicate(),
+		Enums.GarmentType.SHIRT: part.duplicate(),
+	}
+
+
+## A pattern the jacket rule accepts (a bold one if the rule demands it, else plain).
+func _pick_pattern(rule) -> int:
+	if rule.require_pattern:
+		for p in rule.allowed_patterns:
+			if int(p) != Enums.Pattern.SOLID:
+				return int(p)
+	if rule.allowed_patterns.is_empty() or Enums.Pattern.SOLID in rule.allowed_patterns:
+		return int(Enums.Pattern.SOLID)
+	return int(rule.allowed_patterns[0])
+
+
+## The item the player is currently carrying (for the store-step pointer), or null.
+func _player_held() -> Node:
+	var p := get_tree().get_first_node_in_group("player")
+	if p != null and p.get("carry") != null:
+		return p.carry.get_held()
+	return null
 
 
 # --- Pointer ---------------------------------------------------------------
@@ -319,6 +419,11 @@ func _point_screen() -> Vector2:
 			var p: Vector2 = UI.phone_order.tutorial_hint_point()
 			if p.x >= 0.0:
 				return p
+	# Store step: point at the bolt the phone just delivered so the player finds it, then
+	# (once it's in hand) fall through to the SHELF where it goes.
+	if step.get("id", "") == "store" and _delivered_roll != null:
+		if is_instance_valid(_delivered_roll) and _delivered_roll != _player_held():
+			return _project(_delivered_roll)
 	if step.get("customer", false):
 		return _project(_customer)
 	var name: String = step.get("point", "")
@@ -408,9 +513,12 @@ func _build_bubble(root: Control) -> void:
 	_next = MenuKit.button("Next  ▶", _advance)
 	_next.custom_minimum_size = Vector2(120, 38)
 	row.add_child(_next)
-	var skip := MenuKit.button("Skip tutorial", _finish)
-	skip.custom_minimum_size = Vector2(140, 38)
-	row.add_child(skip)
+	# The decline button, shown ONLY at the opening prompt. Once the tutorial begins it is
+	# hidden (see _start) — you can't bail out mid-way any more.
+	_skip = MenuKit.button("No thanks", _finish)
+	_skip.custom_minimum_size = Vector2(140, 38)
+	_skip.visible = false
+	row.add_child(_skip)
 
 
 func _show_prompt() -> void:
@@ -418,7 +526,10 @@ func _show_prompt() -> void:
 	_text.text = T_PROMPT
 	_next.visible = true
 	_next.text = "Yes, show me"
-	# Rewire Next to start (once), and add a "No thanks" the first time.
+	if _skip != null:
+		_skip.visible = true
+		_skip.text = "No thanks"
+	# Rewire Next to start (once).
 	for c in _next.pressed.get_connections():
 		_next.pressed.disconnect(c["callable"])
 	_next.pressed.connect(_start_from_prompt)
