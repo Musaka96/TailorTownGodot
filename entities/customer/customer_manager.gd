@@ -99,17 +99,26 @@ func spawn_tutorial_customer() -> void:
 	if Tutorial != null and Tutorial.is_active() and Tutorial.has_method("tutorial_pref"):
 		cust.preference = Tutorial.tutorial_pref()
 	_served = cust
+	# Hide them inside a magic cloud, then reveal once it's billowed up — so the player never
+	# sees the figure pop into existence.
+	cust.visible = false
 	_poof_at(cust.global_position)
+	get_tree().create_timer(0.22).timeout.connect(
+		func() -> void:
+			if is_instance_valid(cust):
+				cust.visible = true
+	)
 	cust.offer_greeting()
 	EventBus.customer_waiting.emit(cust)
 
 
-## A quick "magic" puff of warm motes at `pos` (used when a customer poofs in).
+## A big magic cloud that engulfs a whole figure at `pos` (feet position) — used to hide a
+## customer poofing into the shop. Emits soft puffs throughout a body-sized volume.
 func _poof_at(pos: Vector3) -> void:
 	if Sfx != null:
-		Sfx.play("cloth_rustle", 0.0, 1.1, 1.35)
+		Sfx.play("cloth_rustle", 0.0, 1.0, 1.2)
 	var qm := QuadMesh.new()
-	qm.size = Vector2(0.14, 0.14)
+	qm.size = Vector2(0.7, 0.7)  # big soft puffs
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -119,25 +128,28 @@ func _poof_at(pos: Vector3) -> void:
 	var p := CPUParticles3D.new()
 	p.mesh = qm
 	p.one_shot = true
-	p.explosiveness = 1.0
-	p.amount = 30
-	p.lifetime = 0.7
+	p.explosiveness = 0.9
+	p.amount = 72
+	p.lifetime = 1.1
+	# Spawn puffs all through a body-sized box (feet→head) so the whole figure is covered.
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(0.45, 0.9, 0.45)
 	p.direction = Vector3.UP
-	p.spread = 80.0
-	p.initial_velocity_min = 1.2
-	p.initial_velocity_max = 2.8
-	p.gravity = Vector3(0, -2.5, 0)
-	p.scale_amount_min = 0.6
-	p.scale_amount_max = 1.5
-	p.color = Color(0.98, 0.95, 0.86)
+	p.spread = 180.0
+	p.initial_velocity_min = 0.3
+	p.initial_velocity_max = 1.4
+	p.gravity = Vector3(0, 0.5, 0)  # drifts gently upward like smoke
+	p.scale_amount_min = 1.2
+	p.scale_amount_max = 2.6
+	p.color = Color(0.98, 0.96, 0.9)
 	var ramp := Gradient.new()
 	ramp.set_color(0, Color(1, 1, 1, 1))
 	ramp.set_color(1, Color(1, 1, 1, 0))
 	p.color_ramp = ramp
 	add_child(p)
-	p.global_position = pos + Vector3(0, 0.9, 0)
+	p.global_position = pos + Vector3(0, 0.9, 0)  # centre on the body
 	p.emitting = true
-	get_tree().create_timer(1.4).timeout.connect(p.queue_free)
+	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
 
 
 func _send_shopper(start: Vector3) -> void:

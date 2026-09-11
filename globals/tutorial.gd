@@ -11,13 +11,15 @@ extends Node
 const POINT_Y := 1.0
 const HAND := "👆"
 
-## The tutorial customer's fixed, premade brief. Party is the most forgiving occasion
-## (any shirt colour/pattern), so an all-one-cloth suit is valid — the player can order a
-## single textile and make all three parts identical. Kept simple on purpose for a
-## first-timer who hasn't read the handbook yet.
-const TUT_OCCASION := Enums.Occasion.PARTY
+## The tutorial customer's fixed, premade brief — the archetypal navy business suit, so a
+## first-timer (who hasn't read the handbook) is walked through a real, sensible combination:
+## a matched jacket + trousers plus a light shirt.
+const TUT_OCCASION := Enums.Occasion.BUSINESS
 const TUT_STYLE := Enums.Style.CLASSIC
 const TUT_BUDGET := 1000
+## The tutorial shirt colour — a pale shirting (white) so the shirt reads light, not the
+## suit cloth. Shirtings are indices 10..17; 10 is white.
+const TUT_SHIRT_COLOR := 10
 
 const T_ORDER := (
 	"Welcome to the shop! Let's make your first suit.\n\nGo to the PHONE and order a bolt of "
@@ -28,8 +30,8 @@ const T_STORE := (
 	+ "E to store it."
 )
 const T_CUTBOLT := (
-	"Empty-handed at the shelf, press E to browse it, then CUT a length off the bolt to get "
-	+ "a piece of fabric."
+	"Empty-handed at the shelf, press E to browse it. Use A/D to set the length, then press "
+	+ "F to CUT a piece of fabric off the bolt."
 )
 const T_WORKTABLE := (
 	"Carry the fabric to the WORKTABLE. Configure the part and cut it in the mini-game to "
@@ -259,16 +261,18 @@ func _step_text(step: Dictionary) -> String:
 	match str(step.get("id", "")):
 		"order":
 			return (
-				"Welcome to the shop! Let's make your first suit.\n\n"
-				+ "Go to the PHONE → Order Textiles → pick a supplier, then order %s. " % _cloth_desc()
-				+ "Set the Fabric, Colour and Pattern with A/D, then Order."
+				"Welcome to the shop! Let's learn the ropes.\n\n"
+				+ "Go to the PHONE → Order Textiles → pick a supplier, then order a bolt of cloth "
+				+ "— any fabric, colour and pattern you like (set them with A/D), then Order."
 			)
 		"design":
 			return (
-				"This customer wants a %s suit. For your first one, keep it simple — " % _brief_desc()
-				+ "make ALL THREE parts the same:\n\n        %s\n\n" % _cloth_desc()
-				+ "Pick each part with W/S and set its Fabric, Colour and Pattern with A/D to "
-				+ "match, then press E to confirm."
+				"This customer wants a %s suit. Design one that fits — " % _brief_desc()
+				+ "you don't need the cloth yet, you'll make it after:\n\n"
+				+ "•  Jacket:  %s\n" % _part_desc(Enums.GarmentType.JACKET)
+				+ "•  Pants:  %s  (match the jacket)\n" % _part_desc(Enums.GarmentType.PANTS)
+				+ "•  Shirt:  %s  (shirts are a light cloth)\n\n" % _part_desc(Enums.GarmentType.SHIRT)
+				+ "Pick a part with W/S, set its Fabric/Colour/Pattern with A/D, then press E."
 			)
 	return str(step.get("text", ""))
 
@@ -291,19 +295,20 @@ func _brief_desc() -> String:
 	return "%s · %s" % [Enums.occasion_name(TUT_OCCASION), Enums.style_name(TUT_STYLE)]
 
 
-## The single cloth all three parts use, e.g. "Navy Worsted Wool (Solid)".
-func _cloth_desc() -> String:
-	var part: Dictionary = _recipe.get(Enums.GarmentType.JACKET, {})
+## One recipe part described for the bubble, e.g. "Navy · Worsted Wool · Solid".
+func _part_desc(garment_type: int) -> String:
+	var part: Dictionary = _recipe.get(garment_type, {})
 	if part.is_empty():
-		return "a simple cloth"
-	var col := MaterialFactory.color_name(int(part.get("color", 0)))
-	var fab := Enums.fabric_name(int(part.get("fabric", 0)))
-	var pat := Enums.pattern_name(int(part.get("pattern", 0)))
-	return "%s %s (%s)" % [col, fab, pat]
+		return "—"
+	return "%s · %s · %s" % [
+		MaterialFactory.color_name(int(part.get("color", 0))),
+		Enums.fabric_name(int(part.get("fabric", 0))),
+		Enums.pattern_name(int(part.get("pattern", 0))),
+	]
 
 
-## Build the fixed premade suit for the tutorial brief: the same simple cloth on all three
-## parts (valid because Party accepts any shirt, and matching trousers read as a suit).
+## Build the fixed premade suit for the tutorial brief: a matched jacket + trousers in the
+## brief's cloth, plus a proper light shirt (white cotton) — a real, sensible combination.
 func _compute_recipe() -> Dictionary:
 	var fabric := 0
 	var color := 0
@@ -316,11 +321,18 @@ func _compute_recipe() -> Dictionary:
 		if not rule.allowed_colors.is_empty():
 			color = int(rule.allowed_colors[0])
 		pattern = _pick_pattern(rule)
-	var part := {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+	var suit_cloth := {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
+	# Shirts are a light cloth in a pale colour — white cotton is the safe classic.
+	var shirt := {
+		"fabric": int(Enums.Fabric.COTTON),
+		"color": TUT_SHIRT_COLOR,
+		"pattern": int(Enums.Pattern.SOLID),
+		"style_idx": 0,
+	}
 	return {
-		Enums.GarmentType.JACKET: part.duplicate(),
-		Enums.GarmentType.PANTS: part.duplicate(),
-		Enums.GarmentType.SHIRT: part.duplicate(),
+		Enums.GarmentType.JACKET: suit_cloth.duplicate(),
+		Enums.GarmentType.PANTS: suit_cloth.duplicate(),
+		Enums.GarmentType.SHIRT: shirt,
 	}
 
 
