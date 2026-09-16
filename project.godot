@@ -28,6 +28,7 @@ Upgrades="*res://globals/upgrades.gd"
 News="*res://globals/news_manager.gd"
 UI="*res://ui/ui.tscn"
 PostFX="*res://globals/postfx.gd"
+Outline="*res://globals/outline_fx.gd"
 Settings="*res://globals/settings.gd"
 Shift="*res://globals/shift_manager.gd"
 DayNight="*res://globals/day_night.gd"
@@ -158,3 +159,42 @@ newspaper={
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+
+[shader_globals]
+
+ac_brightness={
+"type": "float",
+"value": 0.95
+}
+ac_saturation={
+"type": "float",
+"value": 0.88
+}
+ac_roughness={
+"type": "float",
+"value": 0.88
+}
+ac_shadow_softness={
+"type": "float",
+"value": 0.45
+}
+ac_shadow_tint={
+"type": "color",
+"value": Color(0.14901961, 0.32941177, 0.3372549, 1)
+}
+ac_highlight_strength={
+"type": "float",
+"value": 0.06
+}
+ac_highlight_tint={
+"type": "color",
+"value": Color(0.39215687, 0.3764706, 0.34509805, 1)
+}
+ac_color_variation={
+"type": "float",
+"value": 0.025
+}
+ac_shadow_lift={
+"type": "float",
+"value": 0.075
+}
