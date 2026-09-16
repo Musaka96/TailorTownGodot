@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://cf88wtft1fjxt"]
 
 [ext_resource type="PackedScene" uid="uid://jk4i7qcpjrbf" path="res://stations/shelf/shelf.tscn" id="1_2a88l"]
-[ext_resource type="Texture2D" uid="uid://c513ckypoqid3" path="res://assets/textures/random/36357721-4736-4fc6-b3fe-718ade091429(1).png" id="1_i5usx"]
+[ext_resource type="Shader" uid="uid://dvqs7e3ajjcxx" path="res://materials/animal_crossing_style.gdshader" id="1_yia2c"]
+[ext_resource type="Texture2D" uid="uid://b6olxiktk30m" path="res://assets/textures/{FF861A46-5447-4BB1-A2DE-EAAFF1CC3E59}.png" id="2_7md1u"]
 [ext_resource type="PackedScene" path="res://stations/phone/phone.tscn" id="3_jtjmr"]
-[ext_resource type="Texture2D" uid="uid://dmtvydky06vmo" path="res://assets/textures/random/b817b175-1827-493b-83bc-470c4f339ab3(1).png" id="3_nqgoc"]
 [ext_resource type="PackedScene" uid="uid://bp2junry4wnt8" path="res://stations/worktable/worktable.tscn" id="5_usqlc"]
 [ext_resource type="PackedScene" uid="uid://dwmvby0t0h8mq" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_f0faw"]
 [ext_resource type="PackedScene" uid="uid://cfpv8nkwuc54y" path="res://stations/bookshelf/bookshelf.tscn" id="9_o426c"]
@@ -15,19 +15,25 @@
 [ext_resource type="Resource" path="res://data/materials/navy_worsted_solid.tres" id="20_j7vby"]
 [ext_resource type="Resource" path="res://data/materials/charcoal_worsted_pinstripe.tres" id="21_d3xxm"]
 [ext_resource type="Resource" path="res://data/materials/brown_tweed_herringbone.tres" id="22_n46ak"]
-[ext_resource type="PackedScene" uid="uid://cf082g8vewbem" path="res://IMPORT/NewHouseBase.glb" id="24_enfbf"]
+[ext_resource type="PackedScene" uid="uid://dfqhabgjbwvjl" path="res://new_house_base.tscn" id="22_qa0s0"]
+[ext_resource type="Texture2D" uid="uid://bhu05p02ime2h" path="res://assets/textures/c02e10e4-3dbf-4c5b-bcf9-e159ac4c562e.png" id="23_2xgx5"]
 [ext_resource type="PackedScene" uid="uid://bstk0gb501vbv" path="res://IMPORT/NewHouseRoof.glb" id="24_i5usx"]
 [ext_resource type="Resource" path="res://data/materials/midgrey_flannel_solid.tres" id="25_43laf"]
+[ext_resource type="Texture2D" uid="uid://bxtx2q7jmoab7" path="res://assets/textures/random/31193d0e-c263-4a04-9160-15da24d51466(1).png" id="25_s0cn2"]
+[ext_resource type="PackedScene" uid="uid://ms21rgi1x564" path="res://scenes/props/flora_patch.tscn" id="28_2xgx5"]
 [ext_resource type="PackedScene" path="res://entities/items/fabric_piece.tscn" id="28_5qj3b"]
 [ext_resource type="Resource" path="res://data/materials/navy_worsted_pinstripe.tres" id="30_swjr5"]
 [ext_resource type="PackedScene" path="res://entities/items/garment_piece.tscn" id="31_d7rrd"]
+[ext_resource type="Texture2D" uid="uid://drm0cxncrl4an" path="res://assets/textures/random/427c24a9-1da1-4c8f-9196-fb4e90e09d90(2).png" id="31_pf3bg"]
+[ext_resource type="PackedScene" uid="uid://s2pe73idyh4" path="res://scenes/world/ograda.tscn" id="32_ov3w0"]
 [ext_resource type="Resource" path="res://data/materials/charcoal_worsted_solid.tres" id="33_errh0"]
+[ext_resource type="PackedScene" uid="uid://boxl5ttu0p6f1" path="res://scenes/grass_patch.tscn" id="33_ov3w0"]
 [ext_resource type="Resource" path="res://data/materials/lightgrey_worsted_sharkskin.tres" id="34_eig6a"]
+[ext_resource type="PackedScene" uid="uid://b0ix253jucslr" path="res://scenes/world/town_base.tscn" id="34_kodol"]
 [ext_resource type="PackedScene" path="res://entities/items/suit.tscn" id="35_knglg"]
 [ext_resource type="Script" uid="uid://clfnpwwjvwxfb" path="res://scenes/world/roof_manager.gd" id="40_roofm"]
 [ext_resource type="PackedScene" uid="uid://s8v4bsnqp5up" path="res://stations/trash_can/trash_can.tscn" id="41_trash"]
-[ext_resource type="PackedScene" path="res://scenes/props/grass_patch.tscn" id="50_grass"]
-[ext_resource type="PackedScene" path="res://scenes/props/carpet.tscn" id="51_carpet"]
+[ext_resource type="PackedScene" uid="uid://chc3xsobkyti4" path="res://scenes/props/carpet.tscn" id="51_carpet"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
@@ -35,17 +41,39 @@
 sky_material = SubResource("ProceduralSkyMaterial_c7tjy")
 
 [sub_resource type="Environment" id="Environment_d058j"]
-background_mode = 2
+background_mode = 1
+background_color = Color(0.76862746, 0.8509804, 0.8392157, 1)
 sky = SubResource("Sky_hg8uv")
-ambient_light_source = 3
+ambient_light_source = 2
+ambient_light_color = Color(0.84705883, 0.89411765, 0.8666667, 1)
+ambient_light_energy = 0.55
 tonemap_mode = 2
+ssao_enabled = true
+ssao_radius = 0.6
+ssao_intensity = 1.4
+ssao_light_affect = 0.1
+glow_enabled = true
+glow_intensity = 0.4
+glow_bloom = 0.06
+glow_hdr_threshold = 0.95
+fog_enabled = true
+fog_light_color = Color(0.7490196, 0.81960785, 0.8156863, 1)
+fog_density = 0.002
+adjustment_enabled = true
+adjustment_contrast = 1.04
+adjustment_saturation = 1.12
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qa0s0"]
-albedo_texture = ExtResource("1_i5usx")
-uv1_scale = Vector3(15.91, 15.91, 15.91)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pf3bg"]
+render_priority = 0
+shader = ExtResource("1_yia2c")
+shader_parameter/albedo_texture = ExtResource("2_7md1u")
+shader_parameter/albedo_color = Color(1, 1, 1, 1)
+shader_parameter/texture_strength = 1.0
+shader_parameter/albedo_tiling = Vector2(6, 6)
+shader_parameter/albedo_offset = Vector2(0, 0)
 
 [sub_resource type="BoxMesh" id="BoxMesh_6uxdm"]
-size = Vector3(14.365631, 1, 11.150879)
+size = Vector3(11.133499, 1, 8.598511)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ojymr"]
 size = Vector3(16, 1, 16)
@@ -58,13 +86,6 @@ size = Vector3(4.17041, 3, 0.23405762)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_f5swu"]
 size = Vector3(0.8591919, 3, 0.6140625)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_stiry"]
-albedo_texture = ExtResource("3_nqgoc")
-uv1_scale = Vector3(0.415, 0.415, 0.415)
-
-[sub_resource type="BoxMesh" id="BoxMesh_tmwry"]
-size = Vector3(3.5, 0.6, 0.3)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_fdmf3"]
 size = Vector3(0.3, 3, 16)
@@ -84,6 +105,36 @@ albedo_color = Color(0.71, 0.28, 0.24, 1)
 [sub_resource type="BoxMesh" id="BoxMesh_ir8pn"]
 size = Vector3(4.2, 0.2, 1.6)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yia2c"]
+render_priority = 0
+shader = ExtResource("1_yia2c")
+shader_parameter/albedo_texture = ExtResource("23_2xgx5")
+shader_parameter/albedo_color = Color(1, 1, 1, 1)
+shader_parameter/texture_strength = 1.0
+shader_parameter/albedo_tiling = Vector2(5, 1)
+shader_parameter/albedo_offset = Vector2(0, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ov3w0"]
+render_priority = 0
+shader = ExtResource("1_yia2c")
+shader_parameter/albedo_texture = ExtResource("25_s0cn2")
+shader_parameter/albedo_color = Color(1, 1, 1, 1)
+shader_parameter/texture_strength = 1.0
+shader_parameter/albedo_tiling = Vector2(40, 40)
+shader_parameter/albedo_offset = Vector2(0.22, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kodol"]
+render_priority = 0
+shader = ExtResource("1_yia2c")
+shader_parameter/albedo_texture = ExtResource("31_pf3bg")
+shader_parameter/albedo_color = Color(1, 1, 1, 1)
+shader_parameter/texture_strength = 1.0
+shader_parameter/albedo_tiling = Vector2(42.57, -2.885)
+shader_parameter/albedo_offset = Vector2(0, 0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3xd07"]
+size = Vector3(37.095703, 1, 3.5)
+
 [node name="ShopRoom" type="Node3D" unique_id=1507661624]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=563568563]
@@ -91,13 +142,14 @@ environment = SubResource("Environment_d058j")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=814668976]
 transform = Transform3D(0.81915206, 0.46984634, -0.32898995, 0, 0.57357645, 0.81915206, 0.57357645, -0.6710101, 0.46984634, 0, 0, 0)
-shadow_enabled = true
+visible = false
+light_energy = 0.0
 
 [node name="Floor" type="StaticBody3D" parent="." unique_id=1108522204]
 
 [node name="GroundMesh" type="MeshInstance3D" parent="Floor" unique_id=403747064]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2954841, -0.5, 2.4245605)
-material_override = SubResource("StandardMaterial3D_qa0s0")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.91155, -0.5, 3.6100464)
+material_override = SubResource("ShaderMaterial_pf3bg")
 mesh = SubResource("BoxMesh_6uxdm")
 
 [node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=734846109]
@@ -117,11 +169,6 @@ shape = SubResource("BoxShape3D_monyf")
 [node name="S_RCol" type="CollisionShape3D" parent="Walls" unique_id=699562265]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.570404, 1.5, 8.325782)
 shape = SubResource("BoxShape3D_f5swu")
-
-[node name="S_Lintel" type="MeshInstance3D" parent="Walls" unique_id=808246]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 8)
-material_override = SubResource("StandardMaterial3D_stiry")
-mesh = SubResource("BoxMesh_tmwry")
 
 [node name="ECol" type="CollisionShape3D" parent="Walls" unique_id=170812063]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.5, 0)
@@ -178,7 +225,7 @@ material_override = SubResource("StandardMaterial3D_imd4p")
 mesh = SubResource("BoxMesh_ir8pn")
 
 [node name="Sign" type="Label3D" parent="Storefront" unique_id=282864519]
-transform = Transform3D(1, 0, 0, 0, 0.42804897, 0.90375555, 0, -0.90375555, 0.42804897, 5.5638523, 2.9028165, 9.22773)
+transform = Transform3D(1, 0, 0, 0, 0.42804897, 0.90375555, 0, -0.90375555, 0.42804897, 14.95834, 2.9028165, 9.22773)
 pixel_size = 0.006
 modulate = Color(0.97, 0.91, 0.78, 1)
 outline_modulate = Color(0.2, 0.08, 0.06, 1)
@@ -274,8 +321,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.18, 0, 1.6)
 quality = 0.75
 primary_color = Color(0.21176471, 0.22352941, 0.24705882, 1)
 
-[node name="NewHouseBase" parent="." unique_id=239109748 instance=ExtResource("24_enfbf")]
+[node name="NewHouseBase2" parent="." unique_id=646262444 instance=ExtResource("22_qa0s0")]
 transform = Transform3D(2.17, 0, 0, 0, 2.17, 0, 0, 0, 2.17, 3.8216057, 0, 6.3275537)
+
+[node name="c2bff4be_3699_49de_a859_3c34bc4fd328_002" parent="NewHouseBase2" index="0" unique_id=1893264992]
+material_override = null
+surface_material_override/9 = SubResource("ShaderMaterial_yia2c")
+surface_material_override/11 = SubResource("ShaderMaterial_ov3w0")
 
 [node name="NewHouseRoof" parent="." unique_id=200102759 instance=ExtResource("24_i5usx")]
 transform = Transform3D(2.17, 0, 0, 0, 2.17, 0, 0, 0, 2.17, 3.8216057, 0, 6.3275537)
@@ -290,8 +342,70 @@ script = ExtResource("40_roofm")
 roof_path = NodePath("../NewHouseRoof")
 interior_extents = Vector3(7.53, 1.8, 5.9)
 
-[node name="GrassPatch" parent="." instance=ExtResource("50_grass")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -5)
-
-[node name="Carpet" parent="." instance=ExtResource("51_carpet")]
+[node name="Carpet" parent="." unique_id=1561999809 instance=ExtResource("51_carpet")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 2.5)
+plush_roundness = 0.75
+color_variation = 0.06
+pattern_softness = 0.15
+weave_strength = 0.12
+weave_scale = 100.0
+
+[node name="FloraPatch3" parent="." unique_id=500448687 instance=ExtResource("28_2xgx5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.085564, 0.018687725, 1.8917577)
+patch_size = Vector2(28.03, 14.56)
+
+[node name="Node3D" type="Node3D" parent="." unique_id=1782033005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.23479, 0, 0)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2137816016]
+transform = Transform3D(1, 0, 0, 0, 0.7751285, 0.63180363, 0, -0.63180363, 0.7751285, 0, 0, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_angular_distance = 3.0
+shadow_enabled = true
+shadow_opacity = 0.9
+shadow_blur = 1.5
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1225683813]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0008163452, -0.5561406, 10.975578)
+material_override = SubResource("ShaderMaterial_kodol")
+mesh = SubResource("BoxMesh_3xd07")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="." unique_id=1138656893]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14.399997, -0.5561406, 1.9315233)
+material_override = SubResource("ShaderMaterial_kodol")
+mesh = SubResource("BoxMesh_3xd07")
+
+[node name="ograda" parent="." unique_id=1620095110 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(2.23, 0, 0, 0, 2.23, 0, 0, 0, 2.23, -10.344606, 0, 6.0344048)
+
+[node name="ograda2" parent="." unique_id=1279271454 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(2.23, 0, 0, 0, 2.23, 0, 0, 0, 2.23, -10.344606, 0, 0.73133755)
+
+[node name="ograda7" parent="." unique_id=1359124020 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(2.23, 0, 0, 0, 2.23, 0, 0, 0, 2.23, 10.757439, 0, 6.0344048)
+
+[node name="ograda8" parent="." unique_id=2047313884 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(2.23, 0, 0, 0, 2.23, 0, 0, 0, 2.23, 10.757439, 0, 0.73133755)
+
+[node name="ograda3" parent="." unique_id=1921993168 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(-9.7476395e-08, 0, 2.23, 0, 2.23, 0, -2.23, 0, -9.7476395e-08, -7.745606, 0, -2.0030684)
+
+[node name="ograda4" parent="." unique_id=1444529553 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(-9.7476395e-08, 0, 2.23, 0, 2.23, 0, -2.23, 0, -9.7476395e-08, -2.4609222, 0, -2.0030684)
+
+[node name="ograda5" parent="." unique_id=1599703908 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(-9.7476395e-08, 0, 2.23, 0, 2.23, 0, -2.23, 0, -9.7476395e-08, 2.8742175, 0, -2.0030684)
+
+[node name="ograda6" parent="." unique_id=825701749 instance=ExtResource("32_ov3w0")]
+transform = Transform3D(-9.7476395e-08, 0, 2.23, 0, 2.23, 0, -2.23, 0, -9.7476395e-08, 8.158901, 0, -2.0030684)
+
+[node name="GrassPatch" parent="." unique_id=1909371927 instance=ExtResource("33_ov3w0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.385047, 0.019540347, 19.311079)
+patch_size = Vector2(11.795, 11.05)
+grass_amount = 140
+
+[node name="TownBase" parent="." unique_id=1197732258 instance=ExtResource("34_kodol")]
+transform = Transform3D(2.17, 0, 0, 0, 2.17, 0, 0, 0, 2.17, 3.9931393, 0, 6.5343137)
+
+[editable path="NewHouseBase2"]
+[editable path="TownBase"]

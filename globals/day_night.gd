@@ -106,7 +106,9 @@ func _shift_seconds() -> float:
 
 
 ## Find the sun in the current scene (re-finds when the scene changes, detected by
-## the cached sun going invalid).
+## the cached sun going invalid). Only a DirectionalLight3D named "Sun" is driven — never
+## an arbitrary light — so a scene can add its own fixed lights without the day cycle
+## taking them over (overwriting their colour, energy and rotation every frame).
 ## Returns true only on the frame it (re)assigns the sun, so callers can drive it once.
 func _locate() -> bool:
 	if _sun != null and is_instance_valid(_sun):
@@ -114,8 +116,7 @@ func _locate() -> bool:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return false
-	var lights := scene.find_children("*", "DirectionalLight3D", true, false)
-	_sun = lights[0] if not lights.is_empty() else null
+	_sun = scene.find_child("Sun", true, false) as DirectionalLight3D
 	return _sun != null
 
 
