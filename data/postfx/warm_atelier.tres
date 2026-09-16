@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/postfx_profile.gd" id="1_ijsvl"]
+
+[resource]
+script = ExtResource("1_ijsvl")
+temperature = 0.03
+contrast = 1.03
+saturation = 0.95
+vibrance = 0.25
+lift = -0.015
+split_tone = 0.25
+shadow_tint = Color(0.42, 0.42, 0.58, 1)
+highlight_tint = Color(0.56, 0.53, 0.47, 1)
+tilt_shift = 0.35
+tilt_focus = 0.55
+tilt_focus_size = 0.22
+vignette_strength = 0.25
+bloom_strength = 0.08
+override_lighting = true

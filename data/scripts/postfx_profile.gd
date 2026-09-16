@@ -32,6 +32,18 @@ enum FilmPreset {
 @export_range(-1.0, 1.0) var brightness: float = 0.0
 @export_range(0.0, 2.0) var contrast: float = 1.0
 @export_range(0.0, 2.0) var saturation: float = 1.0
+## Saturates dull colours more than already-vivid ones (keeps skin/pastels sane).
+@export_range(-1.0, 1.0) var vibrance: float = 0.0
+## Black point: negative deepens shadows, positive lifts/fades them.
+@export_range(-0.2, 0.2) var lift: float = 0.0
+## Midtones: below 1 = richer/darker mids, above 1 = brighter.
+@export_range(0.5, 2.0) var gamma: float = 1.0
+
+@export_group("Split Toning")
+## How strongly shadows/highlights are pushed toward the tints (grey = neutral).
+@export_range(0.0, 1.0) var split_tone: float = 0.0
+@export var shadow_tint: Color = Color(0.5, 0.5, 0.5)
+@export var highlight_tint: Color = Color(0.5, 0.5, 0.5)
 
 @export_group("Film Emulation")
 @export var film_preset: FilmPreset = FilmPreset.NONE
@@ -61,6 +73,28 @@ enum FilmPreset {
 @export_range(0.0, 1.0) var barrel_distortion: float = 0.0
 @export_range(0.0, 1.0) var vhs_wobble: float = 0.0
 @export_range(0.0, 1.0) var flicker_strength: float = 0.0
+
+@export_group("Scene Lighting")
+## When on, this look also re-lights the 3D world: it overrides the scene's
+## WorldEnvironment and main shadow-casting DirectionalLight3D (originals are restored
+## when switching to a look with this off). See globals/postfx_lighting.gd.
+@export var override_lighting: bool = false
+@export var tonemap: Environment.ToneMapper = Environment.TONE_MAPPER_ACES
+@export_range(0.1, 4.0) var exposure: float = 1.25
+@export_range(0.5, 16.0) var tonemap_white: float = 4.0
+@export var background_color: Color = Color(0.62, 0.78, 0.86)
+@export var ambient_color: Color = Color(0.74, 0.77, 0.9)
+@export_range(0.0, 2.0) var ambient_energy: float = 0.5
+@export var sun_color: Color = Color(1.0, 0.9, 0.76)
+@export_range(0.0, 4.0) var sun_energy: float = 1.15
+@export_range(0.0, 1.0) var shadow_opacity: float = 1.0
+@export_range(0.0, 16.0) var ssao_intensity: float = 1.6
+@export_range(0.0, 1.0) var ssao_light_affect: float = 0.2
+@export_range(0.0, 8.0) var glow_intensity: float = 0.5
+@export var fog_color: Color = Color(0.9, 0.84, 0.76)
+@export_range(0.0, 0.05) var fog_density: float = 0.0015
+@export_range(0.0, 2.0) var env_contrast: float = 1.02
+@export_range(0.0, 2.0) var env_saturation: float = 1.0
 
 
 ## Default look shipped as data/postfx/retro_70s.tres.
@@ -153,6 +187,28 @@ static func make_storybook() -> PostFxProfile:
 	p.outline_strength = 0.35
 	p.bloom_strength = 0.10
 	p.vignette_strength = 0.20
+	return p
+
+
+## Warm atelier: the painted-reference mood. Re-lights the scene (warm golden key,
+## low cool-lavender fill so shadows actually read, stronger contact AO, ACES) and
+## grades toward rich woods/greens with plum shadows and cream highlights.
+static func make_warm_atelier() -> PostFxProfile:
+	var p := PostFxProfile.new()
+	p.temperature = 0.03
+	p.contrast = 1.03
+	p.saturation = 0.95
+	p.vibrance = 0.25
+	p.lift = -0.015
+	p.split_tone = 0.25
+	p.shadow_tint = Color(0.42, 0.42, 0.58)
+	p.highlight_tint = Color(0.56, 0.53, 0.47)
+	p.tilt_shift = 0.35
+	p.tilt_focus = 0.55
+	p.tilt_focus_size = 0.22
+	p.bloom_strength = 0.08
+	p.vignette_strength = 0.25
+	p.override_lighting = true
 	return p
 
 

@@ -17,6 +17,13 @@ uniform float tint : hint_range(-1.0, 1.0) = 0.0;  // green(+) / magenta(-)
 uniform float brightness : hint_range(-1.0, 1.0) = 0.0;
 uniform float contrast : hint_range(0.0, 2.0) = 1.0;
 uniform float saturation : hint_range(0.0, 2.0) = 1.0;
+uniform float vibrance : hint_range(-1.0, 1.0) = 0.0;  // boosts dull colours more than vivid ones
+uniform float lift : hint_range(-0.2, 0.2) = 0.0;  // black point (- = deeper shadows)
+uniform float gamma : hint_range(0.5, 2.0) = 1.0;  // midtones (>1 brighter, <1 richer/darker)
+// Split toning: grey (0.5) = no shift; tints shadows and highlights separately.
+uniform vec3 shadow_tint = vec3(0.5);
+uniform vec3 highlight_tint = vec3(0.5);
+uniform float split_tone : hint_range(0.0, 1.0) = 0.0;
 
 // Film emulation (0 none,1 Kodachrome,2 VHS,3 Sepia,4 Technicolor,5 B&W,6 Green,7 Amber).
 uniform int film_preset = 0;
@@ -94,6 +101,17 @@ vec3 grade(vec3 c) {
 	c += brightness;
 	c = (c - 0.5) * contrast + 0.5;
 	c = mix(vec3(dot(c, LUMA)), c, saturation);
+	if (abs(vibrance) > 0.001) {
+		float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+		c = mix(vec3(dot(c, LUMA)), c, 1.0 + vibrance * (1.0 - clamp(chroma, 0.0, 1.0)));
+	}
+	c = c + lift * (1.0 - c);
+	c = pow(max(c, vec3(0.0)), vec3(1.0 / gamma));
+	if (split_tone > 0.001) {
+		float l = clamp(dot(c, LUMA), 0.0, 1.0);
+		c += (shadow_tint - 0.5) * (1.0 - l) * split_tone * 0.5;
+		c += (highlight_tint - 0.5) * l * split_tone * 0.5;
+	}
 	return c;
 }
 

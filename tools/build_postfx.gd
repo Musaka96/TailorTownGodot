@@ -18,6 +18,7 @@ func _initialize() -> void:
 		"cozy_diorama": PostFxProfile.make_cozy_diorama(),
 		"storybook": PostFxProfile.make_storybook(),
 		"pixel_toy": PostFxProfile.make_pixel_toy(),
+		"warm_atelier": PostFxProfile.make_warm_atelier(),
 	}
 	var failed := 0
 	for file_name in presets:
