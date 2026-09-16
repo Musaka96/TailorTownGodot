@@ -14,12 +14,24 @@ const ROW_NAME := {
 }
 # Display order of the parts.
 const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
-# Overview shot framing: how far in front of the customer the camera sits (smaller =
-# closer), its height, and how far to aim to the side so the customer sits toward the
-# left of the frame (clear of the fitting panel on the right). Tune to taste.
-const OVERVIEW_DIST := 2.1
-const OVERVIEW_HEIGHT := 0.5
-const OVERVIEW_SIDE := 0.5
+# Camera framing. The subject (whole customer, or the selected part) is placed EXACTLY
+# at the centre of the free screen area left of the fitting panel, solved from the live
+# camera FOV, viewport aspect and panel width — so it can't drift on other resolutions.
+# FILL = fraction of the screen height the subject's span takes up.
+const OVERVIEW_FILL := 0.8
+const PITCH_DEG := 8.0  # camera looks slightly down at the subject
+# Part shots: (centre height, visible screen-height span), both as fractions of the
+# customer's height (measured from their meshes, so every body frames the same).
+const PART_FRAME := {
+	Enums.GarmentType.JACKET: Vector2(0.42, 0.72),
+	Enums.GarmentType.SHIRT: Vector2(0.48, 0.56),
+	Enums.GarmentType.PANTS: Vector2(0.22, 0.72),
+}
+const DEFAULT_BODY_HEIGHT := 2.25
+const CAMERA_BLOCK_MASK := 1  # world geometry (walls, furniture)
+const CAMERA_WALL_MARGIN := 0.3
+# Yaw offsets (degrees) tried in order when the straight-on view is blocked.
+const ORBIT_TRIES := [0.0, 20.0, -20.0, 40.0, -40.0, 60.0, -60.0, 80.0, -80.0]
 # Data fallbacks when there's no seated customer (not UI styling).
 const _SKIN_FALLBACK := Color(0.87, 0.72, 0.60)  # ui-check-ignore: skin data
 const _HAIR_FALLBACK := Color(0.14, 0.11, 0.09)  # ui-check-ignore: hair data
@@ -43,6 +55,7 @@ var _stock_badge: HBoxContainer
 var _stock_dot: Panel
 var _stock_label: Label
 var _decor_built := false
+var _height := DEFAULT_BODY_HEIGHT  # customer's measured height, cached on open
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _title: Label = $Panel/Margin/Box/Title
@@ -53,6 +66,13 @@ var _decor_built := false
 
 func _ready() -> void:
 	_build_preview()
+
+
+func _process(_delta: float) -> void:
+	# Re-solve every frame: the panel's layout settles after opening and the window can
+	# be resized, and the target must track both to stay exactly centred.
+	if visible:
+		_update_camera()
 
 
 func open(mirror, actor) -> void:
@@ -79,8 +99,9 @@ func open(mirror, actor) -> void:
 	GameState.input_locked = true
 	visible = true
 	_style()
-	_update_camera()
 	_apply_to_customer()
+	_height = _body_height() if _customer != null else DEFAULT_BODY_HEIGHT
+	_update_camera()
 	_refresh()
 
 
@@ -196,19 +217,85 @@ func _value_text(row: int) -> String:
 
 
 func _update_camera() -> void:
-	if _rig == null or _customer == null:
+	if _rig == null or _customer == null or not is_instance_valid(_customer):
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
 		return
 	var front: Vector3 = _customer.facing()
-	if _part_sel < 0:
-		var c: Vector3 = _customer.center()
-		# Sit closer, and aim past the customer to one side so they land toward the left
-		# of the frame (clear of the fitting panel on the right).
-		var side := -front.cross(Vector3.UP).normalized() * OVERVIEW_SIDE
-		var eye := c + front * OVERVIEW_DIST + Vector3(0, OVERVIEW_HEIGHT, 0)
-		_rig.focus(eye, c + side)
-	else:
-		var p: Vector3 = _customer.part_position(_type())
-		_rig.focus(p + front * 1.7 + Vector3(0, 0.2, 0), p)
+	front.y = 0.0
+	if front.length() < 0.01:
+		return
+	front = front.normalized()
+	var base: Vector3 = _customer.global_position
+	var height := _height
+	var centre := 0.5
+	var span := height / OVERVIEW_FILL
+	if _part_sel >= 0:
+		var pf: Vector2 = PART_FRAME.get(_type(), Vector2(0.5, 0.5))
+		centre = pf.x
+		span = height * pf.y
+	var subject := base + Vector3(0.0, height * centre, 0.0)
+	# Prefer straight-on; if a wall is in the way, orbit to the nearest clear angle.
+	var pose := _frame_pose(cam, subject, front, span)
+	for deg: float in ORBIT_TRIES:
+		var tryp := _frame_pose(cam, subject, front.rotated(Vector3.UP, deg_to_rad(deg)), span)
+		if _blocked_at(subject, tryp.origin) < 0.0:
+			pose = tryp
+			break
+	var hit := _blocked_at(subject, pose.origin)
+	if hit >= 0.0:
+		# Nowhere clear: slide in along the same line (subject stays on its spot).
+		var dist := subject.distance_to(pose.origin)
+		var keep := maxf(hit - CAMERA_WALL_MARGIN, dist * 0.5) / dist
+		pose.origin = subject + (pose.origin - subject) * keep
+	_rig.focus(pose.origin, pose.origin - pose.basis.z)
+
+
+## Camera pose that projects `subject` onto the centre of the free screen area (left of
+## the panel, vertically centred) with `span` metres of world height visible at the
+## subject's depth. Solved in camera space from the real FOV/aspect, so it is exact.
+func _frame_pose(cam: Camera3D, subject: Vector3, front: Vector3, span: float) -> Transform3D:
+	var vp := get_viewport_rect().size
+	var aspect := vp.x / maxf(vp.y, 1.0)
+	var tan_half := tan(deg_to_rad(cam.fov) * 0.5)
+	var tan_v := tan_half if cam.keep_aspect == Camera3D.KEEP_HEIGHT else tan_half / aspect
+	var tan_h := tan_v * aspect
+	# Free area is [0, panel_left]; its centre in NDC x is panel_left_frac - 1.
+	var free := clampf(_panel.get_global_rect().position.x / maxf(vp.x, 1.0), 0.3, 1.0)
+	var ndc := Vector2(free - 1.0, 0.0)
+	var pitch := deg_to_rad(PITCH_DEG)
+	var dir := (-front * cos(pitch) + Vector3.DOWN * sin(pitch)).normalized()
+	var basis := Basis.looking_at(dir, Vector3.UP)
+	var depth := span / (2.0 * tan_v)
+	var ray := Vector3(ndc.x * tan_h, ndc.y * tan_v, -1.0) * depth
+	return Transform3D(basis, subject - basis * ray)
+
+
+## Distance from `subject` to the first wall/prop on the way to `eye`, or -1 if the
+## line is clear. The customer's own collision is ignored.
+func _blocked_at(subject: Vector3, eye: Vector3) -> float:
+	var space := get_viewport().find_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(subject, eye, CAMERA_BLOCK_MASK)
+	var skip: Array[RID] = []
+	for body in _customer.find_children("*", "CollisionObject3D", true, false):
+		skip.append((body as CollisionObject3D).get_rid())
+	query.exclude = skip
+	var hit := space.intersect_ray(query)
+	return -1.0 if hit.is_empty() else subject.distance_to(hit["position"])
+
+
+## The customer's height from their visible meshes (feet to top of hair), so the
+## framing adapts to different heads/hair. Falls back to the stock rig's height.
+func _body_height() -> float:
+	var base_y: float = _customer.global_position.y
+	var top := base_y
+	for node in _customer.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		if mesh.is_visible_in_tree():
+			top = maxf(top, (mesh.global_transform * mesh.get_aabb()).end.y)
+	var h := top - base_y
+	return h if h > 0.5 and h < 6.0 else DEFAULT_BODY_HEIGHT
 
 
 # --- Rendering -------------------------------------------------------------

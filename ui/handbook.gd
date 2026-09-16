@@ -3,6 +3,8 @@ extends Control
 ## The Tailor's Handbook — a book-style reference opened at the bookshelf. Chapter
 ## tabs across the top, a topic index on the left page, the article on the right.
 ## Content comes from Handbook (real tailoring info + live dress-code rules).
+## Reading freezes the game: the scene tree is paused while the book is open (the
+## book itself keeps processing) so the clock, customers and orders all wait.
 
 ## The book's fixed size — the ONLY fixed element. Everything inside stacks and
 ## scrolls within it (index on the left, preview + article on the right).
@@ -14,6 +16,7 @@ var _chapter := 0
 var _topic := 0
 var _decor_built := false
 var _index_scroll: ScrollContainer
+var _was_paused := false
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -24,8 +27,14 @@ var _index_scroll: ScrollContainer
 @onready var _hint: Label = $Center/Panel/Margin/Box/Hint
 
 
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
 func open(actor) -> void:
 	_actor = actor
+	_was_paused = get_tree().paused
+	get_tree().paused = true
 	_chapters = Handbook.chapters()
 	_chapter = 0
 	_topic = 0
@@ -38,6 +47,7 @@ func open(actor) -> void:
 func close() -> void:
 	visible = false
 	GameState.input_locked = false
+	get_tree().paused = _was_paused
 	_actor = null
 
 

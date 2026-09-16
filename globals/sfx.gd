@@ -22,6 +22,8 @@ const LIB := {
 	"error": "error.wav",
 	# customers & economy
 	"door_chime": "door_chime.wav",
+	"door_open": "door_open.wav",
+	"door_close": "door_close.wav",
 	"phone_order": "phone_order.wav",
 	"coins": "coins.wav",
 	"happy": "happy.wav",
@@ -173,6 +175,12 @@ func ui(event: InputEvent) -> void:
 		or event.is_action_pressed("ui_down")
 	):
 		play_single("ui_move", -7.0)
+
+
+## The stream for `key` (a random variant for sets), for nodes that play it through
+## their own (e.g. positional) player. Null when the sound isn't in the library.
+func stream(key: String) -> AudioStream:
+	return _pick(key)
 
 
 ## Resolve a key to a single stream — a random one when the key holds a variant set.

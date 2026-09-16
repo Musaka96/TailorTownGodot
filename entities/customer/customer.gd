@@ -55,6 +55,7 @@ var _face_target := NAN
 
 
 func _ready() -> void:
+	add_to_group("customer")  # ShopDoor opens for anyone in "player" or "customer"
 	_set_interactable(false)
 
 
