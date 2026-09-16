@@ -1,8 +1,8 @@
-[gd_resource type="ShaderMaterial" format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dv1bd6eje7acf"]
 
-[ext_resource type="Shader" path="res://materials/carpet.gdshader" id="1_wqywn"]
+[ext_resource type="Shader" uid="uid://bpmf3suvctfyp" path="res://materials/carpet.gdshader" id="1_wqywn"]
 
 [resource]
 render_priority = 0
 shader = ExtResource("1_wqywn")
-shader_parameter/base_shade = 0.45
+shader_parameter/base_shade = 0.63999998569472

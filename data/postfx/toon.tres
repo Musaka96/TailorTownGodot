@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PostFxProfile" format=3 uid="uid://c1ne1cm3secw8"]
+
+[ext_resource type="Script" uid="uid://ctmohy5qr8o4u" path="res://data/scripts/postfx_profile.gd" id="1_qu3l5"]
+
+[resource]
+script = ExtResource("1_qu3l5")
+contrast = 1.06
+saturation = 1.2
+posterize = 8.0
+outline_strength = 0.22

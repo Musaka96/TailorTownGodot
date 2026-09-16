@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dfqhabgjbwvjl"]
+
+[ext_resource type="PackedScene" uid="uid://cf082g8vewbem" path="res://IMPORT/NewHouseBase.glb" id="1_tgrxn"]
+[ext_resource type="Texture2D" uid="uid://bmoj5p32jse7p" path="res://IMPORT/kucaalbedo.001.png" id="2_b7clw"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e6wvw"]
+albedo_texture = ExtResource("2_b7clw")
+
+[node name="NewHouseBase" unique_id=646262444 instance=ExtResource("1_tgrxn")]
+
+[node name="c2bff4be_3699_49de_a859_3c34bc4fd328_002" parent="." index="0" unique_id=1971240160]
+material_override = SubResource("StandardMaterial3D_e6wvw")

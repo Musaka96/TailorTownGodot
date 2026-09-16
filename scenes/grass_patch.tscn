@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://boxl5ttu0p6f1"]
+
+[ext_resource type="Script" uid="uid://cwmb7jug8mueo" path="res://entities/scripts/grass_patch.gd" id="2_220u4"]
+[ext_resource type="Material" uid="uid://dculmsx0b62rc" path="res://materials/grass.tres" id="2_hjje3"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_3xd07"]
+size = Vector2(10, 10)
+subdivide_width = 40
+subdivide_depth = 40
+
+[node name="GrassPatch" type="Node3D" unique_id=1909371927]
+script = ExtResource("2_220u4")
+patch_size = Vector2(12.345, 12.19)
+
+[node name="GrassGround" type="MeshInstance3D" parent="." unique_id=764201475]
+mesh = SubResource("PlaneMesh_3xd07")
+surface_material_override/0 = ExtResource("2_hjje3")

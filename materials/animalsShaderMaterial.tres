@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://cj7u2ygrxbjxr"]
+
+[ext_resource type="Shader" uid="uid://dvqs7e3ajjcxx" path="res://materials/animal_crossing_style.gdshader" id="1_mqqhe"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_mqqhe")
+shader_parameter/albedo_color = Color(0.015686275, 1, 1, 1)
+shader_parameter/texture_strength = 1.0
+shader_parameter/albedo_tiling = Vector2(1, 1)
+shader_parameter/albedo_offset = Vector2(0, 0)

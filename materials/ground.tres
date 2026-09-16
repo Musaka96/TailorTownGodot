@@ -1,15 +1,17 @@
-[gd_resource type="ShaderMaterial" format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://c3ayvfmn61db2"]
 
-[ext_resource type="Shader" path="res://materials/ground.gdshader" id="1_xygne"]
+[ext_resource type="Shader" uid="uid://dlowfv37yty6h" path="res://materials/ground.gdshader" id="1_xygne"]
+[ext_resource type="Texture2D" uid="uid://cnao04n72q32i" path="res://assets/textures/aegsdrrge.png" id="2_3c7dl"]
 
 [resource]
 render_priority = 0
 shader = ExtResource("1_xygne")
 shader_parameter/color_a = Color(0.36, 0.56, 0.22, 1)
 shader_parameter/color_b = Color(0.2, 0.38, 0.14, 1)
-shader_parameter/use_texture = false
-shader_parameter/tiling = null
-shader_parameter/use_patches = true
+shader_parameter/base_texture = ExtResource("2_3c7dl")
+shader_parameter/use_texture = true
+shader_parameter/tiling = Vector2(1.08, 1.59)
+shader_parameter/use_patches = false
 shader_parameter/patch_scale = 12.0
 shader_parameter/patch_amount = 0.5
 shader_parameter/patch_softness = 0.18

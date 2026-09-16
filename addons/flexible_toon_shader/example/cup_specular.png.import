@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dl84p1r6l6usj"
-path.s3tc="res://.godot/imported/36357721-4736-4fc6-b3fe-718ade091429(2).png-b66e0156b88fc9c0c6869b206de19b63.s3tc.ctex"
+uid="uid://c6ruutbfjlbxy"
+path.s3tc="res://.godot/imported/cup_specular.png-67fd376e8d3f08cde7226bf38fa4025a.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/textures/random/36357721-4736-4fc6-b3fe-718ade091429(2).png"
-dest_files=["res://.godot/imported/36357721-4736-4fc6-b3fe-718ade091429(2).png-b66e0156b88fc9c0c6869b206de19b63.s3tc.ctex"]
+source_file="res://addons/flexible_toon_shader/example/cup_specular.png"
+dest_files=["res://.godot/imported/cup_specular.png-67fd376e8d3f08cde7226bf38fa4025a.s3tc.ctex"]
 
 [params]
 

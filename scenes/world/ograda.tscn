@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://s2pe73idyh4"]
+
+[ext_resource type="PackedScene" uid="uid://b080nto34jfn6" path="res://IMPORT/ograda.glb" id="1_s15il"]
+[ext_resource type="Shader" uid="uid://dvqs7e3ajjcxx" path="res://materials/animal_crossing_style.gdshader" id="2_l6mdi"]
+[ext_resource type="Texture2D" uid="uid://bxtx2q7jmoab7" path="res://assets/textures/random/31193d0e-c263-4a04-9160-15da24d51466(1).png" id="3_k35y3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_b6e8p"]
+render_priority = 0
+shader = ExtResource("2_l6mdi")
+shader_parameter/albedo_texture = ExtResource("3_k35y3")
+shader_parameter/albedo_color = Color(1, 1, 1, 1)
+shader_parameter/texture_strength = 1.0
+shader_parameter/albedo_tiling = Vector2(9.95, 2.9)
+shader_parameter/albedo_offset = Vector2(0, 0)
+
+[node name="ograda" unique_id=1620095110 instance=ExtResource("1_s15il")]
+
+[node name="c2bff4be_3699_49de_a859_3c34bc4fd328_004" parent="." index="0" unique_id=1925209766]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027774513, 0, -0.020716906)
+material_override = SubResource("ShaderMaterial_b6e8p")

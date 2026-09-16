@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://b0ix253jucslr"]
+
+[ext_resource type="PackedScene" uid="uid://chttyambssvwv" path="res://IMPORT/TownBase.glb" id="1_yjuy6"]
+[ext_resource type="Material" uid="uid://dculmsx0b62rc" path="res://materials/grass.tres" id="2_1gb5m"]
+
+[node name="TownBase" unique_id=1197732258 instance=ExtResource("1_yjuy6")]
+
+[node name="Plane_001" parent="." index="1" unique_id=906451728]
+material_override = ExtResource("2_1gb5m")
