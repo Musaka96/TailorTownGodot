@@ -20,6 +20,9 @@ const TIERS := [
 	{"at": 480, "name": "Master of the Row"},
 ]
 
+## Decorations can raise reputation gains by at most this much (+50%).
+const DECOR_CAP := 0.5
+
 ## Points awarded/lost. Setter clamps at 0 and announces changes for the HUD.
 var points: int = 0:
 	set(value):
@@ -30,6 +33,17 @@ var points: int = 0:
 func _ready() -> void:
 	EventBus.order_fulfilled.connect(_on_order_fulfilled)
 	EventBus.order_expired.connect(_on_order_expired)
+	EventBus.order_late.connect(_on_order_late)
+
+
+## Extra share of reputation gained thanks to the shop's decorations (ShopDecoration
+## nodes in the current scene), capped at DECOR_CAP.
+func decor_bonus() -> float:
+	var total := 0.0
+	for node in get_tree().get_nodes_in_group(ShopDecoration.GROUP):
+		if node is ShopDecoration and (node as ShopDecoration).is_visible_in_tree():
+			total += (node as ShopDecoration).reputation_bonus
+	return minf(total, DECOR_CAP)
 
 
 ## Current rank index (0..TIERS.size()-1).
@@ -69,12 +83,17 @@ func _on_order_fulfilled(order: SuitOrder, _payout: int) -> void:
 	var following := News != null and News.fashion_matches(order.design)
 	if following:
 		gain += News.fashion_bonus(order.design)
+	gain = int(round(gain * (1.0 + decor_bonus())))
 	points += gain
 	_toast(gain, loved, following)
 
 
 func _on_order_expired(_order: SuitOrder) -> void:
-	points -= 12
+	points -= Config.data.expired_rep_loss if Config.data != null else 12
+
+
+func _on_order_late(_order: SuitOrder) -> void:
+	points -= Config.data.late_rep_loss if Config.data != null else 6
 
 
 func _toast(gain: int, loved: bool, following: bool) -> void:

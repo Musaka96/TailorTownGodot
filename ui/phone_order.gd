@@ -11,8 +11,8 @@ enum Screen { HUB, SUPPLIERS, ORDER, UPGRADES }
 enum ORow { FABRIC, COLOR, PATTERN, PATTERN_COLOR, LENGTH }
 
 const PANEL_W := 520
-const LENGTH_MIN := 4.0
-const LENGTH_STEP := 2.0
+const LENGTH_MIN := 2.0  # fallbacks; Config.roll_min_m / roll_step_m win
+const LENGTH_STEP := 1.0
 const HUB_OPTIONS := [
 	{"title": "Order Textiles", "desc": "Ring a supplier and order a bolt of cloth."},
 	{"title": "Shop Upgrades", "desc": "Spend your standing on better tools and kit."},
@@ -76,7 +76,7 @@ func open(phone, actor) -> void:
 	_vendor = clampi(_vendor, 0, Upgrades.VENDORS.size() - 1)
 	if _vendor_locked(_vendor):
 		_vendor = 0
-	_length = clampf(_length, LENGTH_MIN, Upgrades.max_roll_length())
+	_length = clampf(_length, _len_min(), Upgrades.max_roll_length())
 	GameState.input_locked = true
 	visible = true
 	_style()
@@ -214,14 +214,19 @@ func _refresh_order() -> void:
 	var rows := _order_rows()
 	_row = clampi(_row, 0, rows.size() - 1)
 	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length, _pattern_dye)
-	var cost := Pricing.roll_price(mat, _length) if mat != null else 0
+	var cost := _order_cost(mat)
 	var afford := GameState.can_afford(cost)
 	if mat != null:
 		_swatch.setup(mat, mat.roll_length_m)
 		_name_label.text = mat.display_name
 		_summary_label.text = mat.summary()
-	_price_label.text = "Order:  $ %d   for %.0f m%s" % [cost, _length, _status]
-	_price_label.add_theme_color_override("font_color", Style.FOREST if afford else Style.CLAY)
+	var price := "On the house!" if _free_order() else "$ %d" % cost
+	_price_label.text = "Order:  %s   for %.0f m%s%s" % [price, _length, _deals_text(), _status]
+	var col := Style.FOREST if afford else Style.CLAY
+	if not afford and GameState.can_use_account(cost):
+		col = Style.AMBER
+		_price_label.text += "\nE: put it on account (repaid from your next sale)"
+	_price_label.add_theme_color_override("font_color", col)
 	for i in rows.size():
 		_rows.add_child(_make_cfg_row(rows[i], _row == i))
 	_set_hint([["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Back"]])
@@ -274,7 +279,11 @@ func _show_vendor_detail(i: int) -> void:
 		_price_label.text = "Locked — unlocks at %s" % _tier_name(int(v["tier"]))
 		_price_label.add_theme_color_override("font_color", Style.CLAY)
 	else:
-		_price_label.text = "E — call this supplier"
+		var mult := Pricing.vendor_mult(i)
+		var note := "  ·  +%d%% per metre" % roundi((mult - 1.0) * 100.0) if mult > 1.0 else ""
+		if Pricing.is_market_day():
+			note += "  ·  MARKET DAY −%d%%" % roundi(Pricing.market_discount() * 100.0)
+		_price_label.text = "E — call this supplier%s" % note
 		_price_label.add_theme_color_override("font_color", Style.FOREST)
 
 
@@ -485,7 +494,7 @@ func _adjust(dir: int) -> void:
 			var n := MaterialFactory.pattern_accent_count()
 			_pattern_dye = (_pattern_dye + dir + n) % n
 		ORow.LENGTH:
-			_length = clampf(_length + dir * LENGTH_STEP, LENGTH_MIN, Upgrades.max_roll_length())
+			_length = clampf(_length + dir * _len_step(), _len_min(), Upgrades.max_roll_length())
 	_refresh()
 
 
@@ -574,16 +583,53 @@ func _order_roll() -> void:
 	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length, _pattern_dye)
 	if mat == null:
 		return
-	var cost := Pricing.roll_price(mat, _length)
-	if not GameState.can_afford(cost):
+	var cost := _order_cost(mat)
+	if GameState.can_afford(cost):
+		GameState.spend(cost)
+		_status = "     Ordered!  (-$%d)" % cost
+	elif GameState.buy_on_account(cost):
+		_status = "     On account — $%d owed" % cost
+	else:
 		_status = "     Not enough money!"
+		Sfx.play("error")
 		_refresh()
 		return
-	GameState.spend(cost)
 	_phone.deliver_roll(mat, _length)
 	EventBus.order_placed.emit(mat, _length, cost)
-	_status = "     Ordered!  (-$%d)" % cost
 	_refresh()
+
+
+## What this bolt costs from the current supplier today (free for the tutorial's first).
+func _order_cost(mat: MaterialType) -> int:
+	if mat == null or _free_order():
+		return 0
+	return Pricing.roll_price(mat, _length, _vendor)
+
+
+func _free_order() -> bool:
+	return Tutorial != null and Tutorial.is_active() and Tutorial.first_bolt_free()
+
+
+## "  (−10% bulk · market day −25%)" — the discounts that apply to this bolt.
+func _deals_text() -> String:
+	var deals := PackedStringArray()
+	var bulk := Pricing.bulk_discount(_length)
+	if bulk > 0.0:
+		deals.append("−%d%% bulk" % roundi(bulk * 100.0))
+	if Pricing.is_market_day():
+		deals.append("market day −%d%%" % roundi(Pricing.market_discount() * 100.0))
+	var mult := Pricing.vendor_mult(_vendor)
+	if mult > 1.0:
+		deals.append("premium +%d%%" % roundi((mult - 1.0) * 100.0))
+	return "  (%s)" % " · ".join(deals) if not deals.is_empty() else ""
+
+
+func _len_min() -> float:
+	return Config.data.roll_min_m if Config.data != null else LENGTH_MIN
+
+
+func _len_step() -> float:
+	return Config.data.roll_step_m if Config.data != null else LENGTH_STEP
 
 
 func _buy_upgrade() -> void:

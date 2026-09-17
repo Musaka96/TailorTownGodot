@@ -113,7 +113,7 @@ func _fill() -> void:
 		_title.text = "A customer"
 		_brief.text = "They're just browsing."
 	else:
-		_title.text = pref.display_name
+		_title.text = pref.title()
 		_brief.text = "%s\n\nBudget: $%d" % [pref.describe(), pref.budget]
 
 

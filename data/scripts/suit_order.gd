@@ -29,9 +29,13 @@ const COLOR_TOLERANCE := 0.14
 @export var skin: Color = Color(0.87, 0.72, 0.60)
 @export var hair_index: int = 0
 @export var hair_color: Color = Color(0.14, 0.11, 0.09)
-## Total days promised (1–5) and how many real-time days remain.
+## Shop days promised, and the shop day (Shift.day) the customer returns to collect.
 @export var deadline_days: int = 3
-@export var days_left: float = 3.0
+@export var due_day: int = 4
+## When during the due day's shift (0..1 of the shift) the customer walks in.
+@export var arrive_at: float = 0.4
+## The suit wasn't ready on the due day; the customer gave one grace day (pays less).
+@export var late := false
 
 var state: int = State.OPEN
 ## GarmentType(int) -> { score: float, quality: float } for each checked-off piece.
@@ -69,8 +73,10 @@ func fill_part(garment_type: int, score: float, quality: float) -> void:
 	filled[garment_type] = {"score": score, "quality": quality}
 
 
+## Shop days until the customer comes, counting today as 1 (1 = today, 2 = tomorrow).
 func days_left_ceil() -> int:
-	return maxi(1, int(ceil(days_left)))
+	var today: int = Shift.day if Shift != null else 1
+	return maxi(1, due_day - today + 1)
 
 
 ## Describe the ordered jacket for the compact HUD ticket, e.g. "Navy Pinstripe".
@@ -126,9 +132,24 @@ func part_match(garment_type: int, part: Dictionary) -> float:
 	return score
 
 
-## Final payout once collected: price scaled by average match and craft quality.
+## Final payout once collected (see payout_breakdown()).
 func payout() -> int:
-	return int(round(price * average_match() * average_quality()))
+	return int(payout_breakdown()["total"])
+
+
+## { base, tip, total, score } — full price across the "good enough" band, a tip for
+## excellent work, and the late-collection share if the grace day was used.
+func payout_breakdown() -> Dictionary:
+	var score := average_match() * average_quality()
+	var base := price * Pricing.pay_share(score)
+	var tip := price * Pricing.tip_share(score)
+	if late:
+		var share: float = Config.data.late_pay if Config.data != null else 0.75
+		base *= share
+		tip = 0.0
+	var b := int(round(base))
+	var t := int(round(tip))
+	return {"base": b, "tip": t, "total": b + t, "score": score}
 
 
 ## 0..1 — mean brief-match across the order's pieces (how right the cloth was).

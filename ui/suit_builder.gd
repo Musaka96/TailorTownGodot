@@ -326,7 +326,7 @@ func _body_height() -> float:
 
 
 func _refresh() -> void:
-	_title.text = ("Fitting: %s" % _pref.display_name) if _pref != null else "Suit Builder"
+	_title.text = ("Fitting: %s" % _pref.title()) if _pref != null else "Suit Builder"
 	var mat := _material()
 	_swatch.setup(mat, mat.roll_length_m)
 	if _part_sel < 0:
@@ -338,11 +338,12 @@ func _refresh() -> void:
 			"%s  ·  %s" % [mat.summary(), Enums.styles_for(_type())[_cfg()["style_idx"]]]
 		)
 	if _pref != null:
-		var quote := Pricing.suit_quote(_design)
-		var over := "  (OVER)" if quote > _pref.budget else ""
+		# Live price readout: cloth + craft = quote, against the customer's budget.
+		var q := Pricing.quote_breakdown(_design)
+		var over := "  (OVER BUDGET)" if int(q["total"]) > _pref.budget else ""
 		_brief_label.text = (
-			"For: %s   ·   Budget $%d   ·   Quote $%d%s%s"
-			% [_pref.describe(), _pref.budget, quote, over, _status]
+			"For: %s   ·   Budget $%d\nCloth $%d + Craft $%d = Quote $%d%s%s"
+			% [_pref.describe(), _pref.budget, q["cloth"], q["craft"], q["total"], over, _status]
 		)
 	else:
 		_brief_label.text = _status.strip_edges()
@@ -550,6 +551,8 @@ func _finalize() -> void:
 	var hair: int = _customer.hair_index if _customer != null else 0
 	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
 	Orders.create_order(_pref.display_name, _design, quote, skin, hair, hair_col)
+	if Clientele != null and _customer != null:
+		Clientele.note_customer(_customer)  # remember their face so they can return
 	EventBus.design_confirmed.emit(_design.duplicate(true))
 	var cust = _customer
 	close()

@@ -187,9 +187,13 @@ func _on_order_due(order: SuitOrder) -> void:
 	var start := _street_west if _rng.randf() < 0.5 else _street_east
 	var cust := _spawn(start, false)
 	cust.collect_order = order
-	cust.apply_look(order.skin)
-	cust.set_hair(order.hair_index)  # match the customer who ordered
-	cust.set_hair_color(order.hair_color)
+	var known: Dictionary = Clientele.look(order.customer_name) if Clientele != null else {}
+	if known.is_empty():
+		cust.apply_look(order.skin)
+		cust.set_hair(order.hair_index)  # match the customer who ordered
+		cust.set_hair_color(order.hair_color)
+	else:
+		_dress_as(cust, known)
 	cust.walk([_door_out, _door_in, _collect_spot()], func() -> void: _on_collector_arrived(cust))
 
 
@@ -198,9 +202,14 @@ func _on_collector_arrived(cust: Customer) -> void:
 	if order != null and Orders.is_ready(order):
 		cust.offer_collection(order)
 	else:
-		# Deadline passed unfinished — the customer leaves empty-handed.
+		# Not ready. The first time they kindly return tomorrow (for less); after the grace
+		# day they give up and leave empty-handed.
 		if order != null:
-			Orders.expire(order)
+			if Orders.grant_grace(order):
+				UI.toast('%s: "Not ready yet? I\'ll come back tomorrow."' % order.customer_name)
+			else:
+				UI.toast('%s: "Still not ready… never mind."' % order.customer_name)
+				Orders.expire(order)
 		cust.collect_order = null
 		dismiss(cust)
 
@@ -221,10 +230,14 @@ func _spawn(pos: Vector3, with_pref: bool) -> Customer:
 	cust.global_position = Vector3(pos.x, 0.0, pos.z)
 	cust.mirror = _mirror
 	cust.manager = self
+	var regular := ""
 	if with_pref:
-		cust.preference = CustomerPreference.random_pref(_rng)
+		regular = _maybe_regular()
+		cust.preference = CustomerPreference.random_pref(_rng, regular)
 		_apply_event_bias(cust.preference)
 	_dress(cust)
+	if regular != "":
+		_dress_as(cust, Clientele.look(regular))
 	cust.departed.connect(_on_departed)
 	_alive += 1
 	return cust
@@ -241,6 +254,29 @@ func _apply_event_bias(pref: CustomerPreference) -> void:
 		pref.occasion = int(bias["occasion"])
 	if bias.has("style"):
 		pref.style = int(bias["style"])
+
+
+## One in `regular_chance` shoppers is a returning regular (once you have any).
+func _maybe_regular() -> String:
+	if Clientele == null or not Clientele.has_regulars():
+		return ""
+	var chance: float = Config.data.regular_chance if Config.data != null else 0.35
+	return Clientele.pick_regular() if _rng.randf() < chance else ""
+
+
+## Re-apply a remembered face (Clientele look) so a regular looks like themselves.
+func _dress_as(cust: Customer, look: Dictionary) -> void:
+	if look.is_empty():
+		return
+	cust.gender = look.get("gender", cust.gender)
+	cust.apply_look(
+		look.get("skin", cust.skin_color),
+		str(look.get("eyes", "brown")),
+		str(look.get("glasses", "")),
+		int(look.get("head", 0))
+	)
+	cust.set_hair(int(look.get("hair", 0)))
+	cust.set_hair_color(look.get("hair_color", cust.hair_color))
 
 
 func _dress(cust: Customer) -> void:

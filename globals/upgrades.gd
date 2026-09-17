@@ -4,6 +4,8 @@ extends Node
 ## machine upgrades (faster/unlocked abilities) and premium textile vendors. Purchases
 ## persist in saves. Everything is data-driven (UPGRADES / VENDORS) so adding more is
 ## just another entry. Reputation tiers come from the Reputation autoload (0..4).
+## Prices follow docs/ECONOMY.md: each upgrade costs a few "good days" of profit at the
+## tier that unlocks it.
 
 signal changed
 
@@ -13,7 +15,7 @@ const UPGRADES := {
 	{
 		"name": "Sharp Scissors",
 		"category": "Cutting Table",
-		"cost": 120,
+		"cost": 450,
 		"tier": 1,
 		"desc": "Keener shears — hold Shift to cut fast (riskier) at the cutting table.",
 	},
@@ -21,7 +23,7 @@ const UPGRADES := {
 	{
 		"name": "Master Shears",
 		"category": "Cutting Table",
-		"cost": 320,
+		"cost": 1400,
 		"tier": 2,
 		"desc": "Tailor-grade shears glide faster through every cut.",
 	},
@@ -29,7 +31,7 @@ const UPGRADES := {
 	{
 		"name": "Oiled Machine",
 		"category": "Sewing Machine",
-		"cost": 120,
+		"cost": 450,
 		"tier": 1,
 		"desc": "A smooth action — hold Shift to sew fast (tighter timing).",
 	},
@@ -37,7 +39,7 @@ const UPGRADES := {
 	{
 		"name": "Industrial Motor",
 		"category": "Sewing Machine",
-		"cost": 320,
+		"cost": 1400,
 		"tier": 2,
 		"desc": "A stronger motor drives the needle quicker on every seam.",
 	},
@@ -45,7 +47,7 @@ const UPGRADES := {
 	{
 		"name": "Extra Hooks",
 		"category": "Clothing Rack",
-		"cost": 140,
+		"cost": 300,
 		"tier": 1,
 		"desc": "More hooks on the rack, so it holds more finished pieces.",
 	},
@@ -53,7 +55,7 @@ const UPGRADES := {
 	{
 		"name": "Bulk Orders",
 		"category": "Ordering",
-		"cost": 220,
+		"cost": 950,
 		"tier": 2,
 		"desc": "Suppliers will cut you much longer bolts of cloth per order.",
 	},
@@ -65,16 +67,19 @@ const VENDORS := [
 	{
 		"name": "Harrow's Haberdashery",
 		"tier": 0,
+		"price_mult": 1.0,
 		"fabrics": [0, 1, 5, 6, 7],  # worsted, flannel, cotton, poplin, oxford
 	},
 	{
 		"name": "Northern Mill",
 		"tier": 1,
+		"price_mult": 1.1,  # a premium mill: +10% per metre
 		"fabrics": [0, 1, 2, 4, 5, 6, 7],  # + tweed, linen
 	},
 	{
 		"name": "Savile Silk & Co.",
 		"tier": 2,
+		"price_mult": 1.2,  # the finest house: +20% per metre
 		"fabrics": [0, 1, 2, 3, 4, 5, 6, 7],  # + mohair blend (all)
 		"pattern_dye": true,  # premium: choose the pattern's thread colour
 	},

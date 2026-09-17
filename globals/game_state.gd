@@ -22,6 +22,13 @@ var money: int = 500:
 		money = maxi(value, 0)
 		EventBus.money_changed.emit(money)
 
+## Cloth bought "on account" when the wallet was empty (0% interest, no deadline);
+## settled automatically from the next order collected. See docs/ECONOMY.md.
+var account_owed: int = 0:
+	set(value):
+		account_owed = maxi(value, 0)
+		EventBus.account_changed.emit(account_owed)
+
 var is_paused := false:
 	set(value):
 		if value == is_paused:
@@ -45,6 +52,31 @@ func spend(cost: int) -> bool:
 
 func earn(amount: int) -> void:
 	money += maxi(amount, 0)
+
+
+## Can `cost` go on account? Only when it isn't affordable, nothing is owed yet, and
+## it's within the limit — a safety net for being broke, not a credit line.
+func can_use_account(cost: int) -> bool:
+	var limit: int = Config.data.account_limit if Config.data != null else 120
+	return cost > money and account_owed == 0 and cost <= limit
+
+
+## Put `cost` on account (see can_use_account). Returns whether it went through.
+func buy_on_account(cost: int) -> bool:
+	if not can_use_account(cost):
+		return false
+	account_owed = cost
+	return true
+
+
+## Pay what's owed out of the wallet (as much as it holds). Returns the amount paid.
+func settle_account() -> int:
+	var paid := mini(account_owed, money)
+	if paid <= 0:
+		return 0
+	money -= paid
+	account_owed -= paid
+	return paid
 
 
 func _ready() -> void:

@@ -149,6 +149,8 @@ func capture(save_name := "") -> Dictionary:
 		"saved_at": Time.get_datetime_string_from_system(),
 		"name": save_name,
 		"money": GameState.money,
+		"account": GameState.account_owed,
+		"clientele": Clientele.save_state() if Clientele != null else {},
 		"day": Shift.day if Shift != null else 1,
 		"reputation": Reputation.points if Reputation != null else 0,
 		"upgrades": Upgrades.save_state() if Upgrades != null else {},
@@ -198,6 +200,9 @@ func _apply_pending() -> void:
 	var d := _pending
 	_pending = {}
 	GameState.money = int(d.get("money", 500))
+	GameState.account_owed = int(d.get("account", 0))
+	if Clientele != null:
+		Clientele.restore(d.get("clientele", {}))
 	Shift.day = int(d.get("day", 1))
 	Reputation.points = int(d.get("reputation", 0))
 	if Upgrades != null:
@@ -257,6 +262,9 @@ func _restore_loose(scene: Node, arr: Array) -> void:
 func _reset_autoloads() -> void:
 	var start := Config.data.starting_money if Config != null and Config.data != null else 500
 	GameState.money = start
+	GameState.account_owed = 0
+	if Clientele != null:
+		Clientele.reset()
 	Reputation.points = 0
 	if Upgrades != null:
 		Upgrades.reset()

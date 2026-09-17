@@ -1,8 +1,9 @@
 # TailorTown — Economy Pillars
 
-> **Status: DRAFT (2026-09-17).** Research + recommendation. The pillars are meant to be
-> stable; the numbers in §5 are the proposed first tuning pass and will move after
-> playtesting. Pick a pricing model in §4 before implementation.
+> **Status: ADOPTED (2026-09-17): Option B (cloth + craft) with reputation-scaled budgets.**
+> The pillars are meant to be stable. The numbers are the first tuning pass and will move
+> after playtesting. Tune them in `data/game_config.tres` (Economy / Orders groups), not
+> in code. See §8 for what's built and where.
 
 ## 1. The feel we want (pillars)
 
@@ -158,9 +159,10 @@ suit builder already flags.
 | *Future:* decoration (small reputation boost) | any | 0.3–2 | $60–1,500 |
 
 **Rewards and penalties**
-- **Payout:** full price if match and quality are both ≥ 0.6 (the "good enough" band).
-  Between 0.4 and 0.6 it scales down gently. **Tip +10–25%** at ≥ 0.9 (excellent) and
-  +10% for trend-matched suits (the newspaper).
+- **Payout:** full price if match × quality ≥ 0.6 (the "good enough" band). Between 0.4
+  and 0.6 it scales down gently. **Tip up to +25%** from 0.9 (excellent) to a perfect 1.0.
+  **Trend-matched suits (the newspaper) earn extra reputation only, not money.** This was
+  the owner's decision.
 - **Waste** is paid only through cloth (Option B), so it's never a separate fine.
 - **Late orders:** the customer waits one extra day, and the suit is paid at 75% with
   −6 reputation. They leave only after the grace day (−12 then). No money is ever taken.
@@ -186,7 +188,7 @@ suit builder already flags.
 | Idea | Why it fits | Size |
 |---|---|---|
 | **Perfect-fit tip** (done via the excellent band) | Rewards careful cutting, sewing and matching; Good Pizza / Moonlighter pattern | S |
-| **Trend bonus: price + reputation** | The newspaper already exists; Travellers Rest proves it | S |
+| **Trend bonus: reputation only** (decided: no price bump) | The newspaper already exists | S |
 | **Live margin readout in the suit builder** ("cloth $X + craft $Y = $Z") | Teaches the economy without a tutorial wall | S |
 | **Offcut bin**: scraps ≥ 0.5 m become ties / pocket squares (small add-ons) | Turns waste into a mini-reward instead of pure loss | M |
 | **Regular customers**: loyalty raises their budget, standing orders | Recettear's loop; gives faces to the economy | M |
@@ -215,3 +217,29 @@ suit builder already flags.
 - Games:
   - [Dressmaker: how to play](https://dressmakergame.com/how-to-play)
   - [Tailor Simulator](https://tailorsimulator.com/)
+
+## 8. What's built (2026-09-17)
+
+| Piece | Where | Notes |
+|---|---|---|
+| Cloth + craft quote | `Pricing.quote_breakdown/suit_quote` | Cloth = metres (size M) × list × cheapest-supplier premium × (1 + `cloth_handling`). Craft = `craft_fee_*` × `craft_mult_by_tier`. |
+| Live readout | `ui/suit_builder.gd` | "Cloth $X + Craft $Y = Quote $Z" against the budget. |
+| Budgets by tier | `Pricing.random_budget`, `budget_min/max_by_tier` | Budget is a ceiling; the price is the quote. |
+| Payout bands and tips | `Pricing.pay_share/tip_share`, `SuitOrder.payout_breakdown` | `full_pay_at`, `low_pay_at`, `tip_from`, `tip_max`. |
+| Shop-day deadlines | `SuitOrder.due_day/arrive_at`, `OrderManager._process` | 1–4 days (`deadline_min/max_days`). The customer walks in partway through the due day's shift. The old real-time `seconds_per_day` is gone. |
+| Grace day | `OrderManager.grant_grace`, `CustomerManager._on_collector_arrived` | First miss: back tomorrow, pays `late_pay`, −`late_rep_loss`. Second miss: expired, −`expired_rep_loss`. |
+| Bolt pricing | `Pricing.roll_price` | Supplier `price_mult` (1.0 / 1.1 / 1.2), `bulk_10m/20m_discount`, rolls from `roll_min_m` in `roll_step_m`. |
+| Market day | `Pricing.is_market_day/market_discount` | Every `market_day_every` days. Toast at opening; shown on the phone. |
+| Cloth on account | `GameState.account_owed/buy_on_account/settle_account` | Only when broke, one bolt ≤ `account_limit`. Settled automatically at the next collection. |
+| Free first bolt | `Tutorial.first_bolt_free` | The tutorial's order step. |
+| Regular customers | `globals/clientele.gd` (autoload) | Remembers faces. Fulfilled +1 loyalty (max 5), expired −1. `regular_chance` of shoppers are regulars; budget × (1 + loyalty × `loyalty_budget_step`, cap `loyalty_budget_max`). Shown as "Name ★N". |
+| Decoration hook | `ShopDecoration` (`scenes/world/shop_decoration.gd`), `Reputation.decor_bonus` | Attach to props; reputation gains × (1 + Σ bonus, cap +50%). **No shop to buy decor yet.** |
+| Upgrade prices | `Upgrades.UPGRADES` | $300 / $450 / $950 / $1,400 per §5. |
+| Tests | `tools/test_economy.gd` | Quotes, bands, bolts, account, deadlines, regulars. |
+
+**Open / next:**
+- A decoration shop.
+- Offcut bin.
+- Event bulk orders.
+- A size for customers. Everyone is size M today, so size only changes how much cloth you use.
+- Rebalance after real playtests against the §5 health checks.

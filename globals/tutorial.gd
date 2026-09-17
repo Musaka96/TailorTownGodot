@@ -34,7 +34,8 @@ const M_PROMPT := (
 )
 const M_ORDER := (
 	"Splendid. Every suit begins with cloth, and cloth begins with the [b]telephone[/b]. "
-	+ "Ring a supplier and have a bolt sent round — any fabric you fancy, for now."
+	+ "Ring a supplier and have a bolt sent round — any fabric you fancy. This first one's "
+	+ "[b]on the house[/b]; after that, longer bolts are cheaper per metre."
 )
 const M_MAKE := (
 	"A suit is built in pieces. You [b]measure and cut a length[/b] off the bolt, "
@@ -75,9 +76,10 @@ const M_PAPER := (
 	+ "are coming, so you can stock the right cloth. Press [b]%s[/b] to read it any time."
 )
 const M_ORDERS := (
-	"Order taken! The customer pops out and comes back to [b]collect[/b] once every part "
-	+ "is made. Anything you hang on the rack is matched to open orders by itself, and "
-	+ "you're paid on collection."
+	"Order taken! The price is the [b]cloth[/b] the parts need plus your [b]craft fee[/b], "
+	+ "so any cloth you waste comes out of your own pocket. The customer returns on their "
+	+ "[b]due day[/b] (red ticket = today) and pays on collection; splendid work earns a "
+	+ "[b]tip[/b]. Treat people well and they'll come back as [b]regulars[/b]."
 )
 const M_REP := (
 	"Do the work well and your [b]reputation[/b] grows — those stars, top left. A good "
@@ -271,6 +273,11 @@ func offer(on_choose := Callable()) -> void:
 
 func is_active() -> bool:
 	return _active
+
+
+## The first bolt (the tutorial's order step) is on the house.
+func first_bolt_free() -> bool:
+	return _active and str(STEPS[_step].get("id", "")) == "order"
 
 
 ## Screen width a menu should leave free at its left edge for the goal tag (0 when the

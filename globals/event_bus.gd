@@ -47,6 +47,10 @@ signal order_pieces_ready(order: Resource)
 signal order_ready(order: Resource)
 ## An order's deadline arrived — the customer is on their way back to collect it.
 signal order_due(order: Resource)
+## The customer came on the due day but the suit wasn't ready — they'll return tomorrow.
+signal order_late(order: Resource)
+## Cloth bought on account (owed > 0) or settled (owed == 0).
+signal account_changed(owed: int)
 ## The customer collected a finished order and paid `payout`.
 signal order_fulfilled(order: Resource, payout: int)
 ## An order's deadline passed without it being finished; it was lost.

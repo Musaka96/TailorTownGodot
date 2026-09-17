@@ -13,11 +13,12 @@ extends Node
 ## A made piece must match an order's slot at least this well to be checked off —
 ## below it, the piece isn't wasted on the wrong order (the suit is handed back).
 const PIECE_MIN := 0.34
-## Deadline range, in in-game days.
+## Fallback deadline range in shop days (Config.deadline_min/max_days win).
 const DAYS_MIN := 1
-const DAYS_MAX := 5
-## Fallback if Config has no seconds_per_day (real seconds per in-game day).
-const SECONDS_PER_DAY_DEFAULT := 120.0
+const DAYS_MAX := 4
+## When during the due day's shift (fraction of the shift) the customer may walk in.
+const ARRIVE_MIN := 0.15
+const ARRIVE_MAX := 0.6
 
 var active: Array[SuitOrder] = []
 
@@ -29,13 +30,22 @@ func _ready() -> void:
 	_rng.randomize()
 
 
-func _process(delta: float) -> void:
-	if active.is_empty():
+## Deadlines count SHOP days: on an order's due day, once the shift reaches the
+## order's arrival time, the customer is sent back (order_due). Nothing ticks while the
+## shop is closed or the tutorial is running.
+func _process(_delta: float) -> void:
+	if active.is_empty() or Shift == null or DayNight == null:
 		return
-	var per_day := _seconds_per_day()
+	if not Shift.is_open() or not DayNight.running:
+		return
+	if Tutorial != null and Tutorial.is_active():
+		return
+	var today: int = Shift.day
+	var progress: float = DayNight.progress()
 	for order in active:
-		order.days_left = maxf(order.days_left - delta / per_day, 0.0)
-		if order.days_left <= 0.0 and not order.due_fired:
+		if order.due_fired:
+			continue
+		if order.due_day < today or (order.due_day == today and progress >= order.arrive_at):
 			order.due_fired = true
 			EventBus.order_due.emit(order)
 
@@ -57,8 +67,11 @@ func create_order(
 	order.skin = skin
 	order.hair_index = hair_index
 	order.hair_color = hair_color
-	order.deadline_days = _rng.randi_range(DAYS_MIN, DAYS_MAX)
-	order.days_left = float(order.deadline_days)
+	var lo: int = Config.data.deadline_min_days if Config.data != null else DAYS_MIN
+	var hi: int = Config.data.deadline_max_days if Config.data != null else DAYS_MAX
+	order.deadline_days = _rng.randi_range(lo, maxi(lo, hi))
+	order.due_day = _today() + order.deadline_days
+	order.arrive_at = _rng.randf_range(ARRIVE_MIN, ARRIVE_MAX)
 	active.append(order)
 	EventBus.order_created.emit(order)
 	return order
@@ -101,18 +114,44 @@ func by_id(order_id: int) -> SuitOrder:
 	return null
 
 
-## The customer arrived and the order is READY: pay out and clear it.
+## The customer arrived and the order is READY: pay out (any cloth bought on account is
+## settled from it first) and clear it.
 func collect(order: SuitOrder) -> int:
 	if not active.has(order):
 		return 0
-	var payout := order.payout()
+	var bill := order.payout_breakdown()
+	var payout := int(bill["total"])
 	GameState.earn(payout)
+	var settled := GameState.settle_account()
+	if UI != null:
+		var note := "Order #%d paid: $%d" % [order.id, payout]
+		if int(bill["tip"]) > 0:
+			note += "  (incl. $%d tip — beautiful work!)" % int(bill["tip"])
+		elif order.late:
+			note += "  (late: part pay)"
+		if settled > 0:
+			note += "  · $%d cloth account settled" % settled
+		UI.toast(note)
 	active.erase(order)
 	EventBus.order_fulfilled.emit(order, payout)
 	return payout
 
 
-## The deadline passed with the order unfinished: it is lost, no payment.
+## The customer came on the due day but the suit wasn't ready. The first time they
+## kindly come back tomorrow (the order will pay less); returns false if the grace day
+## was already used (the caller should expire() it).
+func grant_grace(order: SuitOrder) -> bool:
+	if not active.has(order) or order.late:
+		return false
+	order.late = true
+	order.due_day = _today() + 1
+	order.arrive_at = _rng.randf_range(ARRIVE_MIN, ARRIVE_MAX)
+	order.due_fired = false
+	EventBus.order_late.emit(order)
+	return true
+
+
+## The deadline (and grace day) passed with the order unfinished: it is lost, no payment.
 func expire(order: SuitOrder) -> void:
 	if not active.has(order):
 		return
@@ -143,7 +182,9 @@ func save_state() -> Array:
 					"hair_index": order.hair_index,
 					"hair_color": order.hair_color,
 					"deadline_days": order.deadline_days,
-					"days_left": order.days_left,
+					"due_day": order.due_day,
+					"arrive_at": order.arrive_at,
+					"late": order.late,
 					"state": order.state,
 					"filled": order.filled.duplicate(true),
 				}
@@ -169,7 +210,11 @@ func restore(saved: Array) -> void:
 		order.hair_index = int(d.get("hair_index", 0))
 		order.hair_color = d.get("hair_color", Color(0.14, 0.11, 0.09))
 		order.deadline_days = int(d.get("deadline_days", 3))
-		order.days_left = float(d.get("days_left", 3.0))
+		# Older saves stored a real-time countdown; map it onto shop days.
+		var fallback := _today() + maxi(0, int(ceil(float(d.get("days_left", 1.0)))) - 1)
+		order.due_day = int(d.get("due_day", fallback))
+		order.arrive_at = float(d.get("arrive_at", 0.4))
+		order.late = bool(d.get("late", false))
 		order.state = int(d.get("state", SuitOrder.State.OPEN))
 		order.filled = (d.get("filled", {}) as Dictionary).duplicate(true)
 		active.append(order)
@@ -199,7 +244,7 @@ func debug_add_random() -> SuitOrder:
 		0.7 + _rng.randf() * 0.2, 0.6 + _rng.randf() * 0.15, 0.5 + _rng.randf() * 0.15
 	)
 	return create_order(
-		NAMES[_rng.randi() % NAMES.size()], design, _rng.randi_range(150, 450), skin
+		NAMES[_rng.randi() % NAMES.size()], design, Pricing.suit_quote(design), skin
 	)
 
 
@@ -255,7 +300,5 @@ func _first_open_for(garment_type: int, part: Dictionary) -> SuitOrder:
 	return null
 
 
-func _seconds_per_day() -> float:
-	if Config.data != null and Config.data.seconds_per_day > 0.0:
-		return Config.data.seconds_per_day
-	return SECONDS_PER_DAY_DEFAULT
+func _today() -> int:
+	return Shift.day if Shift != null else 1

@@ -76,6 +76,9 @@ func _end_transition() -> void:
 func _on_shift_started(_hour: float) -> void:
 	open = true
 	_day_start_money = GameState.money
+	if Pricing.is_market_day(day) and UI != null:
+		var off := roundi(Pricing.market_discount() * 100.0)
+		UI.toast("Market day! Every supplier's cloth is %d%% off today." % off)
 
 
 func _on_shift_ended() -> void:

@@ -18,6 +18,26 @@ const FIRST_NAMES := [
 	"Mr. Rossi",
 	"Ms. Nadeem",
 	"Mr. Halloran",
+	"Ms. Whitcombe",
+	"Mr. Abara",
+	"Ms. Laurent",
+	"Mr. Fitzgerald",
+	"Dr. Moreau",
+	"Ms. Kowalski",
+	"Mr. Tanaka",
+	"Ms. Oyelaran",
+	"Mr. Bellamy",
+	"Ms. Castellanos",
+	"Mr. Lindqvist",
+	"Dr. Achebe",
+	"Ms. Harrington",
+	"Mr. Pemberton",
+	"Ms. Duarte",
+	"Mr. Novak",
+	"Ms. Quigley",
+	"Mr. Sandoval",
+	"Dr. Whitlock",
+	"Ms. Farrow",
 ]
 
 @export var display_name: String = "Customer"
@@ -25,16 +45,36 @@ const FIRST_NAMES := [
 @export var style: Enums.Style = Enums.Style.CLASSIC
 ## Most they'll pay for the whole suit.
 @export var budget: int = 400
+## > 0 when this is a returning regular (their loyalty level, 1..5).
+@export var regular_level: int = 0
 
 
-## A random shopper's brief: an occasion, a style, and a comfortable budget.
-static func random_pref(rng: RandomNumberGenerator) -> CustomerPreference:
+## A random shopper's brief: an occasion, a style, and a budget for the shop's current
+## reputation tier. `regular` (a name from Clientele) makes it a returning regular,
+## whose loyalty raises the budget; otherwise the name avoids known regulars.
+static func random_pref(rng: RandomNumberGenerator, regular := "") -> CustomerPreference:
 	var p := CustomerPreference.new()
-	p.display_name = FIRST_NAMES[rng.randi() % FIRST_NAMES.size()]
+	p.display_name = regular if regular != "" else _fresh_name(rng)
 	p.occasion = rng.randi() % Enums.Occasion.size()
 	p.style = rng.randi() % Enums.Style.size()
-	p.budget = int(round(rng.randf_range(320, 500)))
+	p.budget = Pricing.random_budget(rng)
+	if regular != "" and Clientele != null:
+		p.regular_level = Clientele.loyalty(regular)
+		p.budget = int(round(p.budget * Clientele.budget_mult(regular) / 5.0)) * 5
 	return p
+
+
+static func _fresh_name(rng: RandomNumberGenerator) -> String:
+	for _i in 12:
+		var nm: String = FIRST_NAMES[rng.randi() % FIRST_NAMES.size()]
+		if Clientele == null or not Clientele.is_known(nm):
+			return nm
+	return FIRST_NAMES[rng.randi() % FIRST_NAMES.size()]
+
+
+## "Mr. Okafor" or "Mr. Okafor ★2" for a regular.
+func title() -> String:
+	return display_name + ("  ★%d" % regular_level if regular_level > 0 else "")
 
 
 ## Short brief, e.g. "Funeral · Classic".
