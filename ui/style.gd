@@ -356,6 +356,25 @@ static func info_badge(text: String, tint: Color = WALNUT) -> Control:
 	return wrap
 
 
+## When an order is due, as one consistent colour everywhere: red = today, amber =
+## tomorrow, green = later. `days_ceil` is SuitOrder.days_left_ceil() (1 = today).
+static func due_color(days_ceil: int) -> Color:
+	if days_ceil <= 1:
+		return CLAY
+	if days_ceil == 2:
+		return AMBER
+	return FOREST
+
+
+## "Today" / "Tomorrow" / "3 days" for the same count.
+static func due_text(days_ceil: int) -> String:
+	if days_ceil <= 1:
+		return "Today"
+	if days_ceil == 2:
+		return "Tomorrow"
+	return "%d days" % days_ceil
+
+
 ## Fill colour by fraction remaining (forest → amber → clay); never colour alone.
 static func fill_color(fraction: float) -> Color:
 	if fraction >= 0.5:

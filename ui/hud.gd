@@ -20,6 +20,7 @@ var _count_tween: Tween
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # prompt visibility tracks menus, even paused
 	_build_prompt_bar()
 	_build_money_panel()
 	EventBus.interaction_prompt_changed.connect(_on_prompt_changed)
@@ -194,6 +195,11 @@ func _build_prompt_bar() -> void:
 	row.add_child(_prompt_verb)
 	add_child(_prompt_bar)
 	_prompt_bar.visible = false
+
+
+func _process(_delta: float) -> void:
+	# The "E …" prompt refers to the world; hide it while a menu covers the world.
+	_prompt_bar.visible = _prompt_verb.text != "" and not UI.any_menu_open()
 
 
 func _on_prompt_changed(text: String) -> void:

@@ -218,15 +218,14 @@ func _stamp(text: String, ink: Color) -> Control:
 
 func _status_line(order) -> Label:
 	var days: int = order.days_left_ceil()
-	var noun := "day" if days == 1 else "days"
 	if order.state == SuitOrder.State.READY:
 		return _line("Ready for pickup — order #%d" % order.id, 16, Style.LEAF)
 	if order.is_complete():
 		return _line("Pieces made — assemble at the mannequin", 16, Style.BRASS)
 	return _line(
-		"In progress — due in %d %s" % [days, noun],
+		"In progress — due %s" % (("in " if days > 2 else "") + Style.due_text(days).to_lower()),
 		16,
-		Style.fill_color(order.days_left / order.deadline_days)
+		Style.due_color(days)
 	)
 
 
@@ -235,9 +234,8 @@ func _status_label(order) -> Label:
 		return _line("READY", 14, Style.LEAF)
 	if order.is_complete():
 		return _line("ASSEMBLE", 14, Style.BRASS)
-	return _line(
-		"%dd" % order.days_left_ceil(), 14, Style.fill_color(order.days_left / order.deadline_days)
-	)
+	var left: int = order.days_left_ceil()
+	return _line(Style.due_text(left), 14, Style.due_color(left))
 
 
 func _done_count(order) -> int:

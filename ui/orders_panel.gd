@@ -6,6 +6,9 @@ extends Control
 ## and the price. New orders pop in; when a piece is checked off its chip fills;
 ## when all are done the card turns "Ready"; when the customer collects it flashes
 ## the payout and clears. Driven by EventBus so it stays decoupled from Orders.
+## The ticket edge (and the tab) is coloured by when the order is due — red today,
+## amber tomorrow, green later — and while a station menu is open the tickets fold up
+## into small numbered tabs so they never cover the work.
 
 # GarmentType -> single-letter chip label.
 const CHIP := {
@@ -14,12 +17,15 @@ const CHIP := {
 	Enums.GarmentType.PANTS: "P",
 }
 
-var _tickets := {}  # SuitOrder -> { card, days, chips, order }
+var _tickets := {}  # SuitOrder -> { card, days, chips, order, details, state }
+var _collapsed := false
 
 @onready var _row: HBoxContainer = $Tickets
 
 
 func _ready() -> void:
+	# Visual only — keep folding/unfolding while menus pause the game (handbook, mentor).
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Stack tickets from the left (clearing the clock), not centred.
 	_row.anchor_left = 0.0
 	_row.anchor_right = 0.0
@@ -38,9 +44,25 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Live-update the days-left badge on each open ticket.
+	var fold: bool = UI != null and UI.any_menu_open()
+	if fold != _collapsed:
+		_collapsed = fold
+		for order in _tickets:
+			_apply_fold(_tickets[order])
+	# Live-update the due badge + colour on each open ticket.
 	for order in _tickets:
 		_update_days(_tickets[order])
+
+
+## Folded: just "#1 · Today" on the coloured tag. Unfolded: the full ticket.
+func _apply_fold(ticket: Dictionary) -> void:
+	for node: Control in ticket["details"]:
+		node.visible = not _collapsed
+	var card: CraftPanel = ticket["card"]
+	card.custom_minimum_size.x = 0.0 if _collapsed else 116.0
+	card.string_len = 16.0 if _collapsed else 34.0
+	card.reset_size()
+	Craft.bump(card, 1.06)
 
 
 func _on_created(order) -> void:
@@ -72,7 +94,6 @@ func _refresh(order) -> void:
 	if ticket == null:
 		return
 	var card: CraftPanel = ticket["card"]
-	card.line = _state_color(order)
 	Craft.wiggle(card, 4.0, card.rotation_degrees)
 	_rebuild_chips(ticket)
 	_update_days(ticket)
@@ -87,7 +108,7 @@ func _make_ticket(order) -> Dictionary:
 	card.eyelet = true
 	card.string_len = 34.0
 	card.pad = Vector2(7, 7)
-	card.setup(CraftPanel.Shape.TICKET, Style.CARD, _state_color(order))
+	card.setup(CraftPanel.Shape.TICKET, Style.CARD, Style.due_color(order.days_left_ceil()))
 	card.stitch_color = Style.CREAM_DARK
 	card.line_width = 2.5
 	card.custom_minimum_size = Vector2(116, 0)
@@ -127,9 +148,20 @@ func _make_ticket(order) -> Dictionary:
 	chips.add_theme_constant_override("separation", Style.S1)
 	box.add_child(chips)
 
-	box.add_child(_label("$%d" % order.price, 15, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER))
+	var state := _label("", 12, Style.BRASS, HORIZONTAL_ALIGNMENT_CENTER)
+	box.add_child(state)
+	var price := _label("$%d" % order.price, 15, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER)
+	box.add_child(price)
 
-	var ticket := {"card": card, "days": days, "chips": chips, "order": order}
+	var ticket := {
+		"card": card,
+		"days": days,
+		"chips": chips,
+		"order": order,
+		"details": [strip, spec, chips, state, price],
+		"state": state,
+	}
+	_apply_fold(ticket)
 	_rebuild_chips(ticket)
 	_update_days(ticket)
 	return ticket
@@ -147,19 +179,23 @@ func _rebuild_chips(ticket: Dictionary) -> void:
 func _update_days(ticket: Dictionary) -> void:
 	var order = ticket["order"]
 	var days: Label = ticket["days"]
-	if order.state == SuitOrder.State.READY:
-		days.text = "READY"
-		days.add_theme_color_override("font_color", Style.LEAF)
-		return
-	if order.is_complete():
-		days.text = "ASSEMBLE"
-		days.add_theme_color_override("font_color", Style.BRASS)
-		return
 	var left: int = order.days_left_ceil()
-	days.text = "%dd" % left
-	days.add_theme_color_override(
-		"font_color", Style.fill_color(order.days_left / order.deadline_days)
-	)
+	var col := Style.due_color(left)
+	days.text = Style.due_text(left)
+	days.add_theme_color_override("font_color", col)
+	var card: CraftPanel = ticket["card"]
+	if card.line != col:
+		card.line = col
+	var state: Label = ticket["state"]
+	if order.state == SuitOrder.State.READY:
+		state.text = "READY FOR PICKUP"
+		state.add_theme_color_override("font_color", Style.LEAF)
+	elif order.is_complete():
+		state.text = "ASSEMBLE AT MANNEQUIN"
+		state.add_theme_color_override("font_color", Style.BRASS)
+	else:
+		state.text = ""
+	state.visible = state.text != "" and not _collapsed
 
 
 func _chip(text: String, done: bool) -> Control:
@@ -182,16 +218,6 @@ func _label(text: String, size: int, color: Color, align: int) -> Label:
 	lbl.add_theme_font_size_override("font_size", size)
 	lbl.add_theme_color_override("font_color", color)
 	return lbl
-
-
-func _state_color(order) -> Color:
-	if order.state == SuitOrder.State.READY:
-		return Style.LEAF
-	if order.is_complete():
-		return Style.BRASS  # pieces made — take them to the mannequin to assemble
-	if order.days_left_ceil() <= 1:
-		return Style.CLAY
-	return Style.AMBER
 
 
 # --- Animation -------------------------------------------------------------
