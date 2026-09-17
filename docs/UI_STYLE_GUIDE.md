@@ -161,7 +161,74 @@ new subject-facing ones (mirror first).
 
 ---
 
-## 7. Compliance
+## 7. The stage curtain (generated art)
+
+`ui/loading_curtain.gd` draws the velvet curtain over every scene swap. It takes three
+textures, and paints its own fallback from the palette for any that are missing, so the
+game always has a curtain:
+
+| File (in `assets/textures/ui/`) | What it is |
+|---|---|
+| `curtain_panel.png` | The LEFT half, mirrored for the right and stretched to half the screen. Solid fabric to the top/left/right edges; the bottom ~4% is the scalloped hem, with alpha below it (`ART_HEM_SHARE` must match). |
+| `curtain_trim.png` | The braid down each leading edge. Tiled down its length, drawn at `TRIM_SHARE` of the screen height so it reads the same at any resolution. Must tile top-to-bottom. |
+| `curtain_valance.png` | The pelmet. Tiled across the screen at `VALANCE_SHARE` of its height; rides down with the curtain and flies out as it opens. Must tile left-to-right. |
+
+The art is generated from the prompts below, dropped in `IMPORT/curtain` (git-ignored) on a
+flat green background — image models will not give reliable transparency — and turned into
+the textures by `tools/prep_curtain_art.py`, which keys the green, crops, and makes the two
+strips tile. It prints the panel's hem share; check it still matches `ART_HEM_SHARE`.
+
+<details>
+<summary>Generation prompts (ChatGPT image)</summary>
+
+**1. Panel** — portrait 1024x1536
+
+> A single left-hand theatre curtain panel of deep burgundy velvet, seen flat-on from the
+> front, filling the entire image edge to edge. Hand-painted stylised game art for a cosy
+> storybook tailor-shop game: soft cel shading, warm painterly texture, gentle rim light, no
+> photorealism, no black outlines. Roughly seven tall vertical pleats running the full height
+> — wide dark folds with narrower lit crests — with the folds varying slightly in width so the
+> drape looks natural rather than a repeating pattern. Colour: rich burgundy #7A3B3B, folds
+> deepening to a near-black plum #2E1616, crests catching a warm highlight up to #9A5555.
+> Slightly darker along the top edge as if shaded under a rail, and darker again down the
+> right-hand edge where this panel meets its twin. The bottom 12% of the image is a scalloped
+> gathered hem: the fabric ends in soft arches that hang down between the pleats. Everything
+> below that hem is flat pure green #00FF00 with no gradient, shadow, glow or fringing. The
+> fabric itself must run all the way to the left, right and top edges with no border and no
+> background showing. No gold trim, no tassels, no rope, no fringe, no pelmet, no rings, no
+> rail, no text, no watermark, no perspective, no floor, no stage, no people.
+
+**2. Braid** — portrait 1024x1536
+
+> A single vertical length of ornate gold bullion braid — the decorative binding sewn down the
+> leading edge of a theatre curtain — running perfectly straight from the very top of the image
+> to the very bottom, centred, about one tenth of the image width. Hand-painted stylised game
+> art, soft cel shading, warm painterly, cosy storybook tailor-shop game, no photorealism.
+> Antique brass gold #C9A24A with darker recesses #8A6A2A and bright highlights #E8CE86. A
+> regular repeating twist along its length, identical from top to bottom with no change in
+> scale, thickness or lighting, and the pattern cut at exactly the same point at the top and
+> bottom edges so stacked copies join seamlessly. Everything around the braid is flat pure
+> green #00FF00 with no gradient, shadow or glow. No tassels, no fringe, no curtain, no fabric,
+> no text, no watermark, no perspective.
+
+**3. Valance** — landscape 1536x1024
+
+> A horizontal swagged pelmet (valance) of deep burgundy velvet hanging across the top of a
+> theatre curtain, seen flat-on from the front. Hand-painted stylised game art for a cosy
+> storybook tailor-shop game: soft cel shading, warm painterly texture, no photorealism, no
+> black outlines. The velvet fills the top of the image edge to edge and drapes into four
+> identical shallow swags, each gathered upward at its sides and dipping in the middle, with
+> soft radiating folds. A row of short gold bullion fringe hangs from the lower edge of each
+> swag. Burgundy #7A3B3B deepening to #2E1616 in the folds, crests to #9A5555; fringe in
+> antique brass gold #C9A24A with darker recesses #8A6A2A. Critical: the left and right edges
+> of the image must both fall at exactly the same point in a swag — the highest gathered point
+> — so copies placed side by side form a continuous run with no visible seam. Everything below
+> the fringe is flat pure green #00FF00 with no gradient, shadow or glow. No curtain panels, no
+> rail, no rings, no rope, no tassels, no text, no watermark, no perspective, no room.
+
+</details>
+
+## 8. Compliance
 
 - **[CHECK]** rules → `tools/check_ui.gd` (headless, part of the dev loop). Run:
   `godot --headless --path . --script res://tools/check_ui.gd`. Report in

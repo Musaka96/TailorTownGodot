@@ -33,11 +33,14 @@ const PANEL_ART := "res://assets/textures/ui/curtain_panel.png"
 const TRIM_ART := "res://assets/textures/ui/curtain_trim.png"
 const VALANCE_ART := "res://assets/textures/ui/curtain_valance.png"
 ## Pelmet height as a share of the screen.
-const VALANCE_SHARE := 0.15
+const VALANCE_SHARE := 0.2
+## Width of the braid, as a share of the screen height, so it reads the same at any
+## resolution rather than however many pixels wide TRIM_ART happens to be.
+const TRIM_SHARE := 0.018
 ## Share of PANEL_ART's height taken by the scalloped hem at its bottom (the rest being
 ## solid fabric). The panel is scaled so that whole band hangs below the screen once the
 ## curtain is down, instead of letting the scene peek through the scallops.
-const ART_HEM_SHARE := 0.12
+const ART_HEM_SHARE := 0.04
 const DROP_SECONDS := 0.5
 const PART_SECONDS := 0.75
 ## How far the hem hangs past the bottom of the screen once the curtain is all the way
@@ -235,16 +238,21 @@ func _draw_flipped(tex: Texture2D, rect: Rect2, mirrored: bool) -> void:
 	_sheet.draw_set_transform(Vector2.ZERO)
 
 
-## The braid down a leading edge, held at its own width so it doesn't squash as the half
-## gathers.
+## The braid down a leading edge, tiled down its length and held at a constant width so it
+## doesn't squash with the fabric as the half gathers.
 func _draw_binding(rect: Rect2, mirrored: bool) -> void:
-	var width := float(_trim.get_width()) if _trim != null else TRIM_WIDTH
+	if _trim == null:
+		var edge := rect.position.x if mirrored else rect.end.x - TRIM_WIDTH
+		_sheet.draw_rect(Rect2(edge, rect.position.y, TRIM_WIDTH, rect.size.y), Style.BRASS)
+		return
+	var width := _sheet.size.y * TRIM_SHARE
+	var scale := width / float(_trim.get_width())
 	var x := rect.position.x if mirrored else rect.end.x - width
-	var band := Rect2(x, rect.position.y, width, rect.size.y)
-	if _trim != null:
-		_sheet.draw_texture_rect(_trim, band, true)
-	else:
-		_sheet.draw_rect(band, Style.BRASS)
+	# Stop at the hem, or the braid dangles past the fabric while the curtain is falling.
+	var length := rect.size.y * (1.0 - ART_HEM_SHARE) if _panel != null else rect.size.y
+	_sheet.draw_set_transform(Vector2(x, rect.position.y), 0.0, Vector2(scale, scale))
+	_sheet.draw_texture_rect(_trim, Rect2(0.0, 0.0, _trim.get_width(), length / scale), true)
+	_sheet.draw_set_transform(Vector2.ZERO)
 
 
 ## The pelmet across the top: it hangs from the curtain's own top edge, and once the halves
