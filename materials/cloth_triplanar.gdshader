@@ -8,11 +8,13 @@ render_mode diffuse_burley;
 
 uniform vec4 cloth_color : source_color = vec4(0.5, 0.5, 0.5, 1.0);
 uniform vec4 pattern_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
-uniform sampler2D fabric_tex : filter_linear_mipmap, repeat_enable;
-uniform sampler2D pattern_tex : filter_linear_mipmap, repeat_enable;
+// Anisotropic mipmapping — see cloth.gdshader.
+uniform sampler2D fabric_tex : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D pattern_tex : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float fabric_strength = 0.5;
 uniform float pattern_strength = 0.85;
 uniform float tri_scale = 3.0;
+uniform float pattern_scale = 1.0;
 
 varying vec3 tri_pos;
 varying vec3 tri_norm;
@@ -37,9 +39,10 @@ void fragment() {
 		+ texture(fabric_tex, p.xz).r * w.y
 		+ texture(fabric_tex, p.xy).r * w.z;
 
-	float pat = texture(pattern_tex, p.zy).a * w.x
-		+ texture(pattern_tex, p.xz).a * w.y
-		+ texture(pattern_tex, p.xy).a * w.z;
+	vec3 pp = p * pattern_scale;
+	float pat = texture(pattern_tex, pp.zy).a * w.x
+		+ texture(pattern_tex, pp.xz).a * w.y
+		+ texture(pattern_tex, pp.xy).a * w.z;
 
 	vec3 col = cloth_color.rgb;
 	col *= mix(1.0, weave * 1.75, fabric_strength);

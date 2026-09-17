@@ -6,11 +6,17 @@ render_mode diffuse_burley;
 
 uniform vec4 cloth_color : source_color = vec4(0.5, 0.5, 0.5, 1.0);
 uniform vec4 pattern_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
-uniform sampler2D fabric_tex : filter_linear_mipmap, repeat_enable;
-uniform sampler2D pattern_tex : filter_linear_mipmap, repeat_enable;
+// Anisotropic mipmapping: the patterns are fine and high-contrast, so a garment
+// seen at an angle turns to moire without it (the .png.import files must keep
+// mipmaps/generate=true).
+uniform sampler2D fabric_tex : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D pattern_tex : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float fabric_strength = 0.5;
 uniform float pattern_strength = 0.85;
 uniform float uv_scale = 2.5;
+// Extra density on the pattern only (the weave keeps uv_scale): <1 draws a bolder,
+// wider-spaced motif that survives being minified. Set per pattern by ClothMaterial.
+uniform float pattern_scale = 1.0;
 
 void fragment() {
 	vec2 uv = UV * uv_scale;
@@ -19,7 +25,7 @@ void fragment() {
 	float weave = texture(fabric_tex, uv).r;
 	col *= mix(1.0, weave * 1.75, fabric_strength);
 
-	vec4 pat = texture(pattern_tex, uv);
+	vec4 pat = texture(pattern_tex, uv * pattern_scale);
 	col = mix(col, pattern_color.rgb, pat.a * pattern_strength);
 
 	ALBEDO = col;

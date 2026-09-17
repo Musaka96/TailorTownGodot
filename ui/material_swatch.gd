@@ -10,12 +10,9 @@ extends Control
 
 const SHADER := preload("res://ui/material_swatch.gdshader")
 
-# Indexed by Enums.Fabric / Enums.Pattern. Shirtings (cotton family) and the shirting
-# patterns are appended; they reuse the nearest existing weave texture (greybox). Cotton
-# and poplin use the fine worsted weave (smooth); only oxford keeps the coarser linen.
-const FABRIC_TEX := [
-	"worsted", "flannel", "tweed", "mohair", "linen", "worsted", "worsted", "linen"
-]
+# Which weave/pattern texture each fabric and pattern uses, and how densely the
+# pattern is drawn, all come from ClothMaterial — so a swatch shows exactly the cloth
+# the 3D garment will be made of.
 const FABRIC_LETTER := ["W", "F", "T", "M", "L", "C", "P", "O"]
 const FABRIC_BADGE := [
 	Color("55668c"),
@@ -27,23 +24,6 @@ const FABRIC_BADGE := [
 	Color("8fa0b0"),
 	Color("7f93a6"),
 ]
-const PATTERN_TEX := [
-	"solid",
-	"pinstripe",
-	"herringbone",
-	"houndstooth",
-	"windowpane",
-	"glen_check",
-	"birdseye",
-	"sharkskin",
-	"nailhead",
-	"pinstripe",
-	"pinstripe",
-	"windowpane",
-	"glen_check",
-	"solid",
-]
-
 @export var swatch_size := 84
 
 var _rect: ColorRect
@@ -114,12 +94,16 @@ func setup(mat: MaterialType, remaining: float) -> void:
 	_build()
 	if mat == null:
 		return
-	var fi := clampi(int(mat.fabric), 0, FABRIC_TEX.size() - 1)
-	var pi := clampi(int(mat.pattern), 0, PATTERN_TEX.size() - 1)
+	var fi := clampi(int(mat.fabric), 0, FABRIC_LETTER.size() - 1)
+	var pat := int(mat.pattern)
 	_shader_mat.set_shader_parameter("cloth_color", mat.cloth_color)
 	_shader_mat.set_shader_parameter("pattern_color", mat.pattern_color)
-	_shader_mat.set_shader_parameter("fabric_tex", _tex("fabrics", FABRIC_TEX[fi]))
-	_shader_mat.set_shader_parameter("pattern_tex", _tex("patterns", PATTERN_TEX[pi]))
+	var fabric_name := ClothMaterial.fabric_tex_name(int(mat.fabric))
+	_shader_mat.set_shader_parameter("fabric_tex", ClothMaterial.texture("fabrics", fabric_name))
+	var pattern_name := ClothMaterial.pattern_tex_name(pat)
+	_shader_mat.set_shader_parameter("pattern_tex", ClothMaterial.texture("patterns", pattern_name))
+	# One tile fills the swatch, so the garment's density carries straight over.
+	_shader_mat.set_shader_parameter("pattern_scale", ClothMaterial.pattern_scale(pat))
 
 	var frac := clampf(remaining / maxf(mat.roll_length_m, 0.001), 0.0, 1.0)
 	_fill_fg.anchor_right = frac
@@ -132,7 +116,3 @@ func setup(mat: MaterialType, remaining: float) -> void:
 func _update_size() -> void:
 	if _shader_mat:
 		_shader_mat.set_shader_parameter("rect_size", size)
-
-
-func _tex(kind: String, name: String) -> Texture2D:
-	return load("res://assets/textures/%s/%s.png" % [kind, name])

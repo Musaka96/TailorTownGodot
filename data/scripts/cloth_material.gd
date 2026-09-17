@@ -19,8 +19,8 @@ const BASE_TRIPLANAR_PATH := "res://materials/cloth_triplanar.tres"
 
 # Indexed by Enums.Fabric / Enums.Pattern (mirrors the UI swatch mapping). The
 # shirting fabrics/patterns reuse the closest existing weave texture (greybox) — see
-# _fabric_tex / _pattern_tex for the bounds-safe lookup. Cotton and poplin use the fine
-# worsted weave (smooth shirtings); only oxford keeps the coarser linen basketweave.
+# fabric_tex_name / pattern_tex_name for the bounds-safe lookup. Cotton and poplin use the
+# fine worsted weave (smooth shirtings); only oxford keeps the coarser linen basketweave.
 const FABRIC_TEX := [
 	"worsted", "flannel", "tweed", "mohair", "linen", "worsted", "worsted", "linen"
 ]
@@ -39,6 +39,27 @@ const PATTERN_TEX := [
 	"windowpane",
 	"glen_check",
 	"solid",
+]
+# Density of each pattern relative to the texture as drawn, on the pattern only (the
+# weave keeps uv_scale). <1 = bolder and wider-spaced, >1 = finer. Tuned so every
+# motif still reads as itself on a garment at normal camera distance instead of
+# collapsing into speckle; also what gives the shirting patterns that share a texture
+# (bengal / university stripe, gingham) their own scale. Indexed by Enums.Pattern.
+const PATTERN_SCALE := [
+	1.0,  # solid
+	1.0,  # pinstripe — the reference density
+	0.8,  # herringbone
+	0.9,  # houndstooth
+	1.0,  # windowpane
+	0.85,  # glen check
+	0.75,  # birdseye — spaced out so the speckle doesn't vanish at distance
+	0.8,  # sharkskin — ditto; it's meant to be a sheen, not a texture
+	0.85,  # nailhead
+	0.7,  # bengal stripe — wider than a pinstripe
+	0.5,  # university stripe — wider still
+	1.6,  # gingham — a small check off the windowpane grid
+	1.1,  # tattersall
+	1.0,  # end-on-end
 ]
 
 static var _base: ShaderMaterial
@@ -94,16 +115,21 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 		return
 	sm.set_shader_parameter("cloth_color", mat.cloth_color)
 	sm.set_shader_parameter("pattern_color", mat.pattern_color)
-	sm.set_shader_parameter("fabric_tex", _tex("fabrics", _fabric_tex(mat.fabric)))
-	sm.set_shader_parameter("pattern_tex", _tex("patterns", _pattern_tex(mat.pattern)))
+	sm.set_shader_parameter("fabric_tex", texture("fabrics", fabric_tex_name(mat.fabric)))
+	sm.set_shader_parameter("pattern_tex", texture("patterns", pattern_tex_name(mat.pattern)))
+	sm.set_shader_parameter("pattern_scale", pattern_scale(mat.pattern))
 
 
-static func _fabric_tex(f: int) -> String:
+static func fabric_tex_name(f: int) -> String:
 	return FABRIC_TEX[f] if f >= 0 and f < FABRIC_TEX.size() else "linen"
 
 
-static func _pattern_tex(p: int) -> String:
+static func pattern_tex_name(p: int) -> String:
 	return PATTERN_TEX[p] if p >= 0 and p < PATTERN_TEX.size() else "solid"
+
+
+static func pattern_scale(p: int) -> float:
+	return PATTERN_SCALE[p] if p >= 0 and p < PATTERN_SCALE.size() else 1.0
 
 
 static func _base_material(path: String) -> ShaderMaterial:
@@ -116,5 +142,7 @@ static func _base_material(path: String) -> ShaderMaterial:
 	return _base
 
 
-static func _tex(kind: String, name: String) -> Texture2D:
+## The weave / pattern texture by folder and name — shared with the UI swatch so
+## both show the same cloth.
+static func texture(kind: String, name: String) -> Texture2D:
 	return load("res://assets/textures/%s/%s.png" % [kind, name])

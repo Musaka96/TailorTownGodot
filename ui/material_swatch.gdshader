@@ -5,10 +5,13 @@ shader_type canvas_item;
 
 uniform vec4 cloth_color : source_color = vec4(0.5, 0.5, 0.5, 1.0);
 uniform vec4 pattern_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
-uniform sampler2D fabric_tex : filter_linear;
-uniform sampler2D pattern_tex : filter_linear;
+// Mipmapped: the swatch draws a 256px pattern into ~84px, which aliases into
+// moire with plain linear filtering.
+uniform sampler2D fabric_tex : filter_linear_mipmap;
+uniform sampler2D pattern_tex : filter_linear_mipmap;
 uniform float fabric_strength = 0.55;
 uniform float pattern_strength = 0.85;
+uniform float pattern_scale = 1.0;
 uniform vec2 rect_size = vec2(84.0, 84.0);
 uniform float corner_radius = 16.0;
 
@@ -20,7 +23,7 @@ void fragment() {
 	col *= mix(1.0, weave * 1.75, fabric_strength);
 
 	// Pattern tints on top using its alpha as coverage.
-	vec4 pat = texture(pattern_tex, UV);
+	vec4 pat = texture(pattern_tex, UV * pattern_scale);
 	col = mix(col, pattern_color.rgb, pat.a * pattern_strength);
 
 	// Rounded-rectangle mask (signed distance) with 1px anti-aliasing.
