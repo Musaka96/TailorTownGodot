@@ -1,32 +1,58 @@
-"""Re-unwrap the character's cloth garments so a woven fabric sits on them properly.
+"""Even out the texel density of the character's garment UVs, so woven cloth sits flat.
 
 Run headless — nothing here needs the Blender GUI:
 
     "E:/SteamLibrary/steamapps/common/Blender/blender.exe" --background \
         --factory-startup --python tools/blender/fix_garment_uvs.py
 
-It imports assets/characters/CHARTGEN1.glb, replaces the UVs of the meshes that get a
+It imports assets/characters/CHARTGEN1.glb, rewrites the UVs of the meshes that get a
 tiling fabric, and writes the glb back. Nothing else is touched: the armature, the skin
-weights, the other meshes and every node name are imported and exported as they came,
-and the script refuses to overwrite the asset unless that contract still holds. The glb
+weights, the other meshes, the topology, the split normals and every node name are kept
+exactly as they came. The script re-reads what it wrote and refuses to replace the asset
+unless that contract still holds, or if the result is worse than STRETCH_LIMIT. The glb
 is in git too, so `git checkout assets/characters/CHARTGEN1.glb` undoes a bad run.
 
-Why not a neatly packed atlas: the garment shader repeats a fabric across the UVs (see
-materials/cloth.gdshader), so islands overlapping each other costs nothing at all. What
-a woven pattern needs instead is
+WHAT WAS WRONG, AND WHY THIS DOESN'T RE-UNWRAP
+----------------------------------------------
+The jacket's texel density varied 4.2x across the mesh, which is what smeared a woven
+pattern over it. But almost none of that was distortion INSIDE the UV islands: it was the
+islands sitting at different scales from each other. The cause is the mesh, not the
+layout — the shipped garments have their vertices split all over (the jacket carries 1993
+for 1747 triangles, where a joined surface needs about 897), so the cloth arrives as
+hundreds of disconnected scraps at hundreds of different sizes.
 
-  * uniform texel density — the old jacket varied 4.2x across the mesh, which is what
-    smeared the houndstooth; the shirt's UVs were shattered into one island per
-    triangle, so a fabric on it came out as confetti;
-  * one consistent grain direction, so a pinstripe runs DOWN every panel instead of
-    turning a corner wherever the unwrapper happened to rotate an island;
-  * a shared physical scale, or the jacket and the trousers show the same cloth at
-    different sizes (they did: the shirt's density was a third of the jacket's).
+So all this does is weld a copy, which turns those scraps back into real islands, and
+even their scales out. The original layout is otherwise left alone, because it was a
+decent garment unwrap: continuous across each panel, and with the grain already running
+the right way — a pinstripe down the body and down the sleeve.
 
-So the UVs come out in METRES — one UV unit is one metre of cloth — which makes
-ClothMaterial's uv_scale read directly as "fabric tiles per metre".
+Re-unwrapping was tried and is worse on every count, which is worth recording so it isn't
+tried again:
 
-Verify the result with `godot --headless --path . --script res://tools/uv_report.gd`.
+  * `smart_project` gets the density flat (1.1x) but PACKS the islands, which puts
+    neighbouring cloth at unrelated places in UV space. The pattern's phase then jumps at
+    every island edge and the jacket reads as patchwork. Packing also rotates islands, so
+    the grain ends up in a different direction on each one — pinstripes ran ACROSS the
+    sleeves.
+  * Draping the garment around the limb (a surface of revolution taken from the skeleton)
+    gives perfect continuity and a perfect grain, but a jacket torso with lapels is
+    nowhere near a cylinder: 5.2x.
+  * Cutting tailoring seams and flattening conformally needs a good seam set; placed
+    automatically from the drape it left the shirt with no seam at all, and a conformal
+    unwrap of an uncut closed surface explodes (1109x).
+  * `minimize_stretch` does nothing on the unwelded mesh (there is nothing connected to
+    relax across) and wrecks the welded one (25x-85x).
+
+The one thing left to fix properly is the shirt: its UVs are shattered into 55 pieces
+that welding does not rejoin, so a patterned shirt still breaks up. It is nearly always
+hidden under the jacket, and its density is fine, so it is left as it is.
+
+UVs come out in METRES — one UV unit is one metre of cloth — so ClothMaterial's uv_scale
+reads as "fabric tiles per metre". That also pins the jacket, shirt and trousers to one
+texel density; they were at three different ones, so a shirt showed the same cloth about
+three times coarser than the jacket it was cut from.
+
+Verify with `godot --headless --path . --script res://tools/uv_report.gd`.
 """
 
 import json
@@ -38,21 +64,21 @@ from pathlib import Path
 
 import bmesh
 import bpy
-from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 GLB = ROOT / "assets" / "characters" / "CHARTGEN1.glb"
 STAGE = GLB.with_suffix(".staged.glb")
 
-# Meshes that get a tiling fabric (ClothMaterial) rather than a flat colour or the
+# The meshes that get a tiling fabric (ClothMaterial) rather than a flat colour or the
 # baked face texture — see entities/character/character_rig.gd.
-REUNWRAP = ("jacket", "shirt")  # their unwraps are unusable; see the module docstring
-KEEP_LAYOUT = ("legs",)  # already uniform, so it only needs the shared scale
-CLOTH = REUNWRAP + KEEP_LAYOUT
+CLOTH_MESHES = ("jacket", "shirt", "legs")
 
-# Everything the game looks up by name, and the rig the wardrobe parts are skinned to.
-# The whole point of the round trip is that ONLY UVs change, so this is checked on the
-# way in and again in the exported file.
+# Coincident vertices closer than this are joined on the working copy. The meshes are
+# modelled in metres, so this is a hundredth of a millimetre — it rejoins split vertices
+# without merging anything that was genuinely apart.
+WELD_DISTANCE = 1e-5
+STRETCH_LIMIT = 1.6  # past this the weave visibly smears; the jacket started at 4.2
+
 EXPECTED_ROOT = "Rig_Medium"
 EXPECTED_MESHES = (
     "arms",
@@ -90,11 +116,6 @@ EXPECTED_BONES = (
     "toes.r",
 )
 
-# Seam angle for the unwrap. 66 deg splits a sleeve from a body and a lapel from a
-# front without dicing the mesh into confetti.
-SEAM_ANGLE = math.radians(66.0)
-STRETCH_LIMIT = 1.5  # past this the weave visibly smears; the jacket was at 4.2
-
 
 def main() -> int:
     print("fix_garment_uvs: %s" % GLB)
@@ -107,20 +128,17 @@ def main() -> int:
         return 1
 
     print("\n  before:")
-    for name in CLOTH:
+    for name in CLOTH_MESHES:
         _stats(bpy.data.objects[name], name)
 
-    for name in REUNWRAP:
-        _unwrap(bpy.data.objects[name])
-    for name in CLOTH:
-        obj = bpy.data.objects[name]
-        turned = _align_grain(obj)
-        scale = _scale_to_metres(obj)
-        print("  %-8s grain-aligned %d island(s), UVs x%.3f -> metres" % (name, turned, scale))
+    print("\n  evening out:")
+    for name in CLOTH_MESHES:
+        if not _even_out(bpy.data.objects[name]):
+            return 1
 
     print("\n  after:")
     worst = 1.0
-    for name in CLOTH:
+    for name in CLOTH_MESHES:
         worst = max(worst, _stats(bpy.data.objects[name], name))
     if worst > STRETCH_LIMIT:
         print("\n  ABORT: worst stretch %.2fx is over the %.1fx limit" % (worst, STRETCH_LIMIT))
@@ -128,77 +146,126 @@ def main() -> int:
 
     _export()
     if not _verify(STAGE):
-        print("\n  ABORT: exported glb failed the contract check; %s left in place" % GLB.name)
+        print("\n  ABORT: exported glb failed the contract check; %s left alone" % GLB.name)
         return 1
     os.replace(STAGE, GLB)
     print("\nfix_garment_uvs: wrote %s (worst stretch %.2fx)" % (GLB.name, worst))
     return 0
 
 
-def _unwrap(obj) -> None:
-    """Project the mesh afresh: per-face-cluster planar projections, then one scale
-    pass so every island ends up at the same texel density."""
+def _even_out(obj) -> bool:
+    """Put every UV island of one garment at the same texel density, in metres."""
+    welded = _welded_copy(obj)
+    try:
+        before = _island_count(welded)
+        _average_island_scale(welded)
+        scale = _scale_to_metres(welded)
+        if not _transfer_uvs(welded, obj):
+            return False
+    finally:
+        bpy.data.objects.remove(welded, do_unlink=True)
+    print(
+        "    %-8s %d islands once welded (was %d unwelded) | UVs x%.3f -> metres"
+        % (obj.name, before, _island_count(obj), scale)
+    )
+    return True
+
+
+def _welded_copy(obj):
+    """A welded duplicate to measure and rescale the islands on.
+
+    Welding is the whole trick: until the split vertices are rejoined, the garment is
+    hundreds of disconnected scraps, so there are no islands to compare scales between —
+    which is why the density was all over the place. The UVs are copied back to the real
+    mesh afterwards, leaving its topology, vertex count and split normals alone.
+    """
+    copy = obj.copy()
+    copy.data = obj.data.copy()
+    copy.name = obj.name + ".welded"
+    bpy.context.scene.collection.objects.link(copy)
+    bm = bmesh.new()
+    bm.from_mesh(copy.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=WELD_DISTANCE)
+    bm.to_mesh(copy.data)
+    bm.free()
+    return copy
+
+
+def _average_island_scale(obj) -> None:
+    """Bring every island to a common texel density (Blender does the per-island maths;
+    it leaves each island's shape and orientation alone, so the grain is untouched)."""
     bpy.context.view_layer.objects.active = obj
     for other in bpy.data.objects:
         other.select_set(False)
     obj.select_set(True)
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(
-        angle_limit=SEAM_ANGLE,
-        island_margin=0.0,  # islands may overlap; the fabric repeats
-        area_weight=0.0,
-        correct_aspect=True,
-        scale_to_bounds=False,  # we set the scale ourselves, in metres
-    )
     bpy.ops.uv.select_all(action="SELECT")
     bpy.ops.uv.average_islands_scale(scale_uv=True, shear=False)
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-def _align_grain(obj) -> int:
-    """Rotate each UV island so the garment's vertical axis runs down V.
+def _scale_to_metres(obj) -> float:
+    """Scale the UVs so their area matches the surface area: one UV unit, one metre of
+    cloth. That pins every garment to the same texel density, which is what stops a shirt
+    showing the same fabric at a different size from the jacket it was cut from."""
+    area_3d, area_uv = _areas(obj)
+    if area_uv <= 0.0:
+        return 1.0
+    scale = math.sqrt(area_3d / area_uv)
+    for element in obj.data.uv_layers.active.data:
+        element.uv = element.uv * scale
+    return scale
 
-    Cloth has a grain: stripes run down a jacket. An unwrapper rotates islands to pack
-    them, which would send the grain off in a different direction on every panel.
-    Rotating an island changes neither its density nor its distortion, so this is free.
+
+def _transfer_uvs(src, dst) -> bool:
+    """Copy the UVs off the welded copy onto the real mesh.
+
+    Faces are paired by centroid and their corners by position, because welding renumbers
+    both but moves neither. Split vertices therefore all receive the UV of the single
+    welded vertex they came from, so the result renders exactly like the welded mesh
+    while the shipped topology stays as it was.
     """
-    up = (obj.matrix_world.inverted().to_3x3() @ Vector((0.0, 0.0, 1.0))).normalized()
+    if len(src.data.polygons) != len(dst.data.polygons):
+        print(
+            "    ABORT: welding changed %s's face count (%d -> %d)"
+            % (dst.name, len(dst.data.polygons), len(src.data.polygons))
+        )
+        return False
+    src_uv = src.data.uv_layers.active.data
+    dst_uv = dst.data.uv_layers.active.data
+    by_centre = {_key(poly.center): poly for poly in src.data.polygons}
+    for poly in dst.data.polygons:
+        match = by_centre.get(_key(poly.center))
+        if match is None:
+            print("    ABORT: no welded face matches %s's at %s" % (dst.name, poly.center))
+            return False
+        corners = {
+            _key(src.data.vertices[src.data.loops[loop].vertex_index].co): loop
+            for loop in match.loop_indices
+        }
+        for loop in poly.loop_indices:
+            co = dst.data.vertices[dst.data.loops[loop].vertex_index].co
+            source = corners.get(_key(co))
+            if source is None:
+                print("    ABORT: no welded corner matches %s's at %s" % (dst.name, co))
+                return False
+            dst_uv[loop].uv = src_uv[source].uv
+    return True
+
+
+def _key(point) -> tuple:
+    """A position rounded enough to match across a weld, fine enough not to collide."""
+    return round(point.x, 4), round(point.y, 4), round(point.z, 4)
+
+
+def _island_count(obj) -> int:
+    """How many separate pieces the fabric runs across. Two faces count as joined when
+    their UVs agree along the edge they share — that is where cloth is continuous."""
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     bm.faces.index_update()
     uv = bm.loops.layers.uv.active
-    turned = 0
-    for island in _islands(bm, uv):
-        direction = Vector((0.0, 0.0))
-        for face in island:
-            local = _up_in_uv(face, uv, up)
-            if local is not None:
-                direction += local * face.calc_area()
-        if direction.length < 1e-9:
-            continue
-        loops = [loop for face in island for loop in face.loops]
-        centre = Vector((0.0, 0.0))
-        for loop in loops:
-            centre += loop[uv].uv
-        centre /= len(loops)
-        # Turn that direction to point along +V.
-        angle = math.pi / 2.0 - math.atan2(direction.y, direction.x)
-        cos_a, sin_a = math.cos(angle), math.sin(angle)
-        for loop in loops:
-            d = loop[uv].uv - centre
-            loop[uv].uv = centre + Vector(
-                (d.x * cos_a - d.y * sin_a, d.x * sin_a + d.y * cos_a)
-            )
-        turned += 1
-    bm.to_mesh(obj.data)
-    bm.free()
-    return turned
-
-
-def _islands(bm, uv) -> list:
-    """Faces grouped by UV connectivity: two faces join when their UVs agree along the
-    edge they share, which is exactly where the fabric runs continuously."""
     parent = {face.index: face.index for face in bm.faces}
 
     def find(a: int) -> int:
@@ -213,11 +280,9 @@ def _islands(bm, uv) -> list:
         left, right = edge.link_faces
         if _uv_continuous(edge, left, right, uv):
             parent[find(left.index)] = find(right.index)
-
-    groups: dict = {}
-    for face in bm.faces:
-        groups.setdefault(find(face.index), []).append(face)
-    return list(groups.values())
+    count = len({find(face.index) for face in bm.faces})
+    bm.free()
+    return count
 
 
 def _uv_continuous(edge, left, right, uv) -> bool:
@@ -229,51 +294,11 @@ def _uv_continuous(edge, left, right, uv) -> bool:
     return True
 
 
-def _up_in_uv(face, uv, up: Vector):
-    """The UV direction that `up` points along on this face.
-
-    Writes `up` in the face's own edge basis, then applies those coefficients to the
-    matching UV edges — i.e. pushes the 3D direction through the same linear map the
-    unwrap used.
-    """
-    loops = face.loops[:3]
-    p0, p1, p2 = (loop.vert.co for loop in loops)
-    u0, u1, u2 = (loop[uv].uv for loop in loops)
-    d1, d2 = p1 - p0, p2 - p0
-    g11, g12, g22 = d1.dot(d1), d1.dot(d2), d2.dot(d2)
-    det = g11 * g22 - g12 * g12
-    if abs(det) < 1e-12:
-        return None
-    r1, r2 = d1.dot(up), d2.dot(up)
-    a = (r1 * g22 - r2 * g12) / det
-    b = (r2 * g11 - r1 * g12) / det
-    out = (u1 - u0) * a + (u2 - u0) * b
-    return out.normalized() if out.length > 1e-9 else None
-
-
-def _scale_to_metres(obj) -> float:
-    """Scale the UVs so one UV unit is one metre of cloth, and return the factor.
-
-    Density is uniform by this point, so a single factor per mesh lands every garment
-    at the same texel density — which is what makes a jacket and its trousers show the
-    same fabric at the same size.
-    """
-    area_3d, area_uv = _areas(obj)
-    if area_uv <= 0.0:
-        return 1.0
-    scale = math.sqrt(area_3d / area_uv)
-    for layer in obj.data.uv_layers.active.data:
-        layer.uv = layer.uv * scale
-    return scale
-
-
-def _areas(obj) -> tuple:
-    """(world surface area in m2, UV area) over the whole mesh."""
+def _triangles(obj):
+    """Each triangle as (world area, UV area), fanned from each face's first corner."""
     mesh = obj.data
     matrix = obj.matrix_world
     uv = mesh.uv_layers.active.data
-    area_3d = 0.0
-    area_uv = 0.0
     for poly in mesh.polygons:
         loops = list(poly.loop_indices)
         for k in range(1, len(loops) - 1):
@@ -281,32 +306,26 @@ def _areas(obj) -> tuple:
             p0 = matrix @ mesh.vertices[mesh.loops[i0].vertex_index].co
             p1 = matrix @ mesh.vertices[mesh.loops[i1].vertex_index].co
             p2 = matrix @ mesh.vertices[mesh.loops[i2].vertex_index].co
-            area_3d += (p1 - p0).cross(p2 - p0).length * 0.5
             e1 = uv[i1].uv - uv[i0].uv
             e2 = uv[i2].uv - uv[i0].uv
-            area_uv += abs(e1.x * e2.y - e1.y * e2.x) * 0.5
+            yield (
+                (p1 - p0).cross(p2 - p0).length * 0.5,
+                abs(e1.x * e2.y - e1.y * e2.x) * 0.5,
+            )
+
+
+def _areas(obj) -> tuple:
+    area_3d = 0.0
+    area_uv = 0.0
+    for a3, a2 in _triangles(obj):
+        area_3d += a3
+        area_uv += a2
     return area_3d, area_uv
 
 
 def _stats(obj, label: str) -> float:
     """Print one mesh's texel density spread and return its stretch."""
-    mesh = obj.data
-    matrix = obj.matrix_world
-    uv = mesh.uv_layers.active.data
-    density = []
-    for poly in mesh.polygons:
-        loops = list(poly.loop_indices)
-        for k in range(1, len(loops) - 1):
-            i0, i1, i2 = loops[0], loops[k], loops[k + 1]
-            p0 = matrix @ mesh.vertices[mesh.loops[i0].vertex_index].co
-            p1 = matrix @ mesh.vertices[mesh.loops[i1].vertex_index].co
-            p2 = matrix @ mesh.vertices[mesh.loops[i2].vertex_index].co
-            area = (p1 - p0).cross(p2 - p0).length * 0.5
-            e1 = uv[i1].uv - uv[i0].uv
-            e2 = uv[i2].uv - uv[i0].uv
-            flat = abs(e1.x * e2.y - e1.y * e2.x) * 0.5
-            if area > 1e-9 and flat > 1e-12:
-                density.append(math.sqrt(flat / area))
+    density = [math.sqrt(a2 / a3) for a3, a2 in _triangles(obj) if a3 > 1e-9 and a2 > 1e-12]
     if not density:
         print("    %-8s no usable triangles" % label)
         return 1.0

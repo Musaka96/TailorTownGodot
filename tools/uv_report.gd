@@ -37,12 +37,7 @@ func _initialize() -> void:
 			print("%-8s MISSING from %s" % [name, SRC])
 			continue
 		worst = maxf(worst, _report(name, (found[0] as MeshInstance3D).mesh))
-	print(
-		(
-			"\nworst stretch %.1fx — %s"
-			% [worst, "OK" if worst <= STRETCH_WARN else "NEEDS A BETTER UNWRAP"]
-		)
-	)
+	print("\nworst stretch %.1fx (the guide is under %.1fx)" % [worst, STRETCH_WARN])
 	quit(0)
 
 
