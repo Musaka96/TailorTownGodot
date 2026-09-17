@@ -77,11 +77,13 @@ func save_to(slot: Variant, save_name := "") -> bool:
 	return _write(slot, capture(save_name))
 
 
-## Leave the game and return to the main menu.
+## Leave the game and return to the main menu, behind the curtain.
 func to_menu() -> void:
+	if _entering:
+		return
 	_mode = "menu"
 	_pending = {}
-	_change_scene(MENU_SCENE)
+	_leave_game()
 
 
 ## Metadata for every numbered slot, for the slot list in the menus.
@@ -149,19 +151,36 @@ func notify_game_ready() -> void:
 			get_tree().paused = false
 
 
-## Draw the curtain across the menu, then swap to the game behind it. Not awaited by the
-## callers — they hand over and the rest happens once the fabric has landed.
-func _enter_game(fresh: bool) -> void:
-	_entering = true
+## Draw the curtain across whatever is on screen (built on first use). Awaitable: returns
+## once the fabric has landed.
+func _draw_curtain() -> void:
 	GameState.input_locked = true
 	if _curtain == null:
 		_curtain = LoadingCurtain.new()
 		add_child(_curtain)
 	await _curtain.close()
+
+
+## Draw the curtain across the menu, then swap to the game behind it. Not awaited by the
+## callers — they hand over and the rest happens once the fabric has landed. The curtain
+## opens later, from notify_game_ready, once the shop has settled.
+func _enter_game(fresh: bool) -> void:
+	_entering = true
+	await _draw_curtain()
 	if fresh:
 		_reset_autoloads()
 	_entering = false
 	_change_scene(MAIN_SCENE)
+
+
+## The same, the other way: draw the curtain over the shop, swap back to the menu behind it,
+## and open on the menu once it has drawn a few frames of its own.
+func _leave_game() -> void:
+	_entering = true
+	await _draw_curtain()
+	_change_scene(MENU_SCENE)
+	_entering = false
+	await _settle()
 
 
 ## Let the freshly built shop draw itself into shape behind the curtain, then open it and

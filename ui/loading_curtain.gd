@@ -13,9 +13,10 @@ extends CanvasLayer
 ## rendered frames, then opens on a shop that already looks the way it will keep looking.
 ## Owned by SaveManager, which draws it before a scene swap.
 ##
-## Everything is painted in code (Style palette, no art needed): vertical pleats shaded
-## crest-to-fold, a scalloped hem, brass binding down the leading edges, and a short settle
-## wobble when the fabric lands.
+## Art is optional. Drop the three PNGs named below into assets/textures/ui and the curtain
+## uses them; with any of them missing it paints that part itself from the Style palette
+## (pleats shaded crest-to-fold, a scalloped hem, a brass binding), so the game always has a
+## curtain. Either way the fabric gathers as it opens and wobbles briefly when it lands.
 
 signal closed  ## fully drawn across the screen
 signal opened  ## fully swept aside
@@ -24,6 +25,19 @@ enum Phase { OPEN, CLOSING, CLOSED, OPENING }
 
 ## Above PostFX (100), so even the filter's own first frame is hidden.
 const LAYER := 200
+## Optional art. PANEL_ART is the LEFT half, mirrored for the right, and is stretched to
+## half the screen. TRIM_ART is the braid down each leading edge, tiled vertically and kept
+## at its own width so it never squashes. VALANCE_ART is the pelmet across the top, tiled
+## horizontally, which rides down with the curtain and flies out again as it opens.
+const PANEL_ART := "res://assets/textures/ui/curtain_panel.png"
+const TRIM_ART := "res://assets/textures/ui/curtain_trim.png"
+const VALANCE_ART := "res://assets/textures/ui/curtain_valance.png"
+## Pelmet height as a share of the screen.
+const VALANCE_SHARE := 0.15
+## Share of PANEL_ART's height taken by the scalloped hem at its bottom (the rest being
+## solid fabric). The panel is scaled so that whole band hangs below the screen once the
+## curtain is down, instead of letting the scene peek through the scallops.
+const ART_HEM_SHARE := 0.12
 const DROP_SECONDS := 0.5
 const PART_SECONDS := 0.75
 ## How far the hem hangs past the bottom of the screen once the curtain is all the way
@@ -54,6 +68,9 @@ const WARMUP_FRAMES := 12
 const WARMUP_SECONDS := 0.6
 
 var _sheet: Control
+var _panel: Texture2D
+var _trim: Texture2D
+var _valance: Texture2D
 var _phase := Phase.OPEN
 var _t := 0.0
 var _sway_left := 0.0
@@ -69,8 +86,12 @@ func _ready() -> void:
 	_sheet = Control.new()
 	_sheet.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_sheet.mouse_filter = Control.MOUSE_FILTER_STOP  # nothing behind it can be clicked
+	_sheet.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # the trim and pelmet tile
 	_sheet.draw.connect(_draw_sheet)
 	add_child(_sheet)
+	_panel = _art(PANEL_ART)
+	_trim = _art(TRIM_ART)
+	_valance = _art(VALANCE_ART)
 
 
 func _process(delta: float) -> void:
@@ -165,7 +186,7 @@ func _draw_sheet() -> void:
 	var view: Vector2 = _sheet.size
 	# Each half reaches past its outer screen edge, so the settle wobble never opens a gap.
 	var bleed := SWAY_PIXELS + 2.0
-	var panel := Vector2(view.x * 0.5 + bleed, view.y + HEM_CLEARANCE)
+	var panel := Vector2(view.x * 0.5 + bleed, _panel_height(view.y))
 	var top := -panel.y * (1.0 - _drop())
 	var part := _part()
 	# Both halves hang from their leading edge, which sweeps out while the fabric bunches.
@@ -174,17 +195,68 @@ func _draw_sheet() -> void:
 	var width := Vector2(panel.x * (1.0 - GATHER * part), panel.y)
 	_draw_half(Rect2(Vector2(lead - slide - width.x, top), width), false)
 	_draw_half(Rect2(Vector2(lead + slide, top), width), true)
+	_draw_valance(view, top, part)
 
 
-## One half of the curtain: the pleated velvet, the shadow under the rail, and the brass
-## binding down its leading edge (the right edge, or the left one when `mirrored`).
+## An optional art file, or null when it isn't there (the curtain paints itself then).
+static func _art(path: String) -> Texture2D:
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
+## How tall each half is drawn: enough to hide its hem below the bottom of the screen.
+func _panel_height(view_height: float) -> float:
+	var covered := view_height + HEM_CLEARANCE
+	return covered if _panel == null else covered / (1.0 - ART_HEM_SHARE)
+
+
+## One half of the curtain: the velvet, then the braid down its leading edge (the right
+## edge, or the left one when `mirrored`).
 func _draw_half(rect: Rect2, mirrored: bool) -> void:
-	_draw_pleats(rect)
-	_draw_shade(Rect2(rect.position, Vector2(rect.size.x, rect.size.y * HEAD_SHADOW)), true)
-	var inner := rect.position.x if mirrored else rect.end.x - EDGE_SHADOW
-	_draw_shade(Rect2(inner, rect.position.y, EDGE_SHADOW, rect.size.y), not mirrored)
-	var trim := rect.position.x if mirrored else rect.end.x - TRIM_WIDTH
-	_sheet.draw_rect(Rect2(trim, rect.position.y, TRIM_WIDTH, rect.size.y), Style.BRASS)
+	if _panel != null:
+		_draw_flipped(_panel, rect, mirrored)
+	else:
+		_draw_pleats(rect)
+		_draw_shade(Rect2(rect.position, Vector2(rect.size.x, rect.size.y * HEAD_SHADOW)), true)
+		var inner := rect.position.x if mirrored else rect.end.x - EDGE_SHADOW
+		_draw_shade(Rect2(inner, rect.position.y, EDGE_SHADOW, rect.size.y), not mirrored)
+	_draw_binding(rect, mirrored)
+
+
+## `tex` stretched to `rect`, flipped left-to-right when `mirrored` so one painted panel
+## serves both halves.
+func _draw_flipped(tex: Texture2D, rect: Rect2, mirrored: bool) -> void:
+	if not mirrored:
+		_sheet.draw_texture_rect(tex, rect, false)
+		return
+	_sheet.draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1.0, 1.0))
+	_sheet.draw_texture_rect(
+		tex, Rect2(-rect.end.x, rect.position.y, rect.size.x, rect.size.y), false
+	)
+	_sheet.draw_set_transform(Vector2.ZERO)
+
+
+## The braid down a leading edge, held at its own width so it doesn't squash as the half
+## gathers.
+func _draw_binding(rect: Rect2, mirrored: bool) -> void:
+	var width := float(_trim.get_width()) if _trim != null else TRIM_WIDTH
+	var x := rect.position.x if mirrored else rect.end.x - width
+	var band := Rect2(x, rect.position.y, width, rect.size.y)
+	if _trim != null:
+		_sheet.draw_texture_rect(_trim, band, true)
+	else:
+		_sheet.draw_rect(band, Style.BRASS)
+
+
+## The pelmet across the top: it hangs from the curtain's own top edge, and once the halves
+## start sweeping aside it flies out of view with them.
+func _draw_valance(view: Vector2, top: float, part: float) -> void:
+	if _valance == null:
+		return
+	var scale := view.y * VALANCE_SHARE / float(_valance.get_height())
+	var lift := view.y * VALANCE_SHARE * part
+	_sheet.draw_set_transform(Vector2(0.0, top - lift), 0.0, Vector2(scale, scale))
+	_sheet.draw_texture_rect(_valance, Rect2(0.0, 0.0, view.x / scale, _valance.get_height()), true)
+	_sheet.draw_set_transform(Vector2.ZERO)
 
 
 ## Vertical pleats shaded crest-to-fold, hung on a scalloped hem. A slow second harmonic
