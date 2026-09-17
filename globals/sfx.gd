@@ -56,6 +56,10 @@ const LIB := {
 	"stitch": "stitch.wav",
 	"sew_machine": "sew_machine.wav",
 	"sew_machine_loop": "sew_machine_loop.wav",
+	# the sewing minigame's per-tap cues (synthesised, build_sewing_audio.gd)
+	"sew_stitch_good": "sew_stitch_good.wav",
+	"sew_stitch_perfect": "sew_stitch_perfect.wav",
+	"sew_tap": "sew_tap.wav",
 	# menu navigation (generated locally, Stable Audio Open)
 	"ui_move": "ui_move.wav",
 	"ui_confirm": "ui_confirm.wav",
@@ -275,7 +279,8 @@ func stop_music() -> void:
 
 
 ## Start a named continuous loop (its own player), e.g. the sewing machine while a
-## seam is being stitched. Calling it again while already running is a no-op.
+## seam is being stitched. Calling it again while already running is a no-op, so the
+## pitch a caller set with set_loop_pitch survives; a fresh start goes back to normal.
 func start_loop(key: String, volume_db := 0.0) -> void:
 	var existing: AudioStreamPlayer = _loops.get(key)
 	if existing != null and existing.playing:
@@ -292,7 +297,16 @@ func start_loop(key: String, volume_db := 0.0) -> void:
 	_set_loop(stream, true)
 	p.stream = stream
 	p.volume_db = sfx_volume + volume_db
+	p.pitch_scale = 1.0
 	p.play()
+
+
+## Speed a running loop up or down — the sewing machine racing under the sprint, say.
+## Harmless when that loop isn't running.
+func set_loop_pitch(key: String, pitch: float) -> void:
+	var p: AudioStreamPlayer = _loops.get(key)
+	if p != null:
+		p.pitch_scale = clampf(pitch, 0.25, 3.0)
 
 
 func stop_loop(key: String) -> void:
@@ -304,7 +318,14 @@ func stop_loop(key: String) -> void:
 ## Make a stream repeat, whichever kind it is (WAV vs. compressed music).
 func _set_loop(stream: AudioStream, on: bool) -> void:
 	if stream is AudioStreamWAV:
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if on else AudioStreamWAV.LOOP_DISABLED
+		var wav := stream as AudioStreamWAV
+		var samples := int(wav.get_length() * wav.mix_rate)
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD if on else AudioStreamWAV.LOOP_DISABLED
+		# A WAV imported without a loop region has loop_end 0, so switching the mode on here
+		# would leave it looping over nothing. Fall back to the whole sample.
+		if on and wav.loop_end <= wav.loop_begin:
+			wav.loop_begin = 0
+			wav.loop_end = samples
 	elif stream is AudioStreamMP3 or stream is AudioStreamOggVorbis:
 		stream.loop = on
 

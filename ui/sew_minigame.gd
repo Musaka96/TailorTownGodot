@@ -6,6 +6,12 @@ extends MinigameScreen
 ## as it reaches each marked point, laying thread behind it. Early taps and missed
 ## points are slips — 3 ruins the piece. The chrome (panel, ticket, slip pins,
 ## prompts) comes from MinigameScreen. Emits finished(success, quality).
+##
+## It runs on sound as much as sight: the machine loops under the whole seam and rises in
+## pitch with the needle, so you can hear it idling through the lead-in and racing under the
+## sprint, and every press answers — a punch for a stitch caught, the same with a ring on
+## top for a perfect one, a slip for a wasted tap, and a dry click when there is nothing
+## there to catch.
 
 signal finished(success: bool, quality: float)
 
@@ -18,6 +24,13 @@ const GOOD_WINDOW := 0.05  # in seam fraction (0..1)
 const PERFECT_WINDOW := 0.025
 const MAX_MISTAKES := 3
 const SPRINT_MULT := 1.7  # hold Shift: the needle races, so the timing is tighter
+
+const MACHINE_LOOP := "sew_machine_loop"
+const MACHINE_DB := -2.0
+## The machine ticking over during the lead-in, before the needle sets off.
+const IDLE_PITCH := 0.8
+## How much of the needle's speed the motor's pitch follows (1 would be a chipmunk).
+const PITCH_FOLLOW := 0.7
 
 const TITLE := "Sewing Machine"
 const CLOTH_DEFAULT := Style.LINEN  # when the piece has no fabric colour yet
@@ -43,6 +56,8 @@ var _bed_tex: Texture2D
 var _weave_tex: Texture2D
 
 var _stitch_snd: AudioStream
+var _perfect_snd: AudioStream
+var _tap_snd: AudioStream
 var _slip: AudioStream
 var _complete: AudioStream
 var _ruined: AudioStream
@@ -53,7 +68,9 @@ func _ready() -> void:
 
 
 func _load_assets() -> void:
-	_stitch_snd = _load("stitch")
+	_stitch_snd = _load("sew_stitch_good")
+	_perfect_snd = _load("sew_stitch_perfect")
+	_tap_snd = _load("sew_tap")
 	_slip = _load("slip")
 	_complete = _load("complete")
 	_ruined = _load("ruined")
@@ -87,8 +104,16 @@ func start(title: String, cloth := CLOTH_DEFAULT) -> void:
 	_show_panel()
 	_update_status()
 	set_process(true)
-	Sfx.start_loop("sew_machine_loop", -6.0)
+	Sfx.start_loop(MACHINE_LOOP, MACHINE_DB)
+	Sfx.set_loop_pitch(MACHINE_LOOP, IDLE_PITCH)  # ticking over until the needle sets off
 	_repaint()
+
+
+## Whatever takes the screen away — finishing, the host closing it, leaving for the menu
+## mid-seam — the motor stops with it, so it can never be left droning in an empty shop.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+		Sfx.stop_loop(MACHINE_LOOP)
 
 
 func _process(delta: float) -> void:
@@ -109,6 +134,7 @@ func _process(delta: float) -> void:
 	if Upgrades.sewing_sprint() and Input.is_action_pressed("sprint"):
 		boost *= SPRINT_MULT
 	_needle += (delta / _cross_seconds) * boost
+	Sfx.set_loop_pitch(MACHINE_LOOP, lerpf(1.0, boost, PITCH_FOLLOW))  # you hear it race
 
 	# Points the needle has passed without a stitch are misses.
 	for i in _pts.size():
@@ -143,16 +169,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	_try_stitch()
 
 
+## A press. Every one answers, even the ones that do nothing: a tap during the lead-in or
+## after the last point is a dry click rather than silence, so the button never feels dead.
 func _try_stitch() -> void:
-	if _lead > 0.0:
-		return  # ignore taps during the lead-in
-	var idx := _next_pending()
+	var idx := -1 if _lead > 0.0 else _next_pending()
 	if idx == -1:
+		_play(_tap_snd, 0.5)
 		return
 	var d: float = absf(_needle - _pts[idx])
 	if d <= _good_window:
-		_judge[idx] = Stitch.PERFECT if d <= _perfect_window else Stitch.GOOD
-		_play(_stitch_snd, 0.6)
+		var perfect := d <= _perfect_window
+		_judge[idx] = Stitch.PERFECT if perfect else Stitch.GOOD
+		_play(_perfect_snd if perfect else _stitch_snd, 0.75)
 	else:
 		# Tapped too early (no point in range yet) — a wasted stitch.
 		_register_mistake()
@@ -199,7 +227,7 @@ func _register_mistake() -> void:
 func _succeed() -> void:
 	_state = State.SUCCESS
 	set_process(false)
-	Sfx.stop_loop("sew_machine_loop")
+	Sfx.stop_loop(MACHINE_LOOP)
 	_play(_complete, 0.7)
 	_set_status("Seam finished — looking sharp!", Style.FOREST)
 	_repaint()
@@ -214,7 +242,7 @@ func _succeed() -> void:
 func _fail() -> void:
 	_state = State.RUINED
 	set_process(false)
-	Sfx.stop_loop("sew_machine_loop")
+	Sfx.stop_loop(MACHINE_LOOP)
 	_play(_ruined, 0.8)
 	_set_status("Ruined — the seam is a mess.", Style.CLAY)
 	_repaint()
