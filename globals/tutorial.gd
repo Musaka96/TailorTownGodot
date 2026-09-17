@@ -243,6 +243,7 @@ var _recipe: Dictionary = {}
 var _delivered_roll: Node = null
 
 var _layer: CanvasLayer
+var _root: Control
 var _mentor: MentorDialog
 var _tag: GoalTag
 var _coach: CoachMark
@@ -260,6 +261,30 @@ func _ready() -> void:
 	EventBus.customer_waiting.connect(func(cust): _customer = cust)
 	EventBus.design_confirmed.connect(func(_d): _try("design_confirmed"))
 	EventBus.order_delivered.connect(func(roll): _delivered_roll = roll)
+	EventBus.session_ended.connect(abort)
+
+
+## Stop the tutorial without starting the day (leaving the game scene). Everything it
+## shows is hidden and its pause/input locks are released; a new game offers it again.
+func abort() -> void:
+	_active = false
+	_pending = {}
+	_on_choose = Callable()
+	_done_left = 0.0
+	_customer = null
+	_delivered_roll = null
+	if _talking:
+		_talking = false
+		GameState.input_locked = false
+	if _layer != null:
+		if _mentor != null:
+			_mentor.hide_dialog()
+			for c in _mentor.finished.get_connections():
+				_mentor.finished.disconnect(c["callable"])
+		_tag.visible = false
+		_coach.clear()
+		_hand.visible = false
+		_layer.visible = false
 
 
 ## Offer the tutorial (called on a new game): the mentor asks yes/no. `on_choose` runs
@@ -269,6 +294,8 @@ func offer(on_choose := Callable()) -> void:
 		return
 	_on_choose = on_choose
 	_build()
+	_step = 0
+	_flags.clear()
 	_speak(PackedStringArray([M_PROMPT]), _on_prompt_answer, "Yes, show me", "No thanks")
 
 
@@ -630,6 +657,10 @@ func _player_held() -> Node:
 func _process(delta: float) -> void:
 	if _layer == null or not _layer.visible:
 		return
+	# The pause menu covers the game: tuck the whole overlay away until it closes.
+	_root.visible = not GameState.is_paused
+	if GameState.is_paused:
+		return
 	_time += delta
 	_start_pending()
 	if _talking or not _active:
@@ -918,6 +949,7 @@ func _build() -> void:
 	_layer.layer = 128  # above the HUD and open menus so the pointers show on top
 	add_child(_layer)
 	var root := Control.new()
+	_root = root
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var theme := Theme.new()

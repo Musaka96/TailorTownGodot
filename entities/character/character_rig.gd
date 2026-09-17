@@ -655,6 +655,9 @@ func _build_tree() -> void:
 	add_child(_tree)
 	_tree.anim_player = _tree.get_path_to(_anim)
 	_tree.active = true
+	# Pose the rig right away: the game may pause before the first animation frame runs,
+	# which would otherwise leave the character standing in its T-pose.
+	_tree.advance(0.0)
 
 
 func _anim_node(clip: String) -> AnimationNodeAnimation:

@@ -61,6 +61,26 @@ func _ready() -> void:
 	_wire_pop_ins()
 
 
+## Close every station menu (e.g. when leaving the game scene).
+func close_all_menus() -> void:
+	for menu: Control in [
+		shelf_menu,
+		phone_order,
+		worktable_screen,
+		sewing_screen,
+		suit_builder,
+		customer_request,
+		handbook,
+		orders_menu,
+		rack_menu,
+		newspaper,
+	]:
+		if menu != null and menu.visible:
+			if menu.has_method("close"):
+				menu.close()
+			menu.visible = false
+
+
 ## True while any full-screen station menu (or the morning paper) is up — HUD bits
 ## that would sit on top of it (order tickets, the E prompt) tuck themselves away.
 func any_menu_open() -> bool:
@@ -83,6 +103,7 @@ func any_menu_open() -> bool:
 
 ## Every station menu springs open (its panel pops in) the moment it becomes visible.
 func _wire_pop_ins() -> void:
+	EventBus.session_ended.connect(close_all_menus)
 	for menu: Control in [
 		shelf_menu,
 		phone_order,

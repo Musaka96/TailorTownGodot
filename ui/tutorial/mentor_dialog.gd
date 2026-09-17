@@ -19,6 +19,9 @@ const PORTRAIT := Vector2(168, 192)
 const CHARS_PER_SEC := 62.0
 const BLIP_EVERY := 3  # letters between talk blips
 const PAUSES := {".": 0.20, "!": 0.20, "?": 0.20, ",": 0.07, ":": 0.10, "\n": 0.12}
+## After a page starts or is revealed, presses within this many seconds can only reveal —
+## never skip ahead — so a quick double-tap can't throw away unread text.
+const SKIP_GUARD := 0.35
 
 # The mentor's look (character data, not UI styling).
 const LOOK_SKIN := Color(0.93, 0.79, 0.68)  # ui-check-ignore: skin data
@@ -35,6 +38,7 @@ var _typing := false
 var _has_secondary := false
 var _primary := "Continue"
 var _time := 0.0
+var _guard := 0.0  # seconds left where confirm may reveal but not advance
 
 var _portrait: CustomerPortrait
 var _board: PanelContainer
@@ -82,6 +86,7 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 	_time += delta
+	_guard = maxf(_guard - delta, 0.0)
 	_cue.modulate.a = 0.0 if _typing else 0.55 + 0.45 * sin(_time * 5.0)
 	if not _typing:
 		return
@@ -111,7 +116,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
+	if not is_visible_in_tree():  # hidden with the whole overlay (e.g. under the pause menu)
 		return
 	if event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_on_confirm()
@@ -136,9 +141,12 @@ func _on_board_input(event: InputEvent) -> void:
 
 func _on_confirm() -> void:
 	if _typing:
-		# First press: reveal the rest of the page at once.
+		# While he's talking a press only finishes the line, at once.
 		_text.visible_characters = -1
 		_end_typing()
+		_guard = SKIP_GUARD
+		return
+	if _guard > 0.0:
 		return
 	if _page + 1 < _pages.size():
 		_page += 1
@@ -160,6 +168,7 @@ func _start_page() -> void:
 	_hold = 0.0
 	_letters = 0
 	_typing = true
+	_guard = SKIP_GUARD
 	var last := _page + 1 >= _pages.size()
 	_page_label.text = "%d / %d" % [_page + 1, _pages.size()] if _pages.size() > 1 else ""
 	_primary_label.text = _primary if last else "Next"

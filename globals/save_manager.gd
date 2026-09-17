@@ -311,7 +311,12 @@ func _reset_autoloads() -> void:
 		News.current_edition.clear()
 
 
+## Swap scenes. Every exit from a running game goes through here, so it first tells the
+## session-scoped systems (tutorial, menus) to shut down, and clears pause/input locks.
 func _change_scene(path: String) -> void:
+	EventBus.session_ended.emit()
+	GameState.is_paused = false
+	GameState.input_locked = false
 	get_tree().paused = false
 	get_tree().change_scene_to_file(path)
 
