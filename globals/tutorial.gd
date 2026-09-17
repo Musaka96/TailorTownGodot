@@ -18,6 +18,7 @@ const POINT_Y := 1.0
 const HAND := "👆"
 const EDGE := 20.0  # margin between the tag and the screen edge / other UI
 const DONE_HOLD := 0.8  # seconds a finished checklist stays up before the next step
+const SPOT_PATIENCE := 0.25  # seconds a tag spot must stay covered before the tag moves
 
 ## The tutorial customer's fixed, premade brief — the archetypal business suit, so a
 ## first-timer is walked through a real, sensible combination.
@@ -212,6 +213,9 @@ var _done_left := 0.0  # > 0 while a finished checklist lingers before advancing
 var _talking := false
 var _mentor_was_paused := false
 var _pending: Dictionary = {}  # a mentor speech waiting for open menus to close
+var _spot_idx := -1  # which placement spot the tag is using (kept while it stays clear)
+var _spot_menu: Control = null  # the menu that spot was chosen for
+var _spot_blocked := 0.0  # how long the current spot has been covered
 
 ## The premade suit the tutorial customer wants (GarmentType -> cloth dict), computed at
 ## start so the design step can spell out exactly what to make.
@@ -602,7 +606,7 @@ func _process(delta: float) -> void:
 	if not _tag.visible:
 		return
 	_update_checks()
-	_place_tag()
+	_place_tag(delta)
 	_update_pointers()
 
 
@@ -670,7 +674,7 @@ func _next_check() -> int:
 
 ## Keep the tag clear of the open menu, the HUD and (at the mirror) the customer: try a
 ## few calm spots and take the first that overlaps nothing (else the least-covered one).
-func _place_tag() -> void:
+func _place_tag(delta: float) -> void:
 	var vp := _layer.get_viewport().get_visible_rect().size
 	var menu := _open_menu()
 	var sz := _tag.size
@@ -689,19 +693,42 @@ func _place_tag() -> void:
 	if menu != null:
 		# Beside a centred menu the middle of the margin is the calmest place.
 		spots.push_front(Vector2(right, (vp.y - sz.y) * 0.5))
-	var best := spots[0]
+	# Stay put while the current spot is still clear — menus rebuild their contents as you
+	# browse, and hopping around on every change reads as the tag "resetting".
+	if menu != _spot_menu:
+		_spot_menu = menu
+		_spot_idx = -1
+	# Only give up the current spot once it has been covered for a moment, so one-frame
+	# layout glitches (rebuilt cards, re-wrapping labels) never trigger a move.
+	if _spot_idx >= 0 and _spot_idx < spots.size():
+		if _overlap(Rect2(spots[_spot_idx], sz), busy) <= 0.0:
+			_spot_blocked = 0.0
+		else:
+			_spot_blocked += delta
+		if _spot_blocked < SPOT_PATIENCE:
+			_tag.move_to(spots[_spot_idx])
+			return
+	_spot_blocked = 0.0
+	var best := 0
 	var best_overlap := INF
-	for p in spots:
-		var r := Rect2(p, sz).grow(EDGE * 0.5)
-		var overlap := 0.0
-		for b in busy:
-			overlap += r.intersection(b).get_area() if r.intersects(b) else 0.0
+	for i in spots.size():
+		var overlap := _overlap(Rect2(spots[i], sz), busy)
 		if overlap < best_overlap:
 			best_overlap = overlap
-			best = p
+			best = i
 		if overlap <= 0.0:
 			break
-	_tag.move_to(best)
+	_spot_idx = best
+	_tag.move_to(spots[best])
+
+
+func _overlap(rect: Rect2, busy: Array[Rect2]) -> float:
+	var r := rect.grow(EDGE * 0.5)
+	var total := 0.0
+	for b in busy:
+		if r.intersects(b):
+			total += r.intersection(b).get_area()
+	return total
 
 
 ## Screen rects the tag must avoid: the open menu's panels, the HUD widgets, and anything
@@ -718,15 +745,27 @@ func _busy_rects(menu: Control) -> Array[Rect2]:
 				out.append((hud_part as Control).get_global_rect())
 	if menu == null:
 		return out
+	# Only the outermost panels: inner cards get rebuilt while browsing and are briefly
+	# un-laid-out (or queued for deletion), which would make the tag jump.
 	for n in menu.find_children("*", "PanelContainer", true, false):
 		var c := n as Control
-		if c.is_visible_in_tree():
+		if c.is_visible_in_tree() and not c.is_queued_for_deletion() and _outermost(c, menu):
 			out.append(c.get_global_rect())
 	for n in menu.find_children("*", "TvFrame", true, false):
 		out.append((n as Control).get_global_rect())
 	if menu.has_method("tutorial_busy_rects"):
 		out.append_array(menu.tutorial_busy_rects())
 	return out
+
+
+## True when no PanelContainer sits between `panel` and `menu`.
+func _outermost(panel: Control, menu: Control) -> bool:
+	var p := panel.get_parent()
+	while p != null and p != menu:
+		if p is PanelContainer:
+			return false
+		p = p.get_parent()
+	return true
 
 
 ## The station menu currently on screen, or null.
