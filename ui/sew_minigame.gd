@@ -453,5 +453,5 @@ func _paint_machine(c: Control) -> void:
 	var arm_bottom := _bed_rect(c).position.y + 4.0 + ARM_H
 	c.draw_line(Vector2(nx, arm_bottom), top, Style.WALNUT.darkened(0.42), 7.0)
 	c.draw_circle(Vector2(nx, arm_bottom), 6.0, Style.BRASS)
-	c.draw_line(top, Vector2(nx, y + 2.0), Style.CHALK.darkened(0.15), 3.0)
+	c.draw_line(top, Vector2(nx, y + 2.0), Style.STEEL, 3.0)
 	c.draw_circle(top, 4.5, Style.BRASS)

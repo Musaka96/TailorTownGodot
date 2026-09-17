@@ -63,6 +63,9 @@ const MAT_INSET := 10.0
 const GRID_STEP := 30.0
 const PIN_PULL := 0.72  # how far in from a corner the pattern pins sit
 const BLADE := 1.25  # scissors size — they are the cursor, so they read first
+const OPEN_DEG := 21.0  # blade spread at rest
+const SHUT_DEG := 3.0  # blade spread at the bite of a snip
+const SPLAY_DEG := 15.0  # extra bend in the handles, so the loops clear each other
 
 var _good_tol := GOOD_TOL
 var _seconds := TARGET_SECONDS
@@ -77,6 +80,7 @@ var _error := 0.0
 var _cooldown := 0.0
 var _aligned := false
 var _snip_accum := 0.0
+var _snip_phase := 0.0  # 0..1 through one open-and-close of the blades
 var _nicks: PackedVector2Array = []
 var _mat_tex: Texture2D
 
@@ -177,9 +181,11 @@ func _process(delta: float) -> void:
 		_cursor += (_total / _seconds) * boost * delta
 		_error = maxf(0.0, _error - delta * 0.7)
 		_snip_accum += delta
-		if _snip_accum >= 0.13 / boost:
+		var period := 0.13 / boost
+		if _snip_accum >= period:
 			_snip_accum = 0.0
 			_play(_snip, 0.35)
+		_snip_phase = _snip_accum / period
 		if _cursor >= _total:
 			_succeed()
 	elif _cooldown <= 0.0:
@@ -373,20 +379,11 @@ func _paint_pattern_piece(c: Control) -> void:
 	var chalk := Style.tint(Style.CHALK, 0.8)
 	for i in _pts.size():
 		_dashed(c, _world(_pts[i]), _world(_pts[(i + 1) % _pts.size()]), chalk)
-	_paint_grain(c)
 	for i in _pts.size():
 		if i % 3 == 0:
-			Craft.pin(c, _world(_pts[i] * PIN_PULL), Style.BRASS, 5.0)
-
-
-## The grain line — the double-headed arrow every pattern piece carries.
-func _paint_grain(c: Control) -> void:
-	var col := Style.tint(Style.WALNUT, 0.45)
-	var top := _world(Vector2(0.0, -0.45))
-	var bot := _world(Vector2(0.0, 0.45))
-	c.draw_line(top, bot, col, 1.5)
-	_paint_arrow_head(c, top, Vector2.UP, col)
-	_paint_arrow_head(c, bot, Vector2.DOWN, col)
+			var at: Vector2 = _pts[i]
+			# Pinned across the edge, the way you actually pin a pattern down.
+			Craft.dress_pin(c, _world(at * PIN_PULL), at.angle() + PI * 0.5, Style.BURGUNDY)
 
 
 func _paint_arrow_head(c: Control, at: Vector2, dir: Vector2, col: Color) -> void:
@@ -429,24 +426,61 @@ func _paint_guide(c: Control, at: Vector2) -> void:
 	c.draw_arc(at, 34.0, from, from + turn, 14, Style.CLAY, 2.5)
 
 
-## A pair of blades with brass finger-rings and a pivot rivet, lifted off the mat by
-## their shadow, kicking up chalk dust while they bite.
+## Steel shears on a brass rivet, lifted off the mat by their shadow: the blades open
+## and shut on the snip, and the finger loops carry whether the cut is running clean.
 func _paint_scissors(c: Control, pos: Vector2, angle: float) -> void:
-	var steel := Style.FOREST if _aligned else Style.CLAY
-	_paint_blades(c, pos + Craft.SHADOW_OFFSET * 0.6, angle, Style.SHADOW, Style.SHADOW)
-	_paint_blades(c, pos, angle, steel, Style.BRASS)
+	var spread := _blade_spread()
+	_paint_shears(c, pos + Craft.SHADOW_OFFSET * 0.7, angle, spread, true)
+	_paint_shears(c, pos, angle, spread, false)
 	if _aligned and _lead <= 0.0:
 		_paint_dust(c, pos, angle)
 
 
-func _paint_blades(c: Control, pos: Vector2, angle: float, steel: Color, brass: Color) -> void:
-	var dir := Vector2.RIGHT.rotated(angle) * BLADE
-	var perp := dir.orthogonal()
-	c.draw_line(pos - dir * 10.0 + perp * 4.0, pos + dir * 27.0 + perp * 2.0, steel, 4.0)
-	c.draw_line(pos - dir * 10.0 - perp * 4.0, pos + dir * 27.0 - perp * 2.0, steel, 4.0)
-	c.draw_arc(pos - dir * 16.0 + perp * 7.0, 8.0 * BLADE, 0, TAU, 18, brass, 3.0)
-	c.draw_arc(pos - dir * 16.0 - perp * 7.0, 8.0 * BLADE, 0, TAU, 18, brass, 3.0)
-	c.draw_circle(pos + dir * 2.0, 3.5, brass)
+## How far the blades stand apart right now: wide open while you line up or wander off
+## the line, closing to the bite once per snip while the cut runs.
+func _blade_spread() -> float:
+	if not _aligned or _lead > 0.0:
+		return deg_to_rad(OPEN_DEG)
+	var t := 0.5 - 0.5 * cos(_snip_phase * TAU)  # shut exactly when the snip sounds
+	return deg_to_rad(lerpf(SHUT_DEG, OPEN_DEG, t))
+
+
+func _paint_shears(c: Control, pos: Vector2, angle: float, spread: float, shadow: bool) -> void:
+	var grip := Style.FOREST if _aligned else Style.CLAY
+	for side in [-1.0, 1.0]:
+		var half: float = angle + spread * 0.5 * side
+		_paint_blade(c, pos, half, shadow)
+		_paint_loop(c, pos, half, side, Style.SHADOW if shadow else grip, shadow)
+	c.draw_circle(pos, 3.8 * BLADE, Style.SHADOW if shadow else Style.BRASS)
+
+
+## One tapered blade, pivot to point, with a lit edge down its back.
+func _paint_blade(c: Control, pivot: Vector2, at: float, shadow: bool) -> void:
+	var dir := Vector2.RIGHT.rotated(at)
+	var n := dir.orthogonal()
+	var tip := pivot + dir * 34.0 * BLADE
+	var w := 5.0 * BLADE
+	var poly := PackedVector2Array(
+		[pivot + n * w, tip + n * 1.3, tip - n * 1.3, pivot - n * w * 0.45]
+	)
+	if shadow:
+		c.draw_colored_polygon(poly, Style.SHADOW)
+		return
+	c.draw_colored_polygon(poly, Style.STEEL)
+	Craft.outline(c, poly, Style.STEEL_DARK, 1.5)
+	c.draw_line(pivot + n * w * 0.55, tip + n * 0.9, Style.tint(Style.CHALK, 0.85), 1.5)
+
+
+## The handle behind the pivot: an arm carrying its blade's finger loop, bent out by
+## SPLAY_DEG the way real shears are so the two loops never sit on top of each other.
+func _paint_loop(c: Control, pivot: Vector2, at: float, side: float, col: Color, sh: bool) -> void:
+	var dir := Vector2.RIGHT.rotated(at + PI + deg_to_rad(SPLAY_DEG) * side)
+	var back := pivot + dir * 26.0 * BLADE
+	c.draw_line(pivot, back, col, 5.0 * BLADE)
+	c.draw_circle(back, 7.5 * BLADE, col, false, 5.0 * BLADE, true)
+	if not sh:
+		c.draw_circle(back, 9.5 * BLADE, Style.WALNUT, false, 1.0, true)
+		c.draw_circle(back, 5.0 * BLADE, Style.WALNUT, false, 1.0, true)
 
 
 ## Chalk dust off the blades, flickering in time with the snips.

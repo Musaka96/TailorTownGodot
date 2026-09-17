@@ -39,6 +39,8 @@ const SCRIM := Color(0, 0, 0, 0.5)  # the dim behind a full-screen menu
 const LINEN := Color("c9b48c")  # undyed linen — cloth stand-in when none is known
 const NONE := Color(0, 0, 0, 0)  # "no colour" (e.g. no pin / no stitch)
 const RIM_DARK := Color("8a6a2a")  # dark brass (chains, rims)
+const STEEL := Color("bcc3c9")  # polished blade / pin shaft
+const STEEL_DARK := Color("70797f")  # steel in shadow, blade outlines
 const TAPE := Color("f2c94c")  # tape-measure yellow
 const PATCH := Color("3d6b4a")  # embroidered patch green
 

@@ -45,6 +45,8 @@ Never hard-code a colour, radius or spacing value in a menu. Pull it from `Style
 | `FOREST`      | `#2f5d3e` | Positive / good / "in progress"        |
 | `BURGUNDY`    | `#7a3b3b` | Rich accent / reading / danger-warm    |
 | `CHALK`       | `#eef2f4` | Chalk marks, stitch lines on dark      |
+| `STEEL`       | `#bcc3c9` | Blades, pin shafts, needles            |
+| `STEEL_DARK`  | `#70797f` | Steel in shadow, blade outlines        |
 | `AMBER`       | `#e6a63c` | Warning                                |
 | `CLAY`        | `#d76b5a` | Low / danger                           |
 

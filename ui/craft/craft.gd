@@ -132,6 +132,23 @@ static func eyelet(ci: CanvasItem, at: Vector2, string_len := 26.0, sway := 0.0)
 	ci.draw_circle(at, 3.5, Style.WALNUT)
 
 
+## A dressmaker's pin lying on the surface at `angle`: a steel shaft with a coloured
+## glass bead at one end and a fine point at the other, so it reads as pushed through
+## the cloth rather than as a dot. (Craft.pin is the head-on board pin.)
+static func dress_pin(
+	ci: CanvasItem, at: Vector2, angle: float, bead: Color, length := 26.0
+) -> void:
+	var dir := Vector2.RIGHT.rotated(angle)
+	var head := at - dir * length * 0.5
+	var point := at + dir * length * 0.5
+	ci.draw_line(head + SHADOW_OFFSET * 0.4, point + SHADOW_OFFSET * 0.4, Style.SHADOW, 3.0)
+	ci.draw_line(head, point, Style.STEEL_DARK, 3.0)
+	ci.draw_line(head + dir * 3.0, head.lerp(point, 0.75), Style.STEEL, 1.5)
+	ci.draw_circle(head + SHADOW_OFFSET * 0.4, 4.5, Style.SHADOW)
+	ci.draw_circle(head, 4.5, bead)
+	ci.draw_circle(head - dir * 1.4, 1.6, Style.tint(Style.CHALK, 0.75))
+
+
 ## A glossy push-pin head.
 static func pin(ci: CanvasItem, at: Vector2, col: Color, rad := 7.0) -> void:
 	ci.draw_circle(at + Vector2(1.5, 2.5), rad, Style.SHADOW)
