@@ -16,6 +16,7 @@ var _actor = null
 var _decor_built := false
 var _portrait: CustomerPortrait
 var _choices: VBoxContainer
+var _badges: ClientBadges
 var _options: Array[String] = []  # "take" / "book" / "refer" / "decline"
 var _sel := 0
 
@@ -85,6 +86,10 @@ func _build_decor_once() -> void:
 	_portrait.size = PORTRAIT_SIZE
 	add_child(_portrait)  # overlay on the root, so it can overhang the panel
 	_reposition_portrait()
+	# What kind of client this is, right under their name.
+	_badges = ClientBadges.make(null)
+	_title.get_parent().add_child(_badges)
+	_title.get_parent().move_child(_badges, _title.get_index() + 1)
 	# What to do with them, then light key prompts (no dark bar) to keep it airy.
 	_hint.visible = false
 	_choices = VBoxContainer.new()
@@ -123,13 +128,14 @@ func _fill() -> void:
 		_title.text = "A customer"
 		_brief.text = "They're just browsing."
 	else:
-		_title.text = pref.title()
+		_title.text = pref.display_name
 		var lines := PackedStringArray([pref.describe(), "Budget: $%d" % pref.budget])
 		lines.append_array(pref.tags())
 		var reason: String = FrontDesk.infeasible_reason(pref)
 		if reason != "":
 			lines.append("Hmm — this %s." % reason)
 		_brief.text = "\n".join(lines)
+	_badges.show_for(pref)
 	_build_options(pref)
 
 

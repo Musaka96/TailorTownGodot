@@ -83,19 +83,20 @@ func title() -> String:
 	return display_name + ("  ★%d" % regular_level if regular_level > 0 else "")
 
 
-## Short notes about this client for the greeting bubble (one per line).
+## What the special client types mean, for the greeting bubble (one per line). The
+## at-a-glance badges themselves are ClientBadges.
 func tags() -> PackedStringArray:
 	var out := PackedStringArray()
-	if regular_level > 0:
-		out.append("A regular — loyalty ★%d" % regular_level)
 	if arrival == "appointment":
-		out.append("Here for their booked fitting")
+		out.append("Here for the fitting you booked.")
 	elif arrival == "referral":
-		out.append("Sent over by %s" % FrontDesk.RIVAL_NAME)
+		out.append("Sent over by %s." % FrontDesk.RIVAL_NAME)
 	if rush:
-		out.append("RUSH: needs it tomorrow (pays +%d%%)" % roundi(FrontDesk.RUSH_BONUS * 100.0))
+		out.append(
+			"Needs it tomorrow and pays %d%% extra for it." % roundi(FrontDesk.RUSH_BONUS * 100.0)
+		)
 	if picky:
-		out.append("Picky: full pay only for near-perfect work — but double tips")
+		out.append("Full pay only for near-perfect work, but tips twice as well.")
 	return out
 
 
