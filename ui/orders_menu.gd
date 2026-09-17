@@ -17,6 +17,7 @@ var _sel := 0
 var _tick := 0.0
 var _decor_built := false
 
+var _calendar: HBoxContainer
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
 @onready var _list: VBoxContainer = $Center/Panel/Margin/Box/Pages/List
@@ -92,10 +93,51 @@ func _build_decor_once() -> void:
 	pages.move_child(scroll, pos)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_hint.visible = false
+	# The order book: the next few days at a glance (pickups due + booked fittings).
+	_calendar = HBoxContainer.new()
+	_calendar.add_theme_constant_override("separation", Style.S2)
+	_calendar.alignment = BoxContainer.ALIGNMENT_CENTER
+	var box := _title.get_parent()
+	box.add_child(_calendar)
+	box.move_child(_calendar, _title.get_index() + 1)
 	_hint.get_parent().add_child(Style.hint_bar([["W/S", "Select"], ["Esc", "Close"]]))
 
 
+## One little ticket per upcoming day: "Today · 2 pickups · 1 fitting", coloured like the
+## due-date tickets (red today, amber tomorrow, green later) when anything is due.
+func _refresh_calendar() -> void:
+	if _calendar == null:
+		return
+	for c in _calendar.get_children():
+		c.queue_free()
+	var first := true
+	for d: Dictionary in FrontDesk.calendar(5):
+		var left := int(d["day"]) - Shift.day + 1
+		var due := int(d["due"])
+		var appts := int(d["appointments"])
+		var card := CraftPanel.new()
+		card.pad = Vector2(Style.S2, Style.S1)
+		card.setup(CraftPanel.Shape.TICKET, Style.CARD)
+		card.line = Style.due_color(left) if due > 0 else Style.CREAM_DARK
+		card.line_width = 2.5 if due > 0 else 1.5
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 0)
+		card.add_child(col)
+		var head := "Today" if first else "Day %d" % int(d["day"])
+		col.add_child(_line(head, 13, Style.INK))
+		col.add_child(_line("%d pickup%s" % [due, "" if due == 1 else "s"], 11, Style.INK_SOFT))
+		if appts > 0:
+			col.add_child(
+				_line("%d fitting%s" % [appts, "" if appts == 1 else "s"], 11, Style.BRASS)
+			)
+		_calendar.add_child(card)
+		first = false
+	if FrontDesk.booked:
+		_calendar.add_child(_stamp("FULLY BOOKED", Style.BURGUNDY))
+
+
 func _refresh() -> void:
+	_refresh_calendar()
 	var orders: Array = Orders.active
 	_title.text = "Orders  (%d)" % orders.size()
 	_sel = clampi(_sel, 0, maxi(orders.size() - 1, 0))

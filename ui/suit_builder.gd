@@ -341,9 +341,21 @@ func _refresh() -> void:
 		# Live price readout: cloth + craft = quote, against the customer's budget.
 		var q := Pricing.quote_breakdown(_design)
 		var over := "  (OVER BUDGET)" if int(q["total"]) > _pref.budget else ""
+		var rush := ""
+		if _pref.rush:
+			rush = "  + rush $%d" % _rush_extra(int(q["total"]))
 		_brief_label.text = (
-			"For: %s   ·   Budget $%d\nCloth $%d + Craft $%d = Quote $%d%s%s"
-			% [_pref.describe(), _pref.budget, q["cloth"], q["craft"], q["total"], over, _status]
+			"For: %s   ·   Budget $%d\nCloth $%d + Craft $%d = Quote $%d%s%s%s"
+			% [
+				_pref.describe(),
+				_pref.budget,
+				q["cloth"],
+				q["craft"],
+				q["total"],
+				rush,
+				over,
+				_status,
+			]
 		)
 	else:
 		_brief_label.text = _status.strip_edges()
@@ -547,10 +559,13 @@ func _confirm() -> void:
 ## Create the order for the current design and send the customer off happy.
 func _finalize() -> void:
 	var quote: int = Pricing.suit_quote(_design)
+	if _pref.rush:
+		quote += _rush_extra(quote)  # the rush premium is agreed up front
 	var skin: Color = _customer.skin_color if _customer != null else _SKIN_FALLBACK
 	var hair: int = _customer.hair_index if _customer != null else 0
 	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
-	Orders.create_order(_pref.display_name, _design, quote, skin, hair, hair_col)
+	var flags := {"rush": _pref.rush, "picky": _pref.picky}
+	Orders.create_order(_pref.display_name, _design, quote, skin, hair, hair_col, flags)
 	if Clientele != null and _customer != null:
 		Clientele.note_customer(_customer)  # remember their face so they can return
 	EventBus.design_confirmed.emit(_design.duplicate(true))
@@ -560,6 +575,10 @@ func _finalize() -> void:
 		if cust.has_method("react"):
 			cust.react(Customer.REACT_ACCEPT)  # keep a happy face as they leave
 		cust.finish_and_leave()
+
+
+func _rush_extra(quote: int) -> int:
+	return int(round(quote * FrontDesk.RUSH_BONUS))
 
 
 # --- Debug (F2, debug builds only) -----------------------------------------

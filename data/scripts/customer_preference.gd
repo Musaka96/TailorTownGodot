@@ -47,6 +47,12 @@ const FIRST_NAMES := [
 @export var budget: int = 400
 ## > 0 when this is a returning regular (their loyalty level, 1..5).
 @export var regular_level: int = 0
+## Needs it tomorrow and pays extra for it (FrontDesk.RUSH_BONUS).
+@export var rush := false
+## Hard to please: full pay only for near-perfect work, but double tips.
+@export var picky := false
+## How they came in: "" walk-in, "appointment", "referral" (sent by the rival tailor).
+@export var arrival := ""
 
 
 ## A random shopper's brief: an occasion, a style, and a budget for the shop's current
@@ -75,6 +81,22 @@ static func _fresh_name(rng: RandomNumberGenerator) -> String:
 ## "Mr. Okafor" or "Mr. Okafor ★2" for a regular.
 func title() -> String:
 	return display_name + ("  ★%d" % regular_level if regular_level > 0 else "")
+
+
+## Short notes about this client for the greeting bubble (one per line).
+func tags() -> PackedStringArray:
+	var out := PackedStringArray()
+	if regular_level > 0:
+		out.append("A regular — loyalty ★%d" % regular_level)
+	if arrival == "appointment":
+		out.append("Here for their booked fitting")
+	elif arrival == "referral":
+		out.append("Sent over by %s" % FrontDesk.RIVAL_NAME)
+	if rush:
+		out.append("RUSH: needs it tomorrow (pays +%d%%)" % roundi(FrontDesk.RUSH_BONUS * 100.0))
+	if picky:
+		out.append("Picky: full pay only for near-perfect work — but double tips")
+	return out
 
 
 ## Short brief, e.g. "Funeral · Classic".

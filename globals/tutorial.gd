@@ -86,8 +86,9 @@ const M_REP := (
 	+ "name opens doors: [b]premium suppliers[/b] and new [b]shop upgrades[/b] on the phone."
 )
 const M_BYE := (
-	"That's the lot. Read the [b]Handbook[/b] when you're unsure, and treat yourself to "
-	+ "an upgrade when the till allows. The shop is yours — make the Row proud!"
+	"That's the lot. Busy? Flip the [b]shop sign[/b] on the phone, or book a customer for "
+	+ "another day when you greet them. Read the [b]Handbook[/b] when unsure, and treat "
+	+ "yourself to an upgrade when the till allows. Make the Row proud!"
 )
 
 # Each step:

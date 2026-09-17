@@ -36,6 +36,10 @@ const COLOR_TOLERANCE := 0.14
 @export var arrive_at: float = 0.4
 ## The suit wasn't ready on the due day; the customer gave one grace day (pays less).
 @export var late := false
+## A rush order (due tomorrow; the rush premium is already in `price`).
+@export var rush := false
+## A picky client: full pay only for near-perfect work, but double tips.
+@export var picky := false
 
 var state: int = State.OPEN
 ## GarmentType(int) -> { score: float, quality: float } for each checked-off piece.
@@ -141,8 +145,10 @@ func payout() -> int:
 ## excellent work, and the late-collection share if the grace day was used.
 func payout_breakdown() -> Dictionary:
 	var score := average_match() * average_quality()
-	var base := price * Pricing.pay_share(score)
-	var tip := price * Pricing.tip_share(score)
+	# A picky client judges as if the work were a notch worse — and tips twice as well.
+	var judged := score - 0.2 if picky else score
+	var base := price * Pricing.pay_share(judged)
+	var tip := price * Pricing.tip_share(score) * (2.0 if picky else 1.0)
 	if late:
 		var share: float = Config.data.late_pay if Config.data != null else 0.75
 		base *= share

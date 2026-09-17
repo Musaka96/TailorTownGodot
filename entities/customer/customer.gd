@@ -231,16 +231,21 @@ func begin_fitting() -> void:
 		manager.route_to_mirror(self)
 
 
-## Design approved — play a happy gesture, then head for the exit.
-func finish_and_leave() -> void:
+## Head for the exit. `mood` "happy" (design approved) celebrates first; "wave" (booked for
+## later / referred) waves goodbye; "sad" (turned away) looks let down.
+func finish_and_leave(mood := "happy") -> void:
 	_set_interactable(false)
 	_mode = Mode.NONE
 	if mirror != null and mirror.get("customer") == self:
 		mirror.set("customer", null)
-	if _rig != null and _rig.has_method("celebrate"):
+	if mood == "happy" and _rig != null and _rig.has_method("celebrate"):
 		_rig.celebrate(_leave)
-	else:
-		_leave()
+		return
+	if mood == "sad":
+		react(REACT_DISLIKE)
+	elif mood == "wave" and _rig != null and _rig.has_method("wave"):
+		_rig.wave()
+	_leave()
 
 
 func _leave() -> void:
@@ -312,7 +317,7 @@ func _ask_for_suit() -> void:
 		return
 	UI.toast(
 		(
-			"%s: \"I'm here for order #%d — my %s suit.\""
+			'%s: "I\'m here for order #%d — my %s suit."'
 			% [_label(), collect_order.id, collect_order.describe()]
 		)
 	)

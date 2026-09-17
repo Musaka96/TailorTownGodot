@@ -16,7 +16,9 @@ const LENGTH_STEP := 1.0
 const HUB_OPTIONS := [
 	{"title": "Order Textiles", "desc": "Ring a supplier and order a bolt of cloth."},
 	{"title": "Shop Upgrades", "desc": "Spend your standing on better tools and kit."},
+	{"title": "Shop Sign", "desc": ""},  # text filled live (see _hub_card_text)
 ]
+const HUB_SIGN := 2
 const OROW_NAME := {
 	ORow.FABRIC: "Fabric",
 	ORow.COLOR: "Colour",
@@ -190,7 +192,8 @@ func _refresh_hub() -> void:
 	_hub_sel = _row
 	for i in HUB_OPTIONS.size():
 		var opt: Dictionary = HUB_OPTIONS[i]
-		_rows.add_child(_make_hub_card(opt["title"], opt["desc"], i == _row))
+		var text := _hub_card_text(i)
+		_rows.add_child(_make_hub_card(text[0], text[1], i == _row))
 	_set_hint([["W/S", "Select"], ["E", "Open"], ["Esc", "Hang up"]])
 
 
@@ -528,7 +531,22 @@ func _back() -> void:
 # --- Suppliers & orders ----------------------------------------------------
 
 
+## Title + description for a hub card (the sign card shows its live state).
+func _hub_card_text(i: int) -> Array:
+	var opt: Dictionary = HUB_OPTIONS[i]
+	if i != HUB_SIGN:
+		return [opt["title"], opt["desc"]]
+	if FrontDesk.booked:
+		return ["Sign: FULLY BOOKED", "No new walk-ins. Appointments still come. E to open up."]
+	return ["Sign: OPEN", "Walk-ins welcome. E to flip it to Fully Booked."]
+
+
 func _open_hub_choice() -> void:
+	if _hub_sel == HUB_SIGN:
+		FrontDesk.booked = not FrontDesk.booked
+		Sfx.play("drawer")
+		_refresh()
+		return
 	_screen = Screen.SUPPLIERS if _hub_sel == 0 else Screen.UPGRADES
 	_row = _vendor if _hub_sel == 0 else 0
 	_status = ""

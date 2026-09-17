@@ -56,7 +56,8 @@ func create_order(
 	price: int,
 	skin: Color,
 	hair_index := 0,
-	hair_color := Color(0.14, 0.11, 0.09)
+	hair_color := Color(0.14, 0.11, 0.09),
+	flags := {}
 ) -> SuitOrder:
 	var order := SuitOrder.new()
 	order.id = _next_id
@@ -67,10 +68,16 @@ func create_order(
 	order.skin = skin
 	order.hair_index = hair_index
 	order.hair_color = hair_color
-	var lo: int = Config.data.deadline_min_days if Config.data != null else DAYS_MIN
-	var hi: int = Config.data.deadline_max_days if Config.data != null else DAYS_MAX
-	order.deadline_days = _rng.randi_range(lo, maxi(lo, hi))
-	order.due_day = _today() + order.deadline_days
+	order.rush = bool(flags.get("rush", false))
+	order.picky = bool(flags.get("picky", false))
+	if FrontDesk != null:
+		# A due day the shop can realistically meet (rush orders: tomorrow).
+		order.due_day = FrontDesk.suggest_due_day(order.required_types().size(), order.rush)
+	else:
+		var lo: int = Config.data.deadline_min_days if Config.data != null else DAYS_MIN
+		var hi: int = Config.data.deadline_max_days if Config.data != null else DAYS_MAX
+		order.due_day = _today() + _rng.randi_range(lo, maxi(lo, hi))
+	order.deadline_days = order.due_day - _today()
 	order.arrive_at = _rng.randf_range(ARRIVE_MIN, ARRIVE_MAX)
 	active.append(order)
 	EventBus.order_created.emit(order)
@@ -185,6 +192,8 @@ func save_state() -> Array:
 					"due_day": order.due_day,
 					"arrive_at": order.arrive_at,
 					"late": order.late,
+					"rush": order.rush,
+					"picky": order.picky,
 					"state": order.state,
 					"filled": order.filled.duplicate(true),
 				}
@@ -215,6 +224,8 @@ func restore(saved: Array) -> void:
 		order.due_day = int(d.get("due_day", fallback))
 		order.arrive_at = float(d.get("arrive_at", 0.4))
 		order.late = bool(d.get("late", false))
+		order.rush = bool(d.get("rush", false))
+		order.picky = bool(d.get("picky", false))
 		order.state = int(d.get("state", SuitOrder.State.OPEN))
 		order.filled = (d.get("filled", {}) as Dictionary).duplicate(true)
 		active.append(order)

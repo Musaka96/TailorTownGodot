@@ -181,6 +181,7 @@ func capture(save_name := "") -> Dictionary:
 		"money": GameState.money,
 		"account": GameState.account_owed,
 		"clientele": Clientele.save_state() if Clientele != null else {},
+		"front_desk": FrontDesk.save_state() if FrontDesk != null else {},
 		"day": Shift.day if Shift != null else 1,
 		"reputation": Reputation.points if Reputation != null else 0,
 		"upgrades": Upgrades.save_state() if Upgrades != null else {},
@@ -233,6 +234,8 @@ func _apply_pending() -> void:
 	GameState.account_owed = int(d.get("account", 0))
 	if Clientele != null:
 		Clientele.restore(d.get("clientele", {}))
+	if FrontDesk != null:
+		FrontDesk.restore(d.get("front_desk", {}))
 	Shift.day = int(d.get("day", 1))
 	Reputation.points = int(d.get("reputation", 0))
 	if Upgrades != null:
@@ -295,6 +298,8 @@ func _reset_autoloads() -> void:
 	GameState.account_owed = 0
 	if Clientele != null:
 		Clientele.reset()
+	if FrontDesk != null:
+		FrontDesk.reset()
 	Reputation.points = 0
 	if Upgrades != null:
 		Upgrades.reset()

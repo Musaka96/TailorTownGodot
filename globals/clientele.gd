@@ -76,6 +76,13 @@ func pick_regular() -> String:
 	return pool[_rng.randi() % pool.size()] if not pool.is_empty() else ""
 
 
+## A small dent in a regular's loyalty (e.g. turned away on a quiet day).
+func dent_loyalty(nm: String) -> void:
+	if _people.has(nm):
+		var entry: Dictionary = _people[nm]
+		entry["loyalty"] = maxi(int(entry.get("loyalty", 0)) - 1, 0)
+
+
 func _on_fulfilled(order: SuitOrder, _payout: int) -> void:
 	var entry: Dictionary = _people.get(order.customer_name, {"loyalty": 0, "visits": 0})
 	entry["visits"] = int(entry.get("visits", 0)) + 1

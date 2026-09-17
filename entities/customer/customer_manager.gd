@@ -82,10 +82,11 @@ func _spawn_tick() -> void:
 	var from_west := _rng.randf() < 0.5
 	var start := _street_west if from_west else _street_east
 	var far_end := _street_east if from_west else _street_west
-	var shopper := _served == null and _rng.randf() < shopper_chance
-	if shopper:
-		_send_shopper(start)
-	else:
+	# The front desk decides when a shopper actually comes in (docs/CUSTOMERS.md).
+	var arrival: Dictionary = FrontDesk.next_arrival() if _served == null else {}
+	if not arrival.is_empty():
+		_send_shopper(start, arrival)
+	elif _rng.randf() < shopper_chance:
 		var walker := _spawn(start, false)
 		walker.walk([far_end], walker.despawn)
 
@@ -152,8 +153,8 @@ func _poof_at(pos: Vector3) -> void:
 	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
 
 
-func _send_shopper(start: Vector3) -> void:
-	var cust := _spawn(start, true)
+func _send_shopper(start: Vector3, arrival := {}) -> void:
+	var cust := _spawn(start, true, arrival)
 	_served = cust
 	cust.walk([_door_out, _door_in, _greet], func() -> void: _on_shopper_waiting(cust))
 
@@ -224,7 +225,7 @@ func _on_shopper_waiting(cust: Customer) -> void:
 	EventBus.customer_waiting.emit(cust)
 
 
-func _spawn(pos: Vector3, with_pref: bool) -> Customer:
+func _spawn(pos: Vector3, with_pref: bool, arrival := {}) -> Customer:
 	var cust: Customer = CUSTOMER_SCENE.instantiate()
 	add_child(cust)
 	cust.global_position = Vector3(pos.x, 0.0, pos.z)
@@ -232,9 +233,22 @@ func _spawn(pos: Vector3, with_pref: bool) -> Customer:
 	cust.manager = self
 	var regular := ""
 	if with_pref:
-		regular = _maybe_regular()
-		cust.preference = CustomerPreference.random_pref(_rng, regular)
-		_apply_event_bias(cust.preference)
+		var kind: String = arrival.get("kind", "walk_in")
+		if kind == "appointment":
+			cust.preference = _pref_from_appointment(arrival["appointment"])
+			regular = (
+				cust.preference.display_name
+				if Clientele.is_known(cust.preference.display_name)
+				else ""
+			)
+		else:
+			regular = _maybe_regular() if kind == "walk_in" else ""
+			cust.preference = CustomerPreference.random_pref(_rng, regular)
+			_apply_event_bias(cust.preference)
+			FrontDesk.season_brief(cust.preference)
+			if kind == "referral":
+				cust.preference.arrival = "referral"
+				UI.toast("%s sent a customer your way!" % FrontDesk.RIVAL_NAME)
 	_dress(cust)
 	if regular != "":
 		_dress_as(cust, Clientele.look(regular))
@@ -256,12 +270,29 @@ func _apply_event_bias(pref: CustomerPreference) -> void:
 		pref.style = int(bias["style"])
 
 
-## One in `regular_chance` shoppers is a returning regular (once you have any).
+## One in `regular_chance` shoppers is a returning regular (once you have any) — more
+## often on quiet days, when there's time for old friends.
 func _maybe_regular() -> String:
 	if Clientele == null or not Clientele.has_regulars():
 		return ""
 	var chance: float = Config.data.regular_chance if Config.data != null else 0.35
+	if FrontDesk.load_factor() < 0.3:
+		chance *= 1.5
 	return Clientele.pick_regular() if _rng.randf() < chance else ""
+
+
+## Rebuild a booked customer's brief from their appointment.
+func _pref_from_appointment(a: Dictionary) -> CustomerPreference:
+	var p := CustomerPreference.new()
+	p.display_name = str(a.get("name", "Customer"))
+	p.occasion = int(a.get("occasion", 0))
+	p.style = int(a.get("style", 0))
+	p.budget = int(a.get("budget", 400))
+	p.rush = bool(a.get("rush", false))
+	p.picky = bool(a.get("picky", false))
+	p.regular_level = Clientele.loyalty(p.display_name) if Clientele != null else 0
+	p.arrival = "appointment"
+	return p
 
 
 ## Re-apply a remembered face (Clientele look) so a regular looks like themselves.

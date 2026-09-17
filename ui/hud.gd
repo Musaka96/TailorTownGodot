@@ -6,6 +6,7 @@ extends Control
 const MONEY_TILT := -3.0  # the purse tag hangs slightly askew
 
 var _prompt_bar: CraftPanel
+var _booked_badge: CraftPanel
 var _prompt_verb: Label
 var _money_panel: CraftPanel
 var _money_value: Label
@@ -23,6 +24,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # prompt visibility tracks menus, even paused
 	_build_prompt_bar()
 	_build_money_panel()
+	_build_booked_badge()
 	EventBus.interaction_prompt_changed.connect(_on_prompt_changed)
 	EventBus.item_picked_up.connect(func(item): _show_held(item))
 	EventBus.item_taken.connect(func(item, _station): _show_held(item))
@@ -200,6 +202,25 @@ func _build_prompt_bar() -> void:
 func _process(_delta: float) -> void:
 	# The "E …" prompt refers to the world; hide it while a menu covers the world.
 	_prompt_bar.visible = _prompt_verb.text != "" and not UI.any_menu_open()
+	if _booked_badge != null:
+		_booked_badge.visible = FrontDesk.booked
+
+
+## A small burgundy "FULLY BOOKED" tag under the reputation patch while the sign is up.
+func _build_booked_badge() -> void:
+	_booked_badge = CraftPanel.new().setup(CraftPanel.Shape.TICKET, Style.BURGUNDY)
+	_booked_badge.pad = Vector2(Style.S2, 2)
+	_booked_badge.stitch_color = Style.PAPER
+	_booked_badge.position = Vector2(22, 204)
+	_booked_badge.rotation_degrees = -3.0
+	var lbl := Label.new()
+	lbl.text = "FULLY BOOKED"
+	lbl.add_theme_font_override("font", Style.bold_font())
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_color_override("font_color", Style.CHALK)
+	_booked_badge.add_child(lbl)
+	add_child(_booked_badge)
+	_booked_badge.visible = false
 
 
 func _on_prompt_changed(text: String) -> void:
