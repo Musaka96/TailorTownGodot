@@ -94,9 +94,22 @@ func _build_decor_once() -> void:
 		return
 	_decor_built = true
 	_hint.visible = false
-	_hint.get_parent().add_child(
-		Style.hint_bar(
-			[["W/S", "Select"], ["A/D", "Change"], ["E", "Start cutting"], ["Esc", "Cancel"]]
+	(
+		_hint
+		. get_parent()
+		. add_child(
+			(
+				Style
+				. hint_bar(
+					[
+						["W/S", "Select"],
+						["A/D", "Change"],
+						["E", "Start cutting"],
+						["F", "Take back"],
+						["Esc", "Cancel"],
+					]
+				)
+			)
 		)
 	)
 
@@ -171,6 +184,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_adjust(-1)
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_start_cutting()
+	elif event.is_action_pressed("cut"):
+		# Changed your mind: pick the cloth back up off the table.
+		if _worktable != null and _worktable.take_back(_actor):
+			Sfx.play("pickup")
+			close()
+			return
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		close()
 	else:

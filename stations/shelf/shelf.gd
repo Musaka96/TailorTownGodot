@@ -89,6 +89,9 @@ func cut_piece(index: int, length: float, actor) -> bool:
 		return false
 	if index < 0 or index >= stored.size():
 		return false
+	# Never cut a scrap too short for any part (pants, size S).
+	if length + 0.001 < Pricing.part_meters(Enums.GarmentType.PANTS, Enums.Size.S):
+		return false
 	var roll: Node = stored[index]
 	var amount: float = roll.cut(length)
 	if amount <= 0.0:

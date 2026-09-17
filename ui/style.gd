@@ -35,6 +35,7 @@ const LEAF := Color("7cbf6b")  # legacy accent (pre-atelier menus)
 const AMBER := Color("e6a63c")  # warning
 const CLAY := Color("d76b5a")  # low / danger
 const SHADOW := Color(0, 0, 0, 0.28)
+const NONE := Color(0, 0, 0, 0)  # "no colour" (e.g. no pin / no stitch)
 const TAPE := Color("f2c94c")  # tape-measure yellow
 const PATCH := Color("3d6b4a")  # embroidered patch green
 

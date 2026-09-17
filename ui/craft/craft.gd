@@ -168,12 +168,15 @@ static func tape(
 				10,
 				Style.WALNUT
 			)
+	var k := 0
 	for m: float in marks:
 		var x := r.position.x + m * px
-		ci.draw_line(Vector2(x, r.position.y - 4), Vector2(x, r.end.y), Style.BURGUNDY, 2.0)
+		var lift := 6.0 + 12.0 * (k % 2)  # stagger neighbouring labels
+		k += 1
+		ci.draw_line(Vector2(x, r.position.y - lift + 2), Vector2(x, r.end.y), Style.BURGUNDY, 2.0)
 		ci.draw_string(
 			font,
-			Vector2(x - 30, r.position.y - 6),
+			Vector2(x - 30, r.position.y - lift),
 			str(marks[m]),
 			HORIZONTAL_ALIGNMENT_CENTER,
 			60,

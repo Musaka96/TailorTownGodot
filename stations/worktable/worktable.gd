@@ -74,6 +74,17 @@ func finish_cut(success: bool, type: int, size: int, style: String, quality: flo
 	EventBus.piece_cut.emit(part)
 
 
+## Hand whatever is on the table (uncut cloth or a finished part) back to `actor`.
+## Returns false when their hands are full or the table is empty.
+func take_back(actor) -> bool:
+	if _item == null or not actor.carry.is_empty():
+		return false
+	var item := _item
+	_item = null
+	actor.carry.take_item(item)
+	return true
+
+
 ## Whether the fabric piece on the table is long enough for a `type` part of `size`.
 func has_cloth_for(type: int, size: int) -> bool:
 	if not (_item is FabricPiece):

@@ -68,8 +68,10 @@ func _run() -> void:
 	# --- Worktable place + take back ---
 	worktable.interact(player)
 	_check(player.carry.is_empty(), "piece placed on worktable")
-	worktable.interact(player)
+	# E with empty hands opens the worktable menu; taking the cloth back is its F action.
+	_check(worktable.take_back(player), "take_back returns the piece")
 	_check(not player.carry.is_empty(), "piece taken back from worktable")
+	_check(not worktable.take_back(player), "take_back refused with full hands / empty table")
 
 	_finish()
 

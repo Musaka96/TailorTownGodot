@@ -7,7 +7,6 @@ extends Control
 ## title. Taking or cutting fills your hands, so the menu closes after.
 
 const CUT_STEP := 0.1
-const CUT_MIN := 0.5
 const CUT_START := 2.0
 
 var _shelf = null
@@ -17,7 +16,7 @@ var _cut_length := 1.0
 var _decor_built := false
 var _scroll: ScrollContainer
 var _cards: Array = []  # one card per stored roll, built once per open
-var _needs_label: Label
+var _tape: TapeMeasure
 var _fits_label: Label
 
 @onready var _panel: PanelContainer = $Center/Panel
@@ -82,11 +81,9 @@ func _build_decor_once() -> void:
 	box.add_child(Style.hint_bar(pairs))
 	# Measuring guide under the title: what each part takes, and what this cut covers.
 	var title_pos := _title.get_index()
-	_needs_label = Label.new()
-	_needs_label.add_theme_font_size_override("font_size", 14)
-	_needs_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	box.add_child(_needs_label)
-	box.move_child(_needs_label, title_pos + 1)
+	_tape = TapeMeasure.new()
+	box.add_child(_tape)
+	box.move_child(_tape, title_pos + 1)
 	_fits_label = Label.new()
 	_fits_label.add_theme_font_override("font", Style.bold_font())
 	_fits_label.add_theme_font_size_override("font_size", 15)
@@ -119,18 +116,19 @@ func _update_title() -> void:
 ## "Size M takes: jacket 2.0 m · trousers 1.4 m · shirt 1.6 m", then which parts the
 ## current cut covers (or that it covers none).
 func _update_measure() -> void:
-	if _needs_label == null:
+	if _tape == null:
 		return
-	var parts := [Enums.GarmentType.JACKET, Enums.GarmentType.PANTS, Enums.GarmentType.SHIRT]
-	var needs := PackedStringArray()
+	var parts := [Enums.GarmentType.PANTS, Enums.GarmentType.SHIRT, Enums.GarmentType.JACKET]
+	var marks := {}
 	var fits := PackedStringArray()
 	for t in parts:
 		var need := Pricing.part_meters(t, Enums.Size.M)
 		var nm := Enums.garment_type_name(t).to_lower()
-		needs.append("%s %.1f m" % [nm, need])
+		marks[need] = nm
 		if _cut_length + 0.001 >= need:
 			fits.append(nm)
-	_needs_label.text = "Size M takes:  " + "  ·  ".join(needs)
+	_tape.marks = marks
+	_tape.set_value(_cut_length)
 	if fits.is_empty():
 		_fits_label.text = "%.1f m is too short for any part" % _cut_length
 		_fits_label.add_theme_color_override("font_color", Style.CLAY)
@@ -143,27 +141,35 @@ func _update_measure() -> void:
 ## Cards are already laid out, so no wait is needed and it follows both ways.
 func _highlight(old: int) -> void:
 	if old >= 0 and old < _cards.size():
-		_cards[old].add_theme_stylebox_override("panel", Style.card())
+		_card_look(_cards[old], false)
 	if _index < 0 or _index >= _cards.size():
 		return
-	var card: Control = _cards[_index]
-	card.add_theme_stylebox_override(
-		"panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_SHELF)
-	)
+	var card: CraftPanel = _cards[_index]
+	_card_look(card, true)
+	if old != _index:
+		Craft.wiggle(card, 1.5)
 	if _scroll != null:
 		_scroll.ensure_control_visible(card)
+
+
+## Selected sample: brighter paper, a forest outline and a burgundy pin.
+func _card_look(card: CraftPanel, selected: bool) -> void:
+	card.fill = Style.CARD_SELECTED if selected else Style.CARD
+	card.line = Style.ACC_SHELF if selected else Style.CREAM_DARK
+	card.line_width = 3.0 if selected else 1.5
+	card.stitch_color = Style.ACC_SHELF if selected else Style.CREAM_DARK
+	card.pin_color = Style.BURGUNDY if selected else Style.NONE
+	card.queue_redraw()
 
 
 func _make_card(roll, selected: bool) -> Control:
 	var mat = roll.material
 
-	var card := PanelContainer.new()
-	if selected:
-		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_SHELF)
-		)
-	else:
-		card.add_theme_stylebox_override("panel", Style.card())
+	# A cloth sample card cut with pinking shears.
+	var card := CraftPanel.new()
+	card.pad = Vector2(Style.S3, Style.S2)
+	card.setup(CraftPanel.Shape.PINKED, Style.CARD)
+	_card_look(card, selected)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S3)
@@ -244,13 +250,21 @@ func _adjust_cut(delta: float) -> void:
 	_update_title()
 
 
-## Keep the requested cut length within [0.5 m, the selected roll's remaining].
+## The shortest cut allowed: enough for the smallest part (pants, size S) — or size M
+## during the tutorial, so a first-timer can't make a piece that fits nothing.
+func _cut_min() -> float:
+	var size := Enums.Size.M if Tutorial != null and Tutorial.is_active() else Enums.Size.S
+	return Pricing.part_meters(Enums.GarmentType.PANTS, size)
+
+
+## Keep the requested cut length within [the shortest useful cut, the roll's remaining].
 func _clamp_cut() -> void:
 	var rolls: Array = _shelf.stored
 	if _index < 0 or _index >= rolls.size():
 		return
 	var remaining: float = rolls[_index].remaining_length_m
-	_cut_length = snappedf(clampf(_cut_length, CUT_MIN, maxf(CUT_MIN, remaining)), CUT_STEP)
+	var low := _cut_min()
+	_cut_length = snappedf(clampf(_cut_length, low, maxf(low, remaining)), CUT_STEP)
 
 
 func _take() -> void:
@@ -265,6 +279,12 @@ func _take() -> void:
 func _do_cut() -> void:
 	if _shelf.stored.size() == 0:
 		close()
+		return
+	# Refuse a cut the bolt can't cover (too little left for even the smallest part).
+	var remaining: float = _shelf.stored[_index].remaining_length_m
+	if remaining + 0.001 < _cut_length:
+		Sfx.play("error")
+		UI.toast("Only %.1f m left on this bolt — take the roll instead" % remaining)
 		return
 	# Cutting fills your hands with the piece, so close on success.
 	if _shelf.cut_piece(_index, _cut_length, _actor):
