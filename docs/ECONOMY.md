@@ -232,6 +232,7 @@ suit builder already flags.
 | Market day | `Pricing.is_market_day/market_discount` | Every `market_day_every` days. Toast at opening; shown on the phone. |
 | Cloth on account | `GameState.account_owed/buy_on_account/settle_account` | Only when broke, one bolt ≤ `account_limit`. Settled automatically at the next collection. |
 | Free first bolt | `Tutorial.first_bolt_free` | The tutorial's order step. |
+| Starter cloth | `SaveManager._give_starter_cloth`, `Shelf.stock` | A new game shelves a navy worsted suiting (`starter_suit_m` = 8 m, 2 jackets + pants) and a white cotton shirting (`starter_shirt_m` = 5 m, 3 shirts) on the first shelf with room. |
 | Regular customers | `globals/clientele.gd` (autoload) | Remembers faces. Fulfilled +1 loyalty (max 5), expired −1. `regular_chance` of shoppers are regulars; budget × (1 + loyalty × `loyalty_budget_step`, cap `loyalty_budget_max`). Shown as "Name ★N". |
 | Decoration hook | `ShopDecoration` (`scenes/world/shop_decoration.gd`), `Reputation.decor_bonus` | Attach to props; reputation gains × (1 + Σ bonus, cap +50%). **No shop to buy decor yet.** |
 | Upgrade prices | `Upgrades.UPGRADES` | $300 / $450 / $950 / $1,400 per §5. |

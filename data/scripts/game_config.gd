@@ -7,6 +7,9 @@ extends Resource
 @export_group("Economy")
 ## See docs/ECONOMY.md for the pillars these numbers serve.
 @export var starting_money: int = 500
+## A new game starts with two bolts on a shelf: a suiting (jacket + pants) and a shirting.
+@export var starter_suit_m: float = 8.0
+@export var starter_shirt_m: float = 5.0
 ## Per-metre base cloth price, indexed by Enums.Fabric
 ## (worsted, flannel, tweed, mohair, linen, cotton, poplin, oxford).
 @export var fabric_price_per_m: Array[int] = [20, 22, 18, 30, 16, 12, 16, 18]

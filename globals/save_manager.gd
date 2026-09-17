@@ -15,6 +15,7 @@ extends Node
 ## queued load is applied to the freshly built scene and the day's clock starts.
 ## In-game the pause menu calls save_to(slot) / load_from(slot) / to_menu().
 
+const STARTER_ROLL := preload("res://entities/items/material_roll.tscn")
 const VERSION := 1
 const DIR := "user://saves"
 const SLOTS := 3
@@ -117,6 +118,7 @@ func notify_game_ready() -> void:
 			get_tree().paused = false
 		"new":
 			await get_tree().process_frame
+			_give_starter_cloth(get_tree().current_scene)
 			if Tutorial != null:
 				# Freeze the shop (no day, no newspaper) until the tutorial is chosen/skipped.
 				get_tree().paused = true
@@ -129,6 +131,34 @@ func notify_game_ready() -> void:
 			if not DayNight.running:
 				DayNight.start_shift()
 			get_tree().paused = false
+
+
+## A fresh shop opens with two bolts already shelved: a navy worsted suiting for jackets
+## and pants, and a white cotton shirting. Uses the first shelf with room for both.
+func _give_starter_cloth(scene: Node) -> void:
+	if scene == null:
+		return
+	var shelf: Shelf = null
+	for node in scene.find_children("*", "Shelf", true, false):
+		var s := node as Shelf
+		if s != null and s.capacity() - s.stored.size() >= 2:
+			shelf = s
+			break
+	if shelf == null:
+		return
+	var cfg := Config.data
+	var suit_m: float = cfg.starter_suit_m if cfg != null else 8.0
+	var shirt_m: float = cfg.starter_shirt_m if cfg != null else 5.0
+	var white := MaterialFactory.SUIT_COLOR_COUNT  # first shirting colour
+	shelf.stock(_starter_roll(Enums.Fabric.WORSTED_WOOL, 0, suit_m))
+	shelf.stock(_starter_roll(Enums.Fabric.COTTON, white, shirt_m))
+
+
+func _starter_roll(fabric: int, color: int, length: float) -> Node:
+	var roll: Node = STARTER_ROLL.instantiate()
+	roll.material = MaterialFactory.make(fabric, Enums.Pattern.SOLID, color, length)
+	roll.remaining_length_m = length
+	return roll
 
 
 ## Start the first day (called immediately for a fresh game, or once the tutorial prompt is

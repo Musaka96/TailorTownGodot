@@ -109,6 +109,15 @@ func cut_piece(index: int, length: float, actor) -> bool:
 	return true
 
 
+## Put a bolt straight onto the shelf (e.g. the new-game starter cloth). Returns false
+## when the shelf is full.
+func stock(roll: Node) -> bool:
+	if roll == null or stored.size() >= capacity():
+		return false
+	_store(roll)
+	return true
+
+
 ## Park the real bolt inside the shelf (hidden, not pickable) and record it.
 func _store(roll: Node) -> void:
 	if roll.get_parent() == null:
