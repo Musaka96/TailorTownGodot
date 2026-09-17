@@ -60,6 +60,7 @@ const MAT_INSET := 10.0
 const GRID_STEP := 30.0
 const CANVAS_MIN := Vector2(600, 384)
 
+var _hint_slot: VBoxContainer  # rebuilt per run (upgrade-dependent hints)
 var _good_tol := GOOD_TOL
 var _seconds := TARGET_SECONDS
 var _max_mistakes := MAX_MISTAKES
@@ -104,6 +105,7 @@ func _ready() -> void:
 
 func start(garment_type: int, title: String) -> void:
 	_title = title
+	_rebuild_hints.call_deferred()
 	var c := Config.data
 	_lead = 1.6
 	if c != null:
@@ -281,7 +283,20 @@ func _build_chrome() -> void:
 	_status_lbl.add_theme_font_size_override("font_size", 16)
 	box.add_child(_status_lbl)
 
-	box.add_child(Style.hint_bar([["WASD", "Aim the scissors"], ["Shift", "Cut faster (riskier)"]]))
+	_hint_slot = VBoxContainer.new()
+	box.add_child(_hint_slot)
+
+
+## Key hints for this run — Shift only appears once its upgrade is owned.
+func _rebuild_hints() -> void:
+	if _hint_slot == null:
+		return
+	for child in _hint_slot.get_children():
+		child.queue_free()
+	var pairs := [["WASD", "Aim the scissors"]]
+	if Upgrades != null and Upgrades.cutting_sprint():
+		pairs.append(["Shift", "Cut faster (riskier)"])
+	_hint_slot.add_child(Style.hint_bar(pairs))
 
 
 func _refresh_pips() -> void:

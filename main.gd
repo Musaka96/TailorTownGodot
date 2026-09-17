@@ -9,6 +9,9 @@ extends Node3D
 
 
 func _ready() -> void:
+	# The scene file marks this root "Always"; the shop must obey pause (pause menu,
+	# handbook, tutorial mentor), so force it back to pausable here.
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	# Auto-opening shop doors: hook up every "*_Doors" group in the level.
 	ShopDoor.attach_all(self)
 	# The shop scene is fully built now (children _ready before this). Let the save

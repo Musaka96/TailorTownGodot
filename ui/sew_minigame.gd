@@ -21,6 +21,7 @@ const SPRINT_MULT := 1.7  # hold Shift: the needle races, so the timing is tight
 const CANVAS_MIN := Vector2(600, 300)
 const CLOTH_DEFAULT := Color("c9b48c")  # linen fallback when no fabric colour known
 
+var _hint_slot: VBoxContainer  # rebuilt per run (upgrade-dependent hints)
 var _stitches := STITCHES
 var _cross_seconds := CROSS_SECONDS
 var _good_window := GOOD_WINDOW
@@ -62,6 +63,7 @@ func _ready() -> void:
 
 func start(title: String, cloth := CLOTH_DEFAULT) -> void:
 	_title = title
+	_rebuild_hints.call_deferred()
 	_cloth = cloth
 	var c := Config.data
 	_lead = 1.6
@@ -268,7 +270,20 @@ func _build_chrome() -> void:
 	_status_lbl.add_theme_font_size_override("font_size", 16)
 	box.add_child(_status_lbl)
 
-	box.add_child(Style.hint_bar([["E / Space", "Stitch"], ["Shift", "Speed up (riskier)"]]))
+	_hint_slot = VBoxContainer.new()
+	box.add_child(_hint_slot)
+
+
+## Key hints for this run — Shift only appears once its upgrade is owned.
+func _rebuild_hints() -> void:
+	if _hint_slot == null:
+		return
+	for child in _hint_slot.get_children():
+		child.queue_free()
+	var pairs := [["E / Space", "Stitch"]]
+	if Upgrades != null and Upgrades.sewing_sprint():
+		pairs.append(["Shift", "Speed up (riskier)"])
+	_hint_slot.add_child(Style.hint_bar(pairs))
 
 
 func _refresh_pips() -> void:

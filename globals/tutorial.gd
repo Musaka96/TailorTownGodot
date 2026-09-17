@@ -64,6 +64,16 @@ const M_CODE_3 := (
 	+ "light[/b]. The panel flags what suits the brief, and the [b]Handbook[/b] on the "
 	+ "bookshelf lists every code."
 )
+const M_STOCK := (
+	"And don't fret if a cloth says [b]Not in your shop[/b] — design what the customer "
+	+ "wants anyway. Once they've said yes, just [b]order that bolt[/b] on the phone and "
+	+ "make the parts from it."
+)
+const M_PAPER := (
+	"Every morning the [b]Tailor's Gazette[/b] lands on the mat. It tells you what's "
+	+ "[b]in fashion[/b] (suits in that style earn extra standing) and which [b]events[/b] "
+	+ "are coming, so you can stock the right cloth. Press [b]%s[/b] to read it any time."
+)
 const M_ORDERS := (
 	"Order taken! The customer pops out and comes back to [b]collect[/b] once every part "
 	+ "is made. Anything you hang on the rack is matched to open orders by itself, and "
@@ -174,12 +184,13 @@ const STEPS := [
 		"id": "design",
 		"event": "design_confirmed",
 		"point": "Mirror",
-		"mentor": [M_CODE_1, M_CODE_2, M_CODE_3],
+		"mentor": [M_CODE_1, M_CODE_2, M_CODE_3, M_STOCK],
 		"goal": "",  # filled from the brief (see _goal_text)
 		"checks": [],  # filled from the recipe (see _design_checks)
 	},
 	{"id": "orders", "event": "", "mentor": [M_ORDERS]},
 	{"id": "reputation", "event": "", "mentor": [M_REP]},
+	{"id": "newspaper", "event": "", "mentor": [M_PAPER]},
 	{"id": "handbook", "event": "", "point": "Bookshelf", "mentor": [M_BYE]},
 ]
 
@@ -413,8 +424,22 @@ func _spawn_customer() -> void:
 func _mentor_lines(step: Dictionary) -> PackedStringArray:
 	var out := PackedStringArray()
 	for line: String in step.get("mentor", []):
-		out.append(line % _brief_desc() if line == M_CODE_2 else line)
+		var text := line
+		if line == M_CODE_2:
+			text = line % _brief_desc()
+		elif line == M_PAPER:
+			text = line % _key_name("newspaper")
+		out.append(text)
 	return out
+
+
+## The key currently bound to `action` (e.g. "N"), for mentor lines.
+func _key_name(action: String) -> String:
+	if InputMap.has_action(action):
+		for ev in InputMap.action_get_events(action):
+			if ev is InputEventKey:
+				return (ev as InputEventKey).as_text_physical_keycode()
+	return action.to_upper()
 
 
 func _goal_text(step: Dictionary) -> String:
