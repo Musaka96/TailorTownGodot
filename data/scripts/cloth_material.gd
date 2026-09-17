@@ -61,6 +61,27 @@ const PATTERN_SCALE := [
 	1.1,  # tattersall
 	1.0,  # end-on-end
 ]
+# How strongly each pattern tints the cloth, multiplying the shared pattern_strength.
+# The pattern textures store honest coverage, so this is where a pattern's INTENSITY
+# is tuned: a two-tone check like houndstooth covers half the cloth and needs far
+# less than a pinstripe covering a sixteenth, or it swamps the colour the customer
+# was quoted. Indexed by Enums.Pattern; no texture rebuild needed to change these.
+const PATTERN_INTENSITY := [
+	1.0,  # solid — unused, the texture is blank
+	0.85,  # pinstripe
+	0.24,  # herringbone — woven, so half coverage
+	0.28,  # houndstooth — ditto, and the boldest pattern in the book
+	0.72,  # windowpane
+	0.60,  # glen check
+	0.62,  # birdseye
+	0.22,  # sharkskin — meant to be a sheen
+	0.55,  # nailhead
+	0.85,  # bengal stripe
+	0.85,  # university stripe
+	0.70,  # gingham
+	0.60,  # tattersall
+	1.0,  # end-on-end
+]
 
 static var _base: ShaderMaterial
 static var _base_tri: ShaderMaterial
@@ -118,6 +139,7 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 	sm.set_shader_parameter("fabric_tex", texture("fabrics", fabric_tex_name(mat.fabric)))
 	sm.set_shader_parameter("pattern_tex", texture("patterns", pattern_tex_name(mat.pattern)))
 	sm.set_shader_parameter("pattern_scale", pattern_scale(mat.pattern))
+	sm.set_shader_parameter("pattern_intensity", pattern_intensity(mat.pattern))
 
 
 static func fabric_tex_name(f: int) -> String:
@@ -130,6 +152,10 @@ static func pattern_tex_name(p: int) -> String:
 
 static func pattern_scale(p: int) -> float:
 	return PATTERN_SCALE[p] if p >= 0 and p < PATTERN_SCALE.size() else 1.0
+
+
+static func pattern_intensity(p: int) -> float:
+	return PATTERN_INTENSITY[p] if p >= 0 and p < PATTERN_INTENSITY.size() else 1.0
 
 
 static func _base_material(path: String) -> ShaderMaterial:

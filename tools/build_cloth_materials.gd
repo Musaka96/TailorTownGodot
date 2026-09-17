@@ -26,6 +26,7 @@ func _write(path: String, shader_path: String, scale_param: String, scale: float
 	# Global look, editable in the inspector; per-item colour/pattern are set at runtime.
 	mat.set_shader_parameter("fabric_strength", 0.5)
 	mat.set_shader_parameter("pattern_strength", 0.85)
+	mat.set_shader_parameter("pattern_relief", 0.85)
 	mat.set_shader_parameter(scale_param, scale)
 	var err := ResourceSaver.save(mat, path)
 	print("build_cloth_materials: %s -> %s" % [path, "ok" if err == OK else "FAIL %d" % err])

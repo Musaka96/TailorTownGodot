@@ -29,6 +29,7 @@ const CLOTH := Color("1b2a4a")
 const ACCENT := Color("e9ecf2")
 const FABRIC_STRENGTH := 0.5
 const PATTERN_STRENGTH := 0.85
+const PATTERN_RELIEF := 0.85
 const OUT_DIR := "res://.dev"
 
 
@@ -38,8 +39,10 @@ func _initialize() -> void:
 	var weave := _load("res://assets/textures/fabrics/worsted.png")
 	var near := _sheet()
 	var far := _sheet()
+	var cloth = load("res://data/scripts/cloth_material.gd")
 	for i in NAMES.size():
-		var tile := _composite(weave, _load("res://assets/textures/patterns/%s.png" % NAMES[i]))
+		var tex := _load("res://assets/textures/patterns/%s.png" % NAMES[i])
+		var tile := _composite(weave, tex, cloth.PATTERN_INTENSITY[_pattern_enum(NAMES[i])])
 		_blit(near, tile, i)
 		_blit(far, _shrink(tile), i)
 	_save(near, OUT_DIR + "/pattern_near.png")
@@ -48,18 +51,22 @@ func _initialize() -> void:
 	quit(0)
 
 
-## One CELL-sized tile of cloth: base colour x grayscale weave, with the pattern
-## tinted on top by its alpha. Mirrors the fragment shader.
-func _composite(weave: Image, pattern: Image) -> Image:
+## One CELL-sized tile of cloth, mirroring materials/cloth.gdshader: the accent takes
+## the fabric's grain like the ground does, and the pattern's thread relief (G) shades
+## the lot. `intensity` is the pattern's ClothMaterial.PATTERN_INTENSITY.
+func _composite(weave: Image, pattern: Image, intensity: float) -> Image:
 	var img := Image.create(CELL, CELL, false, Image.FORMAT_RGBA8)
 	for y in CELL:
 		for x in CELL:
 			var u := float(x) / CELL
 			var v := float(y) / CELL
-			var w: float = _sample(weave, u, v).r
-			var col: Color = CLOTH * lerp(1.0, w * 1.75, FABRIC_STRENGTH)
-			var a: float = _sample(pattern, u, v).a * PATTERN_STRENGTH
-			img.set_pixel(x, y, col.lerp(ACCENT, a))
+			var grain: float = lerp(1.0, _sample(weave, u, v).r * 1.75, FABRIC_STRENGTH)
+			var pat: Color = _sample(pattern, u, v)
+			var cover: float = clampf(pat.r * PATTERN_STRENGTH * intensity, 0.0, 1.0)
+			var relief: float = lerp(1.0, pat.g * 2.0, PATTERN_RELIEF)
+			var col: Color = CLOTH.lerp(ACCENT, cover) * grain * relief
+			col.a = 1.0
+			img.set_pixel(x, y, col)
 	return img
 
 
@@ -70,6 +77,11 @@ func _shrink(tile: Image) -> Image:
 	small.resize(FAR, FAR, Image.INTERPOLATE_LANCZOS)
 	small.resize(CELL, CELL, Image.INTERPOLATE_NEAREST)
 	return small
+
+
+## NAMES are in Enums.Pattern order, so the index is the enum value.
+func _pattern_enum(name: String) -> int:
+	return NAMES.find(name)
 
 
 func _sample(img: Image, u: float, v: float) -> Color:

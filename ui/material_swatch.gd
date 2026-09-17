@@ -102,8 +102,9 @@ func setup(mat: MaterialType, remaining: float) -> void:
 	_shader_mat.set_shader_parameter("fabric_tex", ClothMaterial.texture("fabrics", fabric_name))
 	var pattern_name := ClothMaterial.pattern_tex_name(pat)
 	_shader_mat.set_shader_parameter("pattern_tex", ClothMaterial.texture("patterns", pattern_name))
-	# One tile fills the swatch, so the garment's density carries straight over.
+	# One tile fills the swatch, so the garment's density and intensity carry over.
 	_shader_mat.set_shader_parameter("pattern_scale", ClothMaterial.pattern_scale(pat))
+	_shader_mat.set_shader_parameter("pattern_intensity", ClothMaterial.pattern_intensity(pat))
 
 	var frac := clampf(remaining / maxf(mat.roll_length_m, 0.001), 0.0, 1.0)
 	_fill_fg.anchor_right = frac

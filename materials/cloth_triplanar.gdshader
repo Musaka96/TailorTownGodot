@@ -15,6 +15,8 @@ uniform float fabric_strength = 0.5;
 uniform float pattern_strength = 0.85;
 uniform float tri_scale = 3.0;
 uniform float pattern_scale = 1.0;
+uniform float pattern_intensity = 1.0;
+uniform float pattern_relief = 0.85;
 
 varying vec3 tri_pos;
 varying vec3 tri_norm;
@@ -39,14 +41,16 @@ void fragment() {
 		+ texture(fabric_tex, p.xz).r * w.y
 		+ texture(fabric_tex, p.xy).r * w.z;
 
+	// R = accent coverage, G = thread relief — see cloth.gdshader.
 	vec3 pp = p * pattern_scale;
-	float pat = texture(pattern_tex, pp.zy).a * w.x
-		+ texture(pattern_tex, pp.xz).a * w.y
-		+ texture(pattern_tex, pp.xy).a * w.z;
+	vec3 pat = texture(pattern_tex, pp.zy).rgb * w.x
+		+ texture(pattern_tex, pp.xz).rgb * w.y
+		+ texture(pattern_tex, pp.xy).rgb * w.z;
+	float cover = clamp(pat.r * pattern_strength * pattern_intensity, 0.0, 1.0);
 
-	vec3 col = cloth_color.rgb;
+	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover);
 	col *= mix(1.0, weave * 1.75, fabric_strength);
-	col = mix(col, pattern_color.rgb, pat * pattern_strength);
+	col *= mix(1.0, pat.g * 2.0, pattern_relief);
 
 	ALBEDO = col;
 	ROUGHNESS = 1.0;  // matte

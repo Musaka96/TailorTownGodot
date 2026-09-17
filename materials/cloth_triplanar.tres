@@ -10,3 +10,6 @@ shader_parameter/pattern_color = null
 shader_parameter/fabric_strength = 0.5
 shader_parameter/pattern_strength = 0.85
 shader_parameter/tri_scale = 3.0
+shader_parameter/pattern_scale = null
+shader_parameter/pattern_intensity = null
+shader_parameter/pattern_relief = 0.85
