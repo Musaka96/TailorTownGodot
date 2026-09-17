@@ -3,11 +3,12 @@ extends Control
 ## Always-on heads-up display: the interaction prompt (bottom) and what the
 ## player is currently carrying (top-left). Driven entirely by EventBus signals.
 
-var _prompt_bar: PanelContainer
+const MONEY_TILT := -3.0  # the purse tag hangs slightly askew
+
+var _prompt_bar: CraftPanel
 var _prompt_verb: Label
-var _money_panel: PanelContainer
+var _money_panel: CraftPanel
 var _money_value: Label
-var _money_style: StyleBoxFlat
 var _money_current := 0  # target balance
 var _money_shown := 0  # what the rolling counter currently reads
 var _money_started := false
@@ -31,25 +32,17 @@ func _ready() -> void:
 	_on_prompt_changed("")
 
 
-## A brass-trimmed cash tag (coin badge + amount) top-right. The original scene
-## label is hidden and this is built in code, so the .tscn never needs regenerating.
+## The purse: a cream price tag hanging on a string top-right (coin badge + amount).
+## The original scene label is hidden and this is built in code, so the .tscn never
+## needs regenerating. It swings when the balance changes.
 func _build_money_panel() -> void:
 	_money.visible = false
-	_money_panel = PanelContainer.new()
-	_money_style = StyleBoxFlat.new()
-	_money_style.bg_color = Style.CREAM
-	_money_style.set_corner_radius_all(10)
-	_money_style.set_border_width_all(2)
-	_money_style.border_color = Style.BRASS
-	_money_style.content_margin_left = Style.S2
-	_money_style.content_margin_right = Style.S3
-	_money_style.content_margin_top = Style.S1 + 1
-	_money_style.content_margin_bottom = Style.S1 + 1
-	_money_style.shadow_color = Style.SHADOW
-	_money_style.shadow_size = 6
-	_money_style.shadow_offset = Vector2(0, 3)
-	_money_panel.add_theme_stylebox_override("panel", _money_style)
-	_money_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_money_panel = CraftPanel.new().setup(CraftPanel.Shape.PRICE_TAG, Style.CREAM)
+	_money_panel.eyelet = true
+	_money_panel.string_len = 20.0
+	_money_panel.stitch_color = Style.CREAM_DARK
+	_money_panel.pad = Vector2(Style.S3, Style.S1 + 2)
+	_money_panel.rotation_degrees = MONEY_TILT
 	# Pin to the top-right corner and grow leftward to fit the content.
 	_money_panel.anchor_left = 1.0
 	_money_panel.anchor_right = 1.0
@@ -57,17 +50,17 @@ func _build_money_panel() -> void:
 	_money_panel.anchor_bottom = 0.0
 	_money_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_money_panel.grow_vertical = Control.GROW_DIRECTION_END
-	_money_panel.offset_left = -16.0
-	_money_panel.offset_right = -16.0
-	_money_panel.offset_top = 14.0
-	_money_panel.offset_bottom = 14.0
+	_money_panel.offset_left = -20.0
+	_money_panel.offset_right = -20.0
+	_money_panel.offset_top = 22.0
+	_money_panel.offset_bottom = 22.0
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S2)
 	_money_panel.add_child(row)
 	row.add_child(_coin_badge())
 	_money_value = Label.new()
 	_money_value.add_theme_font_override("font", Style.bold_font())
-	_money_value.add_theme_font_size_override("font_size", 18)
+	_money_value.add_theme_font_size_override("font_size", 20)
 	_money_value.add_theme_color_override("font_color", Style.INK)
 	_money_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_money_value)
@@ -129,18 +122,19 @@ func _set_money_display(value: float) -> void:
 	_money_value.text = str(_money_shown)
 
 
+## The tag swings on its string (and the string sways with it).
 func _bump_money() -> void:
-	_money_panel.pivot_offset = _money_panel.size * 0.5
+	Craft.wiggle(_money_panel, 6.0, MONEY_TILT)
 	var t := create_tween()
-	t.tween_property(_money_panel, "scale", Vector2(1.08, 1.08), 0.09).set_ease(Tween.EASE_OUT)
-	t.tween_property(_money_panel, "scale", Vector2.ONE, 0.16).set_ease(Tween.EASE_IN)
+	for s in [8.0, -6.0, 3.0, 0.0]:
+		t.tween_property(_money_panel, "sway", s, 0.08)
 
 
 func _flash_money(gain: bool) -> void:
 	var col: Color = Style.FOREST if gain else Style.CLAY
 	var t := create_tween()
-	t.tween_property(_money_style, "border_color", col, 0.08)
-	t.tween_property(_money_style, "border_color", Style.BRASS, 0.35)
+	t.tween_property(_money_panel, "line", col, 0.08)
+	t.tween_property(_money_panel, "line", Style.WALNUT, 0.35)
 
 
 ## A floating "+$50" / "-$20" that rises above the purse and fades out.
@@ -157,31 +151,24 @@ func _spawn_delta(delta: int) -> void:
 	lbl.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	lbl.offset_left = -150.0
 	lbl.offset_right = -18.0
-	lbl.offset_top = 52.0
+	lbl.offset_top = 66.0
 	add_child(lbl)
 	var t := create_tween()
 	t.set_parallel(true)
-	t.tween_property(lbl, "offset_top", 34.0, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(
+	t.tween_property(lbl, "offset_top", 48.0, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(
 		Tween.EASE_OUT
 	)
 	t.tween_property(lbl, "modulate:a", 0.0, 0.8)
 	t.chain().tween_callback(lbl.queue_free)
 
 
-## The interaction prompt as an atelier key-cap bar ("[E] Order fabric") on a
-## translucent rounded panel, so it reads cleanly over the 3D scene (guide §4).
+## The interaction prompt as a brass pill ("[E] Order fabric") — the same button
+## language as the menus' key hints — that pops whenever its text changes.
 func _build_prompt_bar() -> void:
 	_prompt.visible = false
-	_prompt_bar = PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.18, 0.13, 0.09, 0.82)
-	sb.set_corner_radius_all(12)
-	sb.content_margin_left = Style.S3
-	sb.content_margin_right = Style.S3
-	sb.content_margin_top = Style.S1 + 2
-	sb.content_margin_bottom = Style.S1 + 2
-	_prompt_bar.add_theme_stylebox_override("panel", sb)
-	_prompt_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_bar = CraftPanel.new().setup(CraftPanel.Shape.ROUNDED, Style.BRASS)
+	_prompt_bar.radius = 18.0
+	_prompt_bar.pad = Vector2(Style.S3, Style.S1 + 2)
 	# Anchor to the bottom-centre as a point and let the panel size to its content:
 	# equal top/bottom offsets give a zero-height base rect that grows upward to the
 	# key-cap + text (grow BEGIN), instead of being pinned to a fixed 92 px box.
@@ -202,7 +189,7 @@ func _build_prompt_bar() -> void:
 	_prompt_verb = Label.new()
 	_prompt_verb.add_theme_font_override("font", Style.bold_font())
 	_prompt_verb.add_theme_font_size_override("font_size", 15)
-	_prompt_verb.add_theme_color_override("font_color", Style.CHALK)
+	_prompt_verb.add_theme_color_override("font_color", Style.WALNUT)
 	_prompt_verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_prompt_verb)
 	add_child(_prompt_bar)
@@ -210,8 +197,11 @@ func _build_prompt_bar() -> void:
 
 
 func _on_prompt_changed(text: String) -> void:
+	var changed := text != _prompt_verb.text
 	_prompt_verb.text = text
 	_prompt_bar.visible = text != ""
+	if changed and text != "":
+		Craft.pop_in.call_deferred(_prompt_bar, 0.8, 0.2)
 
 
 func _show_held(item) -> void:

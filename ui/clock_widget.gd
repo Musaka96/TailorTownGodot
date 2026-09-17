@@ -1,13 +1,13 @@
 extends Control
 
-## Small, cute analog shift clock for the HUD. Reads DayNight for the current hour
-## and the shift window and draws a compact 12-hour face with dot hour marks, a soft
-## coral rim, chunky little hands, and a green START / red END pip so the player can
-## read at a glance how much of the shift is left. Pulses red and shows "CLOSED" once
-## the shift ends. Purely presentational — it never advances time itself.
+## The HUD clock as a tailor's brass pocket watch on a chain: cream face with dot hour
+## marks, chunky hands, a green START / red END pip for the shift window, and the time
+## on a little swing ticket underneath. Reads DayNight; pulses red and says "CLOSED"
+## once the shift ends. Purely presentational — it never advances time itself.
 
 const FACE := Color(0.99, 0.96, 0.90)
-const RIM := Color(0.91, 0.57, 0.46)  # soft coral
+const RIM := Color("c9a24a")  # brass case
+const RIM_DARK := Color("8a6a2a")
 const TICK := Color(0.45, 0.36, 0.30)
 const HAND := Color(0.24, 0.19, 0.16)
 const MIN_HAND := Color(0.45, 0.38, 0.32)
@@ -20,7 +20,7 @@ var _flash := 0.0
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(104, 126)
+	custom_minimum_size = Vector2(104, 142)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	EventBus.shift_started.connect(func(_h: float) -> void: _ended = false)
 	EventBus.shift_ended.connect(func() -> void: _ended = true)
@@ -37,10 +37,17 @@ func _draw() -> void:
 	var c := _center()
 	var now := _hour_now()
 
-	# Soft halo, cream face, coral rim.
-	draw_circle(c, r + 2.5, Color(RIM.r, RIM.g, RIM.b, 0.30))
+	_draw_chain(c, r)
+	# Crown + bow on top, then the brass case (shadow, outer ring, bevel) and the face.
+	draw_rect(Rect2(c + Vector2(-4, -r - 9), Vector2(8, 7)), RIM)
+	draw_rect(Rect2(c + Vector2(-4, -r - 9), Vector2(8, 7)), RIM_DARK, false, 1.2)
+	draw_arc(c + Vector2(0, -r - 12), 5.0, 0.0, TAU, 16, RIM, 2.5, true)
+	draw_circle(c + Vector2(0, 4), r + 5.0, Color(0, 0, 0, 0.22))
+	draw_circle(c, r + 5.0, RIM)
+	draw_arc(c, r + 5.0, 0.0, TAU, 48, RIM_DARK, 1.5, true)
+	draw_arc(c, r + 1.5, 0.0, TAU, 48, RIM_DARK, 1.0, true)
 	draw_circle(c, r, FACE)
-	draw_arc(c, r, 0.0, TAU, 40, RIM, 3.0, true)
+	draw_arc(c + Vector2(-2, -2), r - 3.0, PI * 1.05, PI * 1.45, 10, Color(1, 1, 1, 0.8), 2.0, true)
 
 	# Dot hour marks (bigger at 12/3/6/9).
 	for i in 12:
@@ -54,7 +61,8 @@ func _draw() -> void:
 	# Chunky hands (minute from the fractional hour, hour from the 12h position).
 	draw_line(c, _pf(fmod(now, 1.0), r * 0.70), MIN_HAND, 2.0)
 	draw_line(c, _pf(fmod(now, 12.0) / 12.0, r * 0.48), HAND, 3.5)
-	draw_circle(c, 2.8, RIM)
+	draw_circle(c, 3.0, RIM)
+	draw_circle(c, 3.0, RIM_DARK, false, 1.0, true)
 
 	if _ended:
 		var pulse := 0.35 + 0.35 * sin(_flash * 6.0)
@@ -67,10 +75,15 @@ func _draw_labels(c: Vector2, r: float) -> void:
 	var font := get_theme_default_font()
 	if font == null:
 		return
-	var y := c.y + r + 13.0
+	var y := c.y + r + 22.0
 	var status := "CLOSED" if _ended else _time_text()
 	var status_col := END_COL if _ended else TEXT
-	draw_string(font, Vector2(0.0, y), status, HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, status_col)
+	# A little swing ticket behind the time readout.
+	var tag := Craft.ticket(Rect2(Vector2(size.x * 0.5 - 34, y - 17), Vector2(68, 38)), 7.0)
+	Craft.card(self, tag, Style.CARD, Style.WALNUT, 1.5)
+	draw_string(
+		font, Vector2(0.0, y + 1), status, HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, status_col
+	)
 	draw_string(
 		font,
 		Vector2(0.0, y + 15.0),
@@ -82,15 +95,28 @@ func _draw_labels(c: Vector2, r: float) -> void:
 	)
 
 
+## A brass chain looping from off the top-left edge down to the watch's bow.
+func _draw_chain(c: Vector2, r: float) -> void:
+	var bow := c + Vector2(0, -r - 12)
+	var start := Vector2(-20, -6)
+	var links := 9
+	for i in links:
+		var t := (i + 0.5) / links
+		var p := start.lerp(bow, t) + Vector2(0, sin(t * PI) * 10.0)
+		var horizontal := i % 2 == 0
+		var ext := Vector2(4.0, 2.2) if horizontal else Vector2(2.2, 4.0)
+		draw_rect(Rect2(p - ext, ext * 2.0), RIM_DARK, false, 1.6)
+
+
 # --- Geometry --------------------------------------------------------------
 
 
 func _radius() -> float:
-	return size.x * 0.40
+	return size.x * 0.36
 
 
 func _center() -> Vector2:
-	return Vector2(size.x * 0.5, _radius() + 4.0)
+	return Vector2(size.x * 0.5, _radius() + 20.0)
 
 
 # Point on the face at `frac` of a full turn (0 = top, clockwise) and radius `rad`.

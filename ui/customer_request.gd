@@ -104,15 +104,7 @@ func _reposition_portrait() -> void:
 
 
 func _prompt(key: String, verb: String) -> Control:
-	var box := HBoxContainer.new()
-	box.add_theme_constant_override("separation", Style.S1 + 2)
-	box.add_child(Style.keycap(key))
-	var lbl := Label.new()
-	lbl.text = verb
-	lbl.add_theme_font_size_override("font_size", 14)
-	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
-	box.add_child(lbl)
-	return box
+	return Style.key_pill(key, verb)
 
 
 func _fill() -> void:

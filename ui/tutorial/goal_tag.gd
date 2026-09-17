@@ -126,52 +126,10 @@ func _on_resized() -> void:
 
 
 func _draw() -> void:
-	var w := size.x
-	var h := size.y
-	var shape := PackedVector2Array(
-		[
-			Vector2(NOTCH, 0),
-			Vector2(w - NOTCH, 0),
-			Vector2(w, NOTCH),
-			Vector2(w, h),
-			Vector2(0, h),
-			Vector2(0, NOTCH),
-		]
-	)
-	# Soft drop shadow, card, outline.
-	var shadow := PackedVector2Array()
-	for p in shape:
-		shadow.append(p + Vector2(0, 5))
-	draw_colored_polygon(shadow, Style.SHADOW)
-	draw_colored_polygon(shape, Style.CORK)
-	var outline := shape.duplicate()
-	outline.append(shape[0])
-	draw_polyline(outline, Style.WALNUT, 2.0, true)
-	# Stitched inner border.
-	var inset := 6.0
-	var n := NOTCH - 2.0
-	var stitch := PackedVector2Array(
-		[
-			Vector2(inset + n, inset),
-			Vector2(w - inset - n, inset),
-			Vector2(w - inset, inset + n),
-			Vector2(w - inset, h - inset),
-			Vector2(inset, h - inset),
-			Vector2(inset, inset + n),
-			Vector2(inset + n, inset),
-		]
-	)
-	for i in stitch.size() - 1:
-		draw_dashed_line(stitch[i], stitch[i + 1], Style.PAPER, 1.5, 5.0)
-	# Punched hole with a brass eyelet, and a loop of string going up.
-	var hole := Vector2(w * 0.5, HOLE_Y)
-	var string := PackedVector2Array()
-	for i in 9:
-		var t := i / 8.0
-		string.append(hole + Vector2(sin(t * PI) * 10.0, -t * 26.0))
-	draw_polyline(string, Style.BROWN, 2.0, true)
-	draw_circle(hole, 6.5, Style.BRASS)
-	draw_circle(hole, 3.5, Style.WALNUT)
+	var poly := Craft.ticket(Rect2(Vector2.ZERO, size), NOTCH)
+	Craft.card(self, poly, Style.CORK, Style.WALNUT)
+	Craft.stitch(self, poly, Style.PAPER)
+	Craft.eyelet(self, Vector2(size.x * 0.5, HOLE_Y))
 
 
 ## A little hand-drawn checkbox that ticks with a pop.

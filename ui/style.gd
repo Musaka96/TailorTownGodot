@@ -35,6 +35,8 @@ const LEAF := Color("7cbf6b")  # legacy accent (pre-atelier menus)
 const AMBER := Color("e6a63c")  # warning
 const CLAY := Color("d76b5a")  # low / danger
 const SHADOW := Color(0, 0, 0, 0.28)
+const TAPE := Color("f2c94c")  # tape-measure yellow
+const PATCH := Color("3d6b4a")  # embroidered patch green
 
 # Per-menu skin accents (single source; mirrors the table in the style guide).
 const ACC_ORDER := BRASS  # phone order pad
@@ -239,35 +241,49 @@ static func keycap(key: String) -> Control:
 	return cap
 
 
-## A readability bar of key-cap + verb pairs, e.g.
-## Style.hint_bar([["W/S", "Select"], ["E", "Order"], ["Esc", "Close"]]).
+## The menu's key prompts as a row of little brass pills (key-cap + verb), e.g.
+## Style.hint_bar([["W/S", "Select"], ["E", "Order"], ["Esc", "Close"]]). Same button
+## language as the tutorial's coach marks.
 static func hint_bar(pairs: Array) -> Control:
 	var wrap := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.18, 0.13, 0.09, 0.82)
-	sb.set_corner_radius_all(12)
-	sb.content_margin_left = S3
-	sb.content_margin_right = S3
-	sb.content_margin_top = S2
-	sb.content_margin_bottom = S2
-	wrap.add_theme_stylebox_override("panel", sb)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", S3)
+	wrap.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", S2)
+	row.add_theme_constant_override("v_separation", S1)
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
 	wrap.add_child(row)
 	for pair in pairs:
-		var key: String = pair[0]
-		var verb: String = pair[1]
-		var entry := HBoxContainer.new()
-		entry.add_theme_constant_override("separation", S1 + 2)
-		entry.add_child(keycap(key))
-		var lbl := Label.new()
-		lbl.text = verb
-		lbl.add_theme_font_size_override("font_size", 14)
-		lbl.add_theme_color_override("font_color", CHALK)
-		entry.add_child(lbl)
-		row.add_child(entry)
+		row.add_child(key_pill(pair[0], pair[1]))
 	return wrap
+
+
+## One brass pill: a walnut key-cap and a short verb.
+static func key_pill(key: String, verb: String) -> Control:
+	var pill := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = BRASS
+	sb.set_corner_radius_all(14)
+	sb.set_border_width_all(2)
+	sb.border_color = WALNUT
+	sb.content_margin_left = S1 + 1
+	sb.content_margin_right = S2 + 2
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	sb.shadow_color = SHADOW
+	sb.shadow_size = 2
+	sb.shadow_offset = Vector2(0, 2)
+	pill.add_theme_stylebox_override("panel", sb)
+	var entry := HBoxContainer.new()
+	entry.add_theme_constant_override("separation", S1 + 2)
+	pill.add_child(entry)
+	entry.add_child(keycap(key))
+	var lbl := Label.new()
+	lbl.text = verb
+	lbl.add_theme_font_override("font", bold_font())
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override("font_color", WALNUT)
+	entry.add_child(lbl)
+	return pill
 
 
 ## Info / status text on a translucent bar so it stays legible over the 3D scene.

@@ -58,6 +58,35 @@ func _ready() -> void:
 	day_transition = _build_day_transition()
 	pause_menu = _build_pause_menu(theme)
 	rack_menu = _build_rack_menu(theme)
+	_wire_pop_ins()
+
+
+## Every station menu springs open (its panel pops in) the moment it becomes visible.
+func _wire_pop_ins() -> void:
+	for menu: Control in [
+		shelf_menu,
+		phone_order,
+		worktable_screen,
+		sewing_screen,
+		suit_builder,
+		customer_request,
+		handbook,
+		orders_menu,
+		rack_menu,
+	]:
+		if menu == null:
+			continue
+		menu.visibility_changed.connect(_pop_menu.bind(menu))
+
+
+func _pop_menu(menu: Control) -> void:
+	if not menu.visible:
+		return
+	var panel: Variant = menu.get("_panel")
+	if panel is Control:
+		# Wait a frame so the panel has its real size (the pop pivots on its centre).
+		await get_tree().process_frame
+		Craft.pop_in(panel)
 
 
 func open_shelf_menu(shelf, actor) -> void:
@@ -234,7 +263,7 @@ func _build_reputation() -> Control:
 	widget.name = "Reputation"
 	widget.set_script(load("res://ui/reputation_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	widget.position = Vector2(16, 148)
+	widget.position = Vector2(20, 164)
 	hud.add_child(widget)
 	return widget
 

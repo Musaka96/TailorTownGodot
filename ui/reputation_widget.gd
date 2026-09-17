@@ -1,29 +1,26 @@
 extends Control
 
-## Minimal reputation readout under the HUD clock: just a row of stars, filled to
-## the shop's current rank (1 = Unknown … up to the top tier). Reads the Reputation
-## autoload and repaints on EventBus.reputation_changed with a brief brass flash.
-## Purely presentational.
+## Reputation readout under the HUD clock: a row of brass stars on an embroidered
+## cloth patch (stitched edge), filled to the shop's current rank (1 = Unknown … up to
+## the top tier). Reads the Reputation autoload and repaints on
+## EventBus.reputation_changed with a brass flash and a little bump. Presentational.
 
 const STAR_ON := Color(0.82, 0.66, 0.30)  # brass
 const STAR_HOT := Color(1.0, 0.86, 0.42)  # flash on a change
-const STAR_OFF := Color(0.35, 0.28, 0.20, 0.55)
-const STAR_R := 7.0
-const STEP := 19.0
-const PAD := 9.0
+const STAR_OFF := Color(0.93, 0.95, 0.96, 0.28)  # faint chalk outline stitch
+const STAR_R := 8.0
+const STEP := 21.0
+const PAD := 12.0
 
 var _flash := 0.0
-var _pill: StyleBoxFlat
 
 
 func _ready() -> void:
 	var count := _count()
-	custom_minimum_size = Vector2(PAD * 2.0 + (count - 1) * STEP + STAR_R * 2.0, 26)
+	custom_minimum_size = Vector2(PAD * 2.0 + (count - 1) * STEP + STAR_R * 2.0, 32)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_pill = StyleBoxFlat.new()
-	_pill.bg_color = Color(0.14, 0.10, 0.07, 0.42)
-	_pill.set_corner_radius_all(13)
+	rotation_degrees = -2.0
 	EventBus.reputation_changed.connect(_on_changed)
 
 
@@ -35,17 +32,25 @@ func _process(delta: float) -> void:
 
 func _on_changed(_points: int, _tier: int) -> void:
 	_flash = 1.0
+	Craft.bump(self, 1.18)
 	queue_redraw()
 
 
 func _draw() -> void:
-	draw_style_box(_pill, Rect2(Vector2.ZERO, size))
+	var patch := Craft.rounded(Rect2(Vector2.ZERO, size), size.y * 0.5, 6)
+	Craft.card(self, patch, Style.PATCH, Style.WALNUT)
+	Craft.stitch(self, patch, Style.CHALK, 4.0, 1.2)
 	var filled := _filled()
 	var on := STAR_ON.lerp(STAR_HOT, _flash)
 	var cy := size.y * 0.5
 	for i in _count():
 		var c := Vector2(PAD + STAR_R + i * STEP, cy)
-		draw_colored_polygon(_star(c, STAR_R), on if i < filled else STAR_OFF)
+		var star := _star(c, STAR_R)
+		if i < filled:
+			draw_colored_polygon(star, on)
+			Craft.outline(self, star, Style.WALNUT, 1.2)
+		else:
+			Craft.outline(self, star, STAR_OFF, 1.2)
 
 
 ## A five-pointed star polygon centred on `c`.
