@@ -35,6 +35,9 @@ const CASUAL_BOTTOMS := [Color("39414f"), Color("5b4a3a"), Color("4a4a4a")]
 
 # Fabric tiling across the mesh UVs (UV-mapped so the weave locks to the surface). Worn
 # suits get a dark inverted-hull outline (next_pass) that reads each garment part apart.
+# Fabric tiles per METRE of cloth: the garment UVs are laid out in metres by
+# tools/blender/fix_garment_uvs.py, so this is a physical size, and the jacket,
+# shirt and trousers all show the same fabric at the same scale.
 const CLOTH_UV_SCALE := 6.0
 
 # --- Locomotion / carry blending (AnimationTree) ---------------------------
@@ -937,7 +940,7 @@ func _clear(slot: Dictionary) -> Dictionary:
 
 func _apply_cloth(mi, mat: MaterialType) -> void:
 	if mi is MeshInstance3D and mat != null:
-		# UV-mapped fabric (follows the mesh UVs) + the dark element outline.
+		# Fabric tiled across the garment's metre-scale UVs + the dark element outline.
 		mi.material_override = ClothMaterial.build(mat, CLOTH_UV_SCALE, true)
 
 
