@@ -37,8 +37,13 @@ const M_ORDER := (
 	+ "Ring a supplier and have a bolt sent round — any fabric you fancy, for now."
 )
 const M_MAKE := (
-	"A suit is built in pieces. You [b]cut a length[/b] off the bolt, [b]shape it[/b] at the "
-	+ "worktable, then [b]stitch it[/b] at the sewing machine. Measure twice, cut once!"
+	"A suit is built in pieces. You [b]measure and cut a length[/b] off the bolt, "
+	+ "[b]shape it[/b] at the worktable, then [b]stitch it[/b] at the sewing machine."
+)
+const M_MEASURE := (
+	"Mind the [b]length[/b]! Every part takes its own: about [b]2 m[/b] for a jacket, "
+	+ "[b]1.4 m[/b] for pants and [b]1.6 m[/b] for a shirt, a touch more for big sizes. "
+	+ "Too short and it's useless; too long and the offcut is wasted. Measure twice, cut once!"
 )
 const M_GREET := (
 	"Ah, the bell! Your first customer. Folk walk in with a brief in mind. "
@@ -109,12 +114,12 @@ const STEPS := [
 		"id": "cut_bolt",
 		"event": "cloth_cut",
 		"point": "Shelf",
-		"mentor": [M_MAKE],
+		"mentor": [M_MAKE, M_MEASURE],
 		"goal": "Cut a length of cloth",
 		"checks":
 		[
 			["Open the shelf empty-handed", "seen:shelf_menu", "", ""],
-			["Set the length", "adjusted", "A/D", "Set the length"],
+			["Measure enough for a part", "adjusted", "A/D", "Measure the length"],
 			["Cut it off the bolt", "", "F", "Cut!"],
 		],
 	},
@@ -126,7 +131,7 @@ const STEPS := [
 		"checks":
 		[
 			["Bring the cloth to the worktable", "seen:worktable_screen", "", ""],
-			["Choose the part, then start", "cutting", "E", "Start cutting"],
+			["Pick a part your cloth covers", "cutting", "E", "Start cutting"],
 			["Cut along the dashed line", "", "WASD", "Steer the scissors"],
 		],
 	},
@@ -432,7 +437,7 @@ func _design_checks() -> Array:
 	var st := int(Enums.GarmentType.SHIRT)
 	return [
 		["Jacket: " + _part_desc(jt), "design:%d" % jt, "A/D", "Change the value"],
-		["Trousers: " + _part_desc(pt), "design:%d" % pt, "W/S", "Pick the next part"],
+		["Pants: " + _part_desc(pt), "design:%d" % pt, "W/S", "Pick the next part"],
 		["Shirt: " + _part_desc(st), "design:%d" % st, "W/S", "Pick the next part"],
 		["Confirm with E", "", "E", "Ask and confirm"],
 	]

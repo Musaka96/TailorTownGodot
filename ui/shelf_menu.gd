@@ -2,11 +2,13 @@ extends Control
 
 ## Animal-Crossing-styled browse menu for a shelf. Each stored roll is a card
 ## with a layered swatch, name, fabric/pattern and %-left. You can take a whole
-## bolt (E) or cut a piece of a chosen length (A/D to set, F to cut) to carry to
-## the worktable. Taking or cutting fills your hands, so the menu closes after.
+## bolt (E) or measure and cut a piece (A/D to measure in 0.1 m steps — hold to run —
+## F to cut) to carry to the worktable. Each part needs its own length, shown under the
+## title. Taking or cutting fills your hands, so the menu closes after.
 
-const CUT_STEP := 0.5
+const CUT_STEP := 0.1
 const CUT_MIN := 0.5
+const CUT_START := 2.0
 
 var _shelf = null
 var _actor = null
@@ -15,6 +17,8 @@ var _cut_length := 1.0
 var _decor_built := false
 var _scroll: ScrollContainer
 var _cards: Array = []  # one card per stored roll, built once per open
+var _needs_label: Label
+var _fits_label: Label
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -26,7 +30,7 @@ func open(shelf, actor) -> void:
 	_shelf = shelf
 	_actor = actor
 	_index = 0
-	_cut_length = 1.0
+	_cut_length = CUT_START
 	GameState.input_locked = true
 	visible = true
 	_style()
@@ -70,12 +74,24 @@ func _build_decor_once() -> void:
 	_hint.visible = false
 	var pairs := [
 		["W/S", "Select"],
-		["A/D", "Cut length"],
+		["A/D", "Measure"],
 		["F", "Cut"],
 		["E", "Take roll"],
 		["Esc", "Close"],
 	]
 	box.add_child(Style.hint_bar(pairs))
+	# Measuring guide under the title: what each part takes, and what this cut covers.
+	var title_pos := _title.get_index()
+	_needs_label = Label.new()
+	_needs_label.add_theme_font_size_override("font_size", 14)
+	_needs_label.add_theme_color_override("font_color", Style.INK_SOFT)
+	box.add_child(_needs_label)
+	box.move_child(_needs_label, title_pos + 1)
+	_fits_label = Label.new()
+	_fits_label.add_theme_font_override("font", Style.bold_font())
+	_fits_label.add_theme_font_size_override("font_size", 15)
+	box.add_child(_fits_label)
+	box.move_child(_fits_label, title_pos + 2)
 
 
 ## Build the whole card list once (on open). The roll set doesn't change while
@@ -97,6 +113,30 @@ func _rebuild_list() -> void:
 
 func _update_title() -> void:
 	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [_shelf.stored.size(), _cut_length]
+	_update_measure()
+
+
+## "Size M takes: jacket 2.0 m · trousers 1.4 m · shirt 1.6 m", then which parts the
+## current cut covers (or that it covers none).
+func _update_measure() -> void:
+	if _needs_label == null:
+		return
+	var parts := [Enums.GarmentType.JACKET, Enums.GarmentType.PANTS, Enums.GarmentType.SHIRT]
+	var needs := PackedStringArray()
+	var fits := PackedStringArray()
+	for t in parts:
+		var need := Pricing.part_meters(t, Enums.Size.M)
+		var nm := Enums.garment_type_name(t).to_lower()
+		needs.append("%s %.1f m" % [nm, need])
+		if _cut_length + 0.001 >= need:
+			fits.append(nm)
+	_needs_label.text = "Size M takes:  " + "  ·  ".join(needs)
+	if fits.is_empty():
+		_fits_label.text = "%.1f m is too short for any part" % _cut_length
+		_fits_label.add_theme_color_override("font_color", Style.CLAY)
+	else:
+		_fits_label.text = "%.1f m is enough for: %s" % [_cut_length, ", ".join(fits)]
+		_fits_label.add_theme_color_override("font_color", Style.FOREST)
 
 
 ## Move the highlight from `old` to the current `_index` and scroll it into view.
@@ -107,7 +147,9 @@ func _highlight(old: int) -> void:
 	if _index < 0 or _index >= _cards.size():
 		return
 	var card: Control = _cards[_index]
-	card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_SHELF))
+	card.add_theme_stylebox_override(
+		"panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_SHELF)
+	)
 	if _scroll != null:
 		_scroll.ensure_control_visible(card)
 
@@ -170,9 +212,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_move(1)
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_forward"):
 		_move(-1)
-	elif event.is_action_pressed("move_right"):
+	elif event.is_action_pressed("move_right", true):
 		_adjust_cut(CUT_STEP)
-	elif event.is_action_pressed("move_left"):
+	elif event.is_action_pressed("move_left", true):
 		_adjust_cut(-CUT_STEP)
 	elif event.is_action_pressed("cut"):
 		_do_cut()
@@ -208,7 +250,7 @@ func _clamp_cut() -> void:
 	if _index < 0 or _index >= rolls.size():
 		return
 	var remaining: float = rolls[_index].remaining_length_m
-	_cut_length = clampf(_cut_length, CUT_MIN, maxf(CUT_MIN, remaining))
+	_cut_length = snappedf(clampf(_cut_length, CUT_MIN, maxf(CUT_MIN, remaining)), CUT_STEP)
 
 
 func _take() -> void:

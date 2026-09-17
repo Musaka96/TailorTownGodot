@@ -24,7 +24,17 @@ func _run() -> void:
 		return
 
 	# Success: fabric piece -> garment part.
+	# Too short: an XL jacket needs 2.4 m, so a 2.0 m piece is refused and stays put.
 	_place_fabric(worktable, 2.0)
+	var short_piece: Node = worktable._item
+	worktable.finish_cut(true, 2, 3, "Double-Breasted", 0.78)
+	_check(worktable._item == short_piece, "too-short piece can't be cut (XL jacket needs 2.4 m)")
+	_check(not worktable.has_cloth_for(2, 3), "has_cloth_for rejects a short piece")
+	_check(worktable.has_cloth_for(1, 1), "has_cloth_for accepts it for trousers M (1.4 m)")
+	short_piece.queue_free()
+	worktable._item = null
+
+	_place_fabric(worktable, 2.4)
 	worktable.finish_cut(true, 2, 3, "Double-Breasted", 0.78)  # Jacket, XL
 	var part: Node = worktable._item
 	_check(part != null, "cut produced a part")

@@ -34,12 +34,28 @@ const PATTERN_SURCHARGE := {
 	Enums.Pattern.END_ON_END: 3,
 }
 
-# Cloth a finished suit consumes per part (metres), for quoting a bespoke order.
+# Cloth each part consumes (metres, size M) — the worktable requires a piece at least this
+# long, and bespoke quotes use it too.
 const PART_METERS := {
 	Enums.GarmentType.JACKET: 2.0,
 	Enums.GarmentType.PANTS: 1.4,
 	Enums.GarmentType.SHIRT: 1.6,
 }
+# Bigger sizes take more cloth (Enums.Size -> multiplier).
+const SIZE_FACTOR := {
+	Enums.Size.S: 0.9,
+	Enums.Size.M: 1.0,
+	Enums.Size.L: 1.1,
+	Enums.Size.XL: 1.2,
+}
+
+
+## Metres of cloth a `garment_type` part of `size` needs, rounded UP to 0.1 m (the shelf's
+## measuring step), so a piece cut to the displayed length always fits.
+static func part_meters(garment_type: int, size: int = Enums.Size.M) -> float:
+	var base: float = PART_METERS.get(garment_type, 1.6)
+	var raw: float = base * float(SIZE_FACTOR.get(size, 1.0))
+	return ceilf(raw * 10.0 - 0.001) / 10.0
 
 
 static func per_meter(fabric: Enums.Fabric, pattern: Enums.Pattern) -> int:

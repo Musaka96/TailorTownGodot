@@ -16,6 +16,7 @@ var _row := 0
 var _swatch: MaterialSwatch
 var _name_label: Label
 var _sub_label: Label
+var _cloth_label: Label
 var _minigame: CuttingMinigame
 var _decor_built := false
 
@@ -36,6 +37,9 @@ func open(worktable, actor, piece) -> void:
 	_actor = actor
 	_piece = piece
 	_row = 0
+	_size = int(Enums.Size.M)
+	_type = _best_fit_type()
+	_style_idx = 0
 	GameState.input_locked = true
 	visible = true
 	_config.visible = true
@@ -67,6 +71,9 @@ func _build_preview() -> void:
 	_sub_label = Label.new()
 	_sub_label.add_theme_font_size_override("font_size", 15)
 	info.add_child(_sub_label)
+	_cloth_label = Label.new()
+	_cloth_label.add_theme_font_size_override("font_size", 15)
+	info.add_child(_cloth_label)
 
 
 func _style() -> void:
@@ -115,6 +122,8 @@ func _refresh() -> void:
 		"%s  ·  Size %s  ·  %s"
 		% [Enums.garment_type_name(_type), Enums.size_name(_size), _styles()[_style_idx]]
 	)
+
+	_refresh_cloth()
 
 	for child in _rows.get_children():
 		child.queue_free()
@@ -182,7 +191,46 @@ func _adjust(dir: int) -> void:
 			_style_idx = (_style_idx + dir + n) % n
 
 
+## "Needs 1.6 m · piece 2.0 m · 0.4 m offcut" — green when it fits snugly, amber when
+## cloth will be wasted, red when the piece is too short to cut this part.
+func _refresh_cloth() -> void:
+	var need := Pricing.part_meters(_type, _size)
+	var have: float = _piece.length_m if _piece != null else 0.0
+	var spare := have - need
+	if spare < -0.001:
+		_cloth_label.text = "Too short: needs %.1f m, piece is %.1f m" % [need, have]
+		_cloth_label.add_theme_color_override("font_color", Style.CLAY)
+	elif spare < 0.05:
+		_cloth_label.text = "Needs %.1f m  ·  piece %.1f m  ·  a perfect fit" % [need, have]
+		_cloth_label.add_theme_color_override("font_color", Style.FOREST)
+	else:
+		_cloth_label.text = (
+			"Needs %.1f m  ·  piece %.1f m  ·  %.1f m offcut wasted" % [need, have, spare]
+		)
+		_cloth_label.add_theme_color_override("font_color", Style.AMBER)
+
+
+## The part this piece suits best: the one it covers with the least cloth left over
+## (size M), falling back to the smallest part if it covers none.
+func _best_fit_type() -> int:
+	var have: float = _piece.length_m if _piece != null else 0.0
+	var best := int(Enums.GarmentType.PANTS)
+	var best_spare := INF
+	for t in 3:
+		var spare := have - Pricing.part_meters(t, int(Enums.Size.M))
+		if spare >= -0.001 and spare < best_spare:
+			best_spare = spare
+			best = t
+	return best
+
+
 func _start_cutting() -> void:
+	if _worktable != null and not _worktable.has_cloth_for(_type, _size):
+		Sfx.play("error")
+		var tw := create_tween()
+		for dx in [6.0, -6.0, 4.0, 0.0]:
+			tw.tween_property(_cloth_label, "position:x", dx, 0.04).as_relative()
+		return
 	_config.visible = false
 	if _minigame == null:
 		_minigame = CuttingMinigame.new()

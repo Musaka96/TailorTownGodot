@@ -2,8 +2,10 @@ class_name Worktable
 extends Node3D
 
 ## Turns a cut cloth piece into a garment part: place a FabricPiece, configure
-## type/size/style, then cut it to shape in the minigame. Success leaves a
-## GarmentPiece on the table to take; ruin wastes the cloth.
+## type/size/style, then cut it to shape in the minigame. Each part needs its own
+## length of cloth (Pricing.part_meters) — a piece that's too short can't be cut, and
+## any extra is an offcut that goes to waste. Success leaves a GarmentPiece on the
+## table to take; ruin wastes the cloth.
 
 const GARMENT_PIECE_SCENE := preload("res://entities/items/garment_piece.tscn")
 
@@ -47,6 +49,8 @@ func interact(actor) -> void:
 func finish_cut(success: bool, type: int, size: int, style: String, quality: float) -> void:
 	if not (_item is FabricPiece):
 		return
+	if success and not has_cloth_for(type, size):
+		return  # the screen never starts a cut this piece can't cover
 	if not success:
 		# A ruined cut wastes the cloth — but during the tutorial keep it on the table so
 		# the player can just try the cut again instead of being stranded with nothing.
@@ -68,6 +72,13 @@ func finish_cut(success: bool, type: int, size: int, style: String, quality: flo
 	part.transform = Transform3D.IDENTITY
 	_item = part
 	EventBus.piece_cut.emit(part)
+
+
+## Whether the fabric piece on the table is long enough for a `type` part of `size`.
+func has_cloth_for(type: int, size: int) -> bool:
+	if not (_item is FabricPiece):
+		return false
+	return _item.length_m + 0.001 >= Pricing.part_meters(type, size)
 
 
 func _is_piece(node: Node) -> bool:
