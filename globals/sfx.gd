@@ -11,7 +11,14 @@ extends Node
 
 const DIR := "res://assets/audio/"
 const POOL := 8
+## The shop's working music, and the quieter one the main menu waits on.
 const THEME := "music_stitch_shop_stroll"
+const MENU_THEME := "music_thread_and_thimble"
+## Music fades: how quiet "off" is, how swiftly a track bows out, and how gently the next
+## one swells in behind the curtain.
+const MUSIC_SILENT := -40.0
+const MUSIC_OUT := 0.5
+const MUSIC_IN := 2.5
 
 ## Logical name -> file under DIR. Add a sound here, then trigger it with
 ## Sfx.play("name") or wire it to a signal in _connect_events().
@@ -59,6 +66,9 @@ const LIB := {
 	"cloth_rustle": "cloth_rustle.wav",
 	"pickup": "pickup.wav",
 	"putdown": "putdown.wav",
+	# the stage curtain over every scene change (synthesised, build_curtain_audio.gd)
+	"curtain_close": "curtain_close.wav",
+	"curtain_open": "curtain_open.wav",
 	# world stingers & ambience
 	"new_order_ping": "new_order_ping.wav",
 	"order_complete": "order_complete.wav",
@@ -80,6 +90,10 @@ var _loops: Dictionary = {}
 var _singles: Dictionary = {}  # key -> its one dedicated player (play_single)
 var _music: AudioStreamPlayer
 var _next := 0
+## Music fade in flight: where the volume is heading, how fast, and whether to stop there.
+var _fade_target := 0.0
+var _fade_rate := 0.0
+var _fade_stops := false
 
 
 func _ready() -> void:
@@ -110,8 +124,20 @@ func _ready() -> void:
 	_music.bus = "Music"
 	add_child(_music)
 	_connect_events()
-	play_music(THEME)
+	play_music(MENU_THEME)  # the game boots into the main menu
 	start_loop("ambience_loop", -18.0)
+
+
+func _process(delta: float) -> void:
+	if is_zero_approx(_fade_rate):
+		return
+	_music.volume_db = move_toward(_music.volume_db, _fade_target, _fade_rate * delta)
+	if not is_equal_approx(_music.volume_db, _fade_target):
+		return
+	_fade_rate = 0.0
+	if _fade_stops:
+		_music.stop()
+		_fade_stops = false
 
 
 ## Create the Music and SFX buses (routed to Master) if they don't exist, so the
@@ -202,18 +228,49 @@ func _pick(key: String) -> AudioStream:
 	return entry as AudioStream
 
 
-## Start the looping level music (replaces whatever is playing).
+## Start the looping level music at once (replaces whatever is playing).
 func play_music(key: String) -> void:
 	var stream: AudioStream = _streams.get(key)
 	if stream == null:
 		return
+	_fade_rate = 0.0
+	_fade_stops = false
 	_set_loop(stream, true)
 	_music.stream = stream
 	_music.volume_db = music_volume
 	_music.play()
 
 
+## Take the music down to silence over `seconds`, then stop it — so a track bows out ahead
+## of a scene change instead of being cut off mid-bar.
+func fade_music_out(seconds := MUSIC_OUT) -> void:
+	if not _music.playing:
+		return
+	_fade_target = MUSIC_SILENT
+	_fade_rate = absf(_music.volume_db - MUSIC_SILENT) / maxf(seconds, 0.01)
+	_fade_stops = true
+
+
+## Bring `key` up from silence over `seconds`. A no-op if that track is already playing and
+## not on its way out, so calling it again doesn't restart the music.
+func fade_music_in(key: String, seconds := MUSIC_IN) -> void:
+	var stream: AudioStream = _streams.get(key)
+	if stream == null:
+		return
+	if _music.playing and _music.stream == stream and not _fade_stops:
+		return
+	_set_loop(stream, true)
+	_music.stream = stream
+	_music.volume_db = MUSIC_SILENT
+	_music.play()
+	_fade_target = music_volume
+	_fade_rate = absf(music_volume - MUSIC_SILENT) / maxf(seconds, 0.01)
+	_fade_stops = false
+
+
 func stop_music() -> void:
+	_fade_rate = 0.0
+	_fade_stops = false
 	_music.stop()
 
 

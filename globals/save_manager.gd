@@ -132,11 +132,11 @@ func notify_game_ready() -> void:
 			if Shift != null:
 				Shift.set_day_baseline(_resume_day_money)
 			get_tree().paused = false
-			await _settle()
+			await _settle(Sfx.THEME)
 		"new":
 			await get_tree().process_frame
 			_give_starter_cloth(get_tree().current_scene)
-			await _settle()
+			await _settle(Sfx.THEME)
 			if Tutorial != null:
 				# Freeze the shop (no day, no newspaper) until the tutorial is chosen/skipped.
 				get_tree().paused = true
@@ -148,16 +148,18 @@ func notify_game_ready() -> void:
 			# longer auto-starts at boot.
 			if not DayNight.running:
 				DayNight.start_shift()
+			Sfx.play_music(Sfx.THEME)  # Sfx boots on the menu theme; this isn't the menu
 			get_tree().paused = false
 
 
-## Draw the curtain across whatever is on screen (built on first use). Awaitable: returns
-## once the fabric has landed.
+## Draw the curtain across whatever is on screen (built on first use), the music bowing out
+## as the fabric comes down. Awaitable: returns once it has landed.
 func _draw_curtain() -> void:
 	GameState.input_locked = true
 	if _curtain == null:
 		_curtain = LoadingCurtain.new()
 		add_child(_curtain)
+	Sfx.fade_music_out()
 	await _curtain.close()
 
 
@@ -180,16 +182,20 @@ func _leave_game() -> void:
 	await _draw_curtain()
 	_change_scene(MENU_SCENE)
 	_entering = false
-	await _settle()
+	await _settle(Sfx.MENU_THEME)
 
 
-## Let the freshly built shop draw itself into shape behind the curtain, then open it and
-## hand control back. Without this the player watches the grade, the outlines and the scene
-## lighting pop in one by one over the first seconds of the game.
-func _settle() -> void:
+## Let the freshly built scene draw itself into shape behind the curtain, then open it and
+## hand control back, with `theme` swelling in as the fabric parts. Without the wait the
+## player watches the grade, the outlines and the lighting pop in one by one over the first
+## seconds of the game.
+func _settle(theme: String) -> void:
 	if _curtain != null:
 		await _curtain.warm_up(get_tree())
+		Sfx.fade_music_in(theme)
 		await _curtain.open()
+	else:
+		Sfx.play_music(theme)
 	GameState.input_locked = false
 
 

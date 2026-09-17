@@ -13,6 +13,11 @@ extends CanvasLayer
 ## rendered frames, then opens on a shop that already looks the way it will keep looking.
 ## Owned by SaveManager, which draws it before a scene swap.
 ##
+## It hangs from its rail, so it swings rather than slides: the fabric is sheared about the
+## rail, still at the top and free at the hem. It throws once when it lands and damps out,
+## breathes gently while you wait, and its hem trails behind the rail as each half is
+## dragged aside.
+##
 ## Art is optional. Drop the three PNGs named below into assets/textures/ui and the curtain
 ## uses them; with any of them missing it paints that part itself from the Style palette
 ## (pleats shaded crest-to-fold, a scalloped hem, a brass binding), so the game always has a
@@ -25,6 +30,8 @@ enum Phase { OPEN, CLOSING, CLOSED, OPENING }
 
 ## Above PostFX (100), so even the filter's own first frame is hidden.
 const LAYER := 200
+const CLOSE_SFX := "curtain_close"
+const OPEN_SFX := "curtain_open"
 ## Optional art. PANEL_ART is the LEFT half, mirrored for the right, and is stretched to
 ## half the screen. TRIM_ART is the braid down each leading edge, tiled vertically and kept
 ## at its own width so it never squashes. VALANCE_ART is the pelmet across the top, tiled
@@ -61,9 +68,16 @@ const GATHER := 0.45
 const HEAD_SHADOW := 0.22
 const EDGE_SHADOW := 16.0
 const SHADE_BANDS := 8
-## How far and how long the fabric wobbles after it lands.
-const SWAY_PIXELS := 10.0
-const SWAY_SECONDS := 0.9
+## The pendulum, in pixels of lean at the hem. SWING throws once on landing and damps out;
+## BREEZE is a slow breath under it that never quite dies, so the fabric is never dead still
+## while the shop loads behind it.
+const SWING_PIXELS := 26.0
+const SWING_HZ := 1.1
+const SWING_DAMP := 1.7
+const BREEZE_HZ := 0.33
+const BREEZE_SHARE := 0.16
+## How far the hem trails behind the rail while a half is being dragged aside.
+const DRAG_PIXELS := 30.0
 const TRIM_WIDTH := 3.0
 ## Drawn frames to wait for before opening (pipelines compile on first draw).
 const WARMUP_FRAMES := 12
@@ -76,7 +90,10 @@ var _trim: Texture2D
 var _valance: Texture2D
 var _phase := Phase.OPEN
 var _t := 0.0
-var _sway_left := 0.0
+var _since_land := 0.0
+## The lean of the half being drawn, so transforms inside it compose with it rather than
+## replacing it.
+var _hangs := Transform2D.IDENTITY
 
 
 func _init() -> void:
@@ -102,9 +119,10 @@ func _process(delta: float) -> void:
 		Phase.CLOSING:
 			_advance(delta / DROP_SECONDS)
 		Phase.OPENING:
+			_since_land += delta
 			_advance(delta / PART_SECONDS)
 		Phase.CLOSED:
-			_sway_left = maxf(_sway_left - delta, 0.0)
+			_since_land += delta
 		_:
 			return
 	if _sheet != null:
@@ -122,6 +140,7 @@ func close() -> void:
 		_phase = Phase.CLOSING
 		_t = 0.0
 		visible = true
+		Sfx.play(CLOSE_SFX, 0.0, 1.0, 1.0)
 	await closed
 
 
@@ -139,6 +158,7 @@ func open() -> void:
 	if _phase != Phase.OPENING:
 		_phase = Phase.OPENING
 		_t = 0.0
+		Sfx.play(OPEN_SFX, 0.0, 1.0, 1.0)
 	await opened
 
 
@@ -152,7 +172,7 @@ func _advance(step: float) -> void:
 	_t = 0.0
 	if _phase == Phase.CLOSING:
 		_phase = Phase.CLOSED
-		_sway_left = SWAY_SECONDS
+		_since_land = 0.0
 		closed.emit()
 	else:
 		_phase = Phase.OPEN
@@ -174,12 +194,30 @@ func _part() -> float:
 	return _t * _t * (3.0 - 2.0 * _t)
 
 
-## Sideways wobble as the fabric settles, fading out over SWAY_SECONDS.
-func _settle() -> float:
-	if _sway_left <= 0.0:
+## How far the hem leans: the throw still ringing out from the landing, plus the breeze.
+## Nothing while the curtain is still falling - it only swings once it has landed.
+func _swing() -> float:
+	if _phase == Phase.CLOSING:
 		return 0.0
-	var age := SWAY_SECONDS - _sway_left
-	return sin(age * TAU * 1.8) * (_sway_left / SWAY_SECONDS) * SWAY_PIXELS
+	var throw := sin(_since_land * TAU * SWING_HZ) * exp(-_since_land * SWING_DAMP)
+	var breeze := sin(_since_land * TAU * BREEZE_HZ) * BREEZE_SHARE
+	return (throw + breeze) * SWING_PIXELS
+
+
+## How far a half's hem trails behind its rail as it is pulled aside - most in the middle of
+## the pull, nothing at either end, and always back toward the middle of the screen.
+func _drag(mirrored: bool) -> float:
+	if _phase != Phase.OPENING:
+		return 0.0
+	var pull := DRAG_PIXELS * 4.0 * _t * (1.0 - _t)
+	return -pull if mirrored else pull
+
+
+## A half hanging off its rail at `top`, leaning `lean` pixels at the hem `height` below it:
+## a shear, so the fabric pivots about the rail the way anything on hooks does.
+static func _shear(top: float, height: float, lean: float) -> Transform2D:
+	var k := lean / maxf(height, 1.0)
+	return Transform2D(Vector2(1.0, 0.0), Vector2(k, 1.0), Vector2(-k * top, 0.0))
 
 
 # --- Drawing ---------------------------------------------------------------
@@ -188,17 +226,32 @@ func _settle() -> float:
 func _draw_sheet() -> void:
 	var view: Vector2 = _sheet.size
 	# Each half reaches past its outer screen edge, so the settle wobble never opens a gap.
-	var bleed := SWAY_PIXELS + 2.0
+	var bleed := SWING_PIXELS + 4.0
 	var panel := Vector2(view.x * 0.5 + bleed, _panel_height(view.y))
 	var top := -panel.y * (1.0 - _drop())
 	var part := _part()
 	# Both halves hang from their leading edge, which sweeps out while the fabric bunches.
-	var lead := view.x * 0.5 + _settle()
+	var lead := view.x * 0.5
 	var slide := panel.x * part
 	var width := Vector2(panel.x * (1.0 - GATHER * part), panel.y)
+	var lean := _swing()
+	_hang(_shear(top, panel.y, lean + _drag(false)))
 	_draw_half(Rect2(Vector2(lead - slide - width.x, top), width), false)
+	_hang(_shear(top, panel.y, lean + _drag(true)))
 	_draw_half(Rect2(Vector2(lead + slide, top), width), true)
+	_hang(Transform2D.IDENTITY)  # the pelmet is stiff, and stays on its rail
 	_draw_valance(view, top, part)
+
+
+## Hang everything drawn from here on off `xform` - the lean of the half being drawn.
+func _hang(xform: Transform2D) -> void:
+	_hangs = xform
+	_sheet.draw_set_transform_matrix(xform)
+
+
+## A transform inside the current half, composed with its lean instead of replacing it.
+func _local(xform: Transform2D) -> void:
+	_sheet.draw_set_transform_matrix(_hangs * xform)
 
 
 ## An optional art file, or null when it isn't there (the curtain paints itself then).
@@ -231,11 +284,11 @@ func _draw_flipped(tex: Texture2D, rect: Rect2, mirrored: bool) -> void:
 	if not mirrored:
 		_sheet.draw_texture_rect(tex, rect, false)
 		return
-	_sheet.draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1.0, 1.0))
+	_local(Transform2D(Vector2(-1.0, 0.0), Vector2(0.0, 1.0), Vector2.ZERO))
 	_sheet.draw_texture_rect(
 		tex, Rect2(-rect.end.x, rect.position.y, rect.size.x, rect.size.y), false
 	)
-	_sheet.draw_set_transform(Vector2.ZERO)
+	_local(Transform2D.IDENTITY)
 
 
 ## The braid down a leading edge, tiled down its length and held at a constant width so it
@@ -250,9 +303,9 @@ func _draw_binding(rect: Rect2, mirrored: bool) -> void:
 	var x := rect.position.x if mirrored else rect.end.x - width
 	# Stop at the hem, or the braid dangles past the fabric while the curtain is falling.
 	var length := rect.size.y * (1.0 - ART_HEM_SHARE) if _panel != null else rect.size.y
-	_sheet.draw_set_transform(Vector2(x, rect.position.y), 0.0, Vector2(scale, scale))
+	_local(Transform2D(0.0, Vector2(scale, scale), 0.0, Vector2(x, rect.position.y)))
 	_sheet.draw_texture_rect(_trim, Rect2(0.0, 0.0, _trim.get_width(), length / scale), true)
-	_sheet.draw_set_transform(Vector2.ZERO)
+	_local(Transform2D.IDENTITY)
 
 
 ## The pelmet across the top: it hangs from the curtain's own top edge, and once the halves
@@ -262,9 +315,9 @@ func _draw_valance(view: Vector2, top: float, part: float) -> void:
 		return
 	var scale := view.y * VALANCE_SHARE / float(_valance.get_height())
 	var lift := view.y * VALANCE_SHARE * part
-	_sheet.draw_set_transform(Vector2(0.0, top - lift), 0.0, Vector2(scale, scale))
+	_local(Transform2D(0.0, Vector2(scale, scale), 0.0, Vector2(0.0, top - lift)))
 	_sheet.draw_texture_rect(_valance, Rect2(0.0, 0.0, view.x / scale, _valance.get_height()), true)
-	_sheet.draw_set_transform(Vector2.ZERO)
+	_local(Transform2D.IDENTITY)
 
 
 ## Vertical pleats shaded crest-to-fold, hung on a scalloped hem. A slow second harmonic
