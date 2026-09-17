@@ -95,17 +95,22 @@ func _draw_labels(c: Vector2, r: float) -> void:
 	)
 
 
-## A brass chain looping from off the top-left edge down to the watch's bow.
+## A fine brass chain drooping from off the top-left edge to the watch's bow: small
+## alternating links (open rings and side-on ovals) along a gentle curve.
 func _draw_chain(c: Vector2, r: float) -> void:
 	var bow := c + Vector2(0, -r - 12)
-	var start := Vector2(-20, -6)
-	var links := 9
+	var start := Vector2(-18, -4)
+	var links := 14
 	for i in links:
 		var t := (i + 0.5) / links
-		var p := start.lerp(bow, t) + Vector2(0, sin(t * PI) * 10.0)
-		var horizontal := i % 2 == 0
-		var ext := Vector2(4.0, 2.2) if horizontal else Vector2(2.2, 4.0)
-		draw_rect(Rect2(p - ext, ext * 2.0), RIM_DARK, false, 1.6)
+		var p := start.lerp(bow, t) + Vector2(0, sin(t * PI) * 9.0)
+		if i % 2 == 0:
+			draw_arc(p, 2.4, 0.0, TAU, 12, RIM_DARK, 1.2, true)
+			draw_arc(p, 2.4, PI * 1.1, PI * 1.6, 5, RIM, 1.0, true)
+		else:
+			var along := (bow - start).normalized()
+			draw_line(p - along * 2.2, p + along * 2.2, RIM_DARK, 2.2, true)
+			draw_line(p - along * 1.6, p + along * 1.6, RIM, 1.0, true)
 
 
 # --- Geometry --------------------------------------------------------------

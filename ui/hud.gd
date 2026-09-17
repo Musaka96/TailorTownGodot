@@ -208,15 +208,16 @@ func _process(_delta: float) -> void:
 
 ## A small burgundy "FULLY BOOKED" tag under the reputation patch while the sign is up.
 func _build_booked_badge() -> void:
-	_booked_badge = CraftPanel.new().setup(CraftPanel.Shape.TICKET, Style.BURGUNDY)
-	_booked_badge.pad = Vector2(Style.S2, 2)
-	_booked_badge.stitch_color = Style.PAPER
-	_booked_badge.position = Vector2(22, 204)
-	_booked_badge.rotation_degrees = -3.0
+	# A plain rounded plate (no stitching or notches crossing the small lettering).
+	_booked_badge = CraftPanel.new()
+	_booked_badge.pad = Vector2(Style.S2 + 2, Style.S1)
+	_booked_badge.radius = 9.0
+	_booked_badge.setup(CraftPanel.Shape.ROUNDED, Style.BURGUNDY, Style.WALNUT)
+	_booked_badge.position = Vector2(26, 206)
 	var lbl := Label.new()
-	lbl.text = "FULLY BOOKED"
+	lbl.text = "Fully booked"
 	lbl.add_theme_font_override("font", Style.bold_font())
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 14)
 	lbl.add_theme_color_override("font_color", Style.CHALK)
 	_booked_badge.add_child(lbl)
 	add_child(_booked_badge)

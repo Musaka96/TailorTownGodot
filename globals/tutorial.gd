@@ -15,7 +15,6 @@ extends Node
 
 ## Point the hand at roughly the upper body of a station (metres above its origin).
 const POINT_Y := 1.0
-const HAND := "👆"
 const EDGE := 20.0  # margin between the tag and the screen edge / other UI
 const DONE_HOLD := 0.8  # seconds a finished checklist stays up before the next step
 const SPOT_PATIENCE := 0.25  # seconds a tag spot must stay covered before the tag moves
@@ -247,7 +246,7 @@ var _root: Control
 var _mentor: MentorDialog
 var _tag: GoalTag
 var _coach: CoachMark
-var _hand: Label
+var _hand: PointerPin  # the dressmaker's-pin marker
 
 
 func _ready() -> void:
@@ -894,9 +893,7 @@ func _move_hand(pos: Vector2) -> void:
 	if pos.x < 0.0:
 		_hand.visible = false
 		return
-	_hand.visible = true
-	# Sit just below the target and bob up toward it.
-	_hand.position = pos + Vector2(-16, 24 + sin(_time * 6.0) * 6.0)
+	_hand.point_at(pos)
 
 
 ## The global rect of the visible key-cap labelled `key` inside `menu`.
@@ -963,18 +960,7 @@ func _build() -> void:
 	_coach = CoachMark.new()
 	root.add_child(_coach)
 
-	_hand = Label.new()
-	_hand.text = HAND
-	# Fredoka has no emoji glyph — use a system font that carries the colour hand emoji.
-	var emoji := SystemFont.new()
-	emoji.font_names = PackedStringArray(
-		["Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji"]
-	)
-	emoji.allow_system_fallback = true
-	_hand.add_theme_font_override("font", emoji)
-	_hand.add_theme_font_size_override("font_size", 44)
-	_hand.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hand.visible = false
+	_hand = PointerPin.new()
 	root.add_child(_hand)
 
 	_mentor = MentorDialog.new()
