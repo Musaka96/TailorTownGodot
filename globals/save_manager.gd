@@ -10,11 +10,11 @@ extends Node
 ## player's hands. Stations serialise themselves (save_state/load_state) via
 ## SaveCodec, so this manager just orchestrates.
 ##
-## Flow: the main menu calls new_game() or load_from(slot); either resets/queues
-## state and swaps to main.tscn behind a LoadingCurtain. main.gd then calls
-## notify_game_ready(), where a queued load is applied to the freshly built scene, the
-## shop is given a moment to settle behind the curtain, and only then is it revealed and
-## the day (or the tutorial offer) begun.
+## Flow: the main menu calls new_game() or load_from(slot); either queues state and draws
+## the LoadingCurtain across the menu before swapping to main.tscn behind it. main.gd then
+## calls notify_game_ready(), where a queued load is applied to the freshly built scene, the
+## shop is given a moment to settle behind the curtain, and only then does the curtain open
+## and the day (or the tutorial offer) begin.
 ## In-game the pause menu calls save_to(slot) / load_from(slot) / to_menu().
 
 const STARTER_ROLL := preload("res://entities/items/material_roll.tscn")
@@ -36,6 +36,9 @@ var _resume_progress := 0.0
 var _resume_day_money := 0
 ## Covers the screen from the scene swap until the fresh shop has settled.
 var _curtain: LoadingCurtain
+## True from the moment the curtain starts falling until the game scene is swapped in, so a
+## second click on the menu can't start two games at once.
+var _entering := false
 
 
 func _ready() -> void:
@@ -49,22 +52,23 @@ func _ready() -> void:
 
 ## Start a fresh shop: reset the autoloads to their opening state and load the game.
 func new_game() -> void:
-	_reset_autoloads()
+	if _entering:
+		return
 	_mode = "new"
 	_pending = {}
-	_cover()
-	_change_scene(MAIN_SCENE)
+	_enter_game(true)
 
 
 ## Queue slot `slot` and load the game; returns false if the slot is empty.
 func load_from(slot: Variant) -> bool:
+	if _entering:
+		return false
 	var data := _read(slot)
 	if data.is_empty():
 		return false
 	_pending = data
 	_mode = "load"
-	_cover()
-	_change_scene(MAIN_SCENE)
+	_enter_game(false)
 	return true
 
 
@@ -145,21 +149,28 @@ func notify_game_ready() -> void:
 			get_tree().paused = false
 
 
-## Raise the loading curtain over the screen (built on first use).
-func _cover() -> void:
+## Draw the curtain across the menu, then swap to the game behind it. Not awaited by the
+## callers — they hand over and the rest happens once the fabric has landed.
+func _enter_game(fresh: bool) -> void:
+	_entering = true
+	GameState.input_locked = true
 	if _curtain == null:
 		_curtain = LoadingCurtain.new()
 		add_child(_curtain)
-	_curtain.cover()
+	await _curtain.close()
+	if fresh:
+		_reset_autoloads()
+	_entering = false
+	_change_scene(MAIN_SCENE)
 
 
-## Let the freshly built shop draw itself into shape behind the curtain, then reveal it and
+## Let the freshly built shop draw itself into shape behind the curtain, then open it and
 ## hand control back. Without this the player watches the grade, the outlines and the scene
 ## lighting pop in one by one over the first seconds of the game.
 func _settle() -> void:
 	if _curtain != null:
 		await _curtain.warm_up(get_tree())
-		await _curtain.reveal()
+		await _curtain.open()
 	GameState.input_locked = false
 
 
