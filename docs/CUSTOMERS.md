@@ -27,12 +27,30 @@ the front desk watches **how busy you are** and paces arrivals to match.
 - **Swamped at opening:** 0 walk-ins.
 - **Arrival times:** spread over three windows (morning 5–30%, midday 40–55%, afternoon
   62–86% of the shift).
+- **The opening bell:** if the shop opens with an empty order book there is nothing to do
+  but wait, so the first walk-in is pulled forward to 1–5% of the shift instead of anywhere
+  in the morning window. That is what stops day one — especially after skipping the
+  tutorial — starting with a minute of empty shop.
 - **Holds:** no walk-in while the **Fully Booked** sign is up, while a greeting or fitting
   is on screen, for 6% of the shift after a suit is handed over, or while swamped.
 - **Safety net:** broke (< $150) with no open orders means a customer comes right away.
 - **Regulars** are 1.5× as likely on quiet days (load < 0.3).
 - **The rival's favour:** on a quiet afternoon, once a day, if you've referred someone to
   Pinch & Pleat, they send a customer back.
+
+## One at a time
+The shop serves exactly one customer from the greeting to the goodbye. While someone holds
+that slot — walking in, waiting to be greeted, on their way to the mirror, at it, or on
+their way back out — the front desk sends nobody else in, the tutorial won't poof anyone
+in, and the F3 debug "call a customer" does nothing. If a second customer ever does end up
+inside, `route_to_mirror` refuses them: they go back to waiting to be greeted rather than
+sharing the mirror. Returning customers collecting a finished order are separate — they
+wait by the door and never use the mirror.
+
+The `CustomerManager` runs two independent clocks: `arrival_interval` (3 s) asks the front
+desk whether a real customer is due, and `spawn_interval` (9 s) sends a pedestrian past the
+window. They are separate so street dressing hitting `max_alive` can never hold up a
+customer who is actually due.
 
 ## Due days you can meet
 `suggest_due_day(parts, rush)` works out how long the queue (backlog + this order) takes,
@@ -78,6 +96,7 @@ red / amber / green like the tickets) and booked fittings.
 | `RUSH_BONUS` | 0.3 |
 | `MAX_APPOINTMENTS_PER_DAY` | 2 |
 | `HONEST_REP` | 2 |
+| `OPENING_BELL` | 0.01 – 0.05 of the shift |
 
 ## Ideas not built yet
 - A visible door sign prop.

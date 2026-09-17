@@ -1,14 +1,16 @@
 extends SceneTree
 
 ## Headless test for the customer director (globals/front_desk.gd, docs/CUSTOMERS.md):
-## workload estimate, daily plan by stage, swamped / booked holds, realistic due days,
-## appointments, rival referrals, honest declines, picky payouts and the calendar.
+## workload estimate, daily plan by stage, the opening bell, swamped / booked holds,
+## realistic due days, appointments, rival referrals, honest declines, picky payouts, the
+## calendar, and the shop serving one customer at a time (entities/customer/*).
 ##   godot --headless --path . --script res://tools/test_front_desk.gd
 
 const SHIRT := 0
 const PANTS := 1
 const JACKET := 2
 const PREF_SCRIPT := "res://data/scripts/customer_preference.gd"
+const CUST_SCENE := "res://entities/customer/customer.tscn"
 
 var _failures: Array[String] = []
 var _desk: Node
@@ -42,6 +44,7 @@ func _run() -> void:
 	_holds()
 	_saying_no()
 	_picky()
+	await _one_at_a_time()
 	_finish()
 
 
@@ -57,6 +60,13 @@ func _workload() -> void:
 	_check(is_zero_approx(_desk.load_factor()), "an empty order book is idle")
 	_check(_desk.stage() == 0, "day 1 at tier 0 is the opening week")
 	_check(_desk.planned_walk_ins() == 1, "opening week plans one walk-in a day")
+	_desk.plan_day()
+	var first: float = _desk.get("_plan")[0]
+	var bell: Vector2 = _desk.OPENING_BELL
+	_check(
+		first >= bell.x and first <= bell.y,
+		"an empty book at opening rings the bell early (%.1f%% into the shift)" % (first * 100.0)
+	)
 	_orders.create_order("A", _suit(), 250, Color.WHITE)
 	_orders.create_order("B", _suit(), 250, Color.WHITE)
 	var lf: float = _desk.load_factor()
@@ -86,7 +96,7 @@ func _holds() -> void:
 	_check(_desk.next_arrival().is_empty(), "the Fully Booked sign holds walk-ins")
 	var pref = load(PREF_SCRIPT).new()
 	pref.display_name = "Ms. Booked"
-	var cust: Node = load("res://entities/customer/customer.tscn").instantiate()
+	var cust: Node = load(CUST_SCENE).instantiate()
 	root.add_child(cust)
 	cust.preference = pref
 	var day: int = _desk.book_appointment(cust)
@@ -110,7 +120,7 @@ func _holds() -> void:
 
 func _saying_no() -> void:
 	var rep: Node = root.get_node("Reputation")
-	var cust: Node = load("res://entities/customer/customer.tscn").instantiate()
+	var cust: Node = load(CUST_SCENE).instantiate()
 	root.add_child(cust)
 	var pref = load(PREF_SCRIPT).new()
 	pref.display_name = "Mr. Tight"
@@ -138,7 +148,46 @@ func _picky() -> void:
 	_check(order.payout() < 400, "a picky client pays less for 0.7 work (%d)" % order.payout())
 	order.filled.clear()
 	order.fill_part(JACKET, 1.0, 1.0)
-	_check(order.payout() == 600, "perfect work for a picky client: double tip (%d)" % order.payout())
+	_check(
+		order.payout() == 600, "perfect work for a picky client: double tip (%d)" % order.payout()
+	)
+
+
+## The shop serves one customer at a time: nobody new is let in, and the fitting mirror
+## can never be double-booked.
+func _one_at_a_time() -> void:
+	var mgr: Node = get_first_node_in_group("customer_manager")
+	if mgr == null:
+		_check(false, "main.tscn has a customer manager")
+		return
+	mgr.debug_clear_customers()
+	await process_frame
+	mgr.debug_call_shopper()
+	mgr.debug_call_shopper()
+	var shoppers: Array = _shoppers(mgr)
+	_check(shoppers.size() == 1, "a second shopper is never sent in while one is served")
+	if shoppers.is_empty():
+		return
+	var first: Node = shoppers[0]
+	first.offer_greeting()
+	first.begin_fitting()  # on their way to the mirror
+	var second: Node = load(CUST_SCENE).instantiate()
+	mgr.add_child(second)
+	second.manager = mgr
+	second.offer_greeting()
+	second.begin_fitting()
+	_check(mgr.get("_fitting") == first, "the mirror stays with whoever got there first")
+	_check(second.serving, "the turned-away customer goes back to waiting")
+	mgr.debug_clear_customers()
+
+
+## Every customer in the world carrying a brief (i.e. a shopper, not street dressing).
+func _shoppers(mgr: Node) -> Array:
+	var out: Array = []
+	for child in mgr.get_children():
+		if child.get("preference") != null:
+			out.append(child)
+	return out
 
 
 func _check(condition: bool, label: String) -> void:

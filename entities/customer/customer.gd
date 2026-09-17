@@ -44,6 +44,11 @@ var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
 var mirror: Node = null
 var manager: Node = null
+## True while this customer holds the shop's one service slot: from the greeting, through
+## the walk to the mirror and the fitting, until they head for the exit. Set by the manager
+## and read back by it, so two people can never be sent to the mirror at once. Collectors
+## coming back for a finished order never raise it — they don't use the mirror.
+var serving := false
 
 var _points: Array = []
 var _done: Callable = Callable()
@@ -110,8 +115,11 @@ func despawn() -> void:
 # --- Interaction mode ------------------------------------------------------
 
 
+## Wait to be greeted. Also how a customer goes back to waiting when the fitting mirror
+## turned out to be taken.
 func offer_greeting() -> void:
 	_mode = Mode.GREET
+	serving = true
 	_set_interactable(true)
 	if _rig != null:
 		_rig.wave()
@@ -236,6 +244,7 @@ func begin_fitting() -> void:
 func finish_and_leave(mood := "happy") -> void:
 	_set_interactable(false)
 	_mode = Mode.NONE
+	serving = false
 	if mirror != null and mirror.get("customer") == self:
 		mirror.set("customer", null)
 	if mood == "happy" and _rig != null and _rig.has_method("celebrate"):

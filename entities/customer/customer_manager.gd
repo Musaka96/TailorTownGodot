@@ -4,8 +4,8 @@ extends Node3D
 ## Spawns pedestrians on the street and turns some of them into shoppers. Owns the
 ## storefront geometry (door / greet / mirror / street-end markers) and routes a
 ## customer through the flow: enter → wait to be greeted → walk to the fitting
-## mirror → (design approved) → leave. Only one shopper is served at a time; extra
-## shoppers just walk past until the shop is free.
+## mirror → (design approved) → leave. Only one shopper is served at a time — nobody
+## new comes in, and nobody else can take the mirror, while someone holds that slot.
 
 const CUSTOMER_SCENE := preload("res://entities/customer/customer.tscn")
 ## Roughly one in five customers wears glasses, split between shades and readers.
@@ -20,7 +20,10 @@ const GLASSES_CHANCE := 0.2
 @export var street_east_path: NodePath
 ## Seconds between pedestrian spawns.
 @export var spawn_interval: float = 9.0
-## Chance a spawned pedestrian is a shopper (only enters if the shop is free).
+## Seconds between front-desk checks for a real customer. Kept short and separate from the
+## pedestrian cadence so a due arrival is never held up by street dressing.
+@export var arrival_interval: float = 3.0
+## Chance a pedestrian walks by on a given spawn tick.
 @export var shopper_chance: float = 0.5
 ## Cap on simultaneous customers in the world (keeps the street from clogging).
 @export var max_alive: int = 6
@@ -37,6 +40,8 @@ var _door_out := Vector3.ZERO
 var _street_west := Vector3.ZERO
 var _street_east := Vector3.ZERO
 var _served: Customer = null
+## The customer who has the fitting mirror (walking to it or standing at it).
+var _fitting: Customer = null
 var _alive := 0
 var _rng := RandomNumberGenerator.new()
 
@@ -59,41 +64,75 @@ func _start() -> void:
 	_street_west = _pos(street_west_path)
 	_street_east = _pos(street_east_path)
 
+	_add_timer(spawn_interval, _stroll_tick)
+	_add_timer(arrival_interval, _arrival_tick)
+
+
+func _add_timer(seconds: float, tick: Callable) -> void:
 	var timer := Timer.new()
-	timer.wait_time = spawn_interval
+	timer.wait_time = maxf(seconds, 0.05)
 	timer.autostart = true
 	add_child(timer)
-	timer.timeout.connect(_spawn_tick)
+	timer.timeout.connect(tick)
 
 
 # --- Spawning --------------------------------------------------------------
 
 
-func _spawn_tick() -> void:
-	# During the tutorial the day hasn't started — no street traffic (the only customer is
-	# the one the tutorial poofs in for the fitting step).
-	if Tutorial != null and Tutorial.is_active():
+## The front desk decides when a shopper actually comes in (docs/CUSTOMERS.md).
+func _arrival_tick() -> void:
+	if not _spawns_allowed() or busy():
 		return
-	# Labour laws: once the shift's over, no new shoppers wander in.
-	if Shift != null and not Shift.is_open():
+	var arrival: Dictionary = FrontDesk.next_arrival()
+	if not arrival.is_empty():
+		_send_shopper(_street_end(), arrival)
+
+
+## Street dressing: someone strolls past the window and off the far end.
+func _stroll_tick() -> void:
+	if not _spawns_allowed() or _alive >= max_alive:
 		return
-	if _alive >= max_alive:
+	if _rng.randf() >= shopper_chance:
 		return
 	var from_west := _rng.randf() < 0.5
 	var start := _street_west if from_west else _street_east
 	var far_end := _street_east if from_west else _street_west
-	# The front desk decides when a shopper actually comes in (docs/CUSTOMERS.md).
-	var arrival: Dictionary = FrontDesk.next_arrival() if _served == null else {}
-	if not arrival.is_empty():
-		_send_shopper(start, arrival)
-	elif _rng.randf() < shopper_chance:
-		var walker := _spawn(start, false)
-		walker.walk([far_end], walker.despawn)
+	var walker := _spawn(start, false)
+	walker.walk([far_end], walker.despawn)
+
+
+func _spawns_allowed() -> bool:
+	# During the tutorial the day hasn't started — no street traffic (the only customer is
+	# the one the tutorial poofs in for the fitting step).
+	if Tutorial != null and Tutorial.is_active():
+		return false
+	# Labour laws: once the shift's over, no new shoppers wander in.
+	return Shift == null or Shift.is_open()
+
+
+## Someone already has the shop's one service slot: on their way in, waiting to be greeted,
+## at the mirror, or on their way back out. `_served` is the fast path; the sweep re-adopts
+## a customer the manager somehow lost track of, so it can never end up serving two at once.
+func busy() -> bool:
+	if _served != null and is_instance_valid(_served):
+		return true
+	_served = null
+	for child in get_children():
+		var cust := child as Customer
+		if cust != null and cust.serving:
+			_served = cust
+			return true
+	return false
+
+
+## One end of the street or the other, for someone arriving or heading home.
+func _street_end() -> Vector3:
+	return _street_west if _rng.randf() < 0.5 else _street_east
 
 
 ## Poof a customer into the shop at the greet spot for the tutorial fitting step.
 func spawn_tutorial_customer() -> void:
-	if _served != null or _greet == Vector3.ZERO:
+	if busy() or _greet == Vector3.ZERO:
 		return
 	var cust := _spawn(_greet, true)
 	# The tutorial teaches a fixed, premade brief so it can spell out exactly what to make.
@@ -162,12 +201,13 @@ func _send_shopper(start: Vector3, arrival := {}) -> void:
 # --- Debug hooks (used by the F3 debug menu) -------------------------------
 
 
-## Force a shopper to walk in now, regardless of the spawn chance or shop state.
+## Force a shopper to walk in now, regardless of the front desk's plan or the shop hours.
+## Still one at a time — calling a second one in would leave two customers competing for
+## the fitting mirror.
 func debug_call_shopper() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or busy():
 		return
-	var start := _street_west if _rng.randf() < 0.5 else _street_east
-	_send_shopper(start)
+	_send_shopper(_street_end())
 
 
 ## Remove every customer currently in the world.
@@ -185,8 +225,7 @@ func debug_clear_customers() -> void:
 func _on_order_due(order: SuitOrder) -> void:
 	if not is_inside_tree() or _door_in == Vector3.ZERO:
 		return
-	var start := _street_west if _rng.randf() < 0.5 else _street_east
-	var cust := _spawn(start, false)
+	var cust := _spawn(_street_end(), false)
 	cust.collect_order = order
 	var known: Dictionary = Clientele.look(order.customer_name) if Clientele != null else {}
 	if known.is_empty():
@@ -330,7 +369,27 @@ func _dress(cust: Customer) -> void:
 
 
 func route_to_mirror(cust: Customer) -> void:
+	var taken := _at_mirror()
+	if taken != null and taken != cust:
+		# One fitting at a time: they go back to waiting, still greetable, until it frees up.
+		cust.offer_greeting()
+		UI.toast("%s waits — the fitting mirror is taken." % _name_of(cust))
+		return
+	_fitting = cust
 	cust.walk([_mirror_spot], func() -> void: _on_seated(cust), _mirror_spot_yaw)
+
+
+## Whoever holds the mirror right now, or null once they have left for the exit.
+func _at_mirror() -> Customer:
+	var held := _fitting != null and is_instance_valid(_fitting) and _fitting.serving
+	if not held:
+		_fitting = null
+	return _fitting
+
+
+func _name_of(cust: Customer) -> String:
+	var pref: CustomerPreference = cust.preference
+	return pref.display_name if pref != null else "The customer"
 
 
 func _on_seated(cust: Customer) -> void:
@@ -339,14 +398,15 @@ func _on_seated(cust: Customer) -> void:
 
 
 func dismiss(cust: Customer) -> void:
-	var exit := _street_west if _rng.randf() < 0.5 else _street_east
-	cust.walk([_door_in, _door_out, exit], cust.despawn)
+	cust.walk([_door_in, _door_out, _street_end()], cust.despawn)
 
 
 func _on_departed(cust: Node) -> void:
 	_alive = maxi(_alive - 1, 0)
 	if _served == cust:
 		_served = null
+	if _fitting == cust:
+		_fitting = null
 
 
 func _pos(path: NodePath) -> Vector3:

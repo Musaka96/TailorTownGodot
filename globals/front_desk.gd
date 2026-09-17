@@ -13,7 +13,7 @@ extends Node
 ## - Picks due days you can realistically meet.
 ## - Handles saying no: appointments ("come back on day X"), referrals to the rival
 ##   tailor, an honest "I can't make that yet", or a plain no.
-## The CustomerManager asks next_arrival() every spawn tick.
+## The CustomerManager asks next_arrival() on its arrival tick (every few seconds).
 
 signal changed
 
@@ -24,6 +24,9 @@ const PART_MINUTES := 1.4
 const BREATHER := 0.06
 ## Walk-in windows across the shift (fractions): morning, midday, afternoon.
 const WINDOWS := [Vector2(0.05, 0.3), Vector2(0.4, 0.55), Vector2(0.62, 0.86)]
+## When the shop opens with an empty order book there is nothing to do but wait, so the
+## first walk-in is pulled forward into this window instead of anywhere in the morning one.
+const OPENING_BELL := Vector2(0.01, 0.05)
 ## Load above which nobody new walks in (appointments still come).
 const SWAMPED := 1.0
 ## Wallet below which, with no open orders, a customer is guaranteed soon.
@@ -121,9 +124,18 @@ func plan_day() -> void:
 	for t in times:
 		if t > now:
 			_plan.append(t)
+	_ring_the_bell(now)
 	if event_rush_today() and UI != null:
 		UI.toast("The paper's buzzing about an event — expect extra customers today!")
 	changed.emit()
+
+
+## Nothing on the books at opening: bring the first walk-in forward so the player isn't
+## left standing in an empty shop (day one after skipping the tutorial, especially).
+func _ring_the_bell(now: float) -> void:
+	if _plan.is_empty() or now > WINDOWS[0].x or not Orders.active.is_empty():
+		return
+	_plan[0] = minf(_plan[0], _rng.randf_range(OPENING_BELL.x, OPENING_BELL.y))
 
 
 ## How many walk-ins today, by stage, workload and the paper's events.

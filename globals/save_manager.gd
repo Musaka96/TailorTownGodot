@@ -11,8 +11,10 @@ extends Node
 ## SaveCodec, so this manager just orchestrates.
 ##
 ## Flow: the main menu calls new_game() or load_from(slot); either resets/queues
-## state and swaps to main.tscn. main.gd then calls notify_game_ready(), where a
-## queued load is applied to the freshly built scene and the day's clock starts.
+## state and swaps to main.tscn behind a LoadingCurtain. main.gd then calls
+## notify_game_ready(), where a queued load is applied to the freshly built scene, the
+## shop is given a moment to settle behind the curtain, and only then is it revealed and
+## the day (or the tutorial offer) begun.
 ## In-game the pause menu calls save_to(slot) / load_from(slot) / to_menu().
 
 const STARTER_ROLL := preload("res://entities/items/material_roll.tscn")
@@ -32,6 +34,8 @@ var _pending: Dictionary = {}
 ## Where in the saved day to resume the clock (0..1); set while applying a load.
 var _resume_progress := 0.0
 var _resume_day_money := 0
+## Covers the screen from the scene swap until the fresh shop has settled.
+var _curtain: LoadingCurtain
 
 
 func _ready() -> void:
@@ -48,6 +52,7 @@ func new_game() -> void:
 	_reset_autoloads()
 	_mode = "new"
 	_pending = {}
+	_cover()
 	_change_scene(MAIN_SCENE)
 
 
@@ -58,6 +63,7 @@ func load_from(slot: Variant) -> bool:
 		return false
 	_pending = data
 	_mode = "load"
+	_cover()
 	_change_scene(MAIN_SCENE)
 	return true
 
@@ -111,6 +117,8 @@ func notify_game_ready() -> void:
 	_mode = ""
 	if UI != null:
 		UI.visible = true  # reveal the HUD/newspaper now that a game is running
+	if mode == "new" or mode == "load":
+		GameState.input_locked = true  # nobody wanders about behind the curtain
 	match mode:
 		"load":
 			await _apply_pending()
@@ -118,9 +126,11 @@ func notify_game_ready() -> void:
 			if Shift != null:
 				Shift.set_day_baseline(_resume_day_money)
 			get_tree().paused = false
+			await _settle()
 		"new":
 			await get_tree().process_frame
 			_give_starter_cloth(get_tree().current_scene)
+			await _settle()
 			if Tutorial != null:
 				# Freeze the shop (no day, no newspaper) until the tutorial is chosen/skipped.
 				get_tree().paused = true
@@ -133,6 +143,24 @@ func notify_game_ready() -> void:
 			if not DayNight.running:
 				DayNight.start_shift()
 			get_tree().paused = false
+
+
+## Raise the loading curtain over the screen (built on first use).
+func _cover() -> void:
+	if _curtain == null:
+		_curtain = LoadingCurtain.new()
+		add_child(_curtain)
+	_curtain.cover()
+
+
+## Let the freshly built shop draw itself into shape behind the curtain, then reveal it and
+## hand control back. Without this the player watches the grade, the outlines and the scene
+## lighting pop in one by one over the first seconds of the game.
+func _settle() -> void:
+	if _curtain != null:
+		await _curtain.warm_up(get_tree())
+		await _curtain.reveal()
+	GameState.input_locked = false
 
 
 ## A fresh shop opens with two bolts already shelved: a navy worsted suiting for jackets
