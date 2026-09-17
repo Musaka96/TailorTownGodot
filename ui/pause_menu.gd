@@ -7,6 +7,7 @@ extends Control
 
 var _box: VBoxContainer
 var _title: Label
+var _panel: PanelContainer
 var _sub := false  # true while a Save/Load slot list is showing (Esc goes back)
 
 
@@ -31,7 +32,8 @@ func _build() -> void:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(480, 0)
 	center.add_child(panel)
-	Style.apply_skin(panel, Style.MenuSkin.ORDER)
+	SignBoard.dress(panel)
+	_panel = panel
 
 	var margin := MarginContainer.new()
 	for side in ["left", "top", "right", "bottom"]:
@@ -42,7 +44,7 @@ func _build() -> void:
 	outer.add_theme_constant_override("separation", Style.S3)
 	margin.add_child(outer)
 
-	_title = Style.title_label("Paused", Style.BRASS)
+	_title = Style.title_label("Paused", Style.WALNUT)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(_title)
 
@@ -56,6 +58,7 @@ func _on_pause(paused: bool) -> void:
 	if paused:
 		set_process_unhandled_input(true)  # re-arm (a prior Load/Menu disabled it)
 		_show_main()
+		Craft.pop_in.call_deferred(_panel, 0.9, 0.3)
 
 
 func _unhandled_input(event: InputEvent) -> void:

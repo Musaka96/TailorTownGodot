@@ -23,7 +23,9 @@ func _ready() -> void:
 	# Stack tickets from the left (clearing the clock), not centred.
 	_row.anchor_left = 0.0
 	_row.anchor_right = 0.0
-	_row.offset_left = 124.0
+	_row.offset_left = 140.0
+	_row.offset_top = 30.0  # room for the strings the tickets hang from
+	_row.add_theme_constant_override("separation", Style.S3)
 	_row.grow_horizontal = Control.GROW_DIRECTION_END
 	_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	EventBus.order_created.connect(_on_created)
@@ -69,7 +71,9 @@ func _refresh(order) -> void:
 	var ticket = _tickets.get(order)
 	if ticket == null:
 		return
-	ticket["card"].add_theme_stylebox_override("panel", _ticket_style(order))
+	var card: CraftPanel = ticket["card"]
+	card.line = _state_color(order)
+	Craft.wiggle(card, 4.0, card.rotation_degrees)
 	_rebuild_chips(ticket)
 	_update_days(ticket)
 
@@ -78,9 +82,16 @@ func _refresh(order) -> void:
 
 
 func _make_ticket(order) -> Dictionary:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _ticket_style(order))
+	# A paper swing ticket hanging on a string; its edge colour shows the order state.
+	var card := CraftPanel.new()
+	card.eyelet = true
+	card.string_len = 34.0
+	card.pad = Vector2(7, 7)
+	card.setup(CraftPanel.Shape.TICKET, Style.CARD, _state_color(order))
+	card.stitch_color = Style.CREAM_DARK
+	card.line_width = 2.5
 	card.custom_minimum_size = Vector2(116, 0)
+	card.rotation_degrees = 2.0 if _row.get_child_count() % 2 == 0 else -2.0
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
 	card.add_child(box)
@@ -173,19 +184,6 @@ func _label(text: String, size: int, color: Color, align: int) -> Label:
 	return lbl
 
 
-func _ticket_style(order) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Style.CARD  # paper
-	sb.set_corner_radius_all(10)
-	sb.border_width_top = 6  # coloured ticket header strip: state at a glance
-	sb.border_color = _state_color(order)
-	sb.set_content_margin_all(7)
-	sb.shadow_color = Style.SHADOW
-	sb.shadow_size = 5
-	sb.shadow_offset = Vector2(0, 3)
-	return sb
-
-
 func _state_color(order) -> Color:
 	if order.state == SuitOrder.State.READY:
 		return Style.LEAF
@@ -201,7 +199,7 @@ func _state_color(order) -> Color:
 
 func _pop_in(ticket: Control) -> void:
 	ticket.modulate.a = 0.0
-	ticket.pivot_offset = Vector2(58, 50)
+	ticket.pivot_offset = Vector2(58, 0)
 	ticket.scale = Vector2(0.8, 0.8)
 	var tween := create_tween().set_parallel()
 	tween.tween_property(ticket, "modulate:a", 1.0, 0.2)

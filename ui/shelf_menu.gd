@@ -101,6 +101,13 @@ func _rebuild_list() -> void:
 		child.free()
 	_cards.clear()
 	var rolls: Array = _shelf.stored
+	if rolls.is_empty():
+		_list.add_child(
+			EmptyNote.make(
+				"This shelf is empty.\nOrder a bolt on the phone, then store it here (E).",
+				EmptyNote.Icon.BOLT
+			)
+		)
 	for i in rolls.size():
 		var card := _make_card(rolls[i], i == _index)
 		_list.add_child(card)

@@ -40,9 +40,7 @@ func _ready() -> void:
 	box.add_child(_subtitle)
 
 
-func play(
-	old_day: int, new_day: int, earned: int, on_switch: Callable, on_done: Callable
-) -> void:
+func play(old_day: int, new_day: int, earned: int, on_switch: Callable, on_done: Callable) -> void:
 	_on_switch = on_switch
 	_on_done = on_done
 	_title.text = "Day %d complete" % old_day

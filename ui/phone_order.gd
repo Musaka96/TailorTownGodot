@@ -310,12 +310,7 @@ func _tier_name(t: int) -> String:
 
 
 func _card_panel(selected: bool) -> PanelContainer:
-	var card := PanelContainer.new()
-	var skin := (
-		Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_ORDER) if selected else Style.card()
-	)
-	card.add_theme_stylebox_override("panel", skin)
-	return card
+	return CraftPanel.option(selected, Style.ACC_ORDER)
 
 
 func _make_hub_card(title: String, desc: String, selected: bool) -> Control:

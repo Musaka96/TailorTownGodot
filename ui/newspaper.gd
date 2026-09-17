@@ -15,7 +15,6 @@ const FONT := preload("res://assets/fonts/Fredoka.ttf")
 const GRAIN_SHADER := preload("res://assets/shaders/paper_grain.gdshader")
 const PAPER_W := 600.0
 const SIDE_W := 216.0
-const HINT_BG := Color(0.18, 0.13, 0.09, 0.82)
 
 var _dateline: Label
 var _folio: Label
@@ -185,13 +184,14 @@ func _build_side() -> Control:
 
 
 func _side_panel(parent: VBoxContainer, title: String, accent: Color) -> Label:
-	var box := PanelContainer.new()
+	# A kraft note pinned beside the paper, each at its own slight angle.
+	var box := CraftPanel.new()
+	box.pad = Vector2(Style.S3, Style.S3)
+	box.setup(CraftPanel.Shape.TICKET, Style.CORK)
+	box.stitch_color = Style.PAPER
+	box.pin_color = Style.BURGUNDY if parent.get_child_count() % 2 == 0 else Style.FOREST
 	box.custom_minimum_size = Vector2(SIDE_W, 0)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = HINT_BG
-	sb.set_corner_radius_all(12)
-	sb.set_content_margin_all(Style.S3)
-	box.add_theme_stylebox_override("panel", sb)
+	box.rotation_degrees = 1.5 if parent.get_child_count() % 2 == 0 else -1.5
 	parent.add_child(box)
 
 	var col := VBoxContainer.new()
@@ -201,42 +201,24 @@ func _side_panel(parent: VBoxContainer, title: String, accent: Color) -> Label:
 	head.text = title
 	head.add_theme_font_override("font", _font(0.4, 2))
 	head.add_theme_font_size_override("font_size", 12)
-	head.add_theme_color_override("font_color", accent)
+	head.add_theme_color_override("font_color", accent.darkened(0.35))
 	col.add_child(head)
 	var body := Label.new()
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", 14)
-	body.add_theme_color_override("font_color", Style.CHALK)
+	body.add_theme_color_override("font_color", Style.WALNUT)
 	col.add_child(body)
 	return body
 
 
-func _hint_panel() -> PanelContainer:
-	var wrap := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = HINT_BG
-	sb.set_corner_radius_all(12)
-	sb.set_content_margin_all(Style.S3)
-	wrap.add_theme_stylebox_override("panel", sb)
+func _hint_panel() -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", Style.S2)
-	wrap.add_child(col)
-	col.add_child(_hint_row("Esc", "Fold away"))
-	col.add_child(_hint_row("W / S", "Read on"))
-	return wrap
-
-
-func _hint_row(key: String, verb: String) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", Style.S2)
-	row.add_child(Style.keycap(key))
-	var lbl := Label.new()
-	lbl.text = verb
-	lbl.add_theme_font_size_override("font_size", 14)
-	lbl.add_theme_color_override("font_color", Style.CHALK)
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(lbl)
-	return row
+	for pair in [["Esc", "Fold away"], ["W / S", "Read on"]]:
+		var pill := Style.key_pill(pair[0], pair[1])
+		pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		col.add_child(pill)
+	return col
 
 
 # --- Small builders --------------------------------------------------------

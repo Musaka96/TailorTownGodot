@@ -77,7 +77,7 @@ func _build_preview() -> void:
 
 
 func _style() -> void:
-	_panel.custom_minimum_size = Vector2(600, 0)
+	_panel.custom_minimum_size = Vector2(700, 0)
 	Style.apply_skin(_panel, Style.MenuSkin.WORK)
 	_preview.add_theme_constant_override("separation", Style.S3)
 	_title.add_theme_font_override("font", Style.bold_font())
@@ -145,13 +145,7 @@ func _refresh() -> void:
 
 
 func _make_row(row: int, selected: bool) -> Control:
-	var card := PanelContainer.new()
-	if selected:
-		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_WORK)
-		)
-	else:
-		card.add_theme_stylebox_override("panel", Style.card())
+	var card := CraftPanel.option(selected, Style.ACC_WORK)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)

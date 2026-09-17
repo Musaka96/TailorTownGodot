@@ -14,7 +14,7 @@ extends Control
 ## back off the panel so the pattern + shapes reach the true panel edges.
 
 enum Pattern { NONE, PINSTRIPE, RULES, HERRINGBONE, GRID, DOTS, CORK }
-enum Shape { NONE, CLIP, BOOK, FOLD, PIN, TAPE }
+enum Shape { NONE, CLIP, BOOK, FOLD, PIN, TAPE, SPIRAL }
 
 const STITCH := 7.0  # dashed stitch line, in from the TRUE panel edge (margin band)
 const EDGE := 5.0  # shape accents sit this far from the true panel edge
@@ -209,6 +209,8 @@ func _draw_shape(panel: Rect2) -> void:
 			_shape_pin(panel)
 		Shape.TAPE:
 			_shape_tape(panel)
+		Shape.SPIRAL:
+			_shape_spiral(panel)
 		_:
 			pass
 
@@ -289,3 +291,19 @@ func _shape_tape(r: Rect2) -> void:
 		),
 		col
 	)
+
+
+## A notepad's spiral binding: wire loops along the top edge through punched holes.
+func _shape_spiral(r: Rect2) -> void:
+	var step := 26.0
+	var x := r.position.x + 30.0
+	while x < r.end.x - 24.0:
+		var hole := Vector2(x, r.position.y + 12.0)
+		draw_circle(hole, 4.0, Color(trim.r, trim.g, trim.b, 0.85))
+		draw_arc(
+			hole + Vector2(0, -6), 8.0, PI * 0.1, PI * 1.05, 10, Color(0.55, 0.55, 0.58), 3.0, true
+		)
+		draw_arc(
+			hole + Vector2(0, -6), 8.0, PI * 0.1, PI * 1.05, 10, Color(0.85, 0.85, 0.88), 1.2, true
+		)
+		x += step

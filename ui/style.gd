@@ -36,6 +36,7 @@ const AMBER := Color("e6a63c")  # warning
 const CLAY := Color("d76b5a")  # low / danger
 const SHADOW := Color(0, 0, 0, 0.28)
 const NONE := Color(0, 0, 0, 0)  # "no colour" (e.g. no pin / no stitch)
+const RIM_DARK := Color("8a6a2a")  # dark brass (chains, rims)
 const TAPE := Color("f2c94c")  # tape-measure yellow
 const PATCH := Color("3d6b4a")  # embroidered patch green
 
@@ -101,8 +102,9 @@ static func apply_skin(panel_node: PanelContainer, skin: int) -> AtelierFrame:
 	match skin:
 		MenuSkin.ORDER:
 			accent = BRASS
-			pat = AtelierFrame.Pattern.PINSTRIPE
-			shp = AtelierFrame.Shape.CLIP
+			pat = AtelierFrame.Pattern.RULES
+			shp = AtelierFrame.Shape.SPIRAL
+			radii = Vector4i(8, 8, 20, 20)
 		MenuSkin.BOOK:
 			paper = PAPER
 			accent = BURGUNDY
@@ -248,6 +250,7 @@ static func keycap(key: String) -> Control:
 static func hint_bar(pairs: Array) -> Control:
 	var wrap := PanelContainer.new()
 	wrap.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", S2)
 	row.add_theme_constant_override("v_separation", S1)

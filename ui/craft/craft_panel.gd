@@ -36,6 +36,21 @@ func _init() -> void:
 	resized.connect(queue_redraw)
 
 
+## A selectable option card used across the menus: plain cream label normally; when
+## selected it brightens, takes the menu's `accent` outline and a matching stitch, and
+## gives a small wiggle.
+static func option(selected: bool, accent: Color) -> CraftPanel:
+	var card := CraftPanel.new()
+	card.pad = Vector2(Style.S3, Style.S2)
+	card.setup(Shape.ROUNDED, Style.CARD_SELECTED if selected else Style.CARD)
+	card.line = accent if selected else Style.CREAM_DARK
+	card.line_width = 3.0 if selected else 1.5
+	card.stitch_color = accent if selected else Style.NONE
+	if selected:
+		card.ready.connect(func() -> void: Craft.wiggle(card, 1.2), CONNECT_ONE_SHOT)
+	return card
+
+
 ## Configure in one call; returns self for chaining.
 func setup(shape_val: int, fill_col: Color, line_col: Color = Style.WALNUT) -> CraftPanel:
 	shape = shape_val

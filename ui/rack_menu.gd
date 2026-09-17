@@ -86,6 +86,12 @@ func _rebuild_list() -> void:
 		child.free()
 	_cards.clear()
 	var items: Array = _rack.stored
+	if items.is_empty():
+		_list.add_child(
+			EmptyNote.make(
+				"Nothing hanging yet.\nSewn parts and finished suits hang here for pickup."
+			)
+		)
 	for i in items.size():
 		var card := _make_card(items[i], i == _index)
 		_list.add_child(card)
@@ -95,23 +101,31 @@ func _rebuild_list() -> void:
 
 func _highlight(old: int) -> void:
 	if old >= 0 and old < _cards.size():
-		_cards[old].add_theme_stylebox_override("panel", Style.card())
+		_tag_look(_cards[old], false)
 	if _index < 0 or _index >= _cards.size():
 		return
-	var card: Control = _cards[_index]
-	card.add_theme_stylebox_override("panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_MIRROR))
+	var card: CraftPanel = _cards[_index]
+	_tag_look(card, true)
+	if old != _index:
+		Craft.wiggle(card, 2.0)
 	if _scroll != null:
 		_scroll.ensure_control_visible(card)
 
 
+## Hung items read as price tags on the rail; the selected one is brass-edged.
+func _tag_look(card: CraftPanel, selected: bool) -> void:
+	card.fill = Style.CARD_SELECTED if selected else Style.CARD
+	card.line = Style.ACC_MIRROR if selected else Style.CREAM_DARK
+	card.line_width = 3.0 if selected else 1.5
+	card.stitch_color = Style.CREAM_DARK
+	card.queue_redraw()
+
+
 func _make_card(item, selected: bool) -> Control:
-	var card := PanelContainer.new()
-	if selected:
-		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 14, 3, Style.ACC_MIRROR)
-		)
-	else:
-		card.add_theme_stylebox_override("panel", Style.card())
+	var card := CraftPanel.new()
+	card.eyelet = true
+	card.setup(CraftPanel.Shape.PRICE_TAG, Style.CARD)
+	_tag_look(card, selected)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S3)

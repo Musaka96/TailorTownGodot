@@ -268,9 +268,7 @@ func _build_chrome() -> void:
 	_status_lbl.add_theme_font_size_override("font_size", 16)
 	box.add_child(_status_lbl)
 
-	box.add_child(
-		Style.hint_bar([["E / Space", "Stitch"], ["Shift", "Speed up (riskier)"]])
-	)
+	box.add_child(Style.hint_bar([["E / Space", "Stitch"], ["Shift", "Speed up (riskier)"]]))
 
 
 func _refresh_pips() -> void:

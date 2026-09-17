@@ -105,7 +105,7 @@ func _refresh() -> void:
 	if orders.is_empty():
 		_list.add_child(_line("No open orders.", 16, Style.INK_SOFT))
 	for i in orders.size():
-		_list.add_child(_make_list_card(orders[i], i == _sel))
+		_list.add_child(_make_list_card(orders[i], i == _sel, i))
 
 	for child in _detail.get_children():
 		child.queue_free()
@@ -120,14 +120,18 @@ func _refresh() -> void:
 # --- Left page: the order list ---------------------------------------------
 
 
-func _make_list_card(order, selected: bool) -> Control:
-	var card := PanelContainer.new()
-	if selected:
-		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.ACC_ORDERS)
-		)
-	else:
-		card.add_theme_stylebox_override("panel", Style.card())
+## An order as a paper ticket pinned to the cork board, each hung at its own slight
+## angle; the selected one is brighter, burgundy-edged and held by a brass pin.
+func _make_list_card(order, selected: bool, index: int) -> Control:
+	var card := CraftPanel.new()
+	card.pad = Vector2(Style.S3, Style.S2)
+	card.setup(CraftPanel.Shape.TICKET, Style.CARD_SELECTED if selected else Style.CARD)
+	card.line = Style.ACC_ORDERS if selected else Style.BROWN
+	card.line_width = 3.0 if selected else 1.5
+	card.pin_color = Style.BRASS if selected else Style.BURGUNDY
+	card.pad = Vector2(Style.S3, Style.S2 + 8)
+	card.rotation_degrees = 1.2 if index % 2 == 0 else -1.2
+	card.resized.connect(func() -> void: card.pivot_offset = card.size * 0.5)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", Style.S1)
 	card.add_child(box)
@@ -163,8 +167,9 @@ func _fill_detail(order) -> void:
 
 
 func _piece_row(order, garment_type: int) -> Control:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", Style.card())
+	var card := CraftPanel.new()
+	card.setup(CraftPanel.Shape.PINKED, Style.CARD, Style.CREAM_DARK)
+	card.line_width = 1.5
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S2)
 	card.add_child(row)
@@ -183,10 +188,29 @@ func _piece_row(order, garment_type: int) -> Control:
 	text.add_child(_line(order.part_summary(garment_type), 14, Style.INK_SOFT))
 
 	var done: bool = order.is_part_done(garment_type)
-	var mark := _line("Done" if done else "To make", 15, Style.LEAF if done else Style.AMBER)
-	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(mark)
+	row.add_child(_stamp("DONE" if done else "TO MAKE", Style.FOREST if done else Style.AMBER))
 	return card
+
+
+## A rubber-stamp mark: bold caps in a rounded ink border, set at a jaunty angle.
+func _stamp(text: String, ink: Color) -> Control:
+	var box := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Style.NONE
+	sb.set_border_width_all(2)
+	sb.border_color = ink
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = Style.S2
+	sb.content_margin_right = Style.S2
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 1
+	box.add_theme_stylebox_override("panel", sb)
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.rotation_degrees = -8.0
+	var lbl := _line(text, 13, ink)
+	lbl.add_theme_font_override("font", Style.bold_font())
+	box.add_child(lbl)
+	return box
 
 
 # --- Bits ------------------------------------------------------------------

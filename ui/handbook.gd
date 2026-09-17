@@ -128,7 +128,7 @@ func _refresh() -> void:
 	for child in _tabs.get_children():
 		child.queue_free()
 	for i in _chapters.size():
-		_tabs.add_child(_make_card(_chapters[i]["name"], i == _chapter, 18))
+		_tabs.add_child(_make_tab(_chapters[i]["name"], i == _chapter))
 
 	var entries: Array = _chapters[_chapter]["entries"]
 	_topic = clampi(_topic, 0, entries.size() - 1)
@@ -190,13 +190,7 @@ func _make_preview(preview: Dictionary) -> Control:
 
 
 func _make_card(text: String, selected: bool, font_size: int) -> Control:
-	var card := PanelContainer.new()
-	if selected:
-		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 10, 3, Style.ACC_BOOK)
-		)
-	else:
-		card.add_theme_stylebox_override("panel", Style.card())
+	var card := CraftPanel.option(selected, Style.ACC_BOOK)
 	var label := Label.new()
 	label.text = text
 	if selected:
@@ -205,6 +199,23 @@ func _make_card(text: String, selected: bool, font_size: int) -> Control:
 	label.add_theme_color_override("font_color", Style.INK if selected else Style.INK_SOFT)
 	card.add_child(label)
 	return card
+
+
+## A chapter tab: the open chapter is a burgundy ribbon bookmark with chalk lettering.
+func _make_tab(text: String, selected: bool) -> Control:
+	if not selected:
+		return _make_card(text, false, 18)
+	var tab := CraftPanel.new()
+	tab.pad = Vector2(Style.S3, Style.S1 + 2)
+	tab.setup(CraftPanel.Shape.TICKET, Style.ACC_BOOK, Style.WALNUT)
+	tab.stitch_color = Style.PAPER
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_override("font", Style.bold_font())
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", Style.CHALK)
+	tab.add_child(label)
+	return tab
 
 
 func _unhandled_input(event: InputEvent) -> void:

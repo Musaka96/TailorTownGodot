@@ -370,13 +370,7 @@ func _rebuild_hint_bar() -> void:
 
 
 func _make_row(row: int, selected: bool) -> Control:
-	var card := PanelContainer.new()
-	if selected:
-		card.add_theme_stylebox_override(
-			"panel", Style.card(Style.CARD_SELECTED, 12, 3, Style.ACC_MIRROR)
-		)
-	else:
-		card.add_theme_stylebox_override("panel", Style.card())
+	var card := CraftPanel.option(selected, Style.ACC_MIRROR)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)

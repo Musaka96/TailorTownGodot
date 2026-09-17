@@ -33,6 +33,9 @@ func _ready() -> void:
 	_target = _view(VIEW_MAIN)
 	if _target != null:
 		_camera.global_transform = _target.global_transform
+	# The menu hangs like a shop sign on chains.
+	SignBoard.dress($MenuLayer/Root/Left)
+	_title.add_theme_color_override("font_color", Style.WALNUT)
 	_show_main()
 
 
@@ -142,6 +145,7 @@ func _clear() -> void:
 
 func _focus_first() -> void:
 	await get_tree().process_frame
+	Craft.pop_in($MenuLayer/Root/Left, 0.94, 0.3)
 	for child in _buttons.get_children():
 		if child is Button and child.visible and not child.disabled:
 			child.grab_focus()

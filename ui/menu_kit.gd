@@ -7,9 +7,9 @@ const BTN_WIDE := Vector2(340, 46)
 const SLOT_WIDE := Vector2(440, 52)
 
 
-## A styled atelier button. `cb` is connected to `pressed` when valid.
+## A sewn-label atelier button (CraftButton). `cb` is connected to `pressed` when valid.
 static func button(text: String, cb: Callable) -> Button:
-	var b := Button.new()
+	var b := CraftButton.new()
 	b.text = text
 	b.custom_minimum_size = BTN_WIDE
 	b.add_theme_font_override("font", Style.bold_font())
@@ -17,11 +17,6 @@ static func button(text: String, cb: Callable) -> Button:
 	for role in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(role, Style.INK)
 	b.add_theme_color_override("font_disabled_color", Style.INK_SOFT)
-	b.add_theme_stylebox_override("normal", _box(Style.CARD, Style.CREAM_DARK))
-	b.add_theme_stylebox_override("hover", _box(Style.CARD_SELECTED, Style.BRASS))
-	b.add_theme_stylebox_override("pressed", _box(Style.PAPER, Style.BRASS))
-	b.add_theme_stylebox_override("focus", _box(Style.CARD_SELECTED, Style.BRASS))
-	b.add_theme_stylebox_override("disabled", _box(Style.PAPER, Style.CREAM_DARK))
 	if cb.is_valid():
 		b.pressed.connect(cb)
 	return b
