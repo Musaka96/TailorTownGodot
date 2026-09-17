@@ -6,8 +6,6 @@ extends Control
 ## fire the done callback. Purely visual; ShiftManager supplies the callbacks.
 
 const BG := Color(0.05, 0.06, 0.12, 1.0)
-const TITLE_COL := Color(0.97, 0.93, 0.85)
-const SUB_COL := Color(0.75, 0.80, 0.95)
 
 var _title: Label
 var _subtitle: Label
@@ -29,14 +27,20 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 
+	# The day's summary hangs like the shop's sign on the night street.
+	var sign := PanelContainer.new()
+	sign.custom_minimum_size = Vector2(460, 0)
+	center.add_child(sign)
+	SignBoard.dress(sign)
+
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 10)
-	center.add_child(box)
+	sign.add_child(box)
 
-	_title = _make_label(52, TITLE_COL)
+	_title = _make_label(46, Style.WALNUT)
 	box.add_child(_title)
-	_subtitle = _make_label(22, SUB_COL)
+	_subtitle = _make_label(22, Style.FOREST)
 	box.add_child(_subtitle)
 
 
@@ -72,6 +76,7 @@ func _finish() -> void:
 func _make_label(font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", Style.bold_font())
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	return label

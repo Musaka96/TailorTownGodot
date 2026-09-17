@@ -5,7 +5,7 @@ class_name SettingsUI
 ## it drops a scroll area (the list can be tall with all the key bindings) filled with the
 ## rows. Each control applies live and persists via Settings; no Apply button needed.
 
-const SCROLL_HEIGHT := 452
+const SCROLL_HEIGHT := 360
 
 
 static func build(box: VBoxContainer) -> void:
@@ -13,6 +13,7 @@ static func build(box: VBoxContainer) -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.custom_minimum_size = Vector2(0, SCROLL_HEIGHT)
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.theme = Style.form_theme()
 	box.add_child(scroll)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL

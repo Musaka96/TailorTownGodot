@@ -261,6 +261,53 @@ static func hint_bar(pairs: Array) -> Control:
 	return wrap
 
 
+## A theme for form controls (buttons, dropdowns, sliders, toggles) so settings-style
+## screens match the atelier paper instead of Godot's default dark grey.
+static func form_theme() -> Theme:
+	var t := Theme.new()
+	var normal := _form_box(CARD, CREAM_DARK)
+	var hover := _form_box(CARD_SELECTED, BRASS)
+	for cls in ["Button", "OptionButton"]:
+		t.set_stylebox("normal", cls, normal)
+		t.set_stylebox("hover", cls, hover)
+		t.set_stylebox("focus", cls, _form_box(NONE, BRASS))
+		t.set_stylebox("pressed", cls, _form_box(BRASS, WALNUT))
+		t.set_stylebox("disabled", cls, _form_box(PAPER, CREAM_DARK))
+		for role in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
+			t.set_color(role, cls, INK)
+	var popup := _form_box(CREAM, BRASS)
+	t.set_stylebox("panel", "PopupMenu", popup)
+	t.set_stylebox("hover", "PopupMenu", _form_box(BRASS, BRASS))
+	t.set_color("font_color", "PopupMenu", INK)
+	t.set_color("font_hover_color", "PopupMenu", WALNUT)
+	var track := StyleBoxFlat.new()
+	track.bg_color = CREAM_DARK
+	track.set_corner_radius_all(4)
+	track.content_margin_top = 3
+	track.content_margin_bottom = 3
+	var fill := track.duplicate() as StyleBoxFlat
+	fill.bg_color = BRASS
+	t.set_stylebox("slider", "HSlider", track)
+	t.set_stylebox("grabber_area", "HSlider", fill)
+	t.set_stylebox("grabber_area_highlight", "HSlider", fill)
+	for cls in ["Label", "CheckButton"]:
+		t.set_color("font_color", cls, INK)
+	return t
+
+
+static func _form_box(bg: Color, border: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.set_corner_radius_all(8)
+	sb.set_border_width_all(2)
+	sb.border_color = border
+	sb.content_margin_left = S2
+	sb.content_margin_right = S2
+	sb.content_margin_top = S1
+	sb.content_margin_bottom = S1
+	return sb
+
+
 ## One brass pill: a walnut key-cap and a short verb.
 static func key_pill(key: String, verb: String) -> Control:
 	var pill := PanelContainer.new()
