@@ -177,6 +177,28 @@ func _build_decor_once() -> void:
 	box.add_child(_hint_bar)
 
 
+# --- Tutorial hooks ----------------------------------------------------------
+
+
+## The part-by-part design being edited (GarmentType -> {fabric, color, pattern, ...}).
+func current_design() -> Dictionary:
+	return _design
+
+
+## Screen areas the tutorial must keep clear: the customer, framed between the strip the
+## tutorial reserves on the left and the panel.
+func tutorial_busy_rects() -> Array[Rect2]:
+	var vp := get_viewport_rect().size
+	var left := _left_reserve()
+	return [Rect2(left, 0, _panel.get_global_rect().position.x - left, vp.y)]
+
+
+## Width kept free at the left edge (the tutorial's goal tag), so the customer is centred
+## in the space that is actually visible.
+func _left_reserve() -> float:
+	return Tutorial.side_reserve() if Tutorial != null else 0.0
+
+
 # --- State -----------------------------------------------------------------
 
 
@@ -261,9 +283,11 @@ func _frame_pose(cam: Camera3D, subject: Vector3, front: Vector3, span: float) -
 	var tan_half := tan(deg_to_rad(cam.fov) * 0.5)
 	var tan_v := tan_half if cam.keep_aspect == Camera3D.KEEP_HEIGHT else tan_half / aspect
 	var tan_h := tan_v * aspect
-	# Free area is [0, panel_left]; its centre in NDC x is panel_left_frac - 1.
-	var free := clampf(_panel.get_global_rect().position.x / maxf(vp.x, 1.0), 0.3, 1.0)
-	var ndc := Vector2(free - 1.0, 0.0)
+	# Free area is [left reserve, panel_left]; its centre in NDC x is left + right - 1
+	# (both as fractions of the width).
+	var right := clampf(_panel.get_global_rect().position.x / maxf(vp.x, 1.0), 0.3, 1.0)
+	var left := clampf(_left_reserve() / maxf(vp.x, 1.0), 0.0, right - 0.2)
+	var ndc := Vector2(left + right - 1.0, 0.0)
 	var pitch := deg_to_rad(PITCH_DEG)
 	var dir := (-front * cos(pitch) + Vector3.DOWN * sin(pitch)).normalized()
 	var basis := Basis.looking_at(dir, Vector3.UP)

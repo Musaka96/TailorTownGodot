@@ -1,89 +1,180 @@
 extends Node
 
-## Autoloaded as "Tutorial". A guided first-run walkthrough: on a NEW game the player is
-## offered the tutorial; if they accept, it steps them through ordering cloth, the make
-## pipeline (shelf → worktable → sewing → rack), a customer fitting, and a wrap-up on orders,
-## reputation, the handbook and upgrades. Each step shows an instruction bubble and a cute
-## hand pointer aimed at the relevant station (projected from 3D) or UI, and completes when
-## the matching gameplay event fires. It watches EventBus, so it needs no hooks in stations.
+## Autoloaded as "Tutorial". A guided first-run walkthrough: on a NEW game the mentor
+## (Mr. Hemming, a MentorDialog) offers a tour; if accepted it steps the player through
+## ordering cloth, the make pipeline (shelf → worktable → sewing → rack), a customer
+## fitting, and a wrap-up on orders, reputation and the handbook.
+##
+## Two voices:
+## - the MENTOR gives the welcome, general know-how and the longer "why" explanations
+##   (typed out, with a talking portrait) — the game pauses while he speaks;
+## - the GOAL TAG (a swing-ticket checklist, GoalTag) carries each concrete step, ticking
+##   its lines live, and sits clear of whatever menu is open. Inside menus a COACH MARK
+##   points at the key to press; out in the shop a bobbing hand points at the station.
+## Steps complete on EventBus signals, so stations need no tutorial hooks.
 
 ## Point the hand at roughly the upper body of a station (metres above its origin).
 const POINT_Y := 1.0
 const HAND := "👆"
+const EDGE := 20.0  # margin between the tag and the screen edge / other UI
+const DONE_HOLD := 0.8  # seconds a finished checklist stays up before the next step
 
-## The tutorial customer's fixed, premade brief — the archetypal navy business suit, so a
-## first-timer (who hasn't read the handbook) is walked through a real, sensible combination:
-## a matched jacket + trousers plus a light shirt.
+## The tutorial customer's fixed, premade brief — the archetypal business suit, so a
+## first-timer is walked through a real, sensible combination.
 const TUT_OCCASION := Enums.Occasion.BUSINESS
 const TUT_STYLE := Enums.Style.CLASSIC
 const TUT_BUDGET := 1000
 
-const T_ORDER := (
-	"Welcome to the shop! Let's make your first suit.\n\nGo to the PHONE and order a bolt of "
-	+ "cloth: Order Textiles, call a supplier, pick a fabric, then Order."
+# --- Mentor lines ------------------------------------------------------------
+
+const M_PROMPT := (
+	"Ah, a new face on the Row! I'm [b]Mr. Hemming[/b] — forty years behind the shears. "
+	+ "Shall I show you how a proper tailor's shop runs?"
 )
-const T_STORE := (
-	"Your bolt was delivered by the phone. Pick it up with E, carry it to a SHELF and press "
-	+ "E to store it."
+const M_ORDER := (
+	"Splendid. Every suit begins with cloth, and cloth begins with the [b]telephone[/b]. "
+	+ "Ring a supplier and have a bolt sent round — any fabric you fancy, for now."
 )
-const T_CUTBOLT := (
-	"Empty-handed at the shelf, press E to browse it. Use A/D to set the length, then press "
-	+ "F to CUT a piece of fabric off the bolt."
+const M_MAKE := (
+	"A suit is built in pieces. You [b]cut a length[/b] off the bolt, [b]shape it[/b] at the "
+	+ "worktable, then [b]stitch it[/b] at the sewing machine. Measure twice, cut once!"
 )
-const T_WORKTABLE := (
-	"Carry the fabric to the WORKTABLE. Configure the part and cut it in the mini-game to "
-	+ "shape a garment piece."
+const M_GREET := (
+	"Ah, the bell! Your first customer. Folk walk in with a brief in mind. "
+	+ "Greet them kindly and show them to the [b]fitting mirror[/b]."
 )
-const T_SEW := "Take the cut piece to the SEWING MACHINE and sew it together in the mini-game."
-const T_HANG := (
-	"Great work! Hang the finished piece on the CLOTHING RACK to store it " + "until it's needed."
+const M_CODE_1 := (
+	"Now, the heart of the trade. Every customer has an [b]occasion[/b] — business, a party, "
+	+ "a wedding — and a [b]style[/b], classic or otherwise. Together they make a "
+	+ "[b]dress code[/b]."
 )
-const T_GREET := (
-	"A customer will walk in. Walk up to them, greet them (E) and seat them at the MIRROR "
-	+ "for a fitting."
+const M_CODE_2 := (
+	"The code says which [b]cloths[/b], [b]colours[/b] and [b]patterns[/b] are proper. "
+	+ "A %s suit wants sober colours and a cloth that works hard; a quiet pinstripe is "
+	+ "quite at home. Loud checks at a board meeting? Never."
 )
-const T_ORDERS := (
-	"Order placed! The customer leaves and returns to collect once every part is made. "
-	+ "Parts you hang on the rack are matched to open orders automatically, paid on collection."
+const M_CODE_3 := (
+	"Two golden rules: [b]match the trousers to the jacket[/b], and keep the [b]shirt "
+	+ "light[/b]. The panel flags what suits the brief, and the [b]Handbook[/b] on the "
+	+ "bookshelf lists every code."
 )
-const T_REP := (
-	"Fulfilling orders well raises your REPUTATION (the stars, top-left). Higher reputation "
-	+ "unlocks premium textile suppliers and new shop upgrades on the phone."
+const M_ORDERS := (
+	"Order taken! The customer pops out and comes back to [b]collect[/b] once every part "
+	+ "is made. Anything you hang on the rack is matched to open orders by itself, and "
+	+ "you're paid on collection."
 )
-const T_HANDBOOK := (
-	"Last thing: the HANDBOOK on the bookshelf explains dress codes and styles, and the "
-	+ "phone's Shop Upgrades buy faster tools and more storage. That's it — enjoy the shop!"
+const M_REP := (
+	"Do the work well and your [b]reputation[/b] grows — those stars, top left. A good "
+	+ "name opens doors: [b]premium suppliers[/b] and new [b]shop upgrades[/b] on the phone."
 )
-const T_DESIGN := (
-	"Match the OCCASION and STYLE — pick the right fabric, colour, pattern and cut for each "
-	+ "part (the panel flags what fits), then confirm with E."
-)
-const T_PROMPT := (
-	"New here? Take a quick guided tour of the shop — order cloth, make a suit, and serve "
-	+ "your first customer."
+const M_BYE := (
+	"That's the lot. Read the [b]Handbook[/b] when you're unsure, and treat yourself to "
+	+ "an upgrade when the till allows. The shop is yours — make the Row proud!"
 )
 
-# Each step: text; `point` = a node name in the current scene to aim the hand at ("" = none);
-# `event` = the EventBus signal that completes it ("" = an info step advanced with Next);
-# `match` = for item_stored, the station node-name prefix that counts.
+# Each step:
+#   id; `event` = the EventBus signal that completes it ("" = a mentor-only talk step);
+#   `point` = node name to aim the hand at; `match` = item_stored station prefix;
+#   `mentor` = lines the mentor says first; `goal` + `checks` = the tag. A check is
+#   [text, condition, key, tip]: `condition` ticks it live ("" = only on completion),
+#   `key`/`tip` = the coach mark shown while it is the next unticked line.
 const STEPS := [
-	{"id": "order", "text": T_ORDER, "point": "Phone", "event": "order_placed"},
-	{"id": "store", "text": T_STORE, "point": "Shelf", "event": "item_stored", "match": "Shelf"},
-	{"id": "cut_bolt", "text": T_CUTBOLT, "point": "Shelf", "event": "cloth_cut"},
-	{"id": "worktable", "text": T_WORKTABLE, "point": "Worktable", "event": "piece_cut"},
-	{"id": "sew", "text": T_SEW, "point": "SewingMachine", "event": "piece_sewn"},
+	{
+		"id": "order",
+		"event": "order_placed",
+		"point": "Phone",
+		"mentor": [M_ORDER],
+		"goal": "Order a bolt of cloth",
+		"checks":
+		[
+			["Open the phone (E)", "seen:phone_order", "", ""],
+			["Pick a supplier and fabric", "", "", ""],
+			["Place the order", "", "", ""],
+		],
+	},
+	{
+		"id": "store",
+		"event": "item_stored",
+		"match": "Shelf",
+		"point": "Shelf",
+		"goal": "Shelve the new bolt",
+		"checks":
+		[
+			["Pick up the bolt (E)", "holding:MaterialRoll", "", ""],
+			["Store it on a shelf (E)", "", "", ""],
+		],
+	},
+	{
+		"id": "cut_bolt",
+		"event": "cloth_cut",
+		"point": "Shelf",
+		"mentor": [M_MAKE],
+		"goal": "Cut a length of cloth",
+		"checks":
+		[
+			["Open the shelf empty-handed", "seen:shelf_menu", "", ""],
+			["Set the length", "adjusted", "A/D", "Set the length"],
+			["Cut it off the bolt", "", "F", "Cut!"],
+		],
+	},
+	{
+		"id": "worktable",
+		"event": "piece_cut",
+		"point": "Worktable",
+		"goal": "Shape it at the worktable",
+		"checks":
+		[
+			["Bring the cloth to the worktable", "seen:worktable_screen", "", ""],
+			["Choose the part, then start", "cutting", "E", "Start cutting"],
+			["Cut along the dashed line", "", "WASD", "Steer the scissors"],
+		],
+	},
+	{
+		"id": "sew",
+		"event": "piece_sewn",
+		"point": "SewingMachine",
+		"goal": "Sew the piece",
+		"checks":
+		[
+			["Take it to the sewing machine", "seen:sewing_screen", "", ""],
+			["Stitch on every ring", "", "E / Space", "Stitch on the rings"],
+		],
+	},
 	{
 		"id": "hang",
-		"text": T_HANG,
-		"point": "ClothingRack",
 		"event": "item_stored",
 		"match": "ClothingRack",
+		"point": "ClothingRack",
+		"goal": "Hang up the finished part",
+		"checks":
+		[
+			["Pick up the finished part", "holding:GarmentPiece", "", ""],
+			["Hang it on the clothing rack (E)", "", "", ""],
+		],
 	},
-	{"id": "greet", "text": T_GREET, "point": "", "event": "customer_seated", "customer": true},
-	{"id": "design", "text": "", "point": "Mirror", "event": "design_confirmed"},
-	{"id": "orders", "text": T_ORDERS, "point": "", "event": ""},
-	{"id": "reputation", "text": T_REP, "point": "", "event": ""},
-	{"id": "handbook", "text": T_HANDBOOK, "point": "Bookshelf", "event": ""},
+	{
+		"id": "greet",
+		"event": "customer_seated",
+		"customer": true,
+		"mentor": [M_GREET],
+		"goal": "Serve your first customer",
+		"checks":
+		[
+			["Greet them (E)", "seen:customer_request", "", ""],
+			["Send them to the mirror", "", "E", "Send to the mirror"],
+		],
+	},
+	{
+		"id": "design",
+		"event": "design_confirmed",
+		"point": "Mirror",
+		"mentor": [M_CODE_1, M_CODE_2, M_CODE_3],
+		"goal": "",  # filled from the brief (see _goal_text)
+		"checks": [],  # filled from the recipe (see _design_checks)
+	},
+	{"id": "orders", "event": "", "mentor": [M_ORDERS]},
+	{"id": "reputation", "event": "", "mentor": [M_REP]},
+	{"id": "handbook", "event": "", "point": "Bookshelf", "mentor": [M_BYE]},
 ]
 
 # Station node-name prefixes gated during a make step (only the step's own is usable).
@@ -98,26 +189,41 @@ const STATIONS := [
 	"Mannequin",
 	"TrashCan",
 ]
+# Station menus (UI members) the tutorial watches, for "seen:" checks and tag avoidance.
+const MENUS := [
+	"phone_order",
+	"worktable_screen",
+	"sewing_screen",
+	"suit_builder",
+	"shelf_menu",
+	"customer_request",
+	"handbook",
+	"rack_menu",
+	"orders_menu",
+]
 
 var _active := false
 var _step := 0
 var _customer: Node = null
 var _time := 0.0
 var _on_choose := Callable()
+var _flags := {}  # condition flags raised during the current step (seen:*, adjusted)
+var _done_left := 0.0  # > 0 while a finished checklist lingers before advancing
+var _talking := false
+var _mentor_was_paused := false
+var _pending: Dictionary = {}  # a mentor speech waiting for open menus to close
 
-## The premade suit the tutorial customer wants — all three parts the same simple cloth,
-## computed once at start so the order + design steps can spell out exactly what to make.
+## The premade suit the tutorial customer wants (GarmentType -> cloth dict), computed at
+## start so the design step can spell out exactly what to make.
 var _recipe: Dictionary = {}
 ## The bolt delivered by the phone this run, so the store step can point right at it.
 var _delivered_roll: Node = null
 
 var _layer: CanvasLayer
-var _bubble: PanelContainer
-var _bubble_docked := false
-var _text: Label
+var _mentor: MentorDialog
+var _tag: GoalTag
+var _coach: CoachMark
 var _hand: Label
-var _next: Button
-var _skip: Button
 
 
 func _ready() -> void:
@@ -133,18 +239,26 @@ func _ready() -> void:
 	EventBus.order_delivered.connect(func(roll): _delivered_roll = roll)
 
 
-## Offer the tutorial (called on a new game). Shows a yes/no prompt; `on_choose` runs once
-## the player picks either way (so the caller can start the day only after the choice).
+## Offer the tutorial (called on a new game): the mentor asks yes/no. `on_choose` runs
+## once the player picks either way (so the caller can start the day only after it).
 func offer(on_choose := Callable()) -> void:
 	if _active:
 		return
 	_on_choose = on_choose
 	_build()
-	_show_prompt()
+	_speak(PackedStringArray([M_PROMPT]), _on_prompt_answer, "Yes, show me", "No thanks")
 
 
 func is_active() -> bool:
 	return _active
+
+
+## Screen width a menu should leave free at its left edge for the goal tag (0 when the
+## tag isn't up). The suit builder frames the customer to the right of it.
+func side_reserve() -> float:
+	if not _active or _tag == null or not _tag.visible:
+		return 0.0
+	return GoalTag.WIDTH + EDGE * 2.0
 
 
 ## True while a make step is running and `target` is a DIFFERENT station than this step's —
@@ -154,7 +268,7 @@ func blocks(target: Node) -> bool:
 		return false
 	var step: Dictionary = STEPS[_step]
 	if step.get("event", "") == "":
-		return false  # info steps: roam freely
+		return false  # talk steps: roam freely
 	var nm := str(target.name)
 	var is_station := false
 	for s: String in STATIONS:
@@ -189,13 +303,17 @@ func _choose_done() -> void:
 # --- Flow ------------------------------------------------------------------
 
 
+func _on_prompt_answer(choice: int) -> void:
+	if choice == 0:
+		_start()
+	else:
+		_finish()
+
+
 func _start() -> void:
 	_active = true
 	_step = 0
 	_recipe = _compute_recipe()  # the exact suit we'll walk the player through making
-	# The tutorial is a commitment — no skipping once it's begun (only the prompt offers out).
-	if _skip != null:
-		_skip.visible = false
 	# Fold the morning paper away if it's up — the tutorial takes the stage.
 	if UI != null and UI.newspaper != null and UI.newspaper.has_method("close"):
 		UI.newspaper.close()
@@ -208,13 +326,15 @@ func _start() -> void:
 
 func _finish() -> void:
 	_active = false
-	_choose_done()  # NOW begin the real day (on completion, or an immediate skip)
+	_pending = {}
+	get_tree().paused = false
+	_choose_done()  # NOW begin the real day (on completion, or an immediate decline)
 	if _layer != null:
 		_layer.visible = false
 
 
 func _try(event: String, station: Node = null) -> void:
-	if not _active:
+	if not _active or _done_left > 0.0:
 		return
 	var step: Dictionary = STEPS[_step]
 	if step.get("event", "") != event:
@@ -223,7 +343,11 @@ func _try(event: String, station: Node = null) -> void:
 		var want: String = step.get("match", "")
 		if want != "" and (station == null or not str(station.name).begins_with(want)):
 			return
-	_advance()
+	# Tick everything and let the finished tag linger a moment before moving on.
+	for i in _checks().size():
+		_tag.set_done(i, true)
+	_coach.clear()
+	_done_left = DONE_HOLD
 
 
 func _advance() -> void:
@@ -236,13 +360,38 @@ func _advance() -> void:
 
 func _apply_step() -> void:
 	var step: Dictionary = STEPS[_step]
+	_flags.clear()
+	_tag.visible = false
+	_coach.clear()
 	if step.get("id", "") == "greet" and _customer == null:
 		_spawn_customer()
-	_text.text = _step_text(step)
-	# Info steps (no gameplay event) advance with the Next button.
-	_next.visible = step.get("event", "") == ""
-	if _hand != null:
-		_hand.visible = step.get("point", "") != "" or step.get("customer", false)
+	var lines := _mentor_lines(step)
+	if lines.is_empty():
+		_show_tag()
+	elif step.get("event", "") == "":
+		_speak(lines, func(_c: int) -> void: _advance())
+	else:
+		_speak(lines, func(_c: int) -> void: _show_tag())
+
+
+## Show the current step's goal tag.
+func _show_tag() -> void:
+	var items := PackedStringArray()
+	for c: Array in _checks():
+		items.append(str(c[0]))
+	_tag.set_goal(_step_caption(), _goal_text(STEPS[_step]), items)
+
+
+## "Step 3 of 8", counting only the steps that carry a goal tag.
+func _step_caption() -> String:
+	var total := 0
+	var index := 0
+	for i in STEPS.size():
+		if str(STEPS[i].get("event", "")) != "":
+			total += 1
+			if i <= _step:
+				index = total
+	return "Step %d of %d" % [index, total]
 
 
 ## Poof a customer into the shop for the fitting step (via the customer manager).
@@ -252,26 +401,68 @@ func _spawn_customer() -> void:
 		mgr.spawn_tutorial_customer()
 
 
-## The step's text. The order and design steps splice in the premade recipe so a
-## first-timer is told exactly what cloth to buy and what to make (no handbook needed yet).
-func _step_text(step: Dictionary) -> String:
-	match str(step.get("id", "")):
-		"order":
-			return (
-				"Welcome to the shop! Let's learn the ropes.\n\n"
-				+ "Go to the PHONE → Order Textiles → pick a supplier, then order a bolt of cloth "
-				+ "— any fabric, colour and pattern you like (set them with A/D), then Order."
-			)
-		"design":
-			return (
-				"This customer wants a %s suit. Design one that fits — " % _brief_desc()
-				+ "you don't need the cloth yet, you'll make it after:\n\n"
-				+ "•  Jacket:  %s\n" % _part_desc(Enums.GarmentType.JACKET)
-				+ "•  Pants:  %s  (match the jacket)\n" % _part_desc(Enums.GarmentType.PANTS)
-				+ "•  Shirt:  %s  (shirts are a light cloth)\n\n" % _part_desc(Enums.GarmentType.SHIRT)
-				+ "Pick a part with W/S, set its Fabric/Colour/Pattern with A/D, then press E."
-			)
-	return str(step.get("text", ""))
+func _mentor_lines(step: Dictionary) -> PackedStringArray:
+	var out := PackedStringArray()
+	for line: String in step.get("mentor", []):
+		out.append(line % _brief_desc() if line == M_CODE_2 else line)
+	return out
+
+
+func _goal_text(step: Dictionary) -> String:
+	if str(step.get("id", "")) == "design":
+		return "Design a %s suit" % _brief_desc()
+	return str(step.get("goal", ""))
+
+
+func _checks() -> Array:
+	var step: Dictionary = STEPS[_step]
+	if str(step.get("id", "")) == "design":
+		return _design_checks()
+	return step.get("checks", [])
+
+
+## The fitting checklist: one line per part of the premade recipe, then confirm.
+func _design_checks() -> Array:
+	var jt := int(Enums.GarmentType.JACKET)
+	var pt := int(Enums.GarmentType.PANTS)
+	var st := int(Enums.GarmentType.SHIRT)
+	return [
+		["Jacket: " + _part_desc(jt), "design:%d" % jt, "A/D", "Change the value"],
+		["Trousers: " + _part_desc(pt), "design:%d" % pt, "W/S", "Pick the next part"],
+		["Shirt: " + _part_desc(st), "design:%d" % st, "W/S", "Pick the next part"],
+		["Confirm with E", "", "E", "Ask and confirm"],
+	]
+
+
+# --- Mentor ----------------------------------------------------------------
+
+
+func _speak(pages: PackedStringArray, done: Callable, primary := "Continue", alt := "") -> void:
+	_pending = {"pages": pages, "done": done, "primary": primary, "alt": alt}
+
+
+## Start a queued speech once no station menu is on screen. The game pauses and input is
+## locked while the mentor talks, so nothing happens behind his back.
+func _start_pending() -> void:
+	if _pending.is_empty() or _talking or _open_menu() != null:
+		return
+	var p := _pending
+	_pending = {}
+	_talking = true
+	_mentor_was_paused = get_tree().paused
+	get_tree().paused = true
+	GameState.input_locked = true
+	_hand.visible = false
+	_tag.visible = false
+	_mentor.finished.connect(_on_mentor_done.bind(p["done"]), CONNECT_ONE_SHOT)
+	_mentor.say(p["pages"], p["primary"], p["alt"])
+
+
+func _on_mentor_done(choice: int, done: Callable) -> void:
+	_talking = false
+	get_tree().paused = _mentor_was_paused
+	GameState.input_locked = false
+	done.call(choice)
 
 
 # --- Premade recipe --------------------------------------------------------
@@ -297,11 +488,14 @@ func _part_desc(garment_type: int) -> String:
 	var part: Dictionary = _recipe.get(garment_type, {})
 	if part.is_empty():
 		return "—"
-	return "%s · %s · %s" % [
-		MaterialFactory.color_name(int(part.get("color", 0))),
-		Enums.fabric_name(int(part.get("fabric", 0))),
-		Enums.pattern_name(int(part.get("pattern", 0))),
-	]
+	return (
+		"%s · %s · %s"
+		% [
+			MaterialFactory.color_name(int(part.get("color", 0))),
+			Enums.fabric_name(int(part.get("fabric", 0))),
+			Enums.pattern_name(int(part.get("pattern", 0))),
+		]
+	)
 
 
 ## Build the tutorial's target suit: a matched jacket + trousers plus a light shirt. We
@@ -388,17 +582,200 @@ func _player_held() -> Node:
 	return null
 
 
-# --- Pointer ---------------------------------------------------------------
+# --- Live update -------------------------------------------------------------
 
 
 func _process(delta: float) -> void:
-	if not _active:
-		return
-	_position_bubble()
-	if _hand == null or not _hand.visible:
+	if _layer == null or not _layer.visible:
 		return
 	_time += delta
-	var pos := _point_screen()
+	_start_pending()
+	if _talking or not _active:
+		_hand.visible = false
+		_coach.clear()
+		return
+	if _done_left > 0.0:
+		_done_left -= delta
+		if _done_left <= 0.0:
+			_advance()
+		return
+	if not _tag.visible:
+		return
+	_update_checks()
+	_place_tag()
+	_update_pointers()
+
+
+func _input(event: InputEvent) -> void:
+	# "Set the length" ticks once the player nudges the cut length in the shelf menu.
+	if not _active or UI == null or UI.shelf_menu == null or not UI.shelf_menu.visible:
+		return
+	if event.is_action_pressed("move_left") or event.is_action_pressed("move_right"):
+		_flags["adjusted"] = true
+
+
+func _update_checks() -> void:
+	var menu := _open_menu()
+	if menu != null:
+		_flags["seen:" + _menu_key(menu)] = true
+	var checks := _checks()
+	for i in checks.size():
+		var cond: String = checks[i][1]
+		if cond != "" and _met(cond):
+			_flags["done:%d" % i] = true  # ticks stay ticked once earned
+		_tag.set_done(i, _flags.has("done:%d" % i))
+
+
+## Whether a check condition currently holds.
+func _met(cond: String) -> bool:
+	if _flags.has(cond):
+		return true
+	if cond.begins_with("holding:"):
+		var held := _player_held()
+		var script: Script = held.get_script() if held != null else null
+		return script != null and script.get_global_name() == cond.trim_prefix("holding:")
+	if cond.begins_with("design:"):
+		return _design_matches(int(cond.trim_prefix("design:")))
+	if cond == "cutting":
+		var mg: Variant = UI.worktable_screen.get("_minigame") if UI != null else null
+		return mg is Control and (mg as Control).is_visible_in_tree()
+	return false
+
+
+## Does the open suit builder's design for `garment_type` match the recipe?
+func _design_matches(garment_type: int) -> bool:
+	if UI == null or not UI.suit_builder.has_method("current_design"):
+		return false
+	var want: Dictionary = _recipe.get(garment_type, {})
+	var have: Dictionary = UI.suit_builder.current_design().get(garment_type, {})
+	if want.is_empty() or have.is_empty():
+		return false
+	for k in ["fabric", "color", "pattern"]:
+		if int(have.get(k, -1)) != int(want.get(k, -2)):
+			return false
+	return true
+
+
+## Index of the first unticked checklist line, or -1.
+func _next_check() -> int:
+	var checks := _checks()
+	for i in checks.size():
+		if not _flags.has("done:%d" % i):
+			return i
+	return -1
+
+
+# --- Placement ---------------------------------------------------------------
+
+
+## Keep the tag clear of the open menu, the HUD and (at the mirror) the customer: try a
+## few calm spots and take the first that overlaps nothing (else the least-covered one).
+func _place_tag() -> void:
+	var vp := _layer.get_viewport().get_visible_rect().size
+	var menu := _open_menu()
+	var sz := _tag.size
+	var busy := _busy_rects(menu)
+	var right := vp.x - sz.x - EDGE
+	var under_money := 96.0
+	var under_rep := 200.0
+	var spots: Array[Vector2] = [
+		Vector2(right, under_money),
+		Vector2(right, (vp.y - sz.y) * 0.5),
+		Vector2(right, vp.y - sz.y - EDGE),
+		Vector2(EDGE, under_rep),
+		Vector2(EDGE, (vp.y - sz.y) * 0.5),
+		Vector2(EDGE, vp.y - sz.y - EDGE),
+	]
+	if menu != null:
+		# Beside a centred menu the middle of the margin is the calmest place.
+		spots.push_front(Vector2(right, (vp.y - sz.y) * 0.5))
+	var best := spots[0]
+	var best_overlap := INF
+	for p in spots:
+		var r := Rect2(p, sz).grow(EDGE * 0.5)
+		var overlap := 0.0
+		for b in busy:
+			overlap += r.intersection(b).get_area() if r.intersects(b) else 0.0
+		if overlap < best_overlap:
+			best_overlap = overlap
+			best = p
+		if overlap <= 0.0:
+			break
+	_tag.move_to(best)
+
+
+## Screen rects the tag must avoid: the open menu's panels, the HUD widgets, and anything
+## the menu declares (tutorial_busy_rects).
+func _busy_rects(menu: Control) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if UI != null:
+		for w in [UI.clock, UI.reputation]:
+			if w is Control and (w as Control).is_visible_in_tree():
+				out.append((w as Control).get_global_rect())
+		for nm in ["_money_panel", "_prompt_bar"]:
+			var hud_part: Variant = UI.hud.get(nm)
+			if hud_part is Control and (hud_part as Control).is_visible_in_tree():
+				out.append((hud_part as Control).get_global_rect())
+	if menu == null:
+		return out
+	for n in menu.find_children("*", "PanelContainer", true, false):
+		var c := n as Control
+		if c.is_visible_in_tree():
+			out.append(c.get_global_rect())
+	for n in menu.find_children("*", "TvFrame", true, false):
+		out.append((n as Control).get_global_rect())
+	if menu.has_method("tutorial_busy_rects"):
+		out.append_array(menu.tutorial_busy_rects())
+	return out
+
+
+## The station menu currently on screen, or null.
+func _open_menu() -> Control:
+	if UI == null:
+		return null
+	for key: String in MENUS:
+		var m: Variant = UI.get(key)
+		if m is Control and (m as Control).visible:
+			return m
+	return null
+
+
+func _menu_key(menu: Control) -> String:
+	for key: String in MENUS:
+		if UI.get(key) == menu:
+			return key
+	return ""
+
+
+# --- Pointers ----------------------------------------------------------------
+
+
+## Out in the shop the hand bobs over the station; inside a menu a coach mark points at
+## the key for the next unticked line (the phone points at its own highlighted card).
+func _update_pointers() -> void:
+	var menu := _open_menu()
+	if menu == null:
+		_coach.clear()
+		_move_hand(_world_point())
+		return
+	var step: Dictionary = STEPS[_step]
+	if step.get("id", "") == "order" and menu.has_method("tutorial_hint_point"):
+		_coach.clear()
+		var p: Vector2 = menu.tutorial_hint_point()
+		_move_hand(p)
+		return
+	_hand.visible = false
+	var i := _next_check()
+	var check: Array = _checks()[i] if i >= 0 else []
+	var key: String = check[2] if check.size() > 2 else ""
+	var rect := _find_key(menu, key) if key != "" else Rect2()
+	if rect.size == Vector2.ZERO:
+		_coach.clear()
+	else:
+		_coach.point_at(rect, str(check[3]))
+
+
+func _move_hand(pos: Vector2) -> void:
 	if pos.x < 0.0:
 		_hand.visible = false
 		return
@@ -407,63 +784,18 @@ func _process(delta: float) -> void:
 	_hand.position = pos + Vector2(-16, 24 + sin(_time * 6.0) * 6.0)
 
 
-## True while any full-screen station menu is on screen (so the bubble should step aside).
-func _menu_open() -> bool:
-	if UI == null:
-		return false
-	for m in [
-		UI.phone_order,
-		UI.worktable_screen,
-		UI.sewing_screen,
-		UI.suit_builder,
-		UI.shelf_menu,
-		UI.customer_request,
-		UI.handbook,
-		UI.rack_menu,
-		UI.orders_menu,
-	]:
-		if m != null and m.visible:
-			return true
-	return false
+## The global rect of the visible key-cap labelled `key` inside `menu`.
+func _find_key(menu: Control, key: String) -> Rect2:
+	for n in menu.find_children("*", "Label", true, false):
+		var lbl := n as Label
+		if lbl.text == key and lbl.get_parent() is PanelContainer and lbl.is_visible_in_tree():
+			return (lbl.get_parent() as Control).get_global_rect()
+	return Rect2()
 
 
-## Tuck the bubble into the bottom-left corner (narrower) while a station menu is open — the
-## menus sit centre-screen, so the corner keeps the tutorial text clear of both the menu and
-## the hand pointing into it. With no menu, use the roomy bottom-centre placement.
-func _position_bubble() -> void:
-	if _bubble == null:
-		return
-	var docked := _menu_open()
-	if docked == _bubble_docked:
-		return
-	_bubble_docked = docked
-	if docked:
-		_bubble.anchor_left = 0.0
-		_bubble.anchor_right = 0.0
-		_bubble.grow_horizontal = Control.GROW_DIRECTION_END
-		_bubble.offset_left = 24
-		_bubble.offset_bottom = -24
-		_bubble.custom_minimum_size = Vector2(360, 0)
-		_text.custom_minimum_size = Vector2(320, 0)
-	else:
-		_bubble.anchor_left = 0.5
-		_bubble.anchor_right = 0.5
-		_bubble.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		_bubble.offset_left = 0
-		_bubble.offset_bottom = -84
-		_bubble.custom_minimum_size = Vector2(680, 0)
-		_text.custom_minimum_size = Vector2(640, 0)
-
-
-## Screen position of the current step's target, or (-1,-1) if not shown.
-func _point_screen() -> Vector2:
+## Screen position of the current step's station, or (-1,-1) if not shown.
+func _world_point() -> Vector2:
 	var step: Dictionary = STEPS[_step]
-	# While the phone menu is open on the order step, point at the choice to make in it.
-	if step.get("id", "") == "order" and UI != null and UI.phone_order != null:
-		if UI.phone_order.visible and UI.phone_order.has_method("tutorial_hint_point"):
-			var p: Vector2 = UI.phone_order.tutorial_hint_point()
-			if p.x >= 0.0:
-				return p
 	# Store step: point at the bolt the phone just delivered so the player finds it, then
 	# (once it's in hand) fall through to the SHELF where it goes.
 	if step.get("id", "") == "store" and _delivered_roll != null:
@@ -499,12 +831,21 @@ func _build() -> void:
 		_layer.visible = true
 		return
 	_layer = CanvasLayer.new()
-	_layer.layer = 128  # above the HUD and open menus (e.g. the phone) so the hand shows on top
+	_layer.layer = 128  # above the HUD and open menus so the pointers show on top
 	add_child(_layer)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var theme := Theme.new()
+	theme.default_font = UI.FONT
+	theme.default_font_size = 16
+	root.theme = theme
 	_layer.add_child(root)
+
+	_tag = GoalTag.new()
+	root.add_child(_tag)
+	_coach = CoachMark.new()
+	root.add_child(_coach)
 
 	_hand = Label.new()
 	_hand.text = HAND
@@ -520,69 +861,5 @@ func _build() -> void:
 	_hand.visible = false
 	root.add_child(_hand)
 
-	_build_bubble(root)
-
-
-func _build_bubble(root: Control) -> void:
-	var center := Control.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(center)
-	# Anchor the bubble to the BOTTOM so it never covers the hand pointing at a station.
-	_bubble = PanelContainer.new()
-	_bubble.anchor_left = 0.5
-	_bubble.anchor_right = 0.5
-	_bubble.anchor_top = 1.0
-	_bubble.anchor_bottom = 1.0
-	_bubble.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_bubble.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_bubble.offset_bottom = -84
-	_bubble.custom_minimum_size = Vector2(680, 0)
-	_bubble.add_theme_stylebox_override("panel", Style.skin_base(Style.BRASS, Style.CREAM, 16))
-	center.add_child(_bubble)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", Style.S2)
-	_bubble.add_child(box)
-	var title := Style.header("Tutorial", Style.ACC_ORDER)
-	box.add_child(title)
-	_text = Label.new()
-	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_text.custom_minimum_size = Vector2(640, 0)
-	_text.add_theme_color_override("font_color", Style.INK)
-	_text.add_theme_font_size_override("font_size", 16)
-	box.add_child(_text)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_END
-	row.add_theme_constant_override("separation", Style.S2)
-	box.add_child(row)
-	_next = MenuKit.button("Next  ▶", _advance)
-	_next.custom_minimum_size = Vector2(120, 38)
-	row.add_child(_next)
-	# The decline button, shown ONLY at the opening prompt. Once the tutorial begins it is
-	# hidden (see _start) — you can't bail out mid-way any more.
-	_skip = MenuKit.button("No thanks", _finish)
-	_skip.custom_minimum_size = Vector2(140, 38)
-	_skip.visible = false
-	row.add_child(_skip)
-
-
-func _show_prompt() -> void:
-	_hand.visible = false
-	_text.text = T_PROMPT
-	_next.visible = true
-	_next.text = "Yes, show me"
-	if _skip != null:
-		_skip.visible = true
-		_skip.text = "No thanks"
-	# Rewire Next to start (once).
-	for c in _next.pressed.get_connections():
-		_next.pressed.disconnect(c["callable"])
-	_next.pressed.connect(_start_from_prompt)
-
-
-func _start_from_prompt() -> void:
-	for c in _next.pressed.get_connections():
-		_next.pressed.disconnect(c["callable"])
-	_next.text = "Next  ▶"
-	_next.pressed.connect(_advance)
-	_start()
+	_mentor = MentorDialog.new()
+	root.add_child(_mentor)

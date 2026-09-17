@@ -24,6 +24,15 @@ const LIB := {
 	"door_chime": "door_chime.wav",
 	"door_open": "door_open.wav",
 	"door_close": "door_close.wav",
+	# tutorial mentor's placeholder "cartoon talk" syllables (swap the files for real VO)
+	"mentor_blip":
+	[
+		"mentor_blip_1.wav",
+		"mentor_blip_2.wav",
+		"mentor_blip_3.wav",
+		"mentor_blip_4.wav",
+		"mentor_blip_5.wav",
+	],
 	"phone_order": "phone_order.wav",
 	"coins": "coins.wav",
 	"happy": "happy.wav",

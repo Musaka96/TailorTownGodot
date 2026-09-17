@@ -71,6 +71,32 @@ func configure(customer: Node) -> void:
 	_rig.wear_street()
 
 
+## Match the portrait to a plain look (for characters that aren't customers, e.g. the
+## tutorial mentor). Keys: head, hair (int), skin, hair_color (Color), eyes, glasses
+## (String), suit (MaterialType, optional — worn as jacket + trousers).
+func configure_look(look: Dictionary) -> void:
+	if _rig == null:
+		return
+	_rig.set_head(int(look.get("head", 0)))
+	_rig.set_hair(int(look.get("hair", 0)))
+	if look.has("skin"):
+		_rig.set_palette(look["skin"])
+	if look.has("hair_color"):
+		_rig.set_hair_color(look["hair_color"])
+	_rig.set_face_look(str(look.get("eyes", "brown")), str(look.get("glasses", "")))
+	var suit: MaterialType = look.get("suit")
+	if suit != null:
+		_rig.set_outfit(suit, null, suit)
+	else:
+		_rig.wear_street()
+
+
+## Animate the mouth without touching the render state (the render stays live).
+func set_talking(on: bool) -> void:
+	if _rig != null:
+		_rig.set_talking(on)
+
+
 ## Start/stop the live render (and the talking mouth) — off when the bubble is hidden.
 func set_live(on: bool) -> void:
 	if _rig != null:
