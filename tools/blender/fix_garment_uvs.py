@@ -1,16 +1,33 @@
-"""Even out the texel density of the character's garment UVs, so woven cloth sits flat.
+"""Even out the texel density of a character's garment UVs, so woven cloth sits flat.
 
 Run headless — nothing here needs the Blender GUI:
 
-    "E:/SteamLibrary/steamapps/common/Blender/blender.exe" --background \
-        --factory-startup --python tools/blender/fix_garment_uvs.py
+    blender.exe --background --factory-startup --python tools/blender/fix_garment_uvs.py
+    blender.exe --background --factory-startup --python tools/blender/fix_garment_uvs.py \
+        -- assets/characters/MY_SUIT.glb jacket shirt legs
 
-It imports assets/characters/CHARTGEN1.glb, rewrites the UVs of the meshes that get a
-tiling fabric, and writes the glb back. Nothing else is touched: the armature, the skin
-weights, the other meshes, the topology, the split normals and every node name are kept
-exactly as they came. The script re-reads what it wrote and refuses to replace the asset
-unless that contract still holds, or if the result is worse than STRETCH_LIMIT. The glb
-is in git too, so `git checkout assets/characters/CHARTGEN1.glb` undoes a bad run.
+With no arguments it does the shipped character. Pass a glb and the names of its cloth
+meshes to run it over a NEW garment — which any new suit needs, because uv_scale is read
+as tiles per METRE (see below), so a garment left on ordinary 0..1 UVs comes out showing
+the fabric at the wrong size.
+
+WHAT IT CHANGES, EXACTLY
+------------------------
+The UVs of the named meshes are rewritten. Everything else is preserved in meaning but
+NOT byte for byte, because the whole file goes through Blender: positions and skin
+weights come back within float32 rounding (~1e-7), normals within ~4e-4 (about a
+fiftieth of a degree, from Blender renormalising them), and the exporter may re-split a
+few vertices at the new UV seams — the jacket went 1993 -> 1996. Node names, bone names,
+the skeleton and the mesh topology are checked against the file that went in, and the
+asset is not replaced unless they all match and the stretch is under STRETCH_LIMIT.
+
+The glb is in git, so `git checkout <the glb>` undoes a bad run.
+
+MIND THE SOURCE .blend
+----------------------
+This edits the glb the game loads, not whatever it was exported from. For the shipped
+character that means IMPORT/CHARTGEN1.blend still holds the OLD UVs, so re-exporting it
+over the glb silently undoes this — re-run this script afterwards if you do.
 
 WHAT WAS WRONG, AND WHY THIS DOESN'T RE-UNWRAP
 ----------------------------------------------
@@ -66,12 +83,10 @@ import bmesh
 import bpy
 
 ROOT = Path(__file__).resolve().parents[2]
-GLB = ROOT / "assets" / "characters" / "CHARTGEN1.glb"
-STAGE = GLB.with_suffix(".staged.glb")
-
-# The meshes that get a tiling fabric (ClothMaterial) rather than a flat colour or the
-# baked face texture — see entities/character/character_rig.gd.
-CLOTH_MESHES = ("jacket", "shirt", "legs")
+DEFAULT_GLB = ROOT / "assets" / "characters" / "CHARTGEN1.glb"
+# The shipped character's meshes that get a tiling fabric (ClothMaterial) rather than a
+# flat colour or the baked face texture — see entities/character/character_rig.gd.
+DEFAULT_CLOTH_MESHES = ("jacket", "shirt", "legs")
 
 # Coincident vertices closer than this are joined on the working copy. The meshes are
 # modelled in metres, so this is a hundredth of a millimetre — it rejoins split vertices
@@ -79,78 +94,63 @@ CLOTH_MESHES = ("jacket", "shirt", "legs")
 WELD_DISTANCE = 1e-5
 STRETCH_LIMIT = 1.6  # past this the weave visibly smears; the jacket started at 4.2
 
-EXPECTED_ROOT = "Rig_Medium"
-EXPECTED_MESHES = (
-    "arms",
-    "buttons",
-    "Hair",
-    "head",
-    "jacket",
-    "left leg",
-    "legs",
-    "right leg",
-    "shirt",
-)
-EXPECTED_BONES = (
-    "neutral_bone",
-    "root",
-    "hips",
-    "spine",
-    "chest",
-    "head",
-    "upperarm.l",
-    "lowerarm.l",
-    "wrist.l",
-    "hand.l",
-    "upperarm.r",
-    "lowerarm.r",
-    "wrist.r",
-    "hand.r",
-    "upperleg.l",
-    "lowerleg.l",
-    "foot.l",
-    "toes.l",
-    "upperleg.r",
-    "lowerleg.r",
-    "foot.r",
-    "toes.r",
-)
 
+def main(argv) -> int:
+    glb, cloth_meshes = _arguments(argv)
+    stage = glb.with_suffix(".staged.glb")
+    print("fix_garment_uvs: %s (%s)" % (glb, ", ".join(cloth_meshes)))
+    if not glb.is_file():
+        print("  ABORT: no such file")
+        return 1
 
-def main() -> int:
-    print("fix_garment_uvs: %s" % GLB)
+    # The contract is read off the file going IN, rather than hardcoded, so this works on
+    # a new garment too and still proves the round trip changed nothing but the UVs.
+    contract = _contract(glb)
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=str(GLB))
+    bpy.ops.import_scene.gltf(filepath=str(glb))
 
-    missing = [n for n in EXPECTED_MESHES if n not in bpy.data.objects]
+    missing = [n for n in cloth_meshes if n not in bpy.data.objects]
     if missing:
-        print("  ABORT: glb is missing %s" % ", ".join(missing))
+        print("  ABORT: no mesh called %s in the glb" % ", ".join(missing))
+        print("         it has: %s" % ", ".join(sorted(contract["meshes"])))
         return 1
 
     print("\n  before:")
-    for name in CLOTH_MESHES:
+    for name in cloth_meshes:
         _stats(bpy.data.objects[name], name)
 
     print("\n  evening out:")
-    for name in CLOTH_MESHES:
+    for name in cloth_meshes:
         if not _even_out(bpy.data.objects[name]):
             return 1
 
     print("\n  after:")
     worst = 1.0
-    for name in CLOTH_MESHES:
+    for name in cloth_meshes:
         worst = max(worst, _stats(bpy.data.objects[name], name))
     if worst > STRETCH_LIMIT:
         print("\n  ABORT: worst stretch %.2fx is over the %.1fx limit" % (worst, STRETCH_LIMIT))
         return 1
 
-    _export()
-    if not _verify(STAGE):
-        print("\n  ABORT: exported glb failed the contract check; %s left alone" % GLB.name)
+    _export(stage)
+    if not _verify(stage, contract):
+        print("\n  ABORT: export failed the contract check; %s left alone" % glb.name)
+        stage.unlink(missing_ok=True)
         return 1
-    os.replace(STAGE, GLB)
-    print("\nfix_garment_uvs: wrote %s (worst stretch %.2fx)" % (GLB.name, worst))
+    os.replace(stage, glb)
+    print("\nfix_garment_uvs: wrote %s (worst stretch %.2fx)" % (glb.name, worst))
     return 0
+
+
+def _arguments(argv) -> tuple:
+    """`-- <glb> [mesh ...]` after Blender's own arguments; defaults to the character."""
+    args = argv[argv.index("--") + 1 :] if "--" in argv else []
+    if not args:
+        return DEFAULT_GLB, DEFAULT_CLOTH_MESHES
+    glb = Path(args[0])
+    if not glb.is_absolute():
+        glb = (ROOT / glb).resolve()
+    return glb, tuple(args[1:]) or DEFAULT_CLOTH_MESHES
 
 
 def _even_out(obj) -> bool:
@@ -340,12 +340,12 @@ def _stats(obj, label: str) -> float:
     return stretch
 
 
-def _export() -> None:
+def _export(stage: Path) -> None:
     """Write the staged glb. The importer parks its own helper objects in a
     `glTF_not_exported` collection, which the exporter skips on its own."""
     bpy.ops.object.select_all(action="DESELECT")
     bpy.ops.export_scene.gltf(
-        filepath=str(STAGE),
+        filepath=str(stage),
         export_format="GLB",
         use_selection=False,
         export_yup=True,
@@ -358,36 +358,54 @@ def _export() -> None:
     )
 
 
-def _verify(path: Path) -> bool:
-    """Read the exported glb back and check the names the game depends on survived."""
+def _contract(path: Path) -> dict:
+    """The names and triangle counts the game relies on, read out of a glb."""
     data = path.read_bytes()
     length = struct.unpack("<I", data[12:16])[0]
     gltf = json.loads(data[20 : 20 + length])
     nodes = gltf.get("nodes", [])
-    meshes = sorted(n.get("name") for n in nodes if "mesh" in n)
-    roots = [nodes[r].get("name") for r in gltf["scenes"][0]["nodes"]]
     skins = gltf.get("skins", [])
-    bones = [nodes[j].get("name") for j in skins[0]["joints"]] if skins else []
+    triangles = {}
+    for node in nodes:
+        if "mesh" not in node:
+            continue
+        total = 0
+        for prim in gltf["meshes"][node["mesh"]]["primitives"]:
+            if "indices" in prim:
+                total += gltf["accessors"][prim["indices"]]["count"] // 3
+        triangles[node.get("name")] = total
+    return {
+        "meshes": sorted(triangles),
+        "triangles": triangles,
+        "roots": [nodes[r].get("name") for r in gltf["scenes"][0]["nodes"]],
+        "bones": sorted(nodes[j].get("name") for j in skins[0]["joints"]) if skins else [],
+    }
 
+
+def _verify(path: Path, before: dict) -> bool:
+    """Check the exported glb still carries everything the file going in did.
+
+    Names because the game looks meshes and bones up by them; triangle counts because a
+    changed one would mean geometry was altered, not just its UVs.
+    """
+    after = _contract(path)
     ok = True
-    for what, got, want in (
-        ("mesh nodes", meshes, sorted(EXPECTED_MESHES)),
-        ("scene roots", roots, [EXPECTED_ROOT]),
-        ("skin bones", sorted(bones), sorted(EXPECTED_BONES)),
-    ):
-        if got != want:
-            print("    %s changed!\n      got  %s\n      want %s" % (what, got, want))
+    for what in ("meshes", "roots", "bones", "triangles"):
+        if after[what] != before[what]:
+            print("    %s changed!\n      was %s\n      now %s" % (what, before[what], after[what]))
             ok = False
     if ok:
         print(
-            "    contract ok: %d mesh nodes, root %s, %d bones, %d nodes total"
-            % (len(meshes), roots[0], len(bones), len(nodes))
+            "    contract ok: %d mesh nodes, root %s, %d bones, %d triangles"
+            % (
+                len(after["meshes"]),
+                after["roots"][0] if after["roots"] else "-",
+                len(after["bones"]),
+                sum(after["triangles"].values()),
+            )
         )
     return ok
 
 
 if __name__ == "__main__":
-    code = main()
-    if STAGE.exists():
-        STAGE.unlink()
-    sys.exit(code)
+    sys.exit(main(sys.argv))

@@ -37,7 +37,7 @@ func _initialize() -> void:
 			print("%-8s MISSING from %s" % [name, SRC])
 			continue
 		worst = maxf(worst, _report(name, (found[0] as MeshInstance3D).mesh))
-	print("\nworst stretch %.1fx (the guide is under %.1fx)" % [worst, STRETCH_WARN])
+	print("\nworst stretch %.2fx (the guide is under %.2fx)" % [worst, STRETCH_WARN])
 	quit(0)
 
 
@@ -100,7 +100,7 @@ func _surface(
 	var stretch: float = high / maxf(low, 1e-6)
 	print(
 		(
-			"%-8s surf%d: %5d verts %5d tris | UV %.2f,%.2f..%.2f,%.2f | area %5.1f%% | stretch %4.1fx  %s"
+			"%-8s surf%d: %5d verts %5d tris | UV %.2f,%.2f..%.2f,%.2f | area %5.1f%% | stretch %4.2fx  %s"
 			% [
 				name,
 				surf,
