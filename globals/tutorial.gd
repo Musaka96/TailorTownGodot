@@ -630,9 +630,16 @@ func _update_checks() -> void:
 	var checks := _checks()
 	for i in checks.size():
 		var cond: String = checks[i][1]
-		if cond != "" and _met(cond):
-			_flags["done:%d" % i] = true  # ticks stay ticked once earned
-		_tag.set_done(i, _flags.has("done:%d" % i))
+		var key := "done:%d" % i
+		if cond.begins_with("design:"):
+			# Design lines follow the live design: change a part away and it un-ticks.
+			if _met(cond):
+				_flags[key] = true
+			else:
+				_flags.erase(key)
+		elif cond != "" and _met(cond):
+			_flags[key] = true  # progress ticks stay ticked once earned
+		_tag.set_done(i, _flags.has(key))
 
 
 ## Whether a check condition currently holds.

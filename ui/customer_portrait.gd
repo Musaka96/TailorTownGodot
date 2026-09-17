@@ -83,7 +83,12 @@ func configure_look(look: Dictionary) -> void:
 		_rig.set_palette(look["skin"])
 	if look.has("hair_color"):
 		_rig.set_hair_color(look["hair_color"])
-	_rig.set_face_look(str(look.get("eyes", "brown")), str(look.get("glasses", "")))
+	_rig.set_face_look(
+		str(look.get("eyes", "brown")),
+		str(look.get("glasses", "")),
+		int(look.get("nose", -1)),
+		int(look.get("mouth", -1))
+	)
 	var suit: MaterialType = look.get("suit")
 	if suit != null:
 		_rig.set_outfit(suit, null, suit)
@@ -95,6 +100,12 @@ func configure_look(look: Dictionary) -> void:
 func set_talking(on: bool) -> void:
 	if _rig != null:
 		_rig.set_talking(on)
+
+
+## Pop the mouth open for one syllable (lip-sync to a talk blip).
+func syllable() -> void:
+	if _rig != null:
+		_rig.syllable()
 
 
 ## Start/stop the live render (and the talking mouth) — off when the bubble is hidden.

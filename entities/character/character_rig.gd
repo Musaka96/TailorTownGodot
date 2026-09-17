@@ -11,6 +11,7 @@ extends Node3D
 ## style therefore changes the actual model, not just the colour.
 
 # Arms are always the base skin mesh (never swapped); the head is swappable now.
+const SYLLABLE_TIME := 0.09  # how long syllable() holds the mouth open
 const SKIN_ARMS := "arms"
 # The base model's default meshes per slot (adopted on _ready as style/index 0).
 const BAKED_HEAD := {"head": "head"}
@@ -117,7 +118,10 @@ var _eye_color := "brown"
 var _glasses_kind := ""  # "", "sun" or "round"; applied once the face is built
 var _nose_index := 0  # which nose_N sprite (see assets/textures/faces/)
 var _mouth_index := 0  # which mouth_N sprite
-var _talk: Tween  # scale-pulse while talking
+var _talking := false  # auto-flap between closed/open mouth shapes (set_talking)
+var _talk_timer := 0.0
+var _talk_open := false
+var _syllable_left := 0.0  # > 0 while a syllable() holds the mouth open
 var _blink: Timer
 # Each slot maps role -> MeshInstance3D currently filling it.
 var _head: Dictionary = {}
@@ -156,6 +160,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_update_mouth(delta)
 	if _tree == null:
 		return
 	_loco = move_toward(_loco, _loco_target, LOCO_BLEND_SPEED * delta)
@@ -278,18 +283,55 @@ func _place_pair(
 	_place(nr, xr, y, px, z, curve, Vector3(rot.x, -rot.y, -rot.z), scl)
 
 
-## The mouth flaps open/closed while a line is being said (called by the dialogue UI).
+## The mouth flaps between a closed and an open shape while a line is being said
+## (called by the dialogue UI). Which sprites count as closed/open is data:
+## res://data/mouth_shapes.tres (MouthShapes).
 func set_talking(on: bool) -> void:
+	_talking = on
+	_talk_timer = 0.0
+	if not on and _syllable_left <= 0.0:
+		_show_mouth(_mouth_index)
+
+
+## Open the mouth for one syllable (lip-sync to a talk sound), then close it again.
+func syllable() -> void:
+	_syllable_left = SYLLABLE_TIME
+	_show_mouth(_open_frame())
+
+
+func _update_mouth(delta: float) -> void:
 	if _mouth == null:
 		return
-	if _talk != null and _talk.is_valid():
-		_talk.kill()
-	if on:
-		_talk = create_tween().set_loops()
-		_talk.tween_property(_mouth, "scale:y", 1.7, 0.09)
-		_talk.tween_property(_mouth, "scale:y", 1.0, 0.09)
-	else:
-		_mouth.scale.y = 1.0
+	if _syllable_left > 0.0:
+		_syllable_left -= delta
+		if _syllable_left <= 0.0:
+			_show_mouth(_closed_frame() if _talking else _mouth_index)
+		return
+	if not _talking:
+		return
+	_talk_timer -= delta
+	if _talk_timer <= 0.0:
+		_talk_open = not _talk_open
+		_talk_timer = randf_range(0.07, 0.12)
+		_show_mouth(_open_frame() if _talk_open else _closed_frame())
+
+
+func _closed_frame() -> int:
+	return MouthShapes.load_or_default().closed_for(_mouth_index)
+
+
+## A random open shape — mostly wide, sometimes just parted — for a natural chatter.
+func _open_frame() -> int:
+	var shapes := MouthShapes.load_or_default()
+	var wide := shapes.of_kind(MouthShapes.Kind.WIDE_OPEN)
+	var small := shapes.of_kind(MouthShapes.Kind.SMALL_OPEN)
+	var pool := small if (randf() < 0.35 and not small.is_empty()) or wide.is_empty() else wide
+	return pool[randi() % pool.size()] if not pool.is_empty() else _mouth_index
+
+
+func _show_mouth(index: int) -> void:
+	if _mouth != null:
+		_mouth.texture = _tex("mouth_%d" % index)
 
 
 ## React while being fitted: a lasting smile (liked) or frown (disliked). Brows and

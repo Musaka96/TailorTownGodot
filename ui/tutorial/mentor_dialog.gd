@@ -99,6 +99,7 @@ func _process(delta: float) -> void:
 			_letters += 1
 			if _letters % BLIP_EVERY == 0:
 				Sfx.play_single("mentor_blip", -8.0, 0.9, 1.15)
+				_portrait.syllable()  # lips move with each blip
 		if PAUSES.has(ch):
 			_hold = PAUSES[ch]
 			_shown = float(i + 1)
@@ -159,7 +160,6 @@ func _start_page() -> void:
 	_hold = 0.0
 	_letters = 0
 	_typing = true
-	_portrait.set_talking(true)
 	var last := _page + 1 >= _pages.size()
 	_page_label.text = "%d / %d" % [_page + 1, _pages.size()] if _pages.size() > 1 else ""
 	_primary_label.text = _primary if last else "Next"
@@ -168,7 +168,6 @@ func _start_page() -> void:
 
 func _end_typing() -> void:
 	_typing = false
-	_portrait.set_talking(false)
 	var last := _page + 1 >= _pages.size()
 	_secondary_box.visible = last and _has_secondary
 
@@ -331,5 +330,6 @@ func _look() -> Dictionary:
 		"hair_color": LOOK_HAIR,
 		"eyes": "brown",
 		"glasses": "round",
+		"mouth": 0,  # a closed smile at rest (see data/mouth_shapes.tres)
 		"suit": suit,
 	}
