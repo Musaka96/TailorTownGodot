@@ -21,12 +21,23 @@ const MIGRATED := [
 	"worktable_screen.gd",
 	"suit_builder.gd",
 	"orders_menu.gd",
+	"minigame_screen.gd",
+	"cutting_minigame.gd",
+	"sew_minigame.gd",
 ]
 const PENDING: Array[String] = []
 # Not standard panel-menus: sewing_screen only hosts the sewing minigame;
 # orders_panel is the always-on HUD ticket strip; customer_request is a small
 # speech-bubble dialog (ui/speech_tail.gd), not an atelier panel.
 const EXEMPT := ["sewing_screen.gd", "orders_panel.gd", "customer_request.gd"]
+## Menus whose panel is built by a shared base class: the structural rules (skin,
+## fixed frame, key-cap hints) are satisfied by the base, so they are checked
+## against it — the per-line rules (no Color() literals, no raw hint text) still
+## apply to the menu's own file.
+const CHROME_BASE := {
+	"cutting_minigame.gd": "minigame_screen.gd",
+	"sew_minigame.gd": "minigame_screen.gd",
+}
 
 
 func _initialize() -> void:
@@ -74,14 +85,19 @@ func _check(path: String) -> Array[String]:
 		issues.append("line 0: file not found")
 		return issues
 	var text := FileAccess.get_file_as_string(path)
+	# The chrome may live in a shared base — check the structural rules against it.
+	var structural := text
+	var base: String = CHROME_BASE.get(path.get_file(), "")
+	if base != "":
+		structural += FileAccess.get_file_as_string("res://ui/" + base)
 
 	# Match the bare call names (not the "Style." prefix) so gdformat line-wrapping
 	# between "Style" and ".apply_skin(" can't defeat the substring check.
-	if not text.contains("apply_skin("):
+	if not structural.contains("apply_skin("):
 		issues.append("line 0: no Style.apply_skin() — menu has no skin (guide §5)")
-	if not text.contains("_panel.custom_minimum_size"):
+	if not structural.contains("_panel.custom_minimum_size"):
 		issues.append("line 0: panel never sets custom_minimum_size — can stretch (§3)")
-	if not text.contains("hint_bar("):
+	if not structural.contains("hint_bar("):
 		issues.append("line 0: no Style.hint_bar() — hints must use key-caps (§4)")
 
 	for n in _lines_with(text, "Style.panel("):

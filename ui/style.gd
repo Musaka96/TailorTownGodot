@@ -35,6 +35,8 @@ const LEAF := Color("7cbf6b")  # legacy accent (pre-atelier menus)
 const AMBER := Color("e6a63c")  # warning
 const CLAY := Color("d76b5a")  # low / danger
 const SHADOW := Color(0, 0, 0, 0.28)
+const SCRIM := Color(0, 0, 0, 0.5)  # the dim behind a full-screen menu
+const LINEN := Color("c9b48c")  # undyed linen — cloth stand-in when none is known
 const NONE := Color(0, 0, 0, 0)  # "no colour" (e.g. no pin / no stitch)
 const RIM_DARK := Color("8a6a2a")  # dark brass (chains, rims)
 const TAPE := Color("f2c94c")  # tape-measure yellow
@@ -185,6 +187,20 @@ static func card(
 	sb.border_color = border_col
 	sb.set_content_margin_all(S2)
 	return sb
+
+
+## The dim behind a full-screen menu, ready to add as the first child.
+static func scrim() -> ColorRect:
+	var dim := ColorRect.new()
+	dim.color = SCRIM
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return dim
+
+
+## A palette token at another alpha — for washes, watermarks and chalk dust. Menus
+## use this instead of writing a Color() literal (style guide §2).
+static func tint(col: Color, alpha: float) -> Color:
+	return Color(col.r, col.g, col.b, alpha)
 
 
 static func bar(bg: Color, radius: int = 6) -> StyleBoxFlat:

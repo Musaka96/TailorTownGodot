@@ -138,6 +138,15 @@ calls `Style.apply_skin(panel, Style.MenuSkin.X)` (one line — it sets paper,
 silhouette, margins and the frame). **[CHECK]** Every menu panel uses
 `Style.apply_skin(...)`, not the generic `Style.panel()`.
 
+**The craft minigames are one bench.** Cutting and sewing both wear `WORK` and share
+their whole chrome (`ui/minigame_screen.gd`): the scrim, the panel, the title row with
+its slip pins, the job's swing ticket, the play surface, the status line and the key
+prompts. What differs is the *surface they paint* — a cutting mat with a pinned paper
+pattern, versus a machine bed with a strip of cloth under the needle — and the frame,
+because a garment shape needs height (`FRAME_TALL`) where a seam needs width
+(`FRAME_WIDE`). A new minigame extends `MinigameScreen` rather than rebuilding chrome;
+`check_ui.gd` knows about that base (`CHROME_BASE`) and still checks the rest.
+
 **Dialogs are not panels.** A character *speaking* to the player (e.g. the greeting
 brief) uses a small **speech bubble** — a compact cream rounded panel with a
 downward tail (`ui/speech_tail.gd`) and light key-cap prompts, not the full atelier
@@ -161,7 +170,47 @@ new subject-facing ones (mirror first).
 
 ---
 
-## 7. The stage curtain (generated art)
+## 7. Generated art
+
+Art is always **optional**: every surface that can take a texture paints its own
+fallback from the palette, so a missing file only costs the texture, never the screen.
+Generated PNGs live in `assets/textures/ui/`.
+
+### 7.1 Writing the prompts — keeping the "AI look" out
+
+Image models have a house style: smooth gradients, a soft glow, a centre-lit vignette,
+plastic surfaces and perfect symmetry. It reads as generic instantly and it fights this
+game's hand-made identity. Every prompt written for TailorTown therefore:
+
+1. **Names a real medium and tool**, never a render. "Flat gouache on toned paper",
+   "screen-printed in three inks", "coloured pencil on kraft" — not "digital art",
+   "3D render", "concept art".
+2. **Bans the render gloss explicitly.** A standing negative list, in the prompt body:
+   *no gradients, no glow, no bloom, no rim light, no lens blur, no depth of field, no
+   vignette, no drop shadow, no specular highlights, no floating particles.*
+3. **Never uses quality-inflation words.** `4k`, `8k`, `masterpiece`, `hyperdetailed`,
+   `photorealistic`, `trending on ArtStation`, `Unreal Engine`, `octane` all push the
+   smooth plastic look. Leave them out.
+4. **States the lighting.** For a tiling texture: *"flat, even, frontal light with no
+   single light source"* — the centre-lit falloff is the clearest AI tell in a tile.
+5. **Gives the palette as a closed set of hex values** ("five colours only: …"). Open
+   palettes drift pastel-rainbow.
+6. **Asks for honest irregularity, in moderation.** Two or three imperfection cues —
+   *"lines drawn by hand, slightly uneven", "one small scuff", "threads not perfectly
+   parallel"* — and no more; a fourth makes the model degrade the image on purpose.
+7. **Orders the prompt** surface → subject → details → constraints, and puts the
+   constraints last as their own sentences (the OpenAI image guide's structure).
+8. **Ends with the exclusions**: *no text, no watermark, no signature, no border, no
+   frame, no perspective, no horizon, no people.*
+
+Tiling textures add: *"the left edge continues into the right edge and the top into the
+bottom; no feature is cut off at an edge without continuing on the opposite one."*
+Cut-outs add either a transparent background (gpt-image-2 renders real alpha when asked
+for an isolated subject on a transparent background) or, as a fallback, *"everything
+around it is flat pure green #00FF00 with no gradient, shadow, glow or fringing"* for
+keying.
+
+### 7.2 The stage curtain
 
 `ui/loading_curtain.gd` draws the velvet curtain over every scene swap. It takes three
 textures, and paints its own fallback from the palette for any that are missing, so the
@@ -225,6 +274,73 @@ strips tile. It prints the panel's hem share; check it still matches `ART_HEM_SH
 > — so copies placed side by side form a continuous run with no visible seam. Everything below
 > the fringe is flat pure green #00FF00 with no gradient, shadow or glow. No curtain panels, no
 > rail, no rings, no rope, no tassels, no text, no watermark, no perspective, no room.
+
+</details>
+
+### 7.3 Craft-minigame surfaces
+
+Three tiling textures the cutting and sewing screens use if they are present. All three
+are drawn **tiled at their own pixel size**, so author them at the scale they should
+read at on screen, and all three must tile seamlessly in both directions.
+
+| File (in `assets/textures/ui/`) | What it is |
+|---|---|
+| `cutting_mat.png` | 512x512. The cutting mat's surface, grid included — when it is present the drawn grid is skipped (the ruler ticks along the canvas edges are still drawn, since those can't tile). |
+| `machine_bed.png` | 512x512. The sewing machine's deck. The needle plate, feed dogs, arm and spool stay drawn on top of it. |
+| `cloth_weave.png` | 256x256. A near-white linen weave, **multiplied by the customer's cloth colour**, so it must be light and neutral — no colour of its own. |
+
+<details>
+<summary>Generation prompts (ChatGPT image)</summary>
+
+**1. Cutting mat** — square 1024x1024, used at 512
+
+> A seamless tiling texture of a tailor's cutting mat, seen straight down from above,
+> filling the whole image edge to edge. Flat gouache on toned paper, painted by hand for
+> a cosy storybook tailoring game. Warm tan ground #DCCFB0 with a printed measuring grid
+> in a slightly darker tan #CBBB97: thin lines forming squares about one thirty-second of
+> the image wide, and a marginally heavier line every fourth square. The grid lines are
+> drawn by hand and very slightly uneven, not ruled by a machine. Two or three faint
+> healed scalpel scuffs cross the mat at shallow angles in #C6B48E, well away from the
+> edges. Five colours only. Flat, even, frontal light with no single light source and no
+> falloff anywhere in the image. No gradients, no glow, no bloom, no rim light, no lens
+> blur, no depth of field, no vignette, no drop shadow, no specular highlights, no
+> floating particles, no cloth, no tools, no pattern pieces. The left edge continues into
+> the right edge and the top into the bottom; no feature is cut off at an edge without
+> continuing on the opposite one. No text, no numbers, no watermark, no signature, no
+> border, no frame, no perspective, no horizon, no people.
+
+**2. Machine bed** — square 1024x1024, used at 512
+
+> A seamless tiling texture of the flat deck of an old sewing machine, seen straight down
+> from above, filling the whole image edge to edge. Flat gouache on toned paper, painted
+> by hand for a cosy storybook tailoring game. Dark warm walnut-brown japanned metal
+> #4A3826 with a finer grain in #3B2C1E running the full width in one direction only.
+> Two or three small honest marks: a shallow scratch, a worn patch rubbed slightly
+> lighter to #5A4632. Four colours only. Flat, even, frontal light with no single light
+> source and no falloff anywhere in the image. No gradients, no glow, no bloom, no rim
+> light, no lens blur, no depth of field, no vignette, no drop shadow, no specular
+> highlights, no reflections, no floating particles, no needle, no presser foot, no
+> plate, no screws, no decals, no cloth. The left edge continues into the right edge and
+> the top into the bottom; no feature is cut off at an edge without continuing on the
+> opposite one. No text, no watermark, no signature, no border, no frame, no perspective,
+> no horizon, no people.
+
+**3. Cloth weave** — square 1024x1024, used at 256
+
+> A seamless tiling texture of plain-woven linen seen straight down from above, filling
+> the whole image edge to edge, painted almost white so it can be tinted any colour
+> afterwards. Flat gouache on paper, painted by hand for a cosy storybook tailoring game.
+> Off-white ground #FAF6EE with the warp and weft threads picked out in #EFE8DA and
+> #E4DCCB, crossing at right angles, about one hundred and twenty threads across the
+> image. The threads are not perfectly parallel and their spacing varies very slightly,
+> the way real cloth does. Three colours only, all of them near-white — no hue, no tint,
+> nothing saturated anywhere in the image. Flat, even, frontal light with no single light
+> source and no falloff anywhere in the image. No gradients, no glow, no bloom, no rim
+> light, no lens blur, no depth of field, no vignette, no drop shadow, no specular
+> highlights, no fraying, no hem, no seam, no stitching, no pattern, no print. The left
+> edge continues into the right edge and the top into the bottom; no feature is cut off
+> at an edge without continuing on the opposite one. No text, no watermark, no signature,
+> no border, no frame, no perspective, no horizon, no people.
 
 </details>
 

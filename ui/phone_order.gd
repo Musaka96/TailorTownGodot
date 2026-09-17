@@ -145,7 +145,7 @@ func _place_panel() -> void:
 
 
 func _style() -> void:
-	_dim.color = Color(0, 0, 0, 0.22)
+	_dim.color = Style.tint(Style.SCRIM, 0.22)
 	_panel.custom_minimum_size = Vector2(PANEL_W, 0)
 	Style.apply_skin(_panel, Style.MenuSkin.ORDER)
 	_preview.add_theme_constant_override("separation", Style.S3)

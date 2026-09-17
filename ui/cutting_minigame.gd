@@ -1,10 +1,11 @@
 class_name CuttingMinigame
-extends Control
+extends MinigameScreen
 
-## Orient-the-scissors cutting minigame, dressed as a tailor's cutting mat inside an
-## atelier panel. A chalked garment silhouette is drawn on the mat; you steer the
-## scissors (WASD / left stick) to keep them aligned with the outline as a cut cursor
-## travels around it. Staying misaligned racks up slips — 3 slips ruins the piece.
+## Orient-the-scissors cutting minigame. A kraft pattern piece is pinned to the
+## cutting mat and chalked round its edge; you steer the scissors (WASD / left stick)
+## to keep them along that edge as the cut travels round it, and the paper opens
+## behind them. Staying off the line racks up slips — 3 spoils the piece. The chrome
+## (panel, ticket, slip pins, prompts) comes from MinigameScreen.
 ## Emits finished(success, quality).
 
 signal finished(success: bool, quality: float)
@@ -55,15 +56,16 @@ const SHAPES := {
 	],
 }
 
-# Play-field look.
+const TITLE := "Cutting Table"
+## Optional painted mat. Without it the mat is drawn from the palette (see _paint_mat).
+const MAT_ART := "res://assets/textures/ui/cutting_mat.png"
 const MAT_INSET := 10.0
 const GRID_STEP := 30.0
-const CANVAS_MIN := Vector2(600, 384)
+const PIN_PULL := 0.72  # how far in from a corner the pattern pins sit
+const BLADE := 1.25  # scissors size — they are the cursor, so they read first
 
-var _hint_slot: VBoxContainer  # rebuilt per run (upgrade-dependent hints)
 var _good_tol := GOOD_TOL
 var _seconds := TARGET_SECONDS
-var _max_mistakes := MAX_MISTAKES
 var _lead := 0.0
 var _state := State.RUNNING
 var _pts: PackedVector2Array = []
@@ -71,43 +73,38 @@ var _cum: PackedFloat32Array = []
 var _total := 0.0
 var _cursor := 0.0
 var _angle := 0.0
-var _mistakes := 0
 var _error := 0.0
 var _cooldown := 0.0
 var _aligned := false
 var _snip_accum := 0.0
 var _nicks: PackedVector2Array = []
-var _title := ""
+var _mat_tex: Texture2D
 
 var _snip: AudioStream
 var _slip: AudioStream
 var _complete: AudioStream
 var _ruined: AudioStream
-var _player: AudioStreamPlayer
-
-var _panel: PanelContainer
-var _canvas: MinigameCanvas
-var _sub_lbl: Label
-var _status_lbl: Label
-var _pips_box: HBoxContainer
 
 
+## A garment shape needs height more than width, so the bench takes the tall frame
+## (the seam in the sewing game is the other way round, and keeps the wide one).
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_ensure_chrome(TITLE, _paint, Style.FRAME_TALL)
+
+
+func _load_assets() -> void:
 	_snip = _load("snip")
 	_slip = _load("slip")
 	_complete = _load("complete")
 	_ruined = _load("ruined")
-	_player = AudioStreamPlayer.new()
-	add_child(_player)
-	_build_chrome()
+	_mat_tex = _load_art(MAT_ART)
 
 
 func start(garment_type: int, title: String) -> void:
-	_title = title
-	_rebuild_hints.call_deferred()
+	_ensure_chrome(TITLE, _paint, Style.FRAME_TALL)
 	var c := Config.data
 	_lead = 1.6
+	_max_mistakes = MAX_MISTAKES
 	if c != null:
 		_good_tol = deg_to_rad(c.cut_tolerance_deg)
 		_seconds = c.cut_seconds
@@ -121,8 +118,10 @@ func start(garment_type: int, title: String) -> void:
 	_cooldown = 0.0
 	_nicks = []
 	_angle = _tangent_at(0.0)
-	_sub_lbl.text = title
-	_refresh_pips()
+	_set_job(title)
+	_rebuild_hints.call_deferred()
+	_build_pips()
+	_show_panel()
 	_update_status()
 	set_process(true)
 	_repaint()
@@ -153,9 +152,11 @@ func _process(delta: float) -> void:
 	if v.length() > 0.35:
 		_angle = _rotate_toward(_angle, v.angle(), ROT_SPEED * delta)
 
-	# Lead-in: let the player line up before the cut starts.
+	# Lead-in: let the player line up before the cut starts — the blades and the guide
+	# arrow already answer, so lining up is something you can actually do.
 	if _lead > 0.0:
 		_lead -= delta
+		_aligned = absf(angle_difference(_angle, _tangent_at(_cursor))) <= _good_tol
 		_update_status()
 		_repaint()
 		return
@@ -207,7 +208,7 @@ func _register_mistake() -> void:
 	_cooldown = 0.5
 	_nicks.append(_point_at(_cursor))
 	_play(_slip, 0.8)
-	_refresh_pips()
+	_slip_feedback()
 	if _mistakes >= _max_mistakes:
 		_fail()
 
@@ -233,83 +234,12 @@ func _fail() -> void:
 	finished.emit(false, 0.0)
 
 
-# --- Chrome ----------------------------------------------------------------
-
-
-func _build_chrome() -> void:
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.5)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(dim)
-
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-
-	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(660, 0)
-	center.add_child(_panel)
-	Style.apply_skin(_panel, Style.MenuSkin.WORK)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", Style.S2)
-	_panel.add_child(box)
-
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", Style.S2)
-	box.add_child(head)
-	head.add_child(Style.title_label("Cutting Table", Style.ACC_WORK))
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(spacer)
-	_pips_box = HBoxContainer.new()
-	_pips_box.add_theme_constant_override("separation", Style.S1 + 2)
-	_pips_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(_pips_box)
-
-	_sub_lbl = Label.new()
-	_sub_lbl.add_theme_color_override("font_color", Style.INK_SOFT)
-	_sub_lbl.add_theme_font_size_override("font_size", 16)
-	box.add_child(_sub_lbl)
-
-	_canvas = MinigameCanvas.new()
-	_canvas.custom_minimum_size = CANVAS_MIN
-	_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_canvas.painter = _paint
-	box.add_child(_canvas)
-
-	_status_lbl = Label.new()
-	_status_lbl.add_theme_font_override("font", Style.bold_font())
-	_status_lbl.add_theme_font_size_override("font_size", 16)
-	box.add_child(_status_lbl)
-
-	_hint_slot = VBoxContainer.new()
-	box.add_child(_hint_slot)
-
-
 ## Key hints for this run — Shift only appears once its upgrade is owned.
 func _rebuild_hints() -> void:
-	if _hint_slot == null:
-		return
-	for child in _hint_slot.get_children():
-		child.queue_free()
 	var pairs := [["WASD", "Aim the scissors"]]
 	if Upgrades != null and Upgrades.cutting_sprint():
 		pairs.append(["Shift", "Cut faster (riskier)"])
-	_hint_slot.add_child(Style.hint_bar(pairs))
-
-
-func _refresh_pips() -> void:
-	if _pips_box == null:
-		return
-	for child in _pips_box.get_children():
-		child.queue_free()
-	for i in _max_mistakes:
-		var pip := Panel.new()
-		pip.custom_minimum_size = Vector2(15, 15)
-		var col: Color = Style.CLAY if i < _mistakes else Style.CREAM_DARK
-		pip.add_theme_stylebox_override("panel", Style.bar(col, 8))
-		_pips_box.add_child(pip)
+	_set_hints(pairs)
 
 
 func _update_status() -> void:
@@ -319,22 +249,13 @@ func _update_status() -> void:
 		_set_status("Line up the scissors…  %d" % ceili(_lead), Style.AMBER)
 		return
 	var pct := int(_cursor / _total * 100.0)
-	var tip := "Keep the scissors along the chalk line   ·   %d%%" % pct
+	if not _aligned:
+		_set_status("Off the line — turn the blades   ·   %d%%" % pct, Style.CLAY)
+		return
+	var tip := "Follow the chalk line   ·   %d%% cut" % pct
 	if OS.is_debug_build():
 		tip += "   ·   F2 skip"
 	_set_status(tip, Style.INK_SOFT)
-
-
-func _set_status(text: String, col: Color) -> void:
-	if _status_lbl == null:
-		return
-	_status_lbl.text = text
-	_status_lbl.add_theme_color_override("font_color", col)
-
-
-func _repaint() -> void:
-	if _canvas != null:
-		_canvas.queue_redraw()
 
 
 # --- Geometry --------------------------------------------------------------
@@ -368,7 +289,7 @@ func _origin() -> Vector2:
 
 
 func _scale() -> float:
-	return minf(_canvas.size.x, _canvas.size.y) * 0.40
+	return minf(_canvas.size.x, _canvas.size.y) * 0.46
 
 
 func _world(p: Vector2) -> Vector2:
@@ -382,29 +303,36 @@ func _paint(c: Control) -> void:
 	var rect := Rect2(
 		Vector2(MAT_INSET, MAT_INSET), c.size - Vector2(MAT_INSET * 2.0, MAT_INSET * 2.0)
 	)
+	_paint_mat(c, rect)
+	if _pts.is_empty():
+		return
+	_paint_pattern_piece(c)
+	_paint_cut(c)
+	for n in _nicks:
+		_paint_x(c, _world(n), Style.CLAY, 7.0)
+	var cur := _world(_point_at(_cursor))
+	_paint_guide(c, cur)
+	_paint_scissors(c, cur, _angle)
+
+
+## The bench: a tan cutting mat in a walnut edge, gridded and ruled off in
+## centimetres along its top and left edges.
+func _paint_mat(c: Control, rect: Rect2) -> void:
 	var mat := StyleBoxFlat.new()
-	mat.bg_color = Style.MAT.darkened(0.05)
+	mat.bg_color = Style.MAT.darkened(0.16)
 	mat.set_corner_radius_all(14)
 	mat.set_border_width_all(3)
 	mat.border_color = Style.WALNUT
 	c.draw_style_box(mat, rect)
-	_paint_grid(c, rect)
-	if _pts.is_empty():
-		return
-
-	# Chalked garment outline.
-	var chalk := Color(Style.CHALK, 0.6)
-	for i in _pts.size():
-		_dashed(c, _world(_pts[i]), _world(_pts[(i + 1) % _pts.size()]), chalk)
-	_paint_progress(c)
-	for n in _nicks:
-		_paint_x(c, _world(n), Style.CLAY, 7.0)
-	var cur := _world(_point_at(_cursor))
-	_paint_scissors(c, cur, _angle, Style.FOREST if _aligned else Style.CLAY)
+	if _mat_tex != null:
+		c.draw_texture_rect(_mat_tex, rect.grow(-3.0), true)  # the art carries its own grid
+	else:
+		_paint_grid(c, rect)
+	_paint_rule(c, rect)  # the ruler runs along the canvas edges, so it is never tiled
 
 
 func _paint_grid(c: Control, rect: Rect2) -> void:
-	var col := Color(Style.WALNUT, 0.09)
+	var col := Style.tint(Style.WALNUT, 0.09)
 	var x := rect.position.x + GRID_STEP
 	while x < rect.end.x:
 		c.draw_line(Vector2(x, rect.position.y + 5), Vector2(x, rect.end.y - 5), col, 1.0)
@@ -415,7 +343,62 @@ func _paint_grid(c: Control, rect: Rect2) -> void:
 		y += GRID_STEP
 
 
-func _paint_progress(c: Control) -> void:
+## Ruler ticks down two edges — a long one every fifth mark, like a real mat.
+func _paint_rule(c: Control, rect: Rect2) -> void:
+	var col := Style.tint(Style.WALNUT, 0.35)
+	var step := GRID_STEP * 0.5
+	var i := 0
+	var x := rect.position.x
+	while x < rect.end.x:
+		var h := 9.0 if i % 5 == 0 else 5.0
+		c.draw_line(Vector2(x, rect.position.y), Vector2(x, rect.position.y + h), col, 1.0)
+		x += step
+		i += 1
+	i = 0
+	var y := rect.position.y
+	while y < rect.end.y:
+		var w := 9.0 if i % 5 == 0 else 5.0
+		c.draw_line(Vector2(rect.position.x, y), Vector2(rect.position.x + w, y), col, 1.0)
+		y += step
+		i += 1
+
+
+## The piece itself: kraft pattern paper pinned to the mat, chalked round its edge
+## and marked with the grain line the cloth has to follow.
+func _paint_pattern_piece(c: Control) -> void:
+	var poly := PackedVector2Array()
+	for p in _pts:
+		poly.append(_world(p))
+	Craft.card(c, poly, Style.PAPER, Style.tint(Style.WALNUT, 0.4), 1.5)
+	var chalk := Style.tint(Style.CHALK, 0.8)
+	for i in _pts.size():
+		_dashed(c, _world(_pts[i]), _world(_pts[(i + 1) % _pts.size()]), chalk)
+	_paint_grain(c)
+	for i in _pts.size():
+		if i % 3 == 0:
+			Craft.pin(c, _world(_pts[i] * PIN_PULL), Style.BRASS, 5.0)
+
+
+## The grain line — the double-headed arrow every pattern piece carries.
+func _paint_grain(c: Control) -> void:
+	var col := Style.tint(Style.WALNUT, 0.45)
+	var top := _world(Vector2(0.0, -0.45))
+	var bot := _world(Vector2(0.0, 0.45))
+	c.draw_line(top, bot, col, 1.5)
+	_paint_arrow_head(c, top, Vector2.UP, col)
+	_paint_arrow_head(c, bot, Vector2.DOWN, col)
+
+
+func _paint_arrow_head(c: Control, at: Vector2, dir: Vector2, col: Color) -> void:
+	var back := at - dir * 8.0
+	var side := dir.orthogonal() * 4.5
+	c.draw_line(at, back + side, col, 1.5)
+	c.draw_line(at, back - side, col, 1.5)
+
+
+## What has been cut: the paper lies open along the line with the mat showing
+## through it, so progress reads as a real gap rather than a coloured stripe.
+func _paint_cut(c: Control) -> void:
 	var start_pt := _world(_point_at(0.0))
 	if _cursor > 0.0:
 		var pl: PackedVector2Array = []
@@ -425,46 +408,52 @@ func _paint_progress(c: Control) -> void:
 				pl.append(_world(_pts[(i + 1) % _pts.size()]))
 		pl.append(_world(_point_at(_cursor)))
 		if pl.size() >= 2:
-			c.draw_polyline(pl, Style.FOREST, 5.0)
-	c.draw_circle(start_pt, 6.0, Style.BRASS)
+			c.draw_polyline(pl, Style.MAT.darkened(0.16), 7.0)
+			c.draw_polyline(pl, Style.FOREST, 2.0)
+	Craft.eyelet(c, start_pt, 0.0)
 
 
-## A pair of blades with brass finger-rings and a pivot rivet — cuter than a cross.
-func _paint_scissors(c: Control, pos: Vector2, angle: float, col: Color) -> void:
-	var dir := Vector2.RIGHT.rotated(angle)
+## Where the cut is heading, and — when the blades are off it — which way to turn.
+## The scissors carry the state colour, but the arrow says it in shape too (§2).
+func _paint_guide(c: Control, at: Vector2) -> void:
+	var tangent := _tangent_at(_cursor)
+	var dir := Vector2.RIGHT.rotated(tangent)
+	var col := Style.tint(Style.CHALK, 0.85) if _aligned else Style.CLAY
+	var tip := at + dir * 46.0
+	c.draw_line(at + dir * 18.0, tip, col, 2.0)
+	_paint_arrow_head(c, tip, dir, col)
+	if _aligned or _lead > 0.0:
+		return
+	var turn := signf(angle_difference(_angle, tangent))
+	var from := _angle - 0.5 * turn
+	c.draw_arc(at, 34.0, from, from + turn, 14, Style.CLAY, 2.5)
+
+
+## A pair of blades with brass finger-rings and a pivot rivet, lifted off the mat by
+## their shadow, kicking up chalk dust while they bite.
+func _paint_scissors(c: Control, pos: Vector2, angle: float) -> void:
+	var steel := Style.FOREST if _aligned else Style.CLAY
+	_paint_blades(c, pos + Craft.SHADOW_OFFSET * 0.6, angle, Style.SHADOW, Style.SHADOW)
+	_paint_blades(c, pos, angle, steel, Style.BRASS)
+	if _aligned and _lead <= 0.0:
+		_paint_dust(c, pos, angle)
+
+
+func _paint_blades(c: Control, pos: Vector2, angle: float, steel: Color, brass: Color) -> void:
+	var dir := Vector2.RIGHT.rotated(angle) * BLADE
 	var perp := dir.orthogonal()
-	c.draw_line(pos - dir * 10.0 + perp * 4.0, pos + dir * 27.0 + perp * 2.0, col, 3.5)
-	c.draw_line(pos - dir * 10.0 - perp * 4.0, pos + dir * 27.0 - perp * 2.0, col, 3.5)
-	c.draw_arc(pos - dir * 16.0 + perp * 7.0, 6.5, 0, TAU, 18, Style.BRASS, 2.5)
-	c.draw_arc(pos - dir * 16.0 - perp * 7.0, 6.5, 0, TAU, 18, Style.BRASS, 2.5)
-	c.draw_circle(pos + dir * 2.0, 3.0, Style.BRASS)
+	c.draw_line(pos - dir * 10.0 + perp * 4.0, pos + dir * 27.0 + perp * 2.0, steel, 4.0)
+	c.draw_line(pos - dir * 10.0 - perp * 4.0, pos + dir * 27.0 - perp * 2.0, steel, 4.0)
+	c.draw_arc(pos - dir * 16.0 + perp * 7.0, 8.0 * BLADE, 0, TAU, 18, brass, 3.0)
+	c.draw_arc(pos - dir * 16.0 - perp * 7.0, 8.0 * BLADE, 0, TAU, 18, brass, 3.0)
+	c.draw_circle(pos + dir * 2.0, 3.5, brass)
 
 
-func _paint_x(c: Control, pos: Vector2, col: Color, r: float) -> void:
-	c.draw_line(pos - Vector2(r, r), pos + Vector2(r, r), col, 3.0)
-	c.draw_line(pos - Vector2(r, -r), pos + Vector2(r, -r), col, 3.0)
-
-
-## A dashed line from a to b (chalk marks read as short strokes, not a solid line).
-func _dashed(c: Control, a: Vector2, b: Vector2, col: Color) -> void:
-	var d := a.distance_to(b)
-	if d <= 0.001:
-		return
-	var dir := (b - a) / d
-	var t := 0.0
-	while t < d:
-		c.draw_line(a + dir * t, a + dir * minf(t + 8.0, d), col, 2.5)
-		t += 14.0
-
-
-func _play(stream: AudioStream, volume_scale: float) -> void:
-	if stream == null or _player == null:
-		return
-	_player.stream = stream
-	_player.volume_db = linear_to_db(clampf(volume_scale, 0.01, 1.0))
-	_player.play()
-
-
-func _load(name: String) -> AudioStream:
-	var path := "res://assets/audio/%s.wav" % name
-	return load(path) if ResourceLoader.exists(path) else null
+## Chalk dust off the blades, flickering in time with the snips.
+func _paint_dust(c: Control, pos: Vector2, angle: float) -> void:
+	var perp := Vector2.RIGHT.rotated(angle).orthogonal()
+	var t := _snip_accum * 40.0
+	for i in 3:
+		var side := 1.0 if i % 2 == 0 else -1.0
+		var off := perp * (6.0 + i * 5.0) * side
+		c.draw_circle(pos + off, maxf(1.5 + sin(t + i) * 0.8, 0.6), Style.tint(Style.CHALK, 0.55))
