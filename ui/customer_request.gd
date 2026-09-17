@@ -18,6 +18,7 @@ var _portrait: CustomerPortrait
 var _choices: VBoxContainer
 var _badges: ClientBadges
 var _options: Array[String] = []  # "take" / "book" / "refer" / "decline"
+var _cards: Array[CraftPanel] = []
 var _sel := 0
 
 @onready var _panel: PanelContainer = $Center/Panel
@@ -150,9 +151,13 @@ func _build_options(pref) -> void:
 	_draw_options(pref)
 
 
+## Build the cards once for this customer. Moving the selection only restyles them
+## (see _highlight) — rebuilding would resize the bubble and jolt the TV perched on it.
 func _draw_options(pref) -> void:
 	for c in _choices.get_children():
+		_choices.remove_child(c)
 		c.queue_free()
+	_cards.clear()
 	for i in _options.size():
 		var card := CraftPanel.option(i == _sel, Style.BRASS)
 		var lbl := Label.new()
@@ -161,6 +166,12 @@ func _draw_options(pref) -> void:
 		lbl.add_theme_color_override("font_color", Style.INK)
 		card.add_child(lbl)
 		_choices.add_child(card)
+		_cards.append(card)
+
+
+func _highlight() -> void:
+	for i in _cards.size():
+		_cards[i].set_option_selected(i == _sel, Style.BRASS, i == _sel)
 
 
 func _option_text(opt: String, pref) -> String:
@@ -180,13 +191,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	Sfx.ui(event)
-	var pref = _customer.get("preference") if _customer != null else null
 	if event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
 		_sel = wrapi(_sel + 1, 0, _options.size())
-		_draw_options(pref)
+		_highlight()
 	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
 		_sel = wrapi(_sel - 1, 0, _options.size())
-		_draw_options(pref)
+		_highlight()
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_choose(_options[_sel] if _sel < _options.size() else "take")
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
