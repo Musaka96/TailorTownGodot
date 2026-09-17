@@ -41,6 +41,10 @@ func _ready() -> void:
 	EventBus.order_due.connect(_refresh)
 	EventBus.order_fulfilled.connect(_on_fulfilled)
 	EventBus.order_expired.connect(_on_expired)
+	# The HUD outlives the game scene: drop every ticket when the session ends or the
+	# order book is rebuilt, or a reload would stack duplicates.
+	EventBus.orders_cleared.connect(clear_tickets)
+	EventBus.session_ended.connect(clear_tickets)
 
 
 func _process(_delta: float) -> void:
@@ -65,7 +69,20 @@ func _apply_fold(ticket: Dictionary) -> void:
 	Craft.bump(card, 1.06)
 
 
+func clear_tickets() -> void:
+	for order in _tickets:
+		var card: Control = _tickets[order]["card"]
+		if is_instance_valid(card):
+			card.queue_free()
+	_tickets.clear()
+	# Also catch any card still fading out from a collection/expiry.
+	for child in _row.get_children():
+		child.queue_free()
+
+
 func _on_created(order) -> void:
+	if _tickets.has(order):
+		return
 	var ticket := _make_ticket(order)
 	_row.add_child(ticket["card"])
 	_tickets[order] = ticket

@@ -50,6 +50,8 @@ signal order_due(order: Resource)
 ## The running game scene is being left or replaced (to the main menu, a load, or a new
 ## game). Systems holding per-session UI/state (tutorial, open menus) shut down cleanly.
 signal session_ended
+## The order book was wiped/rebuilt (new game, load) — views should drop their old entries.
+signal orders_cleared
 ## The customer came on the due day but the suit wasn't ready — they'll return tomorrow.
 signal order_late(order: Resource)
 ## Cloth bought on account (owed > 0) or settled (owed == 0).

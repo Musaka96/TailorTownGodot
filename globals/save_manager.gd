@@ -18,6 +18,8 @@ extends Node
 const STARTER_ROLL := preload("res://entities/items/material_roll.tscn")
 const VERSION := 1
 const DIR := "user://saves"
+## Tool/test runs (godot --script ...) save here instead, so they never touch real saves.
+const DIR_TOOLS := "user://saves_tools"
 const SLOTS := 3
 const AUTO_SLOT := "auto"
 const MAIN_SCENE := "res://main.tscn"
@@ -303,7 +305,7 @@ func _reset_autoloads() -> void:
 	Reputation.points = 0
 	if Upgrades != null:
 		Upgrades.reset()
-	Orders.active.clear()
+	Orders.clear()
 	Shift.day = 1
 	if News != null:
 		News.restore_seen({})
@@ -362,13 +364,18 @@ func _all_slot_ids() -> Array:
 	return ids
 
 
+## The save folder: the real one, or a separate one when run from a tool/test script.
+func _dir() -> String:
+	return DIR_TOOLS if "--script" in OS.get_cmdline_args() else DIR
+
+
 func _slot_path(slot: Variant) -> String:
-	return "%s/slot_%s.sav" % [DIR, str(slot)]
+	return "%s/slot_%s.sav" % [_dir(), str(slot)]
 
 
 func _ensure_dir() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		DirAccess.make_dir_recursive_absolute(DIR)
+	if not DirAccess.dir_exists_absolute(_dir()):
+		DirAccess.make_dir_recursive_absolute(_dir())
 
 
 func _write(slot: Variant, data: Dictionary) -> bool:

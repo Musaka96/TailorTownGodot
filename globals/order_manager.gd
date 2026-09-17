@@ -166,6 +166,12 @@ func expire(order: SuitOrder) -> void:
 	EventBus.order_expired.emit(order)
 
 
+## Empty the order book (new game / before a load) and tell the views.
+func clear() -> void:
+	active.clear()
+	EventBus.orders_cleared.emit()
+
+
 func is_ready(order: SuitOrder) -> bool:
 	return order != null and order.state == SuitOrder.State.READY
 
@@ -206,7 +212,7 @@ func save_state() -> Array:
 ## past its deadline re-fires order_due (its due_fired stays false), so the
 ## returning-customer flow resumes cleanly after loading.
 func restore(saved: Array) -> void:
-	active.clear()
+	clear()
 	_next_id = 1
 	for d: Dictionary in saved:
 		var order := SuitOrder.new()
