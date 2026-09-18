@@ -8,6 +8,13 @@ current code; the SaveManager capability-scan groundwork mentioned below is
 
 ---
 
+**Visual track (planned 2026-09-19, owner-approved):** Cloth Look v2 — a Cloth Lab
+debug scene plus Tier 1 material upgrades (per-fabric rim sheen, weave normal maps,
+tweed flecks, macro breakup) and a specced Tier 2. Full implementation plan in
+[`RESEARCH_cloth_look.md`](RESEARCH_cloth_look.md); build the lab first.
+
+---
+
 ## A. Coffee station — sit, drink, timed "caffeinated" buff (better suit quality)
 
 **Idea:** a coffee spot in the shop; sit and drink to gain a timed focus buff that
