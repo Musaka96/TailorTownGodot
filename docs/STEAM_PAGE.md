@@ -167,13 +167,13 @@ to re-record just those: `-- clip_mirror clip_brief`.
 
 | Slot | Clip | Shows | WebP |
 |---|---|---|---|
-| GIF 1 (lead) | `mirror` | five looks on one client at the mirror, 1 s each, loops | ~3.8 MB |
+| GIF 1 (lead) | `mirror` | two suits designed part by part at the mirror, 2x speed, 20 fps | ~6.1 MB |
 | GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief | ~2.3 MB |
 | GIF 3 | `cutting` + `sewing` | a full cut, then a full seam (use both, stacked) | ~1.2 + 1.4 MB |
 | spare | `shop` | the tailor crossing the floor with a bolt as a client walks in | ~3.6 MB |
 
-The four slotted clips total ~8.7 MB. Adding `shop` takes it to ~12 MB, which is close
-to the 15 MB point where Valve may strip animations.
+The four slotted clips total ~11 MB. Leave `shop` off the page (or use it in an
+announcement) — adding it passes the 15 MB point where Valve may strip animations.
 
 ## 6. Asset rules worth keeping in mind
 

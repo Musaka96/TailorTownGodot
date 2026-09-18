@@ -30,6 +30,12 @@ const EXTRA_SHOTS := [
 const CLIP_W := 1170
 const CLIP_H := 658
 const CLIP_FPS := 30
+## The mirror clip designs these CUTE_SUITS looks one after another, part by part.
+const CLIP_LOOKS := ["berry", "garden"]
+## Game seconds between "button presses" in the mirror clip; the clip is then saved at
+## CLIP_SPEEDUP x so it reads as a sped-up play session.
+const CLIP_PRESS := 0.15
+const CLIP_SPEEDUP := 2
 ## Cheerful looks for the fitting-mirror shots (`-- cute`).
 ## brief = [Enums.Occasion, Enums.Style] the client asks for (so the brief fits the look).
 ## parts = jacket, shirt, trousers, each [fabric, pattern, colour, style_idx] — indices
@@ -51,6 +57,8 @@ var _mirror: Node
 var _wanted: PackedStringArray
 var _rec_dir := ""
 var _rec_frame := 0
+var _rec_step := 1
+var _rec_tick_n := 0
 
 # Autoloads are not resolvable as identifiers from a top-level `--script`, so they
 # are fetched off the root once the scene is up.
@@ -383,8 +391,9 @@ func _clip_shop() -> void:
 	await _clear_customers()
 
 
-## The fitting mirror: the same client tried in look after look, the cloth changing
-## on them live. Five looks, one second each, looping back to the first.
+## The fitting mirror, played like a (sped-up) session: pick a part, step through its
+## fabric / colour / pattern / style, next part, back out to the whole suit — then the
+## next look. Each CLIP_LOOKS suit is built one press at a time.
 func _clip_mirror() -> void:
 	if not _want("clip_mirror"):
 		return
@@ -396,17 +405,73 @@ func _clip_mirror() -> void:
 	cust.preference.budget = CUTE_BUDGET
 	_ui.open_suit_builder(_mirror, _player)
 	var builder: Node = _ui.suit_builder
-	var looks: Array = CUTE_SUITS.keys()
-	_dress_design(builder, CUTE_SUITS[looks[0]]["parts"])
-	await _wait(100)
-	_start_rec("mirror")
-	for i in looks.size():
-		_dress_design(builder, CUTE_SUITS[looks[i]]["parts"])
-		await _seconds(1.0)
+	await _wait(60)
+	_start_rec("mirror", CLIP_SPEEDUP)
+	for look: String in CLIP_LOOKS:
+		await _design_by_hand(builder, CUTE_SUITS[look]["parts"])
+		await _seconds(1.0)  # admire the finished suit
 	_stop_rec()
 	_ui.close_all_menus()
 	_rig.unfocus()
 	await _clear_customers()
+
+
+## Drive the suit builder like a player: for each part select it on the Part row, then
+## walk down Fabric / Colour / Pattern / Style pressing left/right the short way round
+## to each target value, then return to the whole-suit overview.
+func _design_by_hand(builder: Node, parts: Array) -> void:
+	var enums: Script = load("res://data/scripts/enums.gd")
+	var factory: Script = load("res://data/scripts/material_factory.gd")
+	var types := [2, 0, 1]  # JACKET, SHIRT, PANTS — the order parts[] is written in
+	var keys := ["fabric", "color", "pattern", "style_idx"]  # the builder's row order
+	var src := [0, 2, 1, 3]  # where each key sits in a CUTE_SUITS part entry
+	for i in types.size():
+		var t: int = types[i]
+		await _go_row(builder, 0)
+		while builder._type() != t:
+			builder._adjust(1)
+			await _seconds(CLIP_PRESS)
+		await _seconds(CLIP_PRESS * 2.0)  # let the camera glide in on the part
+		var styles := PackedInt32Array()
+		for n in enums.styles_for(t).size():
+			if n < 2:  # skip "Shorts": the trouser model doesn't show them yet
+				styles.append(n)
+		var options := [
+			builder._available_fabrics(t),
+			factory.colors_for(t),
+			enums.patterns_for(t),
+			styles,
+		]
+		for r in keys.size():
+			var opts: PackedInt32Array = options[r]
+			var want: int = parts[i][src[r]]
+			var have: int = int(builder._design[t][keys[r]])
+			if not opts.has(want) or want == have:
+				continue
+			await _go_row(builder, r + 1)
+			var steps := _short_way(opts, have, want)
+			for _n in absi(steps):
+				builder._adjust(signi(steps))
+				await _seconds(CLIP_PRESS)
+	await _go_row(builder, 0)
+	while builder._part_sel != -1:
+		builder._adjust(1)
+		await _seconds(CLIP_PRESS)
+
+
+func _go_row(builder: Node, row: int) -> void:
+	while builder._row != row:
+		builder._move_row(1 if row > builder._row else -1)
+		await _seconds(CLIP_PRESS)
+
+
+## Signed number of presses from `from` to `to` in a wrapping option list.
+func _short_way(opts: PackedInt32Array, from: int, to: int) -> int:
+	var a := maxi(opts.find(from), 0)
+	var b := opts.find(to)
+	var n := opts.size()
+	var fwd := (b - a + n) % n
+	return fwd if fwd <= n - fwd else fwd - n
 
 
 ## A walk-in comes to the counter, waves, and states the brief.
@@ -414,8 +479,10 @@ func _clip_brief() -> void:
 	if not _want("clip_brief"):
 		return
 	await _clear_customers()
-	_place_player(Vector3(0.7, 0.0, 5.6), PI)
-	_frame(Vector3(0.7, 0.9, 4.6), 0.75)
+	# Stand beside the client's line from the door (it runs straight up x ~ 0.65), not
+	# on it, turned to where they'll stop.
+	_place_player(Vector3(1.9, 0.0, 4.5), atan2(-1.25, -0.45))
+	_frame(Vector3(0.9, 0.9, 4.6), 0.75)
 	var greet: Node3D = _main.find_child("GreetSpot", true, false)
 	var door: Node3D = _main.find_child("DoorInside", true, false)
 	var cust: Node = _spawn_customer(door.global_position + Vector3(0.0, 0.0, 0.4), PI)
@@ -485,13 +552,15 @@ func _clip_sew() -> void:
 	await _take_back(machine)
 
 
-func _start_rec(name: String) -> void:
+func _start_rec(name: String, speedup := 1) -> void:
 	_rec_dir = "%s/clips/%s" % [OUT_DIR, name]
 	var abs_dir := ProjectSettings.globalize_path(_rec_dir)
 	DirAccess.make_dir_recursive_absolute(abs_dir)
 	for f in DirAccess.get_files_at(abs_dir):
 		DirAccess.remove_absolute(abs_dir.path_join(f))
 	_rec_frame = 0
+	_rec_step = maxi(speedup, 1)
+	_rec_tick_n = 0
 	if not process_frame.is_connected(_rec_tick):
 		process_frame.connect(_rec_tick)
 
@@ -503,6 +572,9 @@ func _stop_rec() -> void:
 
 
 func _rec_tick() -> void:
+	_rec_tick_n += 1
+	if (_rec_tick_n - 1) % _rec_step != 0:
+		return
 	var image := get_root().get_texture().get_image()
 	if image == null:
 		return
