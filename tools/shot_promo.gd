@@ -36,6 +36,16 @@ const CLIP_LOOKS := ["berry", "garden"]
 ## CLIP_SPEEDUP x so it reads as a sped-up play session.
 const CLIP_PRESS := 0.15
 const CLIP_SPEEDUP := 2
+## Autoplay: how far down the line the hand aims, when a glowing pin gets pulled, and
+## where the start backstitch goes in.
+const AUTO_LOOK := 0.035
+const AUTO_OUT := 0.007  # the cut hugs the chalk from the allowance side, never inside
+const AUTO_PAST := 0.004
+const PIN_PULL_AT := 0.12
+const START_LOCK_AT := 0.05
+## Clip pacing for the v2 benches (the in-game defaults run 12 s and more a piece).
+const CLIP_CUT_SECONDS := 7.0
+const CLIP_SEW_SPEED := 0.5
 ## Cheerful looks for the fitting-mirror shots (`-- cute`).
 ## brief = [Enums.Occasion, Enums.Style] the client asks for (so the brief fits the look).
 ## parts = jacket, shirt, trousers, each [fabric, pattern, colour, style_idx] — indices
@@ -92,11 +102,12 @@ func _run() -> void:
 	_orders = root.get_node("Orders")
 	_news = root.get_node("News")
 	_clock = root.get_node("DayNight")
-	# The shots drive the v1 cutting / sewing games by hand (_autocut / _autosew reach
-	# into their internals), so pin those whatever the config's default is.
+	# The shots drive the v2 cutting / sewing games (Seam Allowance, Pedal & Aim) by
+	# hand — _autocut / _autosew reach into their internals — so pin those whatever
+	# the config says.
 	var cfg: Resource = root.get_node("Config").data
-	cfg.cut_variant = 0
-	cfg.sew_variant = 0
+	cfg.cut_variant = 1
+	cfg.sew_variant = 1
 	_dismiss_paper()
 	for timer in _cm.get_children():
 		if timer is Timer:
@@ -199,6 +210,7 @@ func _shot_cutting() -> void:
 	_ui.worktable_screen._start_cutting()
 	await _autocut(_ui.worktable_screen._minigame, 0.55)
 	_save("05_cutting_minigame")
+	_release_controls()
 	_ui.close_all_menus()
 	await _wait(10)
 
@@ -217,6 +229,7 @@ func _shot_sewing() -> void:
 	machine.interact(_player)  # opens the sewing screen + minigame
 	await _autosew(_ui.sewing_screen._minigame, 0.55)
 	_save("06_sewing_minigame")
+	_release_controls()
 	_ui.close_all_menus()
 	await _wait(10)
 
@@ -522,10 +535,10 @@ func _clip_cut() -> void:
 	await _wait(30)
 	_ui.worktable_screen._start_cutting()
 	var game: Node = _ui.worktable_screen._minigame
-	game._lead = 0.5
-	game._seconds = 3.6
+	game._seconds = CLIP_CUT_SECONDS
 	_start_rec("cutting")
 	await _autocut(game, 1.0)
+	_release_controls()
 	await _seconds(0.8)
 	_stop_rec()
 	await _seconds(0.5)
@@ -546,10 +559,10 @@ func _clip_sew() -> void:
 	await _wait(6)
 	machine.interact(_player)
 	var game: Node = _ui.sewing_screen._minigame
-	game._lead = 0.5
-	game._cross_seconds = 3.8
+	game._top = CLIP_SEW_SPEED
 	_start_rec("sewing")
 	await _autosew(game, 1.0)
+	_release_controls()
 	await _seconds(0.8)
 	_stop_rec()
 	await _seconds(0.5)
@@ -725,26 +738,93 @@ func _clear_customers() -> void:
 	await _wait(10)
 
 
-## Drive the cutting minigame like a steady hand: keep the blades on the line's
-## tangent until `fraction` of the outline is cut.
+## Drive the Seam Allowance cut like a steady hand: hold Cut and keep the shears
+## pointed a little way down the chalk (the game pivots the corners itself) until
+## `fraction` of the outline is cut. Cut stays held — `_release_controls()` after.
 func _autocut(game: Node, fraction: float) -> void:
-	for _i in 1200:
-		if game._total > 0.0 and game._cursor / game._total >= fraction:
+	await _wait(2)  # let the bench arm (Cut must read as released first)
+	Input.action_press("cut")
+	for _i in 3000:
+		if game._state > 1 or game._cum[game._seg] / game._total >= fraction:
 			break
-		game._angle = game._tangent_at(game._cursor)
+		if game._pivot_t <= 0.0:
+			var along: float = game._cum[game._seg] + _proj(game)
+			game._heading = (_cut_aim(game, along) - game._p).angle()
 		await process_frame
 
 
-## Drive the sewing minigame: stitch each point as the needle reaches it, until the
-## needle is `fraction` of the way along the seam.
+## Where the shears aim: a little way down the chalk, just on the allowance side. The
+## bench only moves on to the next run once the shears pass the end of this one, so at
+## a sharp kink (the outline doubling back without a pivot) aim past that end first.
+func _cut_aim(game: Node, along: float) -> Vector2:
+	var aim := _arc_point(game, along + AUTO_LOOK, AUTO_OUT)
+	var i: int = game._seg
+	if i + 1 >= game._path.size():
+		return aim
+	var dir: Vector2 = game._seg_dir(i)
+	var end: Vector2 = game._path[i + 1]
+	if (aim - end).dot(dir) < AUTO_PAST:
+		aim = end + dir * AUTO_PAST + dir.orthogonal() * game._out * AUTO_OUT
+	return aim
+
+
+## Drive Pedal & Aim the way the handbook teaches: a backstitch to lock the start,
+## pedal with the cloth aimed down the seam line, pull each pin as it glows, and at the
+## end mark backstitch again and cut the thread — or stop, pedal down, once the needle
+## is `fraction` of the way along. `_release_controls()` after.
 func _autosew(game: Node, fraction: float) -> void:
-	for _i in 1200:
-		if game._needle >= fraction:
+	await _wait(2)
+	Input.action_press("cut")
+	for _i in 4000:
+		if game._state > 1:
 			break
-		var idx: int = game._next_pending()
-		if game._lead <= 0.0 and idx != -1 and game._needle >= game._pts[idx] - 0.004:
-			game._try_stitch()
+		var s: float = game._arc()
+		if fraction < 1.0 and s / game._total >= fraction:
+			break
+		_sew_backstitch(game, s)
+		if game._at_end and game._locked["end"] and not game._reversing:
+			game._action()  # cut the thread
+		var pin: Dictionary = game._pin_in_reach()
+		if not pin.is_empty() and pin["s"] - s < PIN_PULL_AT:
+			game._action()
+		if not game._reversing:
+			game._heading = (_arc_point(game, s + AUTO_LOOK) - game._p).angle()
 		await process_frame
+
+
+## Hold S while inside either lock zone and not yet locked there.
+func _sew_backstitch(game: Node, s: float) -> void:
+	var start_due: bool = not game._locked["start"] and s > START_LOCK_AT
+	var end_due: bool = not game._locked["end"] and game._at_end
+	if start_due or end_due:
+		Input.action_press("move_back")
+	else:
+		Input.action_release("move_back")
+
+
+func _release_controls() -> void:
+	for action in ["cut", "move_back"]:
+		Input.action_release(action)
+
+
+## How far along its current segment the tool is.
+func _proj(game: Node) -> float:
+	var i: int = game._seg
+	var span: float = game._cum[i + 1] - game._cum[i] if i + 1 < game._cum.size() else 0.0
+	return clampf((game._p - game._path[i]).dot(game._seg_dir(i)), 0.0, span)
+
+
+## The point `s` along a bench's outline, `out` beyond it (into the allowance).
+func _arc_point(game: Node, s: float, out := 0.0) -> Vector2:
+	var path: PackedVector2Array = game._path
+	var cum: PackedFloat32Array = game._cum
+	for i in path.size() - 1:
+		if cum[i + 1] >= s:
+			var span := cum[i + 1] - cum[i]
+			var t := 0.0 if span <= 0.0 else (s - cum[i]) / span
+			var normal: Vector2 = (path[i + 1] - path[i]).normalized().orthogonal() * game._out
+			return path[i].lerp(path[i + 1], t) + normal * out
+	return path[path.size() - 1]
 
 
 func _spawn_customer(pos: Vector3, yaw: float) -> Node:
@@ -752,4 +832,3 @@ func _spawn_customer(pos: Vector3, yaw: float) -> Node:
 	cust.global_position = pos
 	cust.rotation.y = yaw
 	return cust
-

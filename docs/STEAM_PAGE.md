@@ -72,9 +72,10 @@ to you as your name grows.
 
 [GIF 3 — the cutting minigame followed by the sewing minigame, back to back.]
 
-Chalk the pattern and steer the shears along the line — drift and you nick the cloth,
-three slips and it's ruined. Then feed the seam through the machine in rhythm, stitch by
-stitch. How cleanly you cut and how steadily you sew becomes the quality of the finished
+Steer the shears along the chalk — they glide down the straights, the curves are yours,
+and drift into the piece and you nick it; three slips and it's ruined. Then work the
+pedal and guide the seam through the machine: pull the pins, ease off at the corners,
+backstitch both ends. How cleanly you cut and how steadily you sew becomes the quality of the finished
 piece, and the quality of the piece is what the client pays for.
 
 ### Dress for the occasion
@@ -168,11 +169,11 @@ to re-record just those: `-- clip_mirror clip_brief`.
 | Slot | Clip | Shows | WebP |
 |---|---|---|---|
 | GIF 1 (lead) | `mirror` | two suits designed part by part at the mirror, 2x speed, 20 fps | ~6.1 MB |
-| GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief | ~2.3 MB |
-| GIF 3 | `cutting` + `sewing` | a full cut, then a full seam (use both, stacked) | ~1.2 + 1.4 MB |
+| GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief | ~2.4 MB |
+| GIF 3 | `cutting` + `sewing` | a clean Seam Allowance cut, then a Pedal & Aim seam — pins pulled, both ends backstitched (use both, stacked; 20 fps) | ~2.0 + 2.7 MB |
 | spare | `shop` | the tailor crossing the floor with a bolt as a client walks in | ~3.6 MB |
 
-The four slotted clips total ~11 MB. Leave `shop` off the page (or use it in an
+The four slotted clips total ~13 MB. Leave `shop` off the page (or use it in an
 announcement) — adding it passes the 15 MB point where Valve may strip animations.
 
 ## 6. Asset rules worth keeping in mind
@@ -206,7 +207,7 @@ Worsted wool, flannel, tweed, mohair, linen, poplin. Pinstripe, herringbone, hou
 
 [h2]Cut it, stitch it, finish it[/h2]
 [img]{GIF_3}[/img]
-Chalk the pattern and steer the shears along the line — drift and you nick the cloth, three slips and it's ruined. Then feed the seam through the machine in rhythm, stitch by stitch. How cleanly you cut and how steadily you sew becomes the quality of the finished piece, and the quality of the piece is what the client pays for.
+Steer the shears along the chalk — they glide down the straights, the curves are yours, and drift into the piece and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the machine: pull the pins, ease off at the corners, backstitch both ends. How cleanly you cut and how steadily you sew becomes the quality of the finished piece, and the quality of the piece is what the client pays for.
 
 [h2]Dress for the occasion[/h2]
 [img]{SHOT_HANDBOOK}[/img]
