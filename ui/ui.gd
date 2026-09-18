@@ -14,6 +14,7 @@ var newspaper: Control
 var day_transition: Control
 var pause_menu: Control
 var rack_menu: Control
+var apprentice_menu: Control
 
 var _toast: Label
 
@@ -58,6 +59,7 @@ func _ready() -> void:
 	day_transition = _build_day_transition()
 	pause_menu = _build_pause_menu(theme)
 	rack_menu = _build_rack_menu(theme)
+	apprentice_menu = _build_code_menu(theme, "ApprenticeMenu", "res://ui/apprentice_menu.gd")
 	_wire_pop_ins()
 
 
@@ -73,6 +75,7 @@ func close_all_menus() -> void:
 		handbook,
 		orders_menu,
 		rack_menu,
+		apprentice_menu,
 		newspaper,
 	]:
 		if menu != null and menu.visible:
@@ -94,6 +97,7 @@ func any_menu_open() -> bool:
 		handbook,
 		orders_menu,
 		rack_menu,
+		apprentice_menu,
 		newspaper,
 	]:
 		if menu != null and menu.visible:
@@ -114,6 +118,7 @@ func _wire_pop_ins() -> void:
 		handbook,
 		orders_menu,
 		rack_menu,
+		apprentice_menu,
 	]:
 		if menu == null:
 			continue
@@ -135,6 +140,13 @@ func open_shelf_menu(shelf, actor) -> void:
 		return
 	Sfx.play("drawer")
 	shelf_menu.open(shelf, actor)
+
+
+func open_apprentice_menu(bench, actor) -> void:
+	if _shop_closed():
+		return
+	Sfx.play("menu_open")
+	apprentice_menu.open(bench, actor)
 
 
 func open_rack_menu(rack, actor) -> void:
@@ -326,6 +338,16 @@ func _build_pause_menu(theme: Theme) -> Control:
 	var menu := Control.new()
 	menu.name = "PauseMenu"
 	menu.set_script(load("res://ui/pause_menu.gd"))
+	menu.theme = theme
+	add_child(menu)
+	return menu
+
+
+## A station menu built entirely in code from `script`, attached to the root UI.
+func _build_code_menu(theme: Theme, menu_name: String, script: String) -> Control:
+	var menu := Control.new()
+	menu.name = menu_name
+	menu.set_script(load(script))
 	menu.theme = theme
 	add_child(menu)
 	return menu

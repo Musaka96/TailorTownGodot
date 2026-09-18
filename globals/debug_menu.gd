@@ -12,6 +12,7 @@ const LABEL := Color(0.90, 0.92, 0.98)
 const SUIT_SCENE := preload("res://entities/items/suit.tscn")
 const COFFEE_SCENE := "res://stations/coffee_machine/coffee_machine.tscn"
 const IRON_SCENE := "res://stations/ironing_board/ironing_board.tscn"
+const BENCH_SCENE := "res://stations/apprentice_bench/apprentice_bench.tscn"
 
 var _layer: CanvasLayer
 var _money_label: Label
@@ -261,6 +262,16 @@ func _spawn_station(path: String) -> void:
 	_note("spawned %s (own its upgrade to see it)" % station.name)
 
 
+## Give every apprentice in the scene five jobs' worth of experience at both skills.
+func _train_apprentice() -> void:
+	var scene := get_tree().current_scene
+	var benches := scene.find_children("*", "ApprenticeBench", true, false) if scene != null else []
+	for bench: ApprenticeBench in benches:
+		bench.cut_jobs += 5
+		bench.sew_jobs += 5
+	_note("apprentice trained (%d bench(es))" % benches.size())
+
+
 func _toggle_upgrades() -> void:
 	_upg_panel.visible = not _upg_panel.visible
 	_refresh_upgrades()
@@ -388,6 +399,9 @@ func _build() -> void:
 	var spawn_row := _row(upg)
 	_button(spawn_row, "Spawn coffee", _spawn_station.bind(COFFEE_SCENE))
 	_button(spawn_row, "Spawn iron", _spawn_station.bind(IRON_SCENE))
+	var percy_row := _row(upg)
+	_button(percy_row, "Spawn Percy", _spawn_station.bind(BENCH_SCENE))
+	_button(percy_row, "Percy +5 jobs", _train_apprentice)
 
 	var sew := _section(box, "Sewing minigame")
 	var sew_row := _row(sew)

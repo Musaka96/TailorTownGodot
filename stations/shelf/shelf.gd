@@ -109,6 +109,21 @@ func cut_piece(index: int, length: float, actor) -> bool:
 	return true
 
 
+## Take `length` metres straight off the bolt at `index` with no one's hands involved
+## (the apprentice fetching cloth). Returns how much came off; an emptied bolt leaves the
+## shelf.
+func take_cloth(index: int, length: float) -> float:
+	if index < 0 or index >= stored.size():
+		return 0.0
+	var roll: Node = stored[index]
+	var amount: float = roll.cut(length)
+	if roll.is_empty():
+		stored.remove_at(index)
+		roll.queue_free()
+	_refresh_display()
+	return amount
+
+
 ## Put a bolt straight onto the shelf (e.g. the new-game starter cloth). Returns false
 ## when the shelf is full.
 func stock(roll: Node) -> bool:

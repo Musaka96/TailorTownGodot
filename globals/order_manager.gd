@@ -99,6 +99,18 @@ func register_piece(piece: Node) -> SuitOrder:
 	return order
 
 
+## Check a piece made *for* a particular order (the apprentice's work) off that order,
+## if it still needs one; otherwise it falls back to the first order it fits.
+func register_piece_for(piece: Node, order: SuitOrder) -> SuitOrder:
+	var t := int(piece.get("garment_type"))
+	if order != null and order.state == SuitOrder.State.OPEN and order.needs_part(t):
+		var part := {"material": piece.get("material"), "quality": float(piece.quality)}
+		piece.set("order_id", order.id)
+		_fill(order, t, part)
+		return order
+	return register_piece(piece)
+
+
 ## Assemble the order with this number: mark it READY (the suit has been built at the
 ## mannequin) so the customer can return to collect it. Returns the order, or null if
 ## the id isn't an open order whose pieces are all made.

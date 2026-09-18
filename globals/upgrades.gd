@@ -174,6 +174,18 @@ const UPGRADES := {
 		"tier": 2,
 		"desc": "Press as you sew: every piece pressed on the board gains a little quality.",
 	},
+	"apprentice":
+	{
+		"name": "Hire an Apprentice",
+		"category": "Staff",
+		"cost": 2800,
+		"tier": 3,
+		"desc":
+		(
+			"Percy works at his own bench: give him a part of an order and he fetches"
+			+ " the cloth, cuts and sews it — and gets better with every job."
+		),
+	},
 	"rack_hooks":
 	{
 		"name": "Extra Hooks",

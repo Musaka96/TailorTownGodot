@@ -28,6 +28,7 @@ const MIGRATED := [
 	"cut_allowance_minigame.gd",
 	"cut_strokes_minigame.gd",
 	"sew_pedal_minigame.gd",
+	"apprentice_menu.gd",
 ]
 const PENDING: Array[String] = []
 # Not standard panel-menus: sewing_screen only hosts the sewing minigame;

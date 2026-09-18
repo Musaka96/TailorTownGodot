@@ -77,6 +77,16 @@ extends Resource
 ## While focused: the bench games' bands are this much wider and cloth drift halves.
 @export var focus_band: float = 1.2
 
+@export_group("Apprentice")
+## Shop-time seconds he takes to cut (and again to sew) a part: green → seasoned.
+@export var apprentice_step_seconds_start: float = 40.0
+@export var apprentice_step_seconds_master: float = 15.0
+## Quality of each step (cut, sew), green → seasoned; the two multiply like yours.
+@export var apprentice_quality_start: float = 0.8
+@export var apprentice_quality_master: float = 0.95
+## Jobs of a kind before he's ~63% of the way from green to seasoned (1 − e^−n/this).
+@export var apprentice_learn_jobs: float = 8.0
+
 @export_group("Orders")
 ## Deadline range in shop days (the customer returns on that day's shift).
 @export var deadline_min_days: int = 1
