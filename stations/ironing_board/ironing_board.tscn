@@ -1,0 +1,135 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="1_2wylq"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ty121"]
+size = Vector3(1.2, 0.9, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n8lle"]
+albedo_color = Color(0.9137255, 0.88235295, 0.8117647, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_qqmhu"]
+material = SubResource("StandardMaterial3D_n8lle")
+size = Vector3(1.2, 0.04, 0.38)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pris4"]
+albedo_color = Color(0.7372549, 0.8156863, 0.89411765, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_1mp5h"]
+material = SubResource("StandardMaterial3D_pris4")
+size = Vector3(1.1, 0.012, 0.34)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cf7tp"]
+albedo_color = Color(0.4392157, 0.4745098, 0.49803922, 1)
+metallic = 0.6
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_o74he"]
+material = SubResource("StandardMaterial3D_cf7tp")
+size = Vector3(0.035, 1, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jtxvt"]
+albedo_color = Color(0.4392157, 0.4745098, 0.49803922, 1)
+metallic = 0.6
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_0jtlm"]
+material = SubResource("StandardMaterial3D_jtxvt")
+size = Vector3(0.035, 1, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hn0e2"]
+albedo_color = Color(0.7372549, 0.7647059, 0.7882353, 1)
+metallic = 0.8
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_v0bbi"]
+material = SubResource("StandardMaterial3D_hn0e2")
+size = Vector3(0.24, 0.07, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xv3qx"]
+albedo_color = Color(0.36078432, 0.12156863, 0.16470589, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_04avw"]
+material = SubResource("StandardMaterial3D_xv3qx")
+size = Vector3(0.16, 0.05, 0.04)
+
+[sub_resource type="Gradient" id="Gradient_u0md7"]
+colors = PackedColorArray(1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_rityl"]
+gradient = SubResource("Gradient_u0md7")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_sb7g8"]
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 0.25
+initial_velocity_max = 0.5
+gravity = Vector3(0, 0.15, 0)
+scale_min = 0.6
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_rityl")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vijjc"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_oajaa"]
+material = SubResource("StandardMaterial3D_vijjc")
+radius = 0.035
+height = 0.07
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bc2gj"]
+size = Vector3(1.5, 1.2, 1)
+
+[node name="IroningBoard" type="Node3D" unique_id=555322733]
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1255601881]
+
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=1202334138]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+shape = SubResource("BoxShape3D_ty121")
+
+[node name="Board" type="MeshInstance3D" parent="." unique_id=1964393125]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86, 0)
+mesh = SubResource("BoxMesh_qqmhu")
+
+[node name="Cover" type="MeshInstance3D" parent="." unique_id=1594351181]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, 0.885, 0)
+mesh = SubResource("BoxMesh_1mp5h")
+
+[node name="LegA" type="MeshInstance3D" parent="." unique_id=1842921195]
+transform = Transform3D(0.88294756, -0.46947157, 0, 0.46947157, 0.88294756, 0, 0, 0, 1, 0, 0.43, 0)
+mesh = SubResource("BoxMesh_o74he")
+
+[node name="LegB" type="MeshInstance3D" parent="." unique_id=27689553]
+transform = Transform3D(0.88294756, 0.46947157, 0, -0.46947157, 0.88294756, 0, 0, 0, 1, 0, 0.43, 0)
+mesh = SubResource("BoxMesh_0jtlm")
+
+[node name="Iron" type="MeshInstance3D" parent="." unique_id=1541850919]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 0.93, 0)
+mesh = SubResource("BoxMesh_v0bbi")
+
+[node name="IronHandle" type="MeshInstance3D" parent="." unique_id=15373760]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 1, 0)
+mesh = SubResource("BoxMesh_04avw")
+
+[node name="Steam" type="GPUParticles3D" parent="." unique_id=142764776]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 0.97, 0)
+emitting = false
+amount = 18
+lifetime = 1.1
+one_shot = true
+explosiveness = 0.6
+process_material = SubResource("ParticleProcessMaterial_sb7g8")
+draw_pass_1 = SubResource("SphereMesh_oajaa")
+
+[node name="Interactable" type="Area3D" parent="." unique_id=591080106]
+script = ExtResource("1_2wylq")
+
+[node name="InteractCol" type="CollisionShape3D" parent="Interactable" unique_id=1007295894]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_bc2gj")

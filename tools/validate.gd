@@ -77,6 +77,10 @@ func _check_script(path: String) -> void:
 	var res := load(path)
 	if res == null:
 		_errors.append("Script failed to load: %s" % path)
+	elif res is Script and not (res as Script).can_instantiate():
+		# An autoload is already cached when this runs, so load() hands back the broken
+		# script instead of null — a parse error only shows up as "can't instantiate".
+		_errors.append("Script has errors: %s" % path)
 
 
 func _check_scene(path: String) -> void:

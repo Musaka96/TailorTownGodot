@@ -54,6 +54,9 @@ const LIB := {
 	"snip": "snip.wav",
 	"scissors_run": "scissors_run.wav",
 	"scissors_glide": "scissors_glide_loop.wav",  # synthesised, build_cut_audio.gd
+	# workshop furniture (synthesised, build_shop_audio.gd)
+	"steam_hiss": "steam_hiss.wav",
+	"coffee_pour": "coffee_pour.wav",
 	"stitch": "stitch.wav",
 	"sew_machine": "sew_machine.wav",
 	"sew_machine_loop": "sew_machine_loop.wav",

@@ -206,6 +206,10 @@ func start(garment_type: int, title: String, material: MaterialType = null) -> v
 		_band_nick = c.cut_band_nick
 		_max_mistakes = c.cut_max_mistakes
 	_band_perfect *= Upgrades.mult("bench_band")
+	var focus := _take_focus()
+	_band_perfect *= focus
+	_band_good *= focus
+	_band_nick *= focus
 	_folded = Upgrades.has("cut_fold") and FOLD_SHAPES.has(garment_type)
 	_closed = not _folded
 	_reveal = 0.0
@@ -249,7 +253,7 @@ func _rebuild_hints() -> void:
 	var pairs := _hint_pairs()
 	if Upgrades != null and Upgrades.cutting_sprint():
 		pairs.append(["Shift", "Faster (riskier)"])
-	_set_hints(pairs)
+	_set_hints(_focus_hint(pairs))
 
 
 func _read_cloth(material: MaterialType) -> void:

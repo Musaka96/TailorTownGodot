@@ -91,6 +91,9 @@ func start(title: String, cloth := CLOTH_DEFAULT) -> void:
 		_perfect_window = c.sew_perfect_window
 		_max_mistakes = c.sew_max_mistakes
 		_lead = c.sew_lead_seconds
+	var focus := _take_focus() * Upgrades.mult("bench_band")
+	_good_window *= focus
+	_perfect_window *= focus
 	_state = State.RUNNING
 	_needle = 0.0
 	_mistakes = 0
@@ -255,7 +258,7 @@ func _rebuild_hints() -> void:
 	var pairs := [["E / Space", "Stitch"]]
 	if Upgrades != null and Upgrades.sewing_sprint():
 		pairs.append(["Shift", "Speed up (riskier)"])
-	_set_hints(pairs)
+	_set_hints(_focus_hint(pairs))
 
 
 func _update_status() -> void:

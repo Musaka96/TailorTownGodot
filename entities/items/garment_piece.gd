@@ -17,6 +17,8 @@ const MODEL_NAME := {
 @export var style: String = "Classic"
 @export var quality: float = 1.0
 @export var stage: Enums.Stage = Enums.Stage.CUT
+## Given a press on the ironing board (Pressing Iron upgrade) — once per piece.
+@export var pressed := false
 ## The order number this piece was checked off against when sewn (0 = not matched to
 ## any order — a speculative/spare piece).
 @export var order_id: int = 0
@@ -31,8 +33,9 @@ func _ready() -> void:
 
 func get_interaction_prompt(_actor) -> String:
 	var st := "sewn" if stage == Enums.Stage.SEWN else "cut"
-	return "Pick up %s (%s, %s)" % [
-		Enums.garment_type_name(garment_type), Enums.size_name(size), st]
+	return (
+		"Pick up %s (%s, %s)" % [Enums.garment_type_name(garment_type), Enums.size_name(size), st]
+	)
 
 
 func attach_to(point: Node3D) -> void:

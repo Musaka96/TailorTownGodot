@@ -15,6 +15,7 @@ const SLIP_ROCK := 1.8  # degrees the bench rocks when a slip lands
 var _max_mistakes := 3
 var _mistakes := 0
 var _built := false
+var _focused := false  # this run drank from the coffee: wider bands, steadier cloth
 var _panel: PanelContainer
 var _canvas: MinigameCanvas
 var _ticket: CraftPanel
@@ -182,6 +183,22 @@ func _paint_pip(pip: Control, index: int) -> void:
 func _slip_feedback() -> void:
 	Craft.wiggle(_panel, SLIP_ROCK)
 	_refresh_pips()
+
+
+## Spend one job of coffee focus on this run, if there is any. Returns how much wider the
+## game's timing / accuracy bands should be (1.0 when not focused).
+func _take_focus() -> float:
+	_focused = GameState.focus > 0
+	if not _focused:
+		return 1.0
+	GameState.focus -= 1
+	return Config.data.focus_band if Config.data != null else 1.2
+
+
+func _focus_hint(pairs: Array) -> Array:
+	if _focused:
+		pairs.append(["Coffee", "Steady hands"])
+	return pairs
 
 
 func _show_panel() -> void:

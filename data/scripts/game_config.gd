@@ -68,6 +68,15 @@ extends Resource
 @export var delivery_hours: float = 2.0
 @export var courier_hours: float = 0.25
 
+@export_group("Workshop")
+## Pressing Iron: quality a piece gains from one press (never past 100%).
+@export var press_bonus: float = 0.05
+## Coffee Machine: cups the pot makes a day, and bench games of focus per cup.
+@export var coffee_cups: int = 2
+@export var coffee_jobs: int = 3
+## While focused: the bench games' bands are this much wider and cloth drift halves.
+@export var focus_band: float = 1.2
+
 @export_group("Orders")
 ## Deadline range in shop days (the customer returns on that day's shift).
 @export var deadline_min_days: int = 1

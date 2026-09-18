@@ -139,6 +139,8 @@ func _process(delta: float) -> void:
 ## The cloth pulling the blades aside, in rad/s — a slow wander, never a jerk.
 func _drift() -> float:
 	var rate: float = DRIFT.get(_fabric, 4.0) * Upgrades.mult("cut_drift")
+	if _focused:
+		rate *= 0.5
 	return deg_to_rad(rate) * _noise.get_noise_1d(_time * 60.0)
 
 

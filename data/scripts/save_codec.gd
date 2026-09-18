@@ -11,7 +11,6 @@ const FABRIC_SCENE := preload("res://entities/items/fabric_piece.tscn")
 const GARMENT_SCENE := preload("res://entities/items/garment_piece.tscn")
 const SUIT_SCENE := preload("res://entities/items/suit.tscn")
 
-
 # --- MaterialType ----------------------------------------------------------
 
 
@@ -62,7 +61,9 @@ static func is_item(node: Node) -> bool:
 ## Returns {} for anything that isn't a known carryable.
 static func item_to(node: Node) -> Dictionary:
 	if node is MaterialRoll:
-		return {"kind": "roll", "material": mat_to(node.material), "remaining": node.remaining_length_m}
+		return {
+			"kind": "roll", "material": mat_to(node.material), "remaining": node.remaining_length_m
+		}
 	if node is FabricPiece:
 		return {"kind": "fabric", "material": mat_to(node.material), "length": node.length_m}
 	if node is GarmentPiece:
@@ -75,6 +76,7 @@ static func item_to(node: Node) -> Dictionary:
 			"quality": node.quality,
 			"stage": int(node.stage),
 			"order_id": int(node.order_id),
+			"pressed": node.pressed,
 		}
 	if node is Suit:
 		return {
@@ -110,6 +112,7 @@ static func item_from(d: Dictionary) -> Node:
 			g.quality = float(d.get("quality", 1.0))
 			g.stage = int(d.get("stage", Enums.Stage.CUT))
 			g.order_id = int(d.get("order_id", 0))
+			g.pressed = bool(d.get("pressed", false))
 			return g
 		"suit":
 			var s: Node = SUIT_SCENE.instantiate()

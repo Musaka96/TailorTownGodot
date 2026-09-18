@@ -246,6 +246,7 @@ func capture(save_name := "") -> Dictionary:
 		"name": save_name,
 		"money": GameState.money,
 		"account": GameState.account_owed,
+		"focus": GameState.focus,
 		"clientele": Clientele.save_state() if Clientele != null else {},
 		"front_desk": FrontDesk.save_state() if FrontDesk != null else {},
 		"day": Shift.day if Shift != null else 1,
@@ -298,6 +299,7 @@ func _apply_pending() -> void:
 	_pending = {}
 	GameState.money = int(d.get("money", 500))
 	GameState.account_owed = int(d.get("account", 0))
+	GameState.focus = int(d.get("focus", 0))
 	if Clientele != null:
 		Clientele.restore(d.get("clientele", {}))
 	if FrontDesk != null:
@@ -362,6 +364,7 @@ func _reset_autoloads() -> void:
 	var start := Config.data.starting_money if Config != null and Config.data != null else 500
 	GameState.money = start
 	GameState.account_owed = 0
+	GameState.focus = 0
 	if Clientele != null:
 		Clientele.reset()
 	if FrontDesk != null:

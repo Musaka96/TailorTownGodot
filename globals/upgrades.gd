@@ -96,6 +96,22 @@ const UPGRADES := {
 		"desc": "Good light on the benches — the chalk line is easier to hit.",
 		"effects": {"bench_band": 1.15},
 	},
+	"shop_coffee":
+	{
+		"name": "Coffee Machine",
+		"category": "Workshop",
+		"cost": 350,
+		"tier": 1,
+		"desc": "Two cups a day: each steadies your hands for the next 3 bench jobs.",
+	},
+	"shop_iron":
+	{
+		"name": "Pressing Iron",
+		"category": "Workshop",
+		"cost": 1000,
+		"tier": 2,
+		"desc": "Press as you sew: every piece pressed on the board gains a little quality.",
+	},
 	"rack_hooks":
 	{
 		"name": "Extra Hooks",

@@ -10,6 +10,8 @@ const PANEL_BG := Color(0.10, 0.11, 0.15, 0.94)
 const HEADING := Color(0.62, 0.78, 1.0)
 const LABEL := Color(0.90, 0.92, 0.98)
 const SUIT_SCENE := preload("res://entities/items/suit.tscn")
+const COFFEE_SCENE := "res://stations/coffee_machine/coffee_machine.tscn"
+const IRON_SCENE := "res://stations/ironing_board/ironing_board.tscn"
 
 var _layer: CanvasLayer
 var _money_label: Label
@@ -215,6 +217,23 @@ func _deliver_now() -> void:
 	_note("delivered %d bolt(s)" % n)
 
 
+## Drop a piece of upgrade furniture beside the player, to try it before it has a home
+## in the shop map (it is not saved there — place it in the editor for keeps).
+func _spawn_station(path: String) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var scene := get_tree().current_scene
+	if player == null or scene == null:
+		_note("no player in scene")
+		return
+	var parent: Node = scene.get_node_or_null("ShopRoom")
+	if parent == null:
+		parent = scene
+	var station: Node3D = (load(path) as PackedScene).instantiate()
+	parent.add_child(station)
+	station.global_position = player.global_position + Vector3(1.3, 0.0, 0.0)
+	_note("spawned %s (own its upgrade to see it)" % station.name)
+
+
 func _toggle_upgrades() -> void:
 	_upg_panel.visible = not _upg_panel.visible
 	_refresh_upgrades()
@@ -339,6 +358,9 @@ func _build() -> void:
 	var urow := _row(upg)
 	_button(urow, "Upgrades ▸", _toggle_upgrades)
 	_button(urow, "Deliver now", _deliver_now)
+	var spawn_row := _row(upg)
+	_button(spawn_row, "Spawn coffee", _spawn_station.bind(COFFEE_SCENE))
+	_button(spawn_row, "Spawn iron", _spawn_station.bind(IRON_SCENE))
 
 	var shift := _section(box, "Shift")
 	var shrow := _row(shift)

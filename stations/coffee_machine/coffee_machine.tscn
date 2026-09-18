@@ -1,0 +1,126 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="1_aguy1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_qkhm8"]
+size = Vector3(0.5, 1.2, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vw7mf"]
+albedo_color = Color(0.3529412, 0.27450982, 0.2, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_pbab7"]
+material = SubResource("StandardMaterial3D_vw7mf")
+size = Vector3(0.5, 0.8, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m1cm4"]
+albedo_color = Color(0.47843137, 0.23137255, 0.23137255, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_sp3rm"]
+material = SubResource("StandardMaterial3D_m1cm4")
+size = Vector3(0.28, 0.36, 0.26)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i1cg4"]
+albedo_color = Color(0.7882353, 0.63529414, 0.2901961, 1)
+metallic = 0.8
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_aqttf"]
+material = SubResource("StandardMaterial3D_i1cg4")
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.12
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f7fug"]
+albedo_color = Color(0.7372549, 0.7647059, 0.7882353, 1)
+metallic = 0.8
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_esp2d"]
+material = SubResource("StandardMaterial3D_f7fug")
+size = Vector3(0.05, 0.05, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y0q7w"]
+albedo_color = Color(0.9490196, 0.9411765, 0.9098039, 1)
+roughness = 0.8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_s4itw"]
+material = SubResource("StandardMaterial3D_y0q7w")
+top_radius = 0.04
+bottom_radius = 0.04
+height = 0.07
+
+[sub_resource type="Gradient" id="Gradient_ctrkr"]
+colors = PackedColorArray(1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_fhfuc"]
+gradient = SubResource("Gradient_ctrkr")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ye27k"]
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 0.25
+initial_velocity_max = 0.5
+gravity = Vector3(0, 0.15, 0)
+scale_min = 0.6
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_fhfuc")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6gf3x"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_3w2pb"]
+material = SubResource("StandardMaterial3D_6gf3x")
+radius = 0.035
+height = 0.07
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6mfd7"]
+size = Vector3(0.9, 1.3, 0.9)
+
+[node name="CoffeeMachine" type="Node3D" unique_id=1309588511]
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1207702587]
+
+[node name="Collision" type="CollisionShape3D" parent="Body" unique_id=1945444100]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_qkhm8")
+
+[node name="Cabinet" type="MeshInstance3D" parent="." unique_id=1058579602]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+mesh = SubResource("BoxMesh_pbab7")
+
+[node name="Machine" type="MeshInstance3D" parent="." unique_id=1432850881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, -0.04)
+mesh = SubResource("BoxMesh_sp3rm")
+
+[node name="Boiler" type="MeshInstance3D" parent="." unique_id=1101326145]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22, -0.04)
+mesh = SubResource("CylinderMesh_aqttf")
+
+[node name="Spout" type="MeshInstance3D" parent="." unique_id=1303629341]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.1)
+mesh = SubResource("BoxMesh_esp2d")
+
+[node name="Cup" type="MeshInstance3D" parent="." unique_id=1155175949]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.835, 0.11)
+mesh = SubResource("CylinderMesh_s4itw")
+
+[node name="Steam" type="GPUParticles3D" parent="." unique_id=408209502]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.11)
+emitting = false
+amount = 18
+lifetime = 1.1
+one_shot = true
+explosiveness = 0.6
+process_material = SubResource("ParticleProcessMaterial_ye27k")
+draw_pass_1 = SubResource("SphereMesh_3w2pb")
+
+[node name="Interactable" type="Area3D" parent="." unique_id=238129932]
+script = ExtResource("1_aguy1")
+
+[node name="InteractCol" type="CollisionShape3D" parent="Interactable" unique_id=1929917320]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0.1)
+shape = SubResource("BoxShape3D_6mfd7")
