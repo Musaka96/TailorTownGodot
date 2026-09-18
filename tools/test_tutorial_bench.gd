@@ -71,12 +71,39 @@ func _sewing(variant: int) -> void:
 	var lines: PackedStringArray = _tutorial.call("_bench_lines", "sew")
 	_check(lines.is_empty() == (variant == 0), "sewing %s: mentor explains it only if needed" % tag)
 	if variant == 1:
+		_backstitch(game, checks)
 		var said := "".join(lines)
 		_check("pedal" in said and "pin" in said, "sewing pedal: mentor covers pedal and pins")
 		_check("backstitch" in said, "sewing pedal: mentor covers backstitching")
 		_check(checks.size() == 6, "sewing pedal: carry, place, pedal, pins, lock, cut")
 	_flags_reported(game, checks, "sewing %s" % tag)
 	game.queue_free()
+
+
+## The backstitch is only pointed at once the needle reaches the end mark, and during the
+## tutorial E won't cut the thread until the seam really is locked.
+func _backstitch(game: Node, checks: Array) -> void:
+	var line: Array = []
+	for c: Array in checks:
+		if c[1] == "bench:locked":
+			line = c
+	var flags: Dictionary = _tutorial.get("_flags")
+	flags.clear()
+	_check(not _tutorial.call("_coach_ready", line), "backstitch: not pointed at mid-seam")
+	flags["bench:at_end"] = true
+	_check(_tutorial.call("_coach_ready", line), "backstitch: pointed at on the end mark")
+	flags.clear()
+	var was_active: bool = _tutorial.get("_active")
+	_tutorial.set("_active", true)
+	_check(game.call("_must_lock"), "backstitch: the tutorial won't cut an unlocked seam")
+	var says: String = game.call("_end_situation")
+	_check("backstitch" in says and "cut" not in says, "backstitch: the status asks for it")
+	(game.get("_locked") as Dictionary)["end"] = true
+	_check(not game.call("_must_lock"), "backstitch: once locked, E cuts the thread")
+	(game.get("_locked") as Dictionary)["end"] = false
+	_tutorial.set("_active", false)
+	_check(not game.call("_must_lock"), "backstitch: optional outside the tutorial")
+	_tutorial.set("_active", was_active)
 
 
 ## The bench explanation is held back until the cloth is on `station`: nothing when the
@@ -124,7 +151,7 @@ func _stations_exist() -> void:
 			named[brief.trim_prefix("on:")] = true
 	for lines: Array in [_tutorial.call("_cut_checks"), _tutorial.call("_sew_checks")]:
 		for c: Array in lines:
-			if c.size() > 4:
+			if c.size() > 4 and str(c[4]) != "":  # "" = no station of its own
 				named[c[4]] = true
 	for station: String in named:
 		var found: Node = _shop.find_child(station, true, false)
@@ -168,10 +195,10 @@ func _v1_keys(game: Node) -> Array:
 func _flags_reported(game: Node, checks: Array, label: String) -> void:
 	var flags: Dictionary = game.call("coach_flags")
 	for c: Array in checks:
-		var cond: String = c[1]
-		if cond.begins_with("bench:"):
-			var flag := cond.trim_prefix("bench:")
-			_check(flags.has(flag), "%s: the game reports '%s'" % [label, flag])
+		for cond: String in [c[1], c[5] if c.size() > 5 else ""]:
+			if cond.begins_with("bench:"):
+				var flag := cond.trim_prefix("bench:")
+				_check(flags.has(flag), "%s: the game reports '%s'" % [label, flag])
 
 
 func _check(condition: bool, label: String) -> void:

@@ -167,13 +167,15 @@ func _load_assets() -> void:
 
 
 ## The contract the sewing station uses for every sewing game.
-## Adds "pins" (past the pins: one pulled, the seam's end reached, or none to pull) and
-## "locked" (the end of the seam backstitched). "pins" also ticks at the end so a player
+## Adds "pins" (past the pins: one pulled, the seam's end reached, or none to pull),
+## "at_end" (the machine has stopped on the end mark) and "locked" (the end of the seam
+## backstitched). "pins" also ticks at the end so a player
 ## who bent the needle on every pin isn't left with a line that can never be ticked.
 func coach_flags() -> Dictionary:
 	var flags := super()
 	var pulled := _pins.any(func(p: Dictionary) -> bool: return int(p["state"]) == 1)
 	flags["pins"] = pulled or _at_end or _pins.is_empty()
+	flags["at_end"] = _at_end
 	flags["locked"] = bool(_locked["end"])
 	return flags
 
@@ -465,10 +467,17 @@ func _action() -> void:
 		pin["t"] = _time
 		Sfx.play("pin_out")
 		return
-	if _at_end:
+	if _at_end and not _must_lock():
 		_finish()
 		return
-	Sfx.play("sew_tap")
+	Sfx.play("sew_tap")  # nothing to do yet — the status line says what is
+
+
+## During the tutorial the end of the seam has to be backstitched before E will cut the
+## thread: locking the seam is the lesson, so it can't be skipped past. Out in the shop
+## it's the player's call (an unlocked seam just earns a little less).
+func _must_lock() -> bool:
+	return Tutorial != null and Tutorial.is_active() and not _locked["end"]
 
 
 ## The nearest pin still in, within reach ahead of the needle ({} if none).
@@ -599,6 +608,8 @@ func _ahead_situation() -> String:
 func _end_situation() -> String:
 	if _locked["end"]:
 		return "Locked! Press E to cut the thread"
+	if _must_lock():
+		return "End of the seam — hold S with the pedal to backstitch and lock it"
 	return "End of the seam — S + pedal to backstitch, E to cut the thread"
 
 

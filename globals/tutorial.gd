@@ -116,10 +116,12 @@ const M_BYE := (
 #   `mentor` = lines the mentor says first; `brief` = a condition that, once met, has the
 #   mentor explain the bench game (see _bench_lines) — so he talks about it when the cloth
 #   is on the bench, not while it's still being carried there; `goal` + `checks` = the
-#   tag. A check is [text, condition, key, tip, point?]: `condition` ticks it live ("" =
-#   only on completion), `key`/`tip` = the coach mark shown while it is the next unticked
-#   line, and the optional `point` = the station the pin shows while it is (else the
-#   step's `point`), so the pin follows the cloth from bench to bench.
+#   tag. A check is [text, condition, key, tip, point?, when?]: `condition` ticks it live
+#   ("" = only on completion), `key`/`tip` = the coach mark shown while it is the next
+#   unticked line, the optional `point` = the station the pin shows while it is (else the
+#   step's `point`), so the pin follows the cloth from bench to bench, and the optional
+#   `when` = a condition the coach mark waits for, so it doesn't point at something the
+#   player can't do yet (the backstitch, before the needle reaches the end mark).
 const STEPS := [
 	{
 		"id": "order",
@@ -568,7 +570,16 @@ func _sew_checks() -> Array:
 	if not Upgrades.has("sew_clips"):
 		lines.append(["Pull each pin before the needle", "bench:pins", "E", "Pull the pin"])
 	if not Upgrades.has("sew_autolock"):
-		lines.append(["Backstitch at the end mark", "bench:locked", "S + pedal", "Lock the seam"])
+		lines.append(
+			[
+				"Backstitch at the end mark",
+				"bench:locked",
+				"S + pedal",
+				"Lock the seam",
+				"",
+				"bench:at_end"
+			]
+		)
 	lines.append(["Cut the thread", "", "E", "Cut the thread"])
 	return lines
 
@@ -1020,12 +1031,18 @@ func _update_pointers() -> void:
 	_hand.visible = false
 	var i := _next_check()
 	var check: Array = _checks()[i] if i >= 0 else []
-	var key: String = check[2] if check.size() > 2 else ""
+	var key: String = check[2] if check.size() > 2 and _coach_ready(check) else ""
 	var rect := _find_key(menu, key) if key != "" else Rect2()
 	if rect.size == Vector2.ZERO:
 		_coach.clear()
 	else:
 		_coach.point_at(rect, str(check[3]))
+
+
+## Whether a line's coach mark may show yet: always, unless it names a `when` condition
+## that hasn't come true (see the step format above STEPS).
+func _coach_ready(check: Array) -> bool:
+	return check.size() < 6 or str(check[5]) == "" or _met(str(check[5]))
 
 
 func _move_hand(pos: Vector2) -> void:
