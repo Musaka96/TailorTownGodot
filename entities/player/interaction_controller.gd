@@ -22,6 +22,11 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	# The targeted station can be freed under us (e.g. the day rolls over and the
+	# shop rebuilds). Drop the dead reference before anything passes it to a typed
+	# parameter, which errors on a freed object before any validity check runs.
+	if _current != null and not is_instance_valid(_current):
+		_current = null
 	if GameState.input_locked:
 		_set_current(null)
 		return
@@ -53,7 +58,7 @@ func _set_current(interactable: Interactable) -> void:
 
 
 ## Toggle the brass outline on every mesh under an interactable's target object.
-func _highlight(interactable: Interactable, on: bool) -> void:
+func _highlight(interactable: Object, on: bool) -> void:
 	if not is_instance_valid(interactable):
 		return
 	var root: Node = interactable.target if interactable.target != null else interactable
@@ -88,7 +93,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("interact"):
 		return
 	# A targeted station wins; otherwise interact sets a carried item down.
-	if _current:
+	if is_instance_valid(_current):
 		_current.do_interact(_player)
 		get_viewport().set_input_as_handled()
 	elif _is_carrying() and _player.has_method("drop_held"):
