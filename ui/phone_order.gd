@@ -11,6 +11,7 @@ enum Screen { HUB, SUPPLIERS, ORDER, UPGRADES }
 enum ORow { FABRIC, COLOR, PATTERN, PATTERN_COLOR, LENGTH }
 
 const PANEL_W := 520
+const LIST_MARGIN := 28.0  # breathing room kept below the panel when the list scrolls
 const LENGTH_MIN := 2.0  # fallbacks; Config.roll_min_m / roll_step_m win
 const LENGTH_STEP := 1.0
 const HUB_OPTIONS := [
@@ -46,6 +47,8 @@ var _length := 10.0
 var _row := 0
 var _status := ""
 var _upg_ids: Array = []
+var _list_scroll: ScrollContainer
+var _selected_row: Control = null
 var _placed := false
 var _swatch: MaterialSwatch
 var _contacts: VBoxContainer
@@ -65,6 +68,7 @@ var _hint_bar: Control
 
 func _ready() -> void:
 	_build_preview()
+	_wrap_rows()
 	_upg_ids = Upgrades.all_ids()
 
 
@@ -93,6 +97,38 @@ func close() -> void:
 
 
 # --- Layout ----------------------------------------------------------------
+
+
+## The rows live in a scroll area: the panel grows with its content until it would run
+## off the bottom of the screen, then the list scrolls and follows the selection.
+func _wrap_rows() -> void:
+	var box := _rows.get_parent()
+	var at := _rows.get_index()
+	box.remove_child(_rows)
+	_list_scroll = ScrollContainer.new()
+	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(_list_scroll)
+	box.move_child(_list_scroll, at)
+	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list_scroll.add_child(_rows)
+
+
+## Size the list to its content, capped by the room left on screen, and keep the
+## selected row in view.
+func _fit_list() -> void:
+	if _list_scroll == null or not visible:
+		return
+	var want := _rows.get_combined_minimum_size().y
+	var others := _panel.get_combined_minimum_size().y - _list_scroll.custom_minimum_size.y
+	var room := get_viewport_rect().size.y - _panel.offset_top - LIST_MARGIN - others
+	_list_scroll.custom_minimum_size.y = clampf(want, 0.0, maxf(room, 120.0))
+	# Two frames: one for the new rows to lay out, one for the resized scroll area.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _selected_row == null or not is_instance_valid(_selected_row):
+		return
+	var mid := _selected_row.position.y + _selected_row.size.y * 0.5
+	_list_scroll.scroll_vertical = int(mid - _list_scroll.size.y * 0.5)
 
 
 func _build_preview() -> void:
@@ -173,7 +209,9 @@ func _refresh() -> void:
 	_money.text = "Budget:  $ %d" % GameState.money
 	_money.add_theme_color_override("font_color", Style.INK)
 	for child in _rows.get_children():
+		_rows.remove_child(child)
 		child.queue_free()
+	_selected_row = null
 	match _screen:
 		Screen.HUB:
 			_refresh_hub()
@@ -183,6 +221,7 @@ func _refresh() -> void:
 			_refresh_order()
 		Screen.UPGRADES:
 			_refresh_upgrades()
+	_fit_list.call_deferred()
 
 
 func _refresh_hub() -> void:
@@ -260,7 +299,10 @@ func _refresh_upgrades() -> void:
 		if cat != last_cat:
 			last_cat = cat
 			_rows.add_child(Style.header(cat, Style.ACC_ORDER))
-		_rows.add_child(_make_upgrade_row(id, _row == i))
+		var card := _make_upgrade_row(id, _row == i)
+		if _row == i:
+			_selected_row = card
+		_rows.add_child(card)
 	_set_hint([["W/S", "Select"], ["E", "Buy"], ["Esc", "Back"]])
 
 

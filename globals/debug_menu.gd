@@ -23,6 +23,8 @@ var _cut_variant: OptionButton
 var _sew_type: OptionButton
 var _trial: CanvasLayer
 var _upg_panel: PanelContainer
+var _main_scroll: ScrollContainer
+var _main_box: VBoxContainer
 var _upg_boxes := {}  # upgrade id -> CheckBox
 
 
@@ -336,10 +338,15 @@ func _build() -> void:
 	_upg_panel = _build_upgrades(sb)
 	columns.add_child(_upg_panel)
 
+	# The panel outgrew the screen: its sections scroll, capped to the window height.
+	_main_scroll = ScrollContainer.new()
+	_main_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(_main_scroll)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	box.custom_minimum_size = Vector2(232, 0)
-	panel.add_child(box)
+	_main_scroll.add_child(box)
+	_main_box = box
 
 	_heading(box, "DEBUG  ·  F3 to close")
 
@@ -392,17 +399,6 @@ func _build() -> void:
 	_cut_variant.item_selected.connect(_set_cut_variant)
 	use_row.add_child(_cut_variant)
 
-	var upg := _section(box, "Upgrades & deliveries")
-	var urow := _row(upg)
-	_button(urow, "Upgrades ▸", _toggle_upgrades)
-	_button(urow, "Deliver now", _deliver_now)
-	var spawn_row := _row(upg)
-	_button(spawn_row, "Spawn coffee", _spawn_station.bind(COFFEE_SCENE))
-	_button(spawn_row, "Spawn iron", _spawn_station.bind(IRON_SCENE))
-	var percy_row := _row(upg)
-	_button(percy_row, "Spawn Percy", _spawn_station.bind(BENCH_SCENE))
-	_button(percy_row, "Percy +5 jobs", _train_apprentice)
-
 	var sew := _section(box, "Sewing minigame")
 	var sew_row := _row(sew)
 	sew_row.add_child(_make_label("Piece", 13, LABEL))
@@ -422,6 +418,17 @@ func _build() -> void:
 	sew_pick.selected = SewVariants.current()
 	sew_pick.item_selected.connect(_set_sew_variant)
 	sew_use.add_child(sew_pick)
+
+	var upg := _section(box, "Upgrades & deliveries")
+	var urow := _row(upg)
+	_button(urow, "Upgrades ▸", _toggle_upgrades)
+	_button(urow, "Deliver now", _deliver_now)
+	var spawn_row := _row(upg)
+	_button(spawn_row, "Spawn coffee", _spawn_station.bind(COFFEE_SCENE))
+	_button(spawn_row, "Spawn iron", _spawn_station.bind(IRON_SCENE))
+	var percy_row := _row(upg)
+	_button(percy_row, "Spawn Percy", _spawn_station.bind(BENCH_SCENE))
+	_button(percy_row, "Percy +5 jobs", _train_apprentice)
 
 	var shift := _section(box, "Shift")
 	var shrow := _row(shift)
@@ -475,6 +482,14 @@ func _toggle() -> void:
 	GameState.input_locked = _layer.visible
 	if _layer.visible:
 		_refresh_money()
+		_fit_main()
+
+
+## As tall as its sections, but never past the bottom of the window.
+func _fit_main() -> void:
+	var content := _main_box.get_combined_minimum_size()
+	var room := get_viewport().get_visible_rect().size.y - 60.0
+	_main_scroll.custom_minimum_size = Vector2(content.x + 14.0, minf(content.y, room))
 
 
 func _refresh_money() -> void:
