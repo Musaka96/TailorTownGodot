@@ -53,6 +53,7 @@ const LIB := {
 	"tape": "tape.wav",
 	"snip": "snip.wav",
 	"scissors_run": "scissors_run.wav",
+	"scissors_glide": "scissors_glide_loop.wav",  # synthesised, build_cut_audio.gd
 	"stitch": "stitch.wav",
 	"sew_machine": "sew_machine.wav",
 	"sew_machine_loop": "sew_machine_loop.wav",
@@ -307,6 +308,13 @@ func set_loop_pitch(key: String, pitch: float) -> void:
 	var p: AudioStreamPlayer = _loops.get(key)
 	if p != null:
 		p.pitch_scale = clampf(pitch, 0.25, 3.0)
+
+
+## Fade a running loop's level (relative to the SFX level, like start_loop's volume_db).
+func set_loop_volume(key: String, volume_db: float) -> void:
+	var p: AudioStreamPlayer = _loops.get(key)
+	if p != null:
+		p.volume_db = sfx_volume + volume_db
 
 
 func stop_loop(key: String) -> void:

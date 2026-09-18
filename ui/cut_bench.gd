@@ -253,6 +253,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		_state = State.SUCCESS
 		set_process(false)
+		_stop_sounds()
 		finished.emit(true, 1.0)
 
 
@@ -397,9 +398,24 @@ func _register_mistake(at: Vector2) -> void:
 		_fail()
 
 
+## Overridden: silence any loop the variant keeps running.
+func _stop_sounds() -> void:
+	pass
+
+
+func _exit_tree() -> void:
+	_stop_sounds()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+		_stop_sounds()
+
+
 func _succeed(extra := "") -> void:
 	_state = State.SUCCESS
 	set_process(false)
+	_stop_sounds()
 	var q := _quality()
 	_play(_complete, 0.7)
 	var head := "Clean cut!  " if q >= CLEAN_CUT else ""
@@ -412,6 +428,7 @@ func _succeed(extra := "") -> void:
 func _fail() -> void:
 	_state = State.RUINED
 	set_process(false)
+	_stop_sounds()
 	_play(_ruined, 0.8)
 	_set_status("Oh no — the shears went into the piece. It's spoiled.", Style.CLAY)
 	_repaint()

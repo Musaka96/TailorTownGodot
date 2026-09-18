@@ -26,6 +26,11 @@ const GLIDE_LOOK := 12  # outline points ahead (~18 cm) that must be straight to
 const GLIDE_BEND := 1.2  # rad per unit: gentler than this counts as straight
 const GLIDE_UP := 1.6  # glide build-up per second
 const GLIDE_DOWN := 5.0  # and how fast it falls away off the line or into a curve
+const GLIDING := 1.2  # past this the blades are held half-open and the snips give way
+const GLIDE_OPEN_DEG := 11.0  # blade spread while gliding
+const GLIDE_LOOP := "scissors_glide"
+const GLIDE_DB_QUIET := -20.0  # the glide loop fades in from here …
+const GLIDE_DB_FULL := -6.0  # … to here at full glide
 const TRAIL_STEP := 0.008
 const SNIP_PERIOD := 0.13
 ## How much each cloth pulls the blades aside (deg/s): loose, slippery weaves wander,
@@ -110,6 +115,8 @@ func _process(delta: float) -> void:
 		_tick_pivot(delta)
 	else:
 		_moving = _armed and _cut_held()
+		if not _moving:
+			_glide_sound()  # let go mid-glide: the hiss stops with you
 		if _moving and _state == State.READY:
 			_state = State.RUNNING
 		# You can turn the shears standing still, too — lining up before you push on.
@@ -202,11 +209,33 @@ func _lay_trail() -> void:
 		_trail[n - 1] = _p
 
 
+func _is_gliding() -> bool:
+	return _moving and _pivot_t <= 0.0 and _glide >= GLIDING
+
+
+## Snips while cutting, and a steady hiss of cloth on steel once you're gliding.
 func _snip_sound(delta: float) -> void:
+	_glide_sound()
+	if _is_gliding():
+		return
 	_snip_accum += delta * _speed_boost() * _glide
 	if _snip_accum >= SNIP_PERIOD:
 		_snip_accum = 0.0
 		_play(_snip, 0.35)
+
+
+func _glide_sound() -> void:
+	if not _is_gliding():
+		Sfx.stop_loop(GLIDE_LOOP)
+		return
+	Sfx.start_loop(GLIDE_LOOP, GLIDE_DB_QUIET)
+	var t := clampf((_glide - GLIDING) / maxf(_glide_max - GLIDING, 0.01), 0.0, 1.0)
+	Sfx.set_loop_volume(GLIDE_LOOP, lerpf(GLIDE_DB_QUIET, GLIDE_DB_FULL, t))
+	Sfx.set_loop_pitch(GLIDE_LOOP, lerpf(0.94, 1.06, t) * pow(_speed_boost(), 0.3))
+
+
+func _stop_sounds() -> void:
+	Sfx.stop_loop(GLIDE_LOOP)
 
 
 ## At a corner: open the blades and turn the cloth to the next edge, keeping however
@@ -220,6 +249,7 @@ func _start_pivot() -> void:
 	_pivot_t = PIVOT_TIME
 	_moving = false
 	_glide = 1.0
+	_glide_sound()
 	_play(_snip, 0.5)
 
 
@@ -282,7 +312,10 @@ func _paint_overlay(c: Control) -> void:
 	var pos := _to_screen(_p)
 	var angle := _heading + _view_rot
 	var spread := deg_to_rad(OPEN_DEG)
-	if _moving and _pivot_t <= 0.0:
+	if _is_gliding():
+		# Held half-open and pushed, with the faint tremble of the cloth on the blade.
+		spread = deg_to_rad(GLIDE_OPEN_DEG + sin(_time * 38.0) * 0.6)
+	elif _moving and _pivot_t <= 0.0:
 		var t := 0.5 - 0.5 * cos(_snip_accum / SNIP_PERIOD * TAU)
 		spread = deg_to_rad(lerpf(SHUT_DEG, OPEN_DEG, t))
 	var grip := _zone_color(_zone) if _state == State.RUNNING else Style.FOREST

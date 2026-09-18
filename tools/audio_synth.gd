@@ -40,8 +40,11 @@ static func mix(out: PackedFloat32Array, voice: PackedFloat32Array, at: float, r
 			out[idx] += voice[i]
 
 
-## Normalise to PEAK, fade the very ends, and write a 16-bit mono WAV under `dir`.
-static func save(samples: PackedFloat32Array, rate: int, dir: String, sound_name: String) -> void:
+## Normalise to PEAK, fade the very ends, and write a 16-bit mono WAV under `dir`. A
+## `seamless` loop skips the end fades — they would click every time it wraps.
+static func save(
+	samples: PackedFloat32Array, rate: int, dir: String, sound_name: String, seamless := false
+) -> void:
 	var loudest := 0.0
 	for s in samples:
 		loudest = maxf(loudest, absf(s))
@@ -52,6 +55,8 @@ static func save(samples: PackedFloat32Array, rate: int, dir: String, sound_name
 	bytes.resize(samples.size() * 2)
 	for i in samples.size():
 		var fade := minf(minf(1.0, i / rise), minf(1.0, (samples.size() - 1 - i) / fall))
+		if seamless:
+			fade = 1.0
 		bytes.encode_s16(i * 2, int(clampf(samples[i] * gain * fade, -1.0, 1.0) * 32767.0))
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
