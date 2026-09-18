@@ -166,6 +166,10 @@ phone. The coffee machine and ironing board are `UpgradeStation`s — hidden unt
 at `stations/coffee_machine/` and `stations/ironing_board/`; they still need a spot in the
 shop map (F3 → Spawn coffee / Spawn iron drops one beside you for testing).
 
-**Apprentice (changed by the owner):** no per-station apprentices. One shop-wide hire,
-gated by reputation, a fixed price, who you talk to and give jobs ("cut this", "sew
-that"), and who gets better with time. Design still to settle — see the open questions.
+**Apprentice (built):** one shop-wide hire, `apprentice` (Staff, T3 / $2800). Percy
+works at his own bench (`stations/apprentice_bench/`, an UpgradeStation — still needs a
+spot in the shop map; F3 → Spawn Percy for testing). Talk to him and pick a whole part
+of an open order: he fetches an exactly matching bolt from the shelf, cuts and sews it,
+and leaves the sewn piece on his tray, checked off that order. He learns per skill
+(1 − e^−jobs/8): steps go 40 s → 15 s, pieces ~64% → ~90%. Works only while the shop is
+open; job, experience and tray save. Tuning in GameConfig "Apprentice".
