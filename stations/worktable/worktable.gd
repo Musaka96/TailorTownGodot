@@ -45,6 +45,11 @@ func interact(actor) -> void:
 		actor.carry.take_item(part)
 
 
+## What's on the table right now: uncut cloth, a finished part, or null.
+func held_item() -> Node:
+	return _item
+
+
 ## Called by the worktable screen once the cutting minigame resolves.
 func finish_cut(success: bool, type: int, size: int, style: String, quality: float) -> void:
 	if not (_item is FabricPiece):

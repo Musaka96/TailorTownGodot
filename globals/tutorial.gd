@@ -48,16 +48,17 @@ const M_MEASURE := (
 # The bench games have variants (CutVariants / SewVariants); these introduce the ones
 # whose controls a first-timer can't guess. Steer and Rhythm need no speech.
 const M_CUT_ALLOWANCE := (
-	"Now the worktable. The part is chalked on your cloth: hold [b]Space[/b] and the shears "
-	+ "push along it, gliding down the straight runs. The curves are yours to steer with "
-	+ "[b]A[/b] and [b]D[/b]. Keep to the chalk — cut inside it and you've nicked the garment."
+	"On the table it goes. Choose a part and its outline is chalked on your cloth: hold "
+	+ "[b]Space[/b] and the shears push along it, gliding down the straight runs. The curves "
+	+ "are yours to steer with [b]A[/b] and [b]D[/b]. Keep to the chalk — cut inside it and "
+	+ "you've nicked the garment."
 )
 const M_CUT_STROKES := (
-	"Now the worktable. Hold [b]Space[/b] to open the shears along the chalk and let go to "
-	+ "close them — long, even strokes make the cleanest edge."
+	"On the table it goes. Choose a part, then hold [b]Space[/b] to open the shears along "
+	+ "the chalk and let go to close them — long, even strokes make the cleanest edge."
 )
 const M_SEW_PEDAL := (
-	"At the machine the needle stays put and [b]you guide the cloth[/b]. Line it up on the "
+	"Now the machine. The needle stays put and [b]you guide the cloth[/b]. Line it up on the "
 	+ "dotted guide with [b]A[/b] and [b]D[/b], then press the pedal — [b]Space[/b]. Ease off "
 	+ "at the [b]amber marks[/b] and stop on a corner to turn the cloth."
 )
@@ -112,9 +113,13 @@ const M_BYE := (
 # Each step:
 #   id; `event` = the EventBus signal that completes it ("" = a mentor-only talk step);
 #   `point` = node name to aim the hand at; `match` = item_stored station prefix;
-#   `mentor` = lines the mentor says first; `goal` + `checks` = the tag. A check is
-#   [text, condition, key, tip]: `condition` ticks it live ("" = only on completion),
-#   `key`/`tip` = the coach mark shown while it is the next unticked line.
+#   `mentor` = lines the mentor says first; `brief` = a condition that, once met, has the
+#   mentor explain the bench game (see _bench_lines) — so he talks about it when the cloth
+#   is on the bench, not while it's still being carried there; `goal` + `checks` = the
+#   tag. A check is [text, condition, key, tip, point?]: `condition` ticks it live ("" =
+#   only on completion), `key`/`tip` = the coach mark shown while it is the next unticked
+#   line, and the optional `point` = the station the pin shows while it is (else the
+#   step's `point`), so the pin follows the cloth from bench to bench.
 const STEPS := [
 	{
 		"id": "order",
@@ -158,6 +163,7 @@ const STEPS := [
 		"id": "worktable",
 		"event": "piece_cut",
 		"point": "Worktable",
+		"brief": "on:Worktable",
 		"goal": "Shape it at the worktable",
 		"checks": [],  # filled for the worktable's cutting game (see _cut_checks)
 	},
@@ -165,6 +171,7 @@ const STEPS := [
 		"id": "sew",
 		"event": "piece_sewn",
 		"point": "SewingMachine",
+		"brief": "on:SewingMachine",
 		"goal": "Sew the piece",
 		"checks": [],  # filled for the machine's sewing game (see _sew_checks)
 	},
@@ -176,8 +183,8 @@ const STEPS := [
 		"goal": "Hang up the finished part",
 		"checks":
 		[
-			["Pick up the finished part", "holding:GarmentPiece", "", ""],
-			["Hang it on the clothing rack (E)", "", "", ""],
+			["Take the sewn part off the machine", "holding:GarmentPiece", "", "", "SewingMachine"],
+			["Hang it on the clothing rack (E)", "", "", "", "ClothingRack"],
 		],
 	},
 	{
@@ -466,7 +473,7 @@ func _spawn_customer() -> void:
 
 
 func _mentor_lines(step: Dictionary) -> PackedStringArray:
-	var out := _bench_lines(str(step.get("id", "")))
+	var out := PackedStringArray()
 	for line: String in step.get("mentor", []):
 		var text := line
 		if line == M_CODE_2:
@@ -477,9 +484,10 @@ func _mentor_lines(step: Dictionary) -> PackedStringArray:
 	return out
 
 
-## The mentor's introduction to the worktable or sewing machine game the player is about to
-## meet, if it needs one. The sewing one leaves out pins and backstitching when an upgrade
-## (clips, the auto-lock) has taken them off the player's hands.
+## The mentor's introduction to the worktable or sewing machine game, if it needs one —
+## spoken when the step's `brief` condition is first met (the cloth is on the bench). The
+## sewing one leaves out pins and backstitching when an upgrade (clips, the auto-lock) has
+## taken them off the player's hands.
 func _bench_lines(step_id: String) -> PackedStringArray:
 	var out := PackedStringArray()
 	if step_id == "worktable":
@@ -527,8 +535,8 @@ func _checks() -> Array:
 ## that game's own key prompts, so the coach mark lands on them.
 func _cut_checks() -> Array:
 	var lines: Array = [
-		["Bring the cloth to the worktable", "seen:worktable_screen", "", ""],
-		["Pick a part your cloth covers", "cutting", "E", "Start cutting"],
+		["Put the cloth on the worktable", "on:Worktable", "", "", "Worktable"],
+		["Open it and pick a part your cloth covers", "cutting", "E", "Start cutting"],
 	]
 	match CutVariants.current():
 		CutVariants.Variant.ALLOWANCE:
@@ -549,7 +557,10 @@ func _cut_checks() -> Array:
 ## line ticks as the player actually does it (MinigameScreen.coach_flags), and the pins and
 ## backstitch lines drop out once an upgrade does that job for them.
 func _sew_checks() -> Array:
-	var lines: Array = [["Take it to the sewing machine", "seen:sewing_screen", "", ""]]
+	var lines: Array = [
+		["Take the cut part off the worktable", "holding:GarmentPiece", "", "", "Worktable"],
+		["Put it on the sewing machine", "on:SewingMachine", "", "", "SewingMachine"],
+	]
 	if SewVariants.current() != SewVariants.Variant.PEDAL:
 		lines.append(["Stitch on every ring", "", "E / Space", "Stitch on the rings"])
 		return lines
@@ -747,8 +758,25 @@ func _process(delta: float) -> void:
 	if not _tag.visible:
 		return
 	_update_checks()
+	if _brief_on_arrival():
+		return
 	_place_tag(delta)
 	_update_pointers()
+
+
+## Once the step's `brief` condition is met — the cloth is on the bench — the mentor
+## explains the bench game, once. Returns true while he's about to speak.
+func _brief_on_arrival() -> bool:
+	var step: Dictionary = STEPS[_step]
+	var when: String = step.get("brief", "")
+	if when == "" or _flags.has("briefed") or not _met(when):
+		return false
+	_flags["briefed"] = true
+	var lines := _bench_lines(str(step.get("id", "")))
+	if lines.is_empty():
+		return false
+	_speak(lines, func(_c: int) -> void: _show_tag())
+	return true
 
 
 func _input(event: InputEvent) -> void:
@@ -781,19 +809,43 @@ func _update_checks() -> void:
 ## Whether a check condition currently holds.
 func _met(cond: String) -> bool:
 	if _flags.has(cond):
-		return true
-	if cond.begins_with("holding:"):
-		var held := _player_held()
-		var script: Script = held.get_script() if held != null else null
-		return script != null and script.get_global_name() == cond.trim_prefix("holding:")
-	if cond.begins_with("design:"):
-		return _design_matches(int(cond.trim_prefix("design:")))
-	if cond == "cutting":
-		var mg: Variant = UI.worktable_screen.get("_minigame") if UI != null else null
-		return mg is Control and (mg as Control).is_visible_in_tree()
-	if cond.begins_with("bench:"):
-		return _bench_flag(cond.trim_prefix("bench:"))
-	return false
+		return true  # "seen:<menu>" and "adjusted" only ever arrive as flags
+	var arg := cond.get_slice(":", 1)
+	var met := false
+	match cond.get_slice(":", 0):
+		"holding":
+			met = _holding(arg)
+		"design":
+			met = _design_matches(int(arg))
+		"cutting":
+			var mg: Variant = UI.worktable_screen.get("_minigame") if UI != null else null
+			met = mg is Control and (mg as Control).is_visible_in_tree()
+		"bench":
+			met = _bench_flag(arg)
+		"on":
+			met = _loaded(arg)
+	return met
+
+
+## Whether the player is carrying an item of the given class (e.g. "GarmentPiece").
+func _holding(type_name: String) -> bool:
+	var held := _player_held()
+	var script: Script = held.get_script() if held != null else null
+	return script != null and script.get_global_name() == type_name
+
+
+## Whether the named station has something sitting on it (the worktable, the sewing
+## machine — anything answering held_item()).
+func _loaded(station_name: String) -> bool:
+	var station := _station(station_name)
+	return station != null and station.has_method("held_item") and station.held_item() != null
+
+
+func _station(station_name: String) -> Node3D:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		scene = get_tree().root
+	return scene.find_child(station_name, true, false) as Node3D
 
 
 ## A progress flag from whichever bench game is on screen — the worktable's or the sewing
@@ -1002,13 +1054,22 @@ func _world_point() -> Vector2:
 			return _project(_delivered_roll)
 	if step.get("customer", false):
 		return _project(_customer)
-	var name: String = step.get("point", "")
-	if name == "":
+	var target := _line_target()
+	if target == "":
+		target = step.get("point", "")
+	if target == "":
 		return Vector2(-1, -1)
-	var scene: Node = get_tree().current_scene
-	if scene == null:
-		scene = get_tree().root
-	return _project(scene.find_child(name, true, false) as Node3D)
+	return _project(_station(target))
+
+
+## The station the next unticked line is about, if it names one — so the pin follows the
+## cloth: to the worktable, back to it for the cut part, on to the machine.
+func _line_target() -> String:
+	var i := _next_check()
+	if i < 0:
+		return ""
+	var check: Array = _checks()[i]
+	return str(check[4]) if check.size() > 4 else ""
 
 
 ## Project a Node3D's upper body to the screen; (-1,-1) if missing or behind the camera.

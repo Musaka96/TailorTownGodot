@@ -6,12 +6,15 @@ extends SceneTree
 ##   - every key the checklist coaches is one that game really shows in its key prompts
 ##     (the coach mark finds its target by that label, so a stale key points at nothing),
 ##   - the games whose controls can't be guessed get a mentor introduction,
-##   - the progress flags the checklist ticks on are ones the game reports.
+##   - the progress flags the checklist ticks on are ones the game reports,
+##   - the explanation waits until the cloth is on the bench, not the start of the step,
+##   - every station the pin is sent to really exists in the shop.
 ##   godot --headless --path . --script res://tools/test_tutorial_bench.gd
 
 var _failures: Array[String] = []
 var _tutorial: Node
 var _config: Resource
+var _shop: Node
 
 
 func _initialize() -> void:
@@ -23,12 +26,19 @@ func _run() -> void:
 		await process_frame
 	_tutorial = root.get_node("Tutorial")
 	_config = root.get_node("Config").get("data")
+	_shop = load("res://main.tscn").instantiate()
+	root.add_child(_shop)
+	for _i in 4:
+		await process_frame
 	var cut_before: int = _config.get("cut_variant")
 	var sew_before: int = _config.get("sew_variant")
 	for v in 3:
 		_cutting(v)
 	for v in 2:
 		_sewing(v)
+	_pacing("worktable", "Worktable")
+	_pacing("sew", "SewingMachine")
+	_stations_exist()
 	_config.set("cut_variant", cut_before)
 	_config.set("sew_variant", sew_before)
 	_finish()
@@ -57,16 +67,68 @@ func _sewing(variant: int) -> void:
 	var checks: Array = _tutorial.call("_sew_checks")
 	var tag: String = ["rhythm", "pedal"][variant]
 	_check(checks.size() >= 2, "sewing %s: a sewing checklist" % tag)
-	_keys_exist(game, checks.slice(1), "sewing %s" % tag)
+	_keys_exist(game, checks.slice(2), "sewing %s" % tag)
 	var lines: PackedStringArray = _tutorial.call("_bench_lines", "sew")
 	_check(lines.is_empty() == (variant == 0), "sewing %s: mentor explains it only if needed" % tag)
 	if variant == 1:
 		var said := "".join(lines)
 		_check("pedal" in said and "pin" in said, "sewing pedal: mentor covers pedal and pins")
 		_check("backstitch" in said, "sewing pedal: mentor covers backstitching")
-		_check(checks.size() == 5, "sewing pedal: pedal, pins, backstitch, cut thread")
+		_check(checks.size() == 6, "sewing pedal: carry, place, pedal, pins, lock, cut")
 	_flags_reported(game, checks, "sewing %s" % tag)
 	game.queue_free()
+
+
+## The bench explanation is held back until the cloth is on `station`: nothing when the
+## step begins, nothing while the bench is empty, and the introduction the moment it isn't.
+func _pacing(step_id: String, station_name: String) -> void:
+	_config.set("cut_variant", 1)
+	_config.set("sew_variant", 1)
+	var steps: Array = _tutorial.get("STEPS")
+	var index := -1
+	for i in steps.size():
+		if steps[i]["id"] == step_id:
+			index = i
+	var step: Dictionary = steps[index]
+	var at_start: PackedStringArray = _tutorial.call("_mentor_lines", step)
+	_check(at_start.is_empty(), "%s: nothing is explained as the step begins" % step_id)
+	_tutorial.set("_step", index)
+	(_tutorial.get("_flags") as Dictionary).clear()
+	_tutorial.set("_pending", {})
+	var bench: Node = _shop.find_child(station_name, true, false)
+	var spoke: bool = _tutorial.call("_brief_on_arrival")
+	_check(not spoke, "%s: still quiet while the %s is empty" % [step_id, station_name])
+	var cloth := Node3D.new()
+	bench.set("_item", cloth)
+	spoke = _tutorial.call("_brief_on_arrival")
+	var queued: Dictionary = _tutorial.get("_pending")
+	_check(spoke and not queued.is_empty(), "%s: explained once it's on the bench" % step_id)
+	_tutorial.set("_pending", {})
+	spoke = _tutorial.call("_brief_on_arrival")
+	_check(not spoke, "%s: and only once" % step_id)
+	bench.set("_item", null)
+	cloth.free()
+	(_tutorial.get("_flags") as Dictionary).clear()
+	_tutorial.set("_step", 0)
+
+
+## Every station a step or checklist line sends the pin to, or waits on, is in the shop —
+## a misspelt name would just leave the player with no pin.
+func _stations_exist() -> void:
+	var named := {}
+	for step: Dictionary in _tutorial.get("STEPS"):
+		if step.get("point", "") != "":
+			named[step["point"]] = true
+		var brief: String = step.get("brief", "")
+		if brief.begins_with("on:"):
+			named[brief.trim_prefix("on:")] = true
+	for lines: Array in [_tutorial.call("_cut_checks"), _tutorial.call("_sew_checks")]:
+		for c: Array in lines:
+			if c.size() > 4:
+				named[c[4]] = true
+	for station: String in named:
+		var found: Node = _shop.find_child(station, true, false)
+		_check(found != null, "the shop has a %s for the pin to point at" % station)
 
 
 ## Keep an un-started game from drawing or ticking — its hosts always start() it first,

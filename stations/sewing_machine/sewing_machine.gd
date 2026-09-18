@@ -41,6 +41,11 @@ func interact(actor) -> void:
 			actor.carry.take_item(part)
 
 
+## What's on the machine right now: a part waiting to be sewn, a sewn one, or null.
+func held_item() -> Node:
+	return _item
+
+
 ## Called by the sewing screen when the minigame resolves.
 func finish_sew(success: bool, quality: float) -> void:
 	if not (_item is GarmentPiece) or _item.stage != Enums.Stage.CUT:
