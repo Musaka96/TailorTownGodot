@@ -36,6 +36,12 @@ const CLIP_LOOKS := ["berry", "garden"]
 ## CLIP_SPEEDUP x so it reads as a sped-up play session.
 const CLIP_PRESS := 0.15
 const CLIP_SPEEDUP := 2
+## The upgrades shot: reputation points ("Local Name"), what's already bought, and
+## which row is selected.
+const UPGRADES_REP := 130
+const UPGRADES_MONEY := 2340
+const UPGRADES_OWNED := ["cut_weights", "sew_dial", "shop_coffee"]
+const UPGRADES_SELECTED := "sew_walking_foot"
 ## Autoplay: how far down the line the hand aims, when a glowing pin gets pulled, and
 ## where the start backstitch goes in.
 const AUTO_LOOK := 0.035
@@ -120,6 +126,7 @@ func _run() -> void:
 	await _shot_sewing()
 	await _shot_shelf()
 	await _shot_phone()
+	await _shot_upgrades()
 	await _shot_handbook()
 	await _shot_orders()
 	await _shot_newspaper()
@@ -277,6 +284,41 @@ func _shot_phone() -> void:
 	await _wait(30)
 	_save("08_phone_order")
 	_ui.close_all_menus()
+	await _wait(10)
+
+
+## The phone's Shop Upgrades page, mid-career: a "Local Name" reputation (so the
+## top tier still shows locked), money in the till, a couple of benches already kitted out, and the
+## Walking Foot selected with its preview. Everything is put back afterwards.
+func _shot_upgrades() -> void:
+	if not _want("upgrades"):
+		return
+	var rep: Node = root.get_node("Reputation")
+	var upgrades: Node = root.get_node("Upgrades")
+	var state: Node = root.get_node("GameState")
+	var old_points: int = rep.points
+	var old_money: int = state.money
+	rep.points = UPGRADES_REP
+	state.money = UPGRADES_MONEY
+	for id in UPGRADES_OWNED:
+		upgrades._owned[id] = true
+	var phone: Node = _main.find_child("Phone", true, false)
+	_place_player(Vector3(0.5, 0.0, 3.0), PI)
+	await _wait(20)
+	_frame(Vector3(0.5, 0.8, 2.7), 1.0)
+	_ui.open_phone(phone, _player)
+	await _wait(20)
+	var menu: Node = _ui.phone_order
+	menu._screen = 3  # Screen.UPGRADES
+	menu._row = maxi(0, menu._upg_ids.find(UPGRADES_SELECTED))
+	menu._refresh()
+	await _wait(30)
+	_save("13_phone_upgrades")
+	_ui.close_all_menus()
+	for id in UPGRADES_OWNED:
+		upgrades._owned.erase(id)
+	rep.points = old_points
+	state.money = old_money
 	await _wait(10)
 
 
