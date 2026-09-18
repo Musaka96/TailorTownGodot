@@ -96,7 +96,7 @@ extends Resource
 @export var cut_tolerance_deg: float = 26.0  ## how far off the line still cuts cleanly
 @export var cut_max_mistakes: int = 3
 ## Which cutting game the worktable runs (the F3 debug panel can flip it live).
-@export_enum("Steer (v1)", "Seam allowance (v2)", "Strokes (v3)") var cut_variant: int = 0
+@export_enum("Steer (v1)", "Seam allowance (v2)", "Strokes (v3)") var cut_variant: int = 1
 ## v2/v3 zones, in shape units (1 unit ≈ 40 cm): on the chalk, the seam allowance
 ## outside it, and how far inside the line you can stray before it's a nick.
 @export var cut_band_perfect: float = 0.015

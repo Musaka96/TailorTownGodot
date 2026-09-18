@@ -92,6 +92,11 @@ func _run() -> void:
 	_orders = root.get_node("Orders")
 	_news = root.get_node("News")
 	_clock = root.get_node("DayNight")
+	# The shots drive the v1 cutting / sewing games by hand (_autocut / _autosew reach
+	# into their internals), so pin those whatever the config's default is.
+	var cfg: Resource = root.get_node("Config").data
+	cfg.cut_variant = 0
+	cfg.sew_variant = 0
 	_dismiss_paper()
 	for timer in _cm.get_children():
 		if timer is Timer:
