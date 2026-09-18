@@ -1,47 +1,47 @@
 class_name SewPedalMinigame
 extends CutBench
 
-## Sewing v2 — "Pedal & Guide". A real machine: the needle stays put and the cloth feeds
-## past it. The pedal (Space / F, or the right trigger — analog) spins the motor up and
-## it runs down when you let go; your hands (A / D) guide the cloth so the stitches run
-## down the seam line, the raw edge riding the guide lines on the plate.
+## Sewing v2 — "Pedal & Guide". A real machine, kept simple: the needle stays put and the
+## machine feeds the cloth along the seam by itself — the seam always runs up the screen.
+## You do two things:
+##   * the pedal (Space / F, or the right trigger, analog) — the motor spins up while held
+##     and coasts down when you let go;
+##   * push the cloth left / right (A / D) to keep the needle on the chalk line. The cloth
+##     wanders a little on its own, and on a curve it pulls outward — harder the faster
+##     you go.
+## One rule for everything else: **ease off through the amber marks.** Amber chalk runs up
+## to every pin and corner, and the speed dial on the machine goes red when you're too
+## fast for what's coming. Pass a pin slowly and your hand pulls it; hit it fast and the
+## needle bends (a slip). Reach a corner slowly and it turns crisp; arrive fast and the
+## stitches run past it. The machine turns the cloth at the corner for you.
 ##
-## Corners are the pedal skill: ease off so the needle stops on the chalk corner, then
-## pivot (E). Stop short or coast past and the corner comes out rounded or crooked.
-## Pins lie across the seam — pull each (E) before the needle reaches it, or bend the
-## needle. Hold S with the pedal near either end to backstitch and lock the seam.
-##
-## Every one of those is a dial an upgrade turns (Upgrades "sew_*" effects): spin-up,
-## coast, drift, pivot time, a speed dial near corners and pins, needle-down snapping,
-## clips instead of pins, an auto-lock. Shares the outline, zones, cloth and scoring
-## with the cutting games via CutBench. Emits finished(success, quality).
+## Upgrades turn its dials (Upgrades "sew_*" effects): spin-up, coast, drift, curve pull,
+## corner-turn time, a speed dial that slows itself at the marks, clips instead of pins.
+## Shares the outline, zones, cloth and scoring with the cutting games via CutBench.
+## Emits finished(success, quality).
 
 const TITLE_SEW := "Sewing Machine"
 const ZOOM := 2.0
 const LOOK_AHEAD := 0.24
 const STEER_RAMP := 6.0
-const MAX_OFF_ANGLE := deg_to_rad(60.0)
+const NUDGE := 0.12  # how fast your hands slide the cloth sideways (units/s)
 const MAX_WANDER := 0.1
 const ALLOWANCE := 0.0375  # 1.5 cm between the seam line and the cloth's raw edge
-const CORNER_PERFECT := 0.015  # stop this close to the chalk corner for a crisp one
-const CORNER_GOOD := 0.04
-const CORNER_MAX := 0.07  # coast further past it and the machine jams to a halt
+const SAFE := 0.4  # share of top speed that is "slow enough" at a pin or a corner
+const GOOD_CORNER := 0.7  # arrive under this and the corner is only a touch rounded
+const WARN := 0.15  # the amber marks run this far back from each pin and corner
+const OVERSHOOT := 0.05  # stitches run past a corner by up to this at full speed
 const CORNER_WEIGHT := 0.12  # how much a corner counts, as a length of seam
-const PIN_EVERY := 0.5
-const PIN_CLEAR := 0.14  # no pins this close to a corner or either end
-const PULL_RANGE := 0.3  # a pin can be pulled once it's this close ahead
-const LOCK_ZONE := 0.12  # backstitching counts within this of either end
-const LOCK_LEN := 0.015  # sew this far in reverse to lock
-const LOCK_BONUS := 0.02
-const CLIP_COST := 0.02
-const DIAL_RANGE := 0.14
-const DIAL_SLOW := 0.45
-const GUIDE_PULL := 1.2
+const CURVE_PULL := 0.08  # how hard a curve drags the cloth outward, per unit of speed
+const DRIFT_SCALE := 0.004  # fabric drift table (deg-ish) → units/s of wander
+const PIN_EVERY := 0.75
+const PIN_CLEAR := 0.16  # no pins this close to a corner or either end
+const GUIDE_PULL := 0.6
 const TOP_GEAR := 1.5  # Oiled Machine + Shift
 const STITCH_LEN := 0.014
 const MACHINE_LOOP := "sew_machine_loop"
 const BED_ART := "res://assets/textures/ui/machine_bed.png"
-## How much each cloth wanders under your hands (deg/s), before any upgrade.
+## How much each cloth wanders under your hands, before any upgrade.
 const DRIFT := {
 	Enums.Fabric.WORSTED_WOOL: 4.0,
 	Enums.Fabric.FLANNEL: 2.0,
@@ -88,40 +88,38 @@ const STATUS := {
 	CutBench.Zone.NICK: "Too deep — it'll fit tight",
 }
 
-var _top := 0.3
+var _top := 0.36
 var _spin := 1.0
 var _coast := 0.35
-var _pivot_time := 0.6
-var _turn := deg_to_rad(120.0)
+var _pivot_time := 0.45
 var _garment := 0
 var _piece_poly := PackedVector2Array()
+var _pull := PackedFloat32Array()  # per point: which way (and how hard) a curve drags
 var _bed_tex: Texture2D
 
-var _p := Vector2.ZERO
-var _heading := 0.0
+var _s := 0.0  # how far along the seam the needle is
+var _d := 0.0  # how far off the line, along the outward normal
 var _seg := 0
+var _p := Vector2.ZERO
 var _steer := 0.0
 var _pedal := 0.0
 var _motor := 0.0
-var _reversing := false
 var _zone: int = CutBench.Zone.PERFECT
-var _jammed := false  # coasted too far past a corner; waits for a pivot
 var _pivot_t := 0.0
 var _pivot_from := Vector2.ZERO
 var _pivot_to := Vector2.ZERO
 var _pivot_h0 := 0.0
 var _pivot_h1 := 0.0
+var _heading := 0.0
 var _view_angle := 0.0
 var _time := 0.0
 var _stitch_phase := 0.0
 var _noise := FastNoiseLite.new()
-var _pins: Array = []  # [{s: float, state: 0 in / 1 pulled / 2 sewn over}]
+var _pins: Array = []  # [{s: float, state: 0 in / 1 pulled / 2 bent the needle}]
+var _corner_done := {}  # corner index -> true once turned
 var _corners_done := 0
 var _corners_clean := 0
-var _locked := {"start": false, "end": false}
-var _rev_run := 0.0
-var _clip_hits := 0
-var _hint_text := ""
+var _stubs: Array = []  # [from, to] stitches that ran past a corner
 
 
 func _screen_title() -> String:
@@ -178,8 +176,9 @@ func _begin() -> void:
 		_spin = c.sew2_spin_seconds
 		_coast = c.sew2_coast_seconds
 		_pivot_time = c.sew2_pivot_seconds
-		_turn = deg_to_rad(c.sew2_turn_deg)
 	_zoom = ZOOM
+	_s = 0.0
+	_d = 0.0
 	_seg = 0
 	_p = _path[0]
 	_heading = _seg_dir(0).angle()
@@ -187,33 +186,24 @@ func _begin() -> void:
 	_steer = 0.0
 	_motor = 0.0
 	_zone = Zone.PERFECT
-	_jammed = false
 	_pivot_t = 0.0
 	_time = 0.0
+	_corner_done = {}
 	_corners_done = 0
 	_corners_clean = 0
-	_rev_run = 0.0
-	_clip_hits = 0
-	var auto := Upgrades.has("sew_autolock")
-	_locked = {"start": auto, "end": auto}
+	_stubs = []
 	_noise.seed = randi()
 	_noise.frequency = 0.02
 	_trail.append(_p)
 	_trail_zone.append(Zone.PERFECT)
 	_build_piece()
+	_measure_pull()
 	_place_pins()
 	_follow(1.0)
 
 
 func _hint_pairs() -> Array:
-	var pairs := [
-		["Space / F", "Pedal"],
-		["A / D", "Guide"],
-		["E", "Pull pin · Pivot"],
-	]
-	if not Upgrades.has("sew_autolock"):
-		pairs.append(["S", "Reverse (lock)"])
-	return pairs
+	return [["Space / F", "Pedal"], ["A / D", "Push the cloth"]]
 
 
 # --- Setup -----------------------------------------------------------------
@@ -230,10 +220,21 @@ func _build_piece() -> void:
 	_piece_poly = grown[0] if not grown.is_empty() else outline
 
 
+## On a curve the cloth wants to keep going straight, so the needle drifts to the outside
+## of the bend: + where that's the raw-edge side, − where it's the garment side.
+func _measure_pull() -> void:
+	_pull = PackedFloat32Array()
+	_pull.resize(_path.size())
+	for i in range(1, _path.size() - 1):
+		if _corners.has(i):
+			continue
+		_pull[i] = -(_seg_dir(i) - _seg_dir(i - 1)).dot(_normals[i]) / STEP
+
+
 ## Pins across the seam every so often — clear of the corners and the two ends.
 func _place_pins() -> void:
 	_pins = []
-	var s := 0.25
+	var s := 0.3
 	while s < _total - PIN_CLEAR:
 		if not _near_a_corner(s):
 			_pins.append({"s": s, "state": 0})
@@ -257,20 +258,15 @@ func _process(delta: float) -> void:
 	_time += delta
 	_steer = move_toward(_steer, Input.get_axis("move_left", "move_right"), STEER_RAMP * delta)
 	_pedal = _read_pedal()
-	_reversing = Input.is_action_pressed("move_back")
 	if _pedal > 0.0 and _state == State.READY:
 		_state = State.RUNNING
 	if _pivot_t > 0.0:
 		_tick_pivot(delta)
 	else:
 		_drive_motor(delta)
-		_heading += _steer * _turn * delta
+		_slide(delta)
 		if _motor > 0.001:
-			_heading += _drift() * delta
 			_feed(delta)
-		_clamp_heading()
-		if Input.is_action_just_pressed("interact"):
-			_action()
 	if _state > State.RUNNING:
 		return
 	_follow(1.0 - exp(-8.0 * delta))
@@ -284,40 +280,26 @@ func _read_pedal() -> float:
 	if not _armed:
 		return 0.0
 	var p := Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT)
-	for action in ["jump", "cut", "ui_accept"]:
+	for action in ["jump", "cut", "ui_accept", "interact"]:
 		if Input.is_action_pressed(action):
 			p = 1.0
 	return clampf(p, 0.0, 1.0)
 
 
 ## The motor chases the pedal: slow to spin up, and it coasts when you let go — unless
-## the upgrades make it snappier. A jammed corner holds it stopped.
+## the upgrades make it snappier.
 func _drive_motor(delta: float) -> void:
-	var target := 0.0 if _jammed else _pedal * _dial_cap()
+	var target := _pedal * _dial_cap()
 	var up := Upgrades.mult("sew_spin") / maxf(_spin, 0.01)
 	var down := Upgrades.mult("sew_coast") / maxf(_coast, 0.01)
 	_motor = move_toward(_motor, target, (up if target > _motor else down) * delta)
 
 
-## Speed Dial: ease down to a crawl as a corner or a pin comes up.
+## Speed Dial: the machine slows itself to a safe crawl through the amber marks.
 func _dial_cap() -> float:
-	if not Upgrades.has("sew_dial"):
-		return 1.0
-	var s := _arc()
-	var corner := _next_corner()
-	if corner < _path.size() - 1 and _cum[corner] - s < DIAL_RANGE:
-		return DIAL_SLOW
-	for pin: Dictionary in _pins:
-		if pin["state"] == 0 and pin["s"] - s > -0.01 and pin["s"] - s < DIAL_RANGE:
-			return DIAL_SLOW
+	if Upgrades.has("sew_dial") and _mark_ahead() != "":
+		return SAFE * 0.9
 	return 1.0
-
-
-func _drift() -> float:
-	var rate: float = DRIFT.get(_fabric, 4.0) * Upgrades.mult("sew_drift")
-	if _focused:
-		rate *= 0.5
-	return deg_to_rad(rate) * _noise.get_noise_1d(_time * 60.0)
 
 
 func _speed() -> float:
@@ -327,183 +309,112 @@ func _speed() -> float:
 	return v
 
 
+## How fast we're going, as a share of the plain machine's top speed.
+func _speed_ratio() -> float:
+	return _speed() / maxf(_top, 0.001)
+
+
+## Your hands slide the cloth; the cloth wanders, and a curve drags it outward.
+func _slide(delta: float) -> void:
+	# D pushes the cloth right on screen, which moves the needle left across it.
+	_d -= _steer * _screen_side() * NUDGE * delta
+	if _motor > 0.001:
+		var wander: float = DRIFT.get(_fabric, 4.0) * DRIFT_SCALE * Upgrades.mult("sew_drift")
+		if _focused:
+			wander *= 0.5
+		_d += wander * _noise.get_noise_1d(_time * 60.0) * delta
+		_d += _pull[_seg] * _speed() * CURVE_PULL * Upgrades.mult("sew_curve") * delta
+	if Upgrades.has("sew_guide"):
+		_d -= _d * minf(1.0, GUIDE_PULL * delta)
+	_d = clampf(_d, -MAX_WANDER, MAX_WANDER)
+
+
+## Which way (screen x) the raw edge lies from the seam line right now.
+func _screen_side() -> float:
+	var side := signf(_seg_normal(_seg).rotated(_view_rot).x)
+	return side if side != 0.0 else 1.0
+
+
 # --- Feeding the cloth -----------------------------------------------------
 
 
 func _feed(delta: float) -> void:
-	if _reversing and _arc() <= -0.03:
-		return  # backed off the start of the seam: nothing left to sew over
-	var step := _speed() * delta * (0.5 if _reversing else 1.0)
-	var dir := Vector2.from_angle(_heading) * (-1.0 if _reversing else 1.0)
-	_p += dir * step
-	_walk()
-	var d := _offset(_seg, _p)
-	if absf(d) > MAX_WANDER:
-		var held := clampf(d, -MAX_WANDER, MAX_WANDER)
-		_p -= _seg_normal(_seg) * (d - held)
-		d = held
-	if Upgrades.has("sew_guide"):
-		_p -= _seg_normal(_seg) * d * minf(1.0, GUIDE_PULL * delta)
-	_stitch_phase += step / STITCH_LEN
-	if _reversing:
-		_backstitch(step)
+	var v := _speed()
+	var step := v * delta
+	var to := _s + step
+	var corner := _next_corner()
+	var at_corner := corner < _path.size() - 1 and to >= _cum[corner]
+	if at_corner:
+		to = _cum[corner]
+	_pass_pins(_s, to, v)
+	if _state > State.RUNNING:
 		return
-	_zone = _zone_of(d)
+	_s = to
+	while _seg < _path.size() - 2 and _cum[_seg + 1] <= _s and not _corner_ahead_blocks():
+		_seg += 1
+	_p = _point_at_arc(_s) + _seg_normal(_seg) * _d
+	_stitch_phase += step / STITCH_LEN
+	_zone = _zone_of(_d)
 	_record(_zone, step, ZONE_SCORE[_zone])
 	_lay_trail()
-	_check_pins()
-	_check_corner()
-	_check_end()
+	if at_corner:
+		_arrive_at_corner(corner, v)
+	elif _s >= _total - 0.0005 and _state == State.RUNNING:
+		_finish()
 
 
-## Follow the seam as the cloth moves: forward up to (never past) the next corner — the
-## needle stays on this edge until you pivot — and back again when reversing.
-func _walk() -> void:
-	var corner := _next_corner()
-	while _seg + 1 < corner and (_p - _path[_seg + 1]).dot(_seg_dir(_seg)) >= 0.0:
-		_seg += 1
-	while _seg > 0 and not _corners.has(_seg) and (_p - _path[_seg]).dot(_seg_dir(_seg)) < 0.0:
-		_seg -= 1
+## Don't step the edge past an unturned corner — the turn does that.
+func _corner_ahead_blocks() -> bool:
+	return _corners.has(_seg + 1) and not _corner_done.has(_seg + 1)
 
 
-## The first corner (or the seam's end) ahead of the needle's edge.
+## The first unturned corner ahead (or the seam's end).
 func _next_corner() -> int:
 	var last := _path.size() - 1
 	for k in range(_seg + 1, last):
-		if _corners.has(k):
+		if _corners.has(k) and not _corner_done.has(k):
 			return k
 	return last
 
 
-## How far along the seam the needle is.
-func _arc() -> float:
-	return _cum[_seg] + (_p - _path[_seg]).dot(_seg_dir(_seg))
-
-
-## How far past (+) or short of (−) the next corner the needle sits.
-func _past_corner() -> float:
-	var corner := _next_corner()
-	return (_p - _path[corner]).dot(_seg_dir(corner - 1))
-
-
-func _lay_trail() -> void:
-	var n := _trail.size()
-	if n < 2 or _trail[n - 2].distance_to(_p) >= STITCH_LEN * 0.5:
-		_trail.append(_p)
-		_trail_zone.append(_zone)
-	else:
-		_trail[n - 1] = _p
-
-
-func _check_pins() -> void:
-	var s := _arc()
+## Every pin the needle reaches this step: pulled if you're slow, a bent needle if not.
+func _pass_pins(from: float, to: float, v: float) -> void:
 	for pin: Dictionary in _pins:
-		if pin["state"] != 0 or s < pin["s"]:
+		if pin["state"] != 0 or pin["s"] <= from or pin["s"] > to:
 			continue
-		pin["state"] = 2
-		if Upgrades.has("sew_clips"):
-			_clip_hits += 1  # a clip rides over; the seam wears a little of it
-			Sfx.play("sew_tap")
+		if Upgrades.has("sew_clips") or v <= SAFE * _top:
+			pin["state"] = 1
+			Sfx.play("pin_out")
 		else:
+			pin["state"] = 2
 			_motor = 0.0
 			_register_mistake(_point_at_arc(pin["s"]))  # bent needle
 
 
-## Coast too far past a corner and the machine jams: the seam has run off its line.
-func _check_corner() -> void:
-	if _next_corner() >= _path.size() - 1:
-		return
-	if _past_corner() > CORNER_MAX and not _jammed:
-		_jammed = true
-		_motor = 0.0
-		Sfx.play("sew_tap")
-
-
-func _check_end() -> void:
-	var last := _path.size() - 1
-	if _next_corner() == last and (_p - _path[last]).dot(_seg_dir(last - 1)) >= 0.0:
-		if _state == State.RUNNING:
-			_finish()
-
-
-## Sewing in reverse near either end locks the seam there.
-func _backstitch(step: float) -> void:
-	var s := _arc()
-	var key := ""
-	if s < LOCK_ZONE:
-		key = "start"
-	elif s > _total - LOCK_ZONE:
-		key = "end"
-	if key == "" or _locked[key]:
-		return
-	_rev_run += step
-	if _rev_run >= LOCK_LEN:
-		_locked[key] = true
-		_rev_run = 0.0
-		Sfx.play("sew_stitch_perfect")
-
-
-# --- The E button ----------------------------------------------------------
-
-
-## Pull the next pin if one is in reach; otherwise pivot if you're stopped on a corner.
-func _action() -> void:
-	var pin := _pin_in_reach()
-	if not pin.is_empty():
-		pin["state"] = 1
-		Sfx.play("pin_out")
-		return
-	if _next_corner() >= _path.size() - 1:
-		Sfx.play("sew_tap")
-		return
-	if _motor > 0.08:
-		_hint_text = "Stop the machine first"
-		Sfx.play("error")
-		return
-	var past := _past_corner()
-	if not _jammed and past < -_corner_window(CORNER_GOOD):
-		_hint_text = "Not at the corner yet"
-		Sfx.play("sew_tap")
-		return
-	_pivot(past)
-
-
-func _pin_in_reach() -> Dictionary:
-	var s := _arc()
-	for pin: Dictionary in _pins:
-		var ahead: float = pin["s"] - s
-		if pin["state"] == 0 and ahead >= -0.005 and ahead <= PULL_RANGE:
-			return pin
-	return {}
-
-
-## Needle-Down Stop snaps onto a corner from twice as far.
-func _corner_window(base: float) -> float:
-	return base * (2.0 if Upgrades.has("sew_needle_down") else 1.0)
-
-
-## Lift the foot, turn the cloth, drop the foot. The corner is scored on how close to
-## the chalk mark the needle stopped.
-func _pivot(past: float) -> void:
-	var corner := _next_corner()
-	var miss := absf(past)
-	var zone := Zone.ROUGH
-	if not _jammed and miss <= _corner_window(CORNER_PERFECT):
-		zone = Zone.PERFECT
-		_corners_clean += 1
-	elif not _jammed and miss <= _corner_window(CORNER_GOOD):
+## The corner: scored on how fast you came in, then the machine stops (needle down),
+## lifts the foot and turns the cloth for you.
+func _arrive_at_corner(corner: int, v: float) -> void:
+	var ratio := v / maxf(_top, 0.001)
+	var zone := Zone.PERFECT
+	if ratio > GOOD_CORNER:
+		zone = Zone.ROUGH
+	elif ratio > SAFE:
 		zone = Zone.GOOD
+	if zone == Zone.PERFECT:
+		_corners_clean += 1
+	else:
+		var run := OVERSHOOT * clampf(ratio, 0.0, 1.0)
+		_stubs.append([_p, _p + _seg_dir(corner - 1) * run])
 	_record(zone, CORNER_WEIGHT, ZONE_SCORE[zone])
 	_corners_done += 1
-	var d := _offset(_seg, _p)
-	_seg = corner
+	_corner_done[corner] = true
+	_motor = 0.0
 	_pivot_from = _p
-	_pivot_to = _path[corner] + _seg_normal(corner) * d
+	_seg = corner
+	_pivot_to = _path[corner] + _seg_normal(corner) * _d
 	_pivot_h0 = _heading
 	_pivot_h1 = _seg_dir(corner).angle()
 	_pivot_t = _pivot_time * Upgrades.mult("sew_pivot")
-	_jammed = false
-	_motor = 0.0
 	Sfx.play("cloth_rustle")
 
 
@@ -518,10 +429,14 @@ func _tick_pivot(delta: float) -> void:
 		_trail_zone.append(_zone)
 
 
-func _clamp_heading() -> void:
-	var along := _seg_dir(_seg).angle()
-	var off := clampf(angle_difference(along, _heading), -MAX_OFF_ANGLE, MAX_OFF_ANGLE)
-	_heading = along + off
+func _lay_trail() -> void:
+	_heading = _seg_dir(_seg).angle()
+	var n := _trail.size()
+	if n < 2 or _trail[n - 2].distance_to(_p) >= STITCH_LEN * 0.5:
+		_trail.append(_p)
+		_trail_zone.append(_zone)
+	else:
+		_trail[n - 1] = _p
 
 
 func _follow(weight: float) -> void:
@@ -540,22 +455,31 @@ func _point_at_arc(s: float) -> Vector2:
 	return _path[_path.size() - 1]
 
 
+func _index_at_arc(s: float) -> int:
+	for i in _path.size() - 1:
+		if _cum[i + 1] >= s:
+			return i
+	return _path.size() - 1
+
+
+## "pin" or "corner" when one is inside its amber stretch ahead of the needle, else "".
+func _mark_ahead() -> String:
+	var corner := _next_corner()
+	if corner < _path.size() - 1 and _cum[corner] - _s <= WARN:
+		return "corner"
+	if Upgrades.has("sew_clips"):
+		return ""
+	for pin: Dictionary in _pins:
+		if pin["state"] == 0 and pin["s"] > _s and pin["s"] - _s <= WARN:
+			return "pin"
+	return ""
+
+
 # --- Finish ----------------------------------------------------------------
 
 
 func _finish() -> void:
-	var locks := int(_locked["start"]) + int(_locked["end"])
-	var extra := "  ·  corners %d/%d clean  ·  locked %d/2" % [_corners_clean, _corners_done, locks]
-	_succeed(extra)
-
-
-## The seam's own score, plus a little for each locked end, less a little per clip sewn
-## over.
-func _quality() -> float:
-	var q := super()
-	q += LOCK_BONUS * (int(_locked["start"]) + int(_locked["end"]))
-	q -= CLIP_COST * _clip_hits
-	return clampf(q, 0.15, 1.0)
+	_succeed("  ·  corners %d/%d clean" % [_corners_clean, _corners_done])
 
 
 func _stop_sounds() -> void:
@@ -579,46 +503,29 @@ func _update_status() -> void:
 	if _state > State.RUNNING:
 		return
 	if _state == State.READY:
-		_set_status("Press the pedal to start — guide the cloth along the chalk", Style.AMBER)
+		_set_status("Hold the pedal to sew — A / D pushes the cloth onto the chalk", Style.AMBER)
 		return
-	var pct := int(clampf(_arc() / _total, 0.0, 1.0) * 100.0)
-	var msg := _situation()
+	var pct := int(clampf(_s / _total, 0.0, 1.0) * 100.0)
+	var msg := ""
 	var col := Style.INK_SOFT
-	if msg == "":
-		msg = STATUS[_zone] if _motor > 0.05 else "Foot down, needle waiting"
-		col = _zone_status_color(_zone) if _motor > 0.05 else Style.INK_SOFT
-	else:
-		col = Style.AMBER
-	_set_status("%s   ·   %d%% sewn" % [msg, pct], col)
-
-
-## Whatever needs doing right now, most urgent first ("" when it's just sewing).
-func _situation() -> String:
+	var mark := _mark_ahead()
 	if _pivot_t > 0.0:
-		return "Turning the cloth"
-	if _jammed:
-		return "Whoa — past the corner! Press E to pivot"
-	if not _pin_in_reach().is_empty():
-		return "Pin ahead — press E to pull it"
-	var corner := _corner_situation()
-	if corner != "":
-		return corner
-	if _reversing:
-		return "Reversing — backstitch to lock the seam"
-	var hint := _hint_text
-	_hint_text = ""
-	return hint
-
-
-func _corner_situation() -> String:
-	if _next_corner() >= _path.size() - 1:
-		return ""
-	var past := _past_corner()
-	if past > -_corner_window(CORNER_GOOD) and _motor < 0.08:
-		return "On the corner — press E to pivot"
-	if past > -0.15:
-		return "Corner coming — ease off the pedal"
-	return ""
+		msg = "Turning the corner"
+	elif mark != "" and _speed_ratio() > SAFE:
+		msg = "Ease off — %s ahead!" % mark
+		col = Style.CLAY
+	elif mark != "":
+		msg = "Nice and slow past the %s" % mark
+		col = Style.FOREST
+	elif _zone != Zone.PERFECT and _motor > 0.05:
+		msg = "Off the line — push with %s" % ("D" if _d * _screen_side() > 0.0 else "A")
+		col = _zone_status_color(_zone)
+	elif _motor > 0.05:
+		msg = STATUS[_zone]
+		col = _zone_status_color(_zone)
+	else:
+		msg = "Foot down, needle waiting"
+	_set_status("%s   ·   %d%% sewn" % [msg, pct], col)
 
 
 # --- Painting --------------------------------------------------------------
@@ -651,13 +558,39 @@ func _paint_cloth(c: Control) -> void:
 	_paint_pattern(c, box, poly)
 
 
-## The seam line chalked faint and fine, so the thread laid over it stands out.
+## The seam line chalked faint and fine, so the thread laid over it stands out — and
+## amber chalk up to every pin and corner still ahead: the "ease off" stretches.
 func _paint_chalk(c: Control) -> void:
 	var px := _px()
 	var col := Style.tint(_chalk, 0.4)
 	for i in _path.size() - 1:
 		if int(_cum[i] * px / 8.0) % 2 == 0:
 			c.draw_line(_w(_path[i]), _w(_path[i + 1]), col, 1.5)
+	for s in _mark_arcs():
+		_paint_amber(c, maxf(s - WARN, 0.0), s, px)
+
+
+## Arc positions of every pin and corner the needle hasn't reached yet.
+func _mark_arcs() -> Array:
+	var out: Array = []
+	for k in _corners:
+		if not _corner_done.has(k):
+			out.append(_cum[k])
+	if not Upgrades.has("sew_clips"):
+		for pin: Dictionary in _pins:
+			if pin["state"] == 0:
+				out.append(pin["s"])
+	return out
+
+
+func _paint_amber(c: Control, from: float, to: float, px: float) -> void:
+	var col := Style.tint(Style.AMBER, 0.85)
+	var i0 := _index_at_arc(from)
+	var i1 := _index_at_arc(to)
+	for i in range(i0, mini(i1 + 1, _path.size() - 1)):
+		if int(_cum[i] * px / 6.0) % 2 == 0:
+			var n := _normals[i] * 0.012
+			c.draw_line(_w(_path[i] + n), _w(_path[i + 1] + n), col, 4.0)
 
 
 ## No shaded band here — the seam guide on the plate does that job.
@@ -665,8 +598,8 @@ func _paint_allowance(_c: Control) -> void:
 	pass
 
 
-## The stitches: short dashes of thread along where the needle has been, with a
-## zig-zag knot at each end once it's locked.
+## The stitches: short dashes of thread along where the needle has been, plus the few
+## that ran past a corner taken too fast.
 func _paint_trail(c: Control) -> void:
 	if _trail.size() < 2:
 		return
@@ -674,9 +607,10 @@ func _paint_trail(c: Control) -> void:
 	var pts := _resample(_trail, STITCH_LEN)
 	for k in pts.size() - 1:
 		c.draw_line(_w(pts[k]), _w(pts[k].lerp(pts[k + 1], 0.62)), thread, 3.0)
-	for key in ["start", "end"]:
-		if _locked[key]:
-			_paint_lock(c, _path[0] if key == "start" else _path[_path.size() - 1], thread)
+	for stub in _stubs:
+		var run := _resample(PackedVector2Array([stub[0], stub[1]]), STITCH_LEN)
+		for k in run.size() - 1:
+			c.draw_line(_w(run[k]), _w(run[k].lerp(run[k + 1], 0.62)), Style.CLAY, 3.0)
 
 
 ## Points every `step` along a polyline — one per stitch.
@@ -694,34 +628,23 @@ func _resample(line: PackedVector2Array, step: float) -> PackedVector2Array:
 	return out
 
 
-func _paint_lock(c: Control, at: Vector2, col: Color) -> void:
-	var o := _w(at)
-	for k in 3:
-		var y := float(k) * 3.0 - 3.0
-		c.draw_line(o + Vector2(-5, y), o + Vector2(5, y + 1.5), col, 1.6)
-
-
 func _thread_color() -> Color:
 	return _cloth.lightened(0.7) if _cloth.get_luminance() < 0.5 else _cloth.darkened(0.55)
 
 
-## Pins across the seam: the bead on the raw-edge side, where your hand would grab it.
+## Pins across the seam: the bead on the raw-edge side, the point into the garment.
 func _paint_world_extra(c: Control) -> void:
 	for pin: Dictionary in _pins:
 		if pin["state"] == 1:
 			continue
 		var s: float = pin["s"]
 		var at := _point_at_arc(s)
-		var i := mini(_index_at_arc(s), _normals.size() - 1)
-		var out := _normals[i]
-		# Centred just inside the line, so the bead sits on the allowance (2.5 cm out) and
-		# the point crosses the seam into the garment.
-		var centre := at - out * 0.015
+		var out := _normals[mini(_index_at_arc(s), _normals.size() - 1)]
 		var col := Style.BURGUNDY if pin["state"] == 0 else Style.CLAY
 		if Upgrades.has("sew_clips"):
 			_paint_clip(c, _w(at + out * 0.03), out.angle(), col)
 		else:
-			Craft.dress_pin(c, _w(centre), (-out).angle(), col, 0.08 * _px())
+			Craft.dress_pin(c, _w(at - out * 0.015), (-out).angle(), col, 0.08 * _px())
 
 
 func _paint_clip(c: Control, at: Vector2, angle: float, col: Color) -> void:
@@ -732,21 +655,12 @@ func _paint_clip(c: Control, at: Vector2, angle: float, col: Color) -> void:
 	)
 
 
-func _index_at_arc(s: float) -> int:
-	for i in _path.size() - 1:
-		if _cum[i + 1] >= s:
-			return i
-	return _path.size() - 1
-
-
 ## The machine, drawn upright over the moving cloth: the needle plate with its seam
-## guide, the feed dogs, the presser foot, the needle bobbing, and the arm off to the
-## side.
+## guide, the presser foot, the needle bobbing, the arm off to the side, and the speed
+## dial on its head.
 func _paint_overlay(c: Control) -> void:
 	var at := _to_screen(_p)
-	var side := signf(_seg_normal(_seg).rotated(_view_rot).x)
-	if side == 0.0:
-		side = 1.0
+	var side := _screen_side()
 	_paint_plate(c, at, side)
 	_paint_foot(c, at)
 	_paint_arm(c, at, side)
@@ -761,13 +675,20 @@ func _paint_plate(c: Control, at: Vector2, side: float) -> void:
 	plate.border_color = Style.tint(Style.STEEL_DARK, 0.7)
 	c.draw_style_box(plate, rect)
 	var px := _px()
-	# Seam guide: 1, 1.5 and 2 cm lines on the outside — keep the raw edge on the 1.5.
+	# Seam guide: 1, 1.5 and 2 cm lines on the outside — the raw edge rides the 1.5.
 	for cm: float in [1.0, 1.5, 2.0]:
 		var x := at.x + side * (cm / 40.0) * px
 		var col := Style.tint(Style.STEEL_DARK, 0.9 if cm == 1.5 else 0.45)
 		c.draw_line(Vector2(x, rect.position.y + 4), Vector2(x, rect.end.y - 4), col, 1.5)
 	for dx in [-9.0, 9.0]:
 		c.draw_rect(Rect2(at + Vector2(dx - 2.5, -14), Vector2(5, 28)), Style.STEEL_DARK)
+	# Off the line: a chevron on the side to push the cloth towards.
+	if _zone != Zone.PERFECT and _state == State.RUNNING:
+		var push := 1.0 if _d * side > 0.0 else -1.0
+		var tip := at + Vector2(push * 84.0, 0.0)
+		var col := _zone_color(_zone)
+		c.draw_line(tip, tip + Vector2(-push * 12.0, -10.0), col, 4.0)
+		c.draw_line(tip, tip + Vector2(-push * 12.0, 10.0), col, 4.0)
 
 
 func _paint_foot(c: Control, at: Vector2) -> void:
@@ -777,7 +698,7 @@ func _paint_foot(c: Control, at: Vector2) -> void:
 				at + Vector2(dx - 4, -20),
 				at + Vector2(dx + 4, -20),
 				at + Vector2(dx + 3, 14),
-				at + Vector2(dx - 3, 14)
+				at + Vector2(dx - 3, 14),
 			]
 		)
 		c.draw_colored_polygon(toe, Style.STEEL)
@@ -790,7 +711,7 @@ func _paint_foot(c: Control, at: Vector2) -> void:
 func _paint_arm(c: Control, at: Vector2, side: float) -> void:
 	# The head sits beside the needle (never over the seam ahead of it) and the arm runs
 	# off across the bulk of the garment, the way the cloth passes under a real machine.
-	var head := Rect2(at + Vector2(-side * 16.0 - 22.0, -20.0), Vector2(44, 40))
+	var head := Rect2(at + Vector2(-side * 50.0 - 30.0, -30.0), Vector2(60, 60))
 	var edge := c.size.x - MAT_INSET if side < 0.0 else MAT_INSET
 	var from := head.end.x if side < 0.0 else head.position.x
 	var arm := Rect2(Vector2(minf(from, edge), at.y - 14.0), Vector2(absf(edge - from), 28))
@@ -802,8 +723,23 @@ func _paint_arm(c: Control, at: Vector2, side: float) -> void:
 	c.draw_style_box(body, arm)
 	body.bg_color = Style.BURGUNDY.darkened(0.1)
 	c.draw_style_box(body, head)
-	var light := Style.BRASS if _motor > 0.02 else Style.tint(Style.BRASS, 0.4)
-	c.draw_circle(head.get_center(), 5.0, light)
+	_paint_dial(c, head.get_center() + Vector2(0, 6))
+
+
+## The speed dial: a needle sweeping a half-circle, with the safe stretch in green. When a
+## pin or a corner is coming and you're past safe, it all goes red.
+func _paint_dial(c: Control, at: Vector2) -> void:
+	var r := 20.0
+	var start := PI
+	var span := PI
+	c.draw_circle(at, r + 3.0, Style.CREAM)
+	c.draw_arc(at, r - 3.0, start, start + span * SAFE, 12, Style.FOREST, 5.0)
+	var hot := _mark_ahead() != "" and _speed_ratio() > SAFE
+	var rest := Style.CLAY if _mark_ahead() != "" else Style.tint(Style.WALNUT, 0.3)
+	c.draw_arc(at, r - 3.0, start + span * SAFE, start + span, 16, rest, 5.0)
+	var needle := Vector2.from_angle(start + span * clampf(_speed_ratio(), 0.0, 1.0)) * (r - 2.0)
+	c.draw_line(at, at + needle, Style.CLAY if hot else Style.WALNUT, 2.5)
+	c.draw_circle(at, 3.0, Style.BRASS)
 
 
 ## At the end, lift the whole sewn piece off the bed with its seam showing.

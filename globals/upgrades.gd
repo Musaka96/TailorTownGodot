@@ -77,7 +77,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 200,
 		"tier": 0,
-		"desc": "The machine eases itself down near corners and pins.",
+		"desc": "The machine slows itself to a safe crawl through the amber marks.",
 	},
 	"sew_oiled":
 	{
@@ -103,7 +103,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 450,
 		"tier": 1,
-		"desc": "Let go and it stops dead, needle down — and snaps onto a corner mark.",
+		"desc": "Let go and it stops dead, needle down — no coasting into pins or corners.",
 		"effects": {"sew_coast": 40.0},
 	},
 	"sew_industrial":
@@ -130,7 +130,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 900,
 		"tier": 2,
-		"desc": "Lift the foot with your knee: turning a corner takes a moment, not a fuss.",
+		"desc": "Lift the foot with your knee: the machine turns corners in a blink.",
 		"effects": {"sew_pivot": 0.25},
 	},
 	"sew_clips":
@@ -139,15 +139,16 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 800,
 		"tier": 2,
-		"desc": "Clips instead of pins: sew over one and the needle survives.",
+		"desc": "Clips instead of pins: sew straight over them at any speed.",
 	},
-	"sew_autolock":
+	"sew_roller":
 	{
-		"name": "Auto-Lock Button",
+		"name": "Roller Foot",
 		"category": "Sewing Machine",
 		"cost": 2200,
 		"tier": 3,
-		"desc": "One button backstitches both ends of every seam for you.",
+		"desc": "A foot on rollers: curves barely drag the cloth off the line, even at speed.",
+		"effects": {"sew_curve": 0.4},
 	},
 	"shop_lamp":
 	{

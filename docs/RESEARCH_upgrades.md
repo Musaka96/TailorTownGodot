@@ -143,15 +143,15 @@ All in `Upgrades.UPGRADES` (phone → Shop Upgrades), each grantable from the F3
 | cut_pinking | Pinking Shears | T2 / 900 | "Rough" scores as "Good"; zig-zag edge |
 | cut_fold | Cut on the Fold | T2 / 1100 | shirt + jacket back cut as a half, then unfolded |
 | cut_rotary | Rotary Cutter & Rule | T3 / 3000 | v2 straights roll true at 3×; v3 straights in one press |
-| sew_dial | Speed Dial | T0 / 200 | sewing v2 eases down near corners and pins |
+| sew_dial | Speed Dial | T0 / 200 | sewing v2 slows itself to a safe crawl through the amber marks |
 | sew_oiled | Oiled Machine | T1 / 450 | spin-up ×2, coast shorter, Shift top gear |
 | sew_guide | Magnetic Seam Guide | T1 / 400 | pull back onto the line, drift ×0.5 |
-| sew_needle_down | Needle-Down Stop | T1 / 450 | stops dead; corner windows ×2 |
+| sew_needle_down | Needle-Down Stop | T1 / 450 | no coasting: let go and it stops |
 | sew_industrial | Industrial Motor | T2 / 1400 | top speed ×1.3, spin-up ×1.5 |
 | sew_walking_foot | Walking Foot | T2 / 1100 | drift ×0.25 |
-| sew_knee | Knee Lifter | T2 / 900 | pivot time ×0.25 |
-| sew_clips | Sewing Clips | T2 / 800 | sewing over a clip costs 2%, not a slip |
-| sew_autolock | Auto-Lock Button | T3 / 2200 | both ends locked automatically |
+| sew_knee | Knee Lifter | T2 / 900 | the machine turns corners 4× faster |
+| sew_clips | Sewing Clips | T2 / 800 | no pins: sew over clips at any speed |
+| sew_roller | Roller Foot | T3 / 2200 | curves drag the cloth 60% less |
 | shop_lamp | Workbench Lamp | T1 / 400 | perfect band ×1.15 on every bench game |
 | shop_coffee | Coffee Machine | T1 / 350 | station: 2 cups/day, each = focus for 3 bench jobs |
 | shop_iron | Pressing Iron | T2 / 1000 | station: press a piece once for +5% |
@@ -173,3 +173,14 @@ of an open order: he fetches an exactly matching bolt from the shelf, cuts and s
 and leaves the sewn piece on his tray, checked off that order. He learns per skill
 (1 − e^−jobs/8): steps go 40 s → 15 s, pieces ~64% → ~90%. Works only while the shop is
 open; job, experience and tray save. Tuning in GameConfig "Apprentice".
+
+### Sewing v2 simplified (2026-09-18, after the owner's first playtest)
+
+Too many controls (steer, pull pins, pivot, backstitch) and steering fought the pivot
+button. Now: the machine feeds along the seam by itself (the seam always runs up the
+screen); you only work the **pedal** and **push the cloth left/right** (A/D) to keep the
+needle on the chalk. Curves drag the cloth outward, harder the faster you go. One rule
+for the rest: **ease off through the amber marks** before every pin and corner — slow
+and the pin pulls itself / the corner turns crisp; fast and the needle bends / the
+stitches overshoot. A speed dial on the machine head goes red when you're too fast.
+Corners turn automatically. Backstitch is gone (Auto-Lock → Roller Foot).
