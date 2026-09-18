@@ -60,6 +60,9 @@ func _run() -> void:
 	_news = root.get_node("News")
 	_clock = root.get_node("DayNight")
 	_dismiss_paper()
+	for timer in _cm.get_children():
+		if timer is Timer:
+			timer.stop()
 	print("viewport = %s" % str(get_root().size))
 	await _shot_overview()
 	await _shot_greeting()
@@ -88,18 +91,20 @@ func _shot_overview() -> void:
 		_orders.debug_add_random()
 	await _give_roll("navy_worsted_pinstripe", 14.0)
 	_place_player(Vector3(2.3, 0.0, 4.9), PI)
-	_seat_customer()
-	await _wait(70)
+	await _seat_customer()
+	await _wait(20)
 	_frame(Vector3(1.9, 0.7, 4.2), 1.5)
 	await _wait(SETTLE)
 	_save("01_shop_overview")
 	await _clear_hands()
+	await _clear_customers()
 
 
 ## A walk-in states their occasion, style and budget in the greeting bubble.
 func _shot_greeting() -> void:
 	if not _want("greeting"):
 		return
+	await _clear_customers()
 	var cust: Node = _spawn_customer(Vector3(0.65, 0.0, 4.05), 0.0)
 	await _wait(40)
 	_ui.open_customer_request(cust, _player)
@@ -109,8 +114,7 @@ func _shot_greeting() -> void:
 	await _wait(SETTLE)
 	_save("02_customer_brief")
 	_ui.close_all_menus()
-	_despawn(cust)
-	await _wait(10)
+	await _clear_customers()
 
 
 ## Designing the client's suit at the fitting mirror: overview, then a part zoom
@@ -118,21 +122,22 @@ func _shot_greeting() -> void:
 func _shot_suit_builder() -> void:
 	if not _want("mirror"):
 		return
-	var cust: Node = _seat_customer()
-	await _wait(40)
+	await _clear_customers()
+	_place_player(Vector3(4.6, 0.0, 3.6), PI * 0.5)
+	await _seat_customer()
 	_ui.open_suit_builder(_mirror, _player)
 	var builder: Node = _ui.suit_builder
-	await _wait(80)
+	await _wait(120)
 	_save("03_suit_builder")
-	builder._adjust(1)
-	await _wait(70)
-	var look: Vector3 = cust.center() + Vector3(0.0, 0.1, 0.0)
-	_frame_eye(look + cust.facing() * 2.0 + Vector3(0.0, 0.45, 0.0), look)
-	await _wait(SETTLE)
+	builder._adjust(1)  # Overview -> Jacket: the builder glides in on the part
+	# The jacket frame is tight enough to crop the face; a taller "measured height"
+	# makes the builder's own solver frame a bit more of the client.
+	builder._height *= 1.4
+	await _wait(120)
 	_save("04_suit_builder_zoom")
 	_ui.close_all_menus()
-	_despawn(cust)
-	await _wait(10)
+	_rig.unfocus()
+	await _clear_customers()
 
 
 ## The cutting minigame, a moment after the lead-in.
@@ -148,7 +153,7 @@ func _shot_cutting() -> void:
 	table.interact(_player)  # open the worktable screen
 	await _wait(30)
 	_ui.worktable_screen._start_cutting()
-	await _wait(150)
+	await _autocut(_ui.worktable_screen._minigame, 0.55)
 	_save("05_cutting_minigame")
 	_ui.close_all_menus()
 	await _wait(10)
@@ -166,7 +171,7 @@ func _shot_sewing() -> void:
 	machine.interact(_player)  # place the panel
 	await _wait(6)
 	machine.interact(_player)  # opens the sewing screen + minigame
-	await _wait(140)
+	await _autosew(_ui.sewing_screen._minigame, 0.55)
 	_save("06_sewing_minigame")
 	_ui.close_all_menus()
 	await _wait(10)
@@ -353,12 +358,50 @@ func _clear_hands() -> void:
 	await _wait(4)
 
 
-## A client standing at the mirror, ready to be fitted.
+## A client walked onto the mirror spot by the shop's own routing (exact spot and
+## facing), waiting to be fitted. Returns once they've arrived.
 func _seat_customer() -> Node:
 	var spot: Node3D = _main.find_child("MirrorSpot", true, false)
-	var cust: Node = _spawn_customer(spot.global_position, spot.global_rotation.y)
-	cust.offer_mirror()
+	var start: Vector3 = spot.global_position + Vector3(-0.8, 0.0, 0.6)
+	var cust: Node = _spawn_customer(start, 0.0)
+	_cm.route_to_mirror(cust)
+	for _i in 300:
+		if _mirror.customer == cust:
+			break
+		await process_frame
+	await _wait(30)  # let the walk blend back to idle
 	return cust
+
+
+## Empty the shop floor so a shot never shows a leftover client.
+func _clear_customers() -> void:
+	for child in _cm.get_children():
+		if child is Node3D and child.has_method("despawn"):
+			child.queue_free()
+	_mirror.customer = null
+	await _wait(10)
+
+
+## Drive the cutting minigame like a steady hand: keep the blades on the line's
+## tangent until `fraction` of the outline is cut.
+func _autocut(game: Node, fraction: float) -> void:
+	for _i in 1200:
+		if game._total > 0.0 and game._cursor / game._total >= fraction:
+			break
+		game._angle = game._tangent_at(game._cursor)
+		await process_frame
+
+
+## Drive the sewing minigame: stitch each point as the needle reaches it, until the
+## needle is `fraction` of the way along the seam.
+func _autosew(game: Node, fraction: float) -> void:
+	for _i in 1200:
+		if game._needle >= fraction:
+			break
+		var idx: int = game._next_pending()
+		if game._lead <= 0.0 and idx != -1 and game._needle >= game._pts[idx] - 0.004:
+			game._try_stitch()
+		await process_frame
 
 
 func _spawn_customer(pos: Vector3, yaw: float) -> Node:
@@ -367,7 +410,3 @@ func _spawn_customer(pos: Vector3, yaw: float) -> Node:
 	cust.rotation.y = yaw
 	return cust
 
-
-func _despawn(cust: Node) -> void:
-	if cust != null and cust.has_method("despawn"):
-		cust.despawn()
