@@ -19,9 +19,10 @@ enum Zone { PERFECT, GOOD, ROUGH, NICK }
 
 const TITLE := "Cutting Table"
 const ZONE_SCORE := [1.0, 0.8, 0.4, 0.2]
-const ZONE_NAME := ["Perfect", "Good", "Rough", "Nicked"]
 const SLIP_COST := 0.1
-const CLEAN_CUT := 0.97  # quality that earns the "Clean cut" stamp
+## The one-word verdict shown when the piece is done: [lowest quality, word].
+const VERDICTS := [[0.97, "Flawless"], [0.85, "Fine work"], [0.7, "Good enough"], [0.0, "Rough"]]
+const FINE_WORK := 0.85
 const MAX_MISTAKES := 3
 const CORNER_DEG := 35.0  # a turn sharper than this is a corner the shears pivot at
 const STEP := 0.015  # outline spacing, in shape units (1 unit ≈ 40 cm of cloth)
@@ -520,17 +521,12 @@ func _quality() -> float:
 	return clampf(q - SLIP_COST * _mistakes, 0.15, 1.0)
 
 
-func _breakdown() -> String:
-	var total := 0.0
-	for z in 4:
-		total += _zone_len[z]
-	if total <= 0.0:
-		return ""
-	var bits: PackedStringArray = []
-	for z in 4:
-		if _zone_len[z] > 0.0:
-			bits.append("%s %d%%" % [ZONE_NAME[z], roundi(_zone_len[z] / total * 100.0)])
-	return "  ·  ".join(bits)
+## One word for how the piece came out.
+func _verdict(q: float) -> String:
+	for v: Array in VERDICTS:
+		if q >= float(v[0]):
+			return v[1]
+	return VERDICTS[VERDICTS.size() - 1][1]
 
 
 func _register_mistake(at: Vector2) -> void:
@@ -556,15 +552,16 @@ func _notification(what: int) -> void:
 		_stop_sounds()
 
 
-func _succeed(extra := "") -> void:
+## Done: one verdict and one number — nothing else to read.
+func _succeed() -> void:
 	_state = State.SUCCESS
 	set_process(false)
 	_stop_sounds()
 	var q := _quality()
 	_play(_complete, 0.7)
 	_start_reveal()
-	var head := "Clean cut!  " if q >= CLEAN_CUT else ""
-	_set_status("%s%s%s  →  %d%%" % [head, _breakdown(), extra, roundi(q * 100.0)], Style.FOREST)
+	var col := Style.FOREST if q >= FINE_WORK else Style.INK_SOFT
+	_set_status("%s  ·  %d%%" % [_verdict(q), roundi(q * 100.0)], col)
 	_repaint()
 	await get_tree().create_timer(2.4).timeout
 	finished.emit(true, q)

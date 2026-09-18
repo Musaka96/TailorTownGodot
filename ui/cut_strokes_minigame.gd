@@ -176,7 +176,7 @@ func _tick_stroke(delta: float) -> void:
 	_trail.append(_path[_idx])
 	_trail_zone.append(_anim_zone)
 	if _idx >= _path.size() - 1 and _state == State.RUNNING:
-		_succeed("  ·  %d strokes, %d choppy" % [_strokes, _choppy])
+		_succeed()
 
 
 func _shears_pos() -> Vector2:

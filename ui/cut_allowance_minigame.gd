@@ -48,11 +48,11 @@ const DRIFT := {
 	Enums.Fabric.POPLIN: 7.0,
 	Enums.Fabric.OXFORD_CLOTH: 4.0,
 }
-const STATUS := {
-	CutBench.Zone.PERFECT: "On the chalk",
-	CutBench.Zone.GOOD: "In the allowance",
-	CutBench.Zone.ROUGH: "Too wide — wasting cloth",
-	CutBench.Zone.NICK: "Into the piece!",
+## Only the zones worth a word: on the chalk or in the allowance, the line just shows
+## progress (the trail's colour already says how clean it is).
+const WARNINGS := {
+	CutBench.Zone.ROUGH: "Too wide — steer back to the chalk",
+	CutBench.Zone.NICK: "Into the piece! Steer out",
 }
 
 var _seconds := 12.0
@@ -289,18 +289,14 @@ func _update_status() -> void:
 		_set_status("Hold Cut to start — steer along the chalk", Style.AMBER)
 		return
 	var pct := int(_cum[mini(_seg, _cum.size() - 1)] / _total * 100.0)
-	var tip := "%s   ·   %d%% cut" % [STATUS[_zone], pct]
-	if _rolling and _moving:
-		tip = "Rolling along the rule   ·   %d%% cut" % pct
-	elif _glide > 1.3:
-		tip = "Gliding   ·   %d%% cut" % pct
-	if _pivot_t > 0.0:
-		tip = "Turning the cloth   ·   %d%% cut" % pct
-	elif not _moving:
-		tip = "Paused   ·   %d%% cut" % pct
+	var tip := "%d%% cut" % pct
+	var col := Style.INK_SOFT
+	if _moving and _pivot_t <= 0.0 and WARNINGS.has(_zone):
+		tip = "%s   ·   %s" % [WARNINGS[_zone], tip]
+		col = _zone_status_color(_zone)
 	if OS.is_debug_build():
 		tip += "   ·   F2 skip"
-	_set_status(tip, _zone_status_color(_zone) if _moving else Style.INK_SOFT)
+	_set_status(tip, col)
 
 
 # --- Painting --------------------------------------------------------------

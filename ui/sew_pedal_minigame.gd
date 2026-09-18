@@ -16,6 +16,8 @@ extends CutBench
 ##     gets there, or the needle bends (a slip).
 ##   * Backstitch (hold S with the pedal): at the start, and at the end — the machine
 ##     stops on the end mark and waits for you to lock the seam, then E cuts the thread.
+##   * Run off the raw edge and the needle stitches thin air: the machine jams to a stop
+##     and it's a slip (three and the piece is spoiled). Those stitches score nothing.
 ##
 ## Upgrades turn its dials (Upgrades "sew_*" effects): spin-up, coast, drift, turn speed,
 ## an aim assist on curves, a speed dial near corners and pins, clips instead of pins,
@@ -30,6 +32,8 @@ const STILL := 0.06  # motor below this counts as stopped
 const MAX_OFF_ANGLE := deg_to_rad(110.0)
 const MAX_WANDER := 0.1
 const ALLOWANCE := 0.0375  # 1.5 cm between the seam line and the cloth's raw edge
+const EDGE_SAFE := 0.6  # past this share of the allowance a stitch is too near the edge
+const OFF_LEN := 0.04  # stitching off the raw edge this long (~1.5 cm) costs a slip
 const WARN := 0.15  # amber chalk runs this far back from each corner
 const PIN_EVERY := 0.7
 const PIN_CLEAR := 0.16  # no pins this close to a corner or either end
@@ -88,12 +92,13 @@ const SEAMS := {
 		Vector2(0.62, -0.1),
 	],
 }
-const STATUS := {
-	CutBench.Zone.PERFECT: "On the seam line",
-	CutBench.Zone.GOOD: "Near the line",
-	CutBench.Zone.ROUGH: "Off the line — aim back with A / D",
-	CutBench.Zone.NICK: "Too deep — aim back with A / D",
+## Only the zones worth a word; on the line the status just shows progress. The raw
+## edge is always on the right, so "too near the edge" means steer left.
+const WARNINGS := {
+	CutBench.Zone.ROUGH: "Near the edge — steer left (A)",
+	CutBench.Zone.NICK: "Too deep — steer right (D)",
 }
+const OFF_CLOTH := "Off the cloth! Steer left (A)"
 
 var _top := 0.36
 var _spin := 1.0
@@ -122,6 +127,8 @@ var _pins: Array = []  # [{s, state: 0 in / 1 pulled / 2 bent the needle, t: pul
 var _locked := {"start": false, "end": false}
 var _rev_run := 0.0
 var _locks_drawn: Array = []  # needle positions where a backstitch was laid
+var _off_cloth := false  # the needle is past the raw edge, stitching nothing
+var _off_run := 0.0
 
 
 func _screen_title() -> String:
@@ -192,8 +199,13 @@ func _begin() -> void:
 		_coast = c.sew2_coast_seconds
 		_turn_still = deg_to_rad(c.sew2_turn_still_deg)
 		_turn_sewing = deg_to_rad(c.sew2_turn_sewing_deg)
+	# The seam line sits only 1.5 cm in from the raw edge, so "good" has to stop well
+	# short of it — wander further out and you're about to sew off the cloth.
+	_band_good = minf(_band_good, ALLOWANCE * EDGE_SAFE)
 	_zoom = ZOOM
 	_seg = 0
+	_off_cloth = false
+	_off_run = 0.0
 	_p = _path[0]
 	_heading = _seg_dir(0).angle()
 	_view_angle = _heading
@@ -376,7 +388,11 @@ func _feed(delta: float) -> void:
 		_backstitch(step)
 		return
 	_zone = _zone_of(d)
-	_record(_zone, step, ZONE_SCORE[_zone])
+	_off_cloth = d > ALLOWANCE
+	_record(_zone, step, 0.0 if _off_cloth else ZONE_SCORE[_zone])
+	_check_edge(step)
+	if _state > State.RUNNING:
+		return
 	_check_pins()
 	if _arc() >= _total - 0.002:
 		_reach_end()
@@ -413,6 +429,19 @@ func _lay_trail() -> void:
 		_trail_zone.append(_zone)
 	else:
 		_trail[n - 1] = _p
+
+
+## Sewing off the raw edge: after a short run of stitches in thin air the thread
+## tangles, the machine jams to a stop and it's a slip.
+func _check_edge(step: float) -> void:
+	if not _off_cloth:
+		_off_run = 0.0
+		return
+	_off_run += step
+	if _off_run >= OFF_LEN:
+		_off_run = 0.0
+		_motor = 0.0
+		_register_mistake(_p)
 
 
 ## The needle reaching a pin still in: a bent needle — unless it's a clip.
@@ -537,8 +566,7 @@ func _index_at_arc(s: float) -> int:
 
 
 func _finish() -> void:
-	var locks := int(_locked["start"]) + int(_locked["end"])
-	_succeed("  ·  locked %d/2" % locks)
+	_succeed()
 
 
 ## The seam's own score, plus a little for each locked end.
@@ -574,13 +602,19 @@ func _update_status() -> void:
 			tip += " — S + pedal first to backstitch the start"
 		_set_status(tip, Style.AMBER)
 		return
-	var pct := int(clampf(_arc() / _total, 0.0, 1.0) * 100.0)
+	var tip := "%d%% sewn" % int(clampf(_arc() / _total, 0.0, 1.0) * 100.0)
 	var msg := _situation()
 	var col := Style.AMBER
+	if msg == "" and _off_cloth:
+		msg = OFF_CLOTH
+		col = Style.CLAY
+	elif msg == "" and _motor > STILL and WARNINGS.has(_zone):
+		msg = WARNINGS[_zone]
+		col = _zone_status_color(_zone)
 	if msg == "":
-		msg = STATUS[_zone] if _motor > STILL else "Needle down — aim, then pedal"
-		col = _zone_status_color(_zone) if _motor > STILL else Style.INK_SOFT
-	_set_status("%s   ·   %d%% sewn" % [msg, pct], col)
+		_set_status(tip, Style.INK_SOFT)
+		return
+	_set_status("%s   ·   %s" % [msg, tip], col)
 
 
 ## Whatever needs doing right now, most urgent first ("" when it's just sewing).
