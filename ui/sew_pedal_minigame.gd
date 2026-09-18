@@ -25,9 +25,7 @@ extends CutBench
 const TITLE_SEW := "Sewing Machine"
 const ZOOM := 2.0
 const LOOK_AHEAD := 0.24
-const STEER_RAMP := 6.0
-const TURN_STILL := deg_to_rad(150.0)  # turning the cloth about a stopped needle
-const TURN_SEWING := deg_to_rad(70.0)  # guiding it while the machine runs
+const STEER_RAMP := 3.5  # a tap on A / D is a nudge; holding it leans in gradually
 const STILL := 0.06  # motor below this counts as stopped
 const MAX_OFF_ANGLE := deg_to_rad(110.0)
 const MAX_WANDER := 0.1
@@ -59,6 +57,9 @@ const DRIFT := {
 	Enums.Fabric.OXFORD_CLOTH: 4.0,
 }
 ## One seam per garment, sewn as an open line: [corner, control, corner, ...] as SHAPES.
+## Each runs so the raw edge is on the right of the needle, the way cloth sits on a real
+## machine (edge along the guide on the right, garment off to the left) — so the machine
+## is always drawn in the same place.
 const SEAMS := {
 	Enums.GarmentType.SHIRT:
 	[
@@ -70,21 +71,21 @@ const SEAMS := {
 	],
 	Enums.GarmentType.PANTS:
 	[
-		Vector2(-0.36, 0.9),
-		Vector3(-0.66, -0.25, 0.0),
-		Vector2(-0.46, -0.86),
-		Vector2(0.3, -0.86),
 		Vector2(0.33, -0.22),
+		Vector2(0.3, -0.86),
+		Vector2(-0.46, -0.86),
+		Vector3(-0.66, -0.25, 0.0),
+		Vector2(-0.36, 0.9),
 	],
 	Enums.GarmentType.JACKET:
 	[
-		Vector2(0.62, -0.1),
-		Vector3(0.5, 0.38, 0.0),
-		Vector2(0.6, 0.86),
-		Vector2(-0.44, 0.9),
-		Vector3(-0.72, 0.9, 0.0),
-		Vector2(-0.7, 0.58),
 		Vector2(-0.7, -0.24),
+		Vector2(-0.7, 0.58),
+		Vector3(-0.72, 0.9, 0.0),
+		Vector2(-0.44, 0.9),
+		Vector2(0.6, 0.86),
+		Vector3(0.5, 0.38, 0.0),
+		Vector2(0.62, -0.1),
 	],
 }
 const STATUS := {
@@ -97,6 +98,9 @@ const STATUS := {
 var _top := 0.36
 var _spin := 1.0
 var _coast := 0.35
+var _turn_still := deg_to_rad(80.0)  # turning the cloth about a stopped needle
+var _turn_sewing := deg_to_rad(50.0)  # guiding it while the machine runs
+var _tight := PackedByteArray()  # per point: a curve too tight to follow at full speed
 var _garment := 0
 var _piece_poly := PackedVector2Array()
 var _bed_tex: Texture2D
@@ -173,6 +177,8 @@ func _begin() -> void:
 		_top = c.sew2_top_speed
 		_spin = c.sew2_spin_seconds
 		_coast = c.sew2_coast_seconds
+		_turn_still = deg_to_rad(c.sew2_turn_still_deg)
+		_turn_sewing = deg_to_rad(c.sew2_turn_sewing_deg)
 	_zoom = ZOOM
 	_seg = 0
 	_p = _path[0]
@@ -193,6 +199,7 @@ func _begin() -> void:
 	_trail.append(_p)
 	_trail_zone.append(Zone.PERFECT)
 	_build_piece()
+	_find_tight_curves()
 	_place_pins()
 	_follow(1.0)
 
@@ -216,6 +223,18 @@ func _build_piece() -> void:
 	outline.remove_at(outline.size() - 1)
 	var grown := Geometry2D.offset_polygon(outline, ALLOWANCE, Geometry2D.JOIN_ROUND)
 	_piece_poly = grown[0] if not grown.is_empty() else outline
+
+
+## Mark the curves that bend faster than your hands can turn the cloth at full speed —
+## those get amber chalk too, like the corners.
+func _find_tight_curves() -> void:
+	var can_turn := _turn_sewing * Upgrades.mult("sew_turn") * 0.85
+	var full := _top * Upgrades.sewing_speed()
+	_tight = PackedByteArray()
+	_tight.resize(_path.size())
+	for i in range(1, _path.size() - 1):
+		if not _corners.has(i) and _bend[i] * full > can_turn:
+			_tight[i] = 1
 
 
 ## Pins across the seam every so often — clear of the corners and the two ends.
@@ -295,7 +314,7 @@ func _dial_cap() -> float:
 ## a little on its own; the Roller Foot nudges the aim along curves.
 func _aim(delta: float) -> void:
 	var still := _motor < STILL
-	var rate := (TURN_STILL if still else TURN_SEWING) * Upgrades.mult("sew_turn")
+	var rate := (_turn_still if still else _turn_sewing) * Upgrades.mult("sew_turn")
 	_heading += _steer * rate * delta
 	if not still:
 		var drift: float = DRIFT.get(_fabric, 4.0) * Upgrades.mult("sew_drift")
@@ -462,6 +481,15 @@ func _corner_ahead() -> bool:
 	return false
 
 
+## A tight curve under the needle or just ahead of it.
+func _curve_ahead() -> bool:
+	var s := _arc()
+	for i in range(_seg, mini(_seg + 20, _tight.size())):
+		if _tight[i] == 1 and _cum[i] - s <= WARN * 0.6:
+			return true
+	return false
+
+
 func _follow(weight: float) -> void:
 	_view_angle = lerp_angle(_view_angle, _heading, weight)
 	_view_rot = -PI * 0.5 - _view_angle
@@ -543,11 +571,18 @@ func _situation() -> String:
 		return "Pin! Press E to pull it"
 	if _reversing:
 		return "Backstitching"
-	if _corner_ahead():
-		if _motor > STILL:
-			return "Corner — ease off and stop on it"
-		return "Turn the cloth to the new edge with A / D"
-	return ""
+	return _ahead_situation()
+
+
+## A tight curve or a corner coming up.
+func _ahead_situation() -> String:
+	if _curve_ahead() and _speed_ratio() > DIAL_SLOW + 0.2:
+		return "Tight curve — ease off so you can turn with it"
+	if not _corner_ahead():
+		return ""
+	if _motor > STILL:
+		return "Corner — ease off and stop on it"
+	return "Turn the cloth to the new edge with A / D"
 
 
 func _end_situation() -> String:
@@ -596,9 +631,25 @@ func _paint_chalk(c: Control) -> void:
 			c.draw_line(_w(_path[i]), _w(_path[i + 1]), col, 1.5)
 	for k in _corners:
 		_paint_amber(c, maxf(_cum[k] - WARN, 0.0), _cum[k], px)
+	_paint_tight(c, px)
 	var end := _path[_path.size() - 1]
 	var across := _normals[_normals.size() - 1] * 0.03
 	c.draw_line(_w(end - across), _w(end + across), Style.tint(_chalk, 0.9), 4.0)
+
+
+## Amber along each tight curve, starting a little before it.
+func _paint_tight(c: Control, px: float) -> void:
+	var lead := int(WARN * 0.6 / STEP)
+	var col := Style.tint(Style.AMBER, 0.85)
+	for i in range(1, _path.size() - 1):
+		var near := false
+		for k in range(i, mini(i + lead, _tight.size())):
+			if _tight[k] == 1:
+				near = true
+				break
+		if near and int(_cum[i] * px / 6.0) % 2 == 0:
+			var n := _normals[i] * 0.012
+			c.draw_line(_w(_path[i] + n), _w(_path[i + 1] + n), col, 4.0)
 
 
 func _paint_amber(c: Control, from: float, to: float, px: float) -> void:
@@ -691,12 +742,9 @@ func _paint_clip(c: Control, at: Vector2, angle: float, col: Color) -> void:
 ## E tag on a pin that's in reach.
 func _paint_overlay(c: Control) -> void:
 	var at := _to_screen(_p)
-	var side := signf(_seg_normal(_seg).rotated(_view_rot).x)
-	if side == 0.0:
-		side = 1.0
-	_paint_plate(c, at, side)
+	_paint_plate(c, at, 1.0)  # the raw edge always rides the guide on the right
 	_paint_foot(c, at)
-	_paint_arm(c, at, side)
+	_paint_machine(c, at)
 	var pin := _pin_in_reach()
 	if not pin.is_empty():
 		_paint_pull_tag(c, _to_screen(_point_at_arc(pin["s"])))
@@ -751,22 +799,64 @@ func _paint_foot(c: Control, at: Vector2) -> void:
 	c.draw_circle(at + Vector2(0, bob), 1.6, Style.WALNUT)
 
 
-func _paint_arm(c: Control, at: Vector2, side: float) -> void:
-	# The head sits beside the needle (never over the seam ahead of it) and the arm runs
-	# off across the bulk of the garment, the way the cloth passes under a real machine.
-	var head := Rect2(at + Vector2(-side * 50.0 - 30.0, -30.0), Vector2(60, 60))
-	var edge := c.size.x - MAT_INSET if side < 0.0 else MAT_INSET
-	var from := head.end.x if side < 0.0 else head.position.x
-	var arm := Rect2(Vector2(minf(from, edge), at.y - 14.0), Vector2(absf(edge - from), 28))
-	var body := StyleBoxFlat.new()
-	body.bg_color = Style.BURGUNDY
-	body.set_corner_radius_all(10)
-	body.shadow_color = Style.SHADOW
-	body.shadow_size = 6
-	c.draw_style_box(body, arm)
-	body.bg_color = Style.BURGUNDY.darkened(0.1)
-	c.draw_style_box(body, head)
-	_paint_dial(c, head.get_center() + Vector2(0, 6))
+## A classic machine seen from above, standing still while the cloth moves under it:
+## the head just right of the needle (never over the seam ahead), the arm running off to
+## the right, the pillar with the thread spool and the speed dial, and the handwheel at
+## the far end. Black enamel with gold lining, like the old ones.
+func _paint_machine(c: Control, needle: Vector2) -> void:
+	var right := c.size.x - MAT_INSET
+	var head := Rect2(needle + Vector2(14, -38), Vector2(62, 70))
+	var pillar := Rect2(Vector2(right - 118.0, needle.y - 50.0), Vector2(84, 96))
+	var arm := Rect2(
+		Vector2(head.end.x - 6.0, needle.y - 26.0),
+		Vector2(pillar.position.x - head.end.x + 12.0, 44)
+	)
+	var enamel := Style.INK.darkened(0.55)
+	_machine_box(c, arm, enamel, 14)
+	_machine_box(c, head, enamel, 18)
+	_machine_box(c, pillar, enamel, 16)
+	# Gold lining along the arm, and the face plate on the head.
+	var gold := Style.tint(Style.BRASS, 0.85)
+	c.draw_line(
+		arm.position + Vector2(10, 7), Vector2(arm.end.x - 10, arm.position.y + 7), gold, 1.5
+	)
+	c.draw_line(Vector2(arm.position.x + 10, arm.end.y - 7), arm.end - Vector2(10, 7), gold, 1.5)
+	var face := Rect2(head.position + Vector2(8, 8), Vector2(20, head.size.y - 16))
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Style.STEEL
+	plate.set_corner_radius_all(6)
+	c.draw_style_box(plate, face)
+	# Tension dial on the head, spool on the pillar, handwheel off the end.
+	c.draw_circle(head.position + Vector2(44, 52), 7.0, Style.STEEL)
+	c.draw_circle(head.position + Vector2(44, 52), 7.0, Style.STEEL_DARK, false, 1.5, true)
+	var spool := Vector2(pillar.position.x + 26.0, pillar.position.y + 24.0)
+	c.draw_circle(spool, 12.0, _thread_color())
+	c.draw_circle(spool, 12.0, Style.WALNUT, false, 1.5, true)
+	c.draw_circle(spool, 3.0, Style.WALNUT)
+	_paint_handwheel(c, Vector2(right - 20.0, needle.y - 2.0))
+	_paint_dial(c, Vector2(pillar.position.x + 48.0, pillar.end.y - 26.0))
+
+
+func _machine_box(c: Control, rect: Rect2, col: Color, radius: int) -> void:
+	var box := StyleBoxFlat.new()
+	box.bg_color = col
+	box.set_corner_radius_all(radius)
+	box.border_color = Style.tint(Style.BRASS, 0.5)
+	box.set_border_width_all(1)
+	box.shadow_color = Style.SHADOW
+	box.shadow_size = 6
+	box.shadow_offset = Vector2(0, 4)
+	c.draw_style_box(box, rect)
+
+
+## The handwheel turns with the motor.
+func _paint_handwheel(c: Control, at: Vector2) -> void:
+	c.draw_circle(at, 26.0, Style.STEEL_DARK)
+	c.draw_circle(at, 26.0, Style.STEEL, false, 3.0, true)
+	for k in 3:
+		var spoke := Vector2.from_angle(_stitch_phase * 0.6 + k * TAU / 3.0) * 20.0
+		c.draw_line(at, at + spoke, Style.STEEL, 3.0)
+	c.draw_circle(at, 5.0, Style.BRASS)
 
 
 ## The speed dial: a needle sweeping a half-circle; the slow stretch is green, and the
@@ -775,7 +865,7 @@ func _paint_dial(c: Control, at: Vector2) -> void:
 	var r := 20.0
 	c.draw_circle(at, r + 3.0, Style.CREAM)
 	c.draw_arc(at, r - 3.0, PI, PI + PI * DIAL_SLOW, 12, Style.FOREST, 5.0)
-	var warn := _corner_ahead()
+	var warn := _corner_ahead() or _curve_ahead()
 	var rest := Style.CLAY if warn else Style.tint(Style.WALNUT, 0.3)
 	c.draw_arc(at, r - 3.0, PI + PI * DIAL_SLOW, TAU, 16, rest, 5.0)
 	var hot := warn and _speed_ratio() > DIAL_SLOW

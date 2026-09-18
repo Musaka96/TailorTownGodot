@@ -128,7 +128,9 @@ extends Resource
 @export var sew_perfect_window: float = 0.025
 @export var sew_max_mistakes: int = 3
 ## Which sewing game the machine runs (the F3 debug panel can flip it live).
-@export_enum("Rhythm (v1)", "Pedal & Guide (v2)") var sew_variant: int = 0
+@export_enum("Rhythm (v1)", "Pedal & Guide (v2)") var sew_variant: int = 1
 @export var sew2_top_speed: float = 0.36  ## v2: cloth feed at full pedal (units/s)
 @export var sew2_spin_seconds: float = 1.0  ## v2: motor 0 → full on the base machine
 @export var sew2_coast_seconds: float = 0.35  ## v2: motor full → 0 after letting go
+@export var sew2_turn_sewing_deg: float = 50.0  ## v2: turning the cloth while sewing (°/s)
+@export var sew2_turn_still_deg: float = 80.0  ## v2: turning it about a stopped needle
