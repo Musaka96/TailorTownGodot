@@ -20,7 +20,9 @@ const SEW_SCRIPT := "res://ui/sew_minigame.gd"
 ## The v2 / v3 cutting games ("cut2" / "cut3"): the tool holds Cut down from frame
 ## PRESS_AT so the capture shows a cut under way rather than the ready screen.
 const CUT_VARIANTS := {
-	"cut2": "res://ui/cut_allowance_minigame.gd", "cut3": "res://ui/cut_strokes_minigame.gd"
+	"cut2": "res://ui/cut_allowance_minigame.gd",
+	"cut3": "res://ui/cut_strokes_minigame.gd",
+	"sew2": "res://ui/sew_pedal_minigame.gd",
 }
 const PRESS_AT := 20
 const GARMENT_JACKET := 2  # Enums.GarmentType.JACKET

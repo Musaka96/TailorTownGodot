@@ -71,13 +71,40 @@ const UPGRADES := {
 		"tier": 3,
 		"desc": "The rule snaps to the chalk: straight edges roll by themselves.",
 	},
+	"sew_dial":
+	{
+		"name": "Speed Dial",
+		"category": "Sewing Machine",
+		"cost": 200,
+		"tier": 0,
+		"desc": "The machine eases itself down near corners and pins.",
+	},
 	"sew_oiled":
 	{
 		"name": "Oiled Machine",
 		"category": "Sewing Machine",
 		"cost": 450,
 		"tier": 1,
-		"desc": "A smooth action — hold Shift to sew fast (tighter timing).",
+		"desc": "A smooth action: the motor answers the pedal quicker; Shift for top gear.",
+		"effects": {"sew_spin": 2.0, "sew_coast": 1.5},
+	},
+	"sew_guide":
+	{
+		"name": "Magnetic Seam Guide",
+		"category": "Sewing Machine",
+		"cost": 400,
+		"tier": 1,
+		"desc": "A steel edge the cloth rides against — it eases the seam back on its line.",
+		"effects": {"sew_drift": 0.5},
+	},
+	"sew_needle_down":
+	{
+		"name": "Needle-Down Stop",
+		"category": "Sewing Machine",
+		"cost": 450,
+		"tier": 1,
+		"desc": "Let go and it stops dead, needle down — and snaps onto a corner mark.",
+		"effects": {"sew_coast": 40.0},
 	},
 	"sew_industrial":
 	{
@@ -86,6 +113,41 @@ const UPGRADES := {
 		"cost": 1400,
 		"tier": 2,
 		"desc": "A stronger motor drives the needle quicker on every seam.",
+		"effects": {"sew_spin": 1.5},
+	},
+	"sew_walking_foot":
+	{
+		"name": "Walking Foot",
+		"category": "Sewing Machine",
+		"cost": 1100,
+		"tier": 2,
+		"desc": "Feeds both layers evenly — slippery cloth stops wandering off the line.",
+		"effects": {"sew_drift": 0.25},
+	},
+	"sew_knee":
+	{
+		"name": "Knee Lifter",
+		"category": "Sewing Machine",
+		"cost": 900,
+		"tier": 2,
+		"desc": "Lift the foot with your knee: turning a corner takes a moment, not a fuss.",
+		"effects": {"sew_pivot": 0.25},
+	},
+	"sew_clips":
+	{
+		"name": "Sewing Clips",
+		"category": "Sewing Machine",
+		"cost": 800,
+		"tier": 2,
+		"desc": "Clips instead of pins: sew over one and the needle survives.",
+	},
+	"sew_autolock":
+	{
+		"name": "Auto-Lock Button",
+		"category": "Sewing Machine",
+		"cost": 2200,
+		"tier": 3,
+		"desc": "One button backstitches both ends of every seam for you.",
 	},
 	"shop_lamp":
 	{

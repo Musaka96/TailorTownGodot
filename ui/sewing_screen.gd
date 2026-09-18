@@ -6,7 +6,8 @@ extends Control
 var _machine = null
 var _actor = null
 var _piece = null
-var _minigame: SewMinigame
+var _minigame: MinigameScreen
+var _minigame_variant := -1
 
 
 func open(machine, actor, piece) -> void:
@@ -15,18 +16,19 @@ func open(machine, actor, piece) -> void:
 	_piece = piece
 	GameState.input_locked = true
 	visible = true
-	if _minigame == null:
-		_minigame = SewMinigame.new()
+	var variant := SewVariants.current()
+	if _minigame == null or _minigame_variant != variant:
+		if _minigame != null:
+			_minigame.queue_free()
+		_minigame = SewVariants.create(variant)
+		_minigame_variant = variant
 		add_child(_minigame)
-		_minigame.finished.connect(_on_finished)
+		_minigame.connect("finished", _on_finished)
 	_minigame.visible = true
 	var title := (
 		"%s · %s" % [Enums.garment_type_name(piece.garment_type), Enums.size_name(piece.size)]
 	)
-	var cloth := SewMinigame.CLOTH_DEFAULT
-	if piece.material != null:
-		cloth = piece.material.cloth_color
-	_minigame.start(title, cloth)
+	_minigame.call("start_piece", int(piece.garment_type), title, piece.material)
 
 
 func close() -> void:

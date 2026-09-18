@@ -19,6 +19,7 @@ var _status: Label
 var _amount: LineEdit
 var _cut_type: OptionButton
 var _cut_variant: OptionButton
+var _sew_type: OptionButton
 var _trial: CanvasLayer
 var _upg_panel: PanelContainer
 var _upg_boxes := {}  # upgrade id -> CheckBox
@@ -149,28 +150,54 @@ func _drop_suit(suit: Suit) -> void:
 ## Run one of the cutting games on its own, on a random bolt of cloth, over whatever
 ## scene is up — no walking to the bench, no order needed. F3 abandons it.
 func _try_cut(variant: int) -> void:
-	if _trial != null:
-		return
-	var garment := _cut_type.selected - 1
-	if garment < 0:
-		garment = randi() % 3
+	var garment := _pick_garment(_cut_type)
 	var cloth := _random_cloth(garment)
+	var game := CutVariants.create(variant)
+	var title := "%s · M" % Enums.garment_type_name(garment)
+	if _open_trial(game, CutVariants.NAMES[variant], cloth):
+		game.call("start", garment, title, cloth)
+
+
+## The same for the sewing games, on a freshly cut piece of random cloth.
+func _try_sew(variant: int) -> void:
+	var garment := _pick_garment(_sew_type)
+	var cloth := _random_cloth(garment)
+	var game := SewVariants.create(variant)
+	var title := "%s · M" % Enums.garment_type_name(garment)
+	if _open_trial(game, SewVariants.NAMES[variant], cloth):
+		game.call("start_piece", garment, title, cloth)
+
+
+func _pick_garment(picker: OptionButton) -> int:
+	var garment := picker.selected - 1
+	return garment if garment >= 0 else randi() % 3
+
+
+## Put a minigame up over the scene on its own layer, with the panel out of the way.
+func _open_trial(game: Control, label: String, cloth: MaterialType) -> bool:
+	if _trial != null:
+		game.free()
+		return false
 	_layer.visible = false
 	GameState.input_locked = true
 	_trial = CanvasLayer.new()
 	_trial.layer = 240  # over the HUD and the post-process filter, under this panel
 	add_child(_trial)
-	var game := CutVariants.create(variant)
 	_trial.add_child(game)
-	game.connect("finished", _on_trial_finished.bind(variant, cloth.display_name))
-	var title := "%s · M" % Enums.garment_type_name(garment)
-	game.call("start", garment, title, cloth)
+	game.connect("finished", _on_trial_finished.bind(label, cloth.display_name))
+	return true
 
 
-func _on_trial_finished(success: bool, quality: float, variant: int, cloth: String) -> void:
+func _on_trial_finished(success: bool, quality: float, label: String, cloth: String) -> void:
 	_end_trial()
 	var result := "%d%%" % roundi(quality * 100.0) if success else "ruined"
-	_note("%s on %s: %s" % [CutVariants.NAMES[variant], cloth, result])
+	_note("%s on %s: %s" % [label, cloth, result])
+
+
+func _set_sew_variant(index: int) -> void:
+	if Config.data != null:
+		Config.data.sew_variant = index
+		_note("sewing machine now runs %s" % SewVariants.NAMES[index])
 
 
 ## Close the trial and bring the panel back, ready for another go.
@@ -361,6 +388,26 @@ func _build() -> void:
 	var spawn_row := _row(upg)
 	_button(spawn_row, "Spawn coffee", _spawn_station.bind(COFFEE_SCENE))
 	_button(spawn_row, "Spawn iron", _spawn_station.bind(IRON_SCENE))
+
+	var sew := _section(box, "Sewing minigame")
+	var sew_row := _row(sew)
+	sew_row.add_child(_make_label("Piece", 13, LABEL))
+	_sew_type = OptionButton.new()
+	for item in ["Random", "Shirt", "Pants", "Jacket"]:
+		_sew_type.add_item(item)
+	sew_row.add_child(_sew_type)
+	var sew_try := _row(sew)
+	sew_try.add_child(_make_label("Try", 13, LABEL))
+	for v in SewVariants.NAMES.size():
+		_button(sew_try, "v%d" % (v + 1), _try_sew.bind(v))
+	var sew_use := _row(sew)
+	sew_use.add_child(_make_label("Machine", 13, LABEL))
+	var sew_pick := OptionButton.new()
+	for v in SewVariants.NAMES:
+		sew_pick.add_item(v)
+	sew_pick.selected = SewVariants.current()
+	sew_pick.item_selected.connect(_set_sew_variant)
+	sew_use.add_child(sew_pick)
 
 	var shift := _section(box, "Shift")
 	var shrow := _row(shift)

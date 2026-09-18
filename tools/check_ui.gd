@@ -27,6 +27,7 @@ const MIGRATED := [
 	"cut_bench.gd",
 	"cut_allowance_minigame.gd",
 	"cut_strokes_minigame.gd",
+	"sew_pedal_minigame.gd",
 ]
 const PENDING: Array[String] = []
 # Not standard panel-menus: sewing_screen only hosts the sewing minigame;
@@ -43,6 +44,7 @@ const CHROME_BASE := {
 	"cut_bench.gd": "minigame_screen.gd",
 	"cut_allowance_minigame.gd": "minigame_screen.gd",
 	"cut_strokes_minigame.gd": "minigame_screen.gd",
+	"sew_pedal_minigame.gd": "minigame_screen.gd",
 }
 
 

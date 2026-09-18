@@ -78,6 +78,11 @@ func _load_assets() -> void:
 	_weave_tex = _load_art(WEAVE_ART)
 
 
+## The contract the sewing station uses for every sewing game (see SewVariants).
+func start_piece(_garment_type: int, title: String, material: MaterialType) -> void:
+	start(title, material.cloth_color if material != null else CLOTH_DEFAULT)
+
+
 func start(title: String, cloth := CLOTH_DEFAULT) -> void:
 	_ensure_chrome(TITLE, _paint)
 	_cloth = cloth

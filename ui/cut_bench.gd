@@ -182,7 +182,7 @@ var _weave_tex: Texture2D
 
 
 func _ready() -> void:
-	_ensure_chrome(TITLE, _paint, Style.FRAME_TALL)
+	_ensure_chrome(_screen_title(), _paint, Style.FRAME_TALL)
 
 
 func _load_assets() -> void:
@@ -196,7 +196,7 @@ func _load_assets() -> void:
 
 ## Same contract as v1: the garment, the ticket text, and (new) the cloth it's cut from.
 func start(garment_type: int, title: String, material: MaterialType = null) -> void:
-	_ensure_chrome(TITLE, _paint, Style.FRAME_TALL)
+	_ensure_chrome(_screen_title(), _paint, Style.FRAME_TALL)
 	_canvas.clip_contents = true  # the cloth runs off the edges of the bench
 	_max_mistakes = MAX_MISTAKES
 	var c := Config.data
@@ -210,8 +210,8 @@ func start(garment_type: int, title: String, material: MaterialType = null) -> v
 	_band_perfect *= focus
 	_band_good *= focus
 	_band_nick *= focus
-	_folded = Upgrades.has("cut_fold") and FOLD_SHAPES.has(garment_type)
-	_closed = not _folded
+	_folded = _fold_allowed() and FOLD_SHAPES.has(garment_type)
+	_closed = not _folded and not _open_outline()
 	_reveal = 0.0
 	_read_cloth(material)
 	_generate(garment_type)
@@ -234,6 +234,57 @@ func start(garment_type: int, title: String, material: MaterialType = null) -> v
 	_repaint()
 
 
+## Overridden: the bench's name in the title row.
+func _screen_title() -> String:
+	return TITLE
+
+
+## Overridden: may this game cut on the fold? (Only the cutting table can.)
+func _fold_allowed() -> bool:
+	return Upgrades.has("cut_fold")
+
+
+## Overridden: an open outline (a single seam) rather than a whole closed piece.
+func _open_outline() -> bool:
+	return false
+
+
+## Overridden: the outline to follow for this garment — Vector2 corners and Vector3
+## bezier controls, as SHAPES.
+func _outline_spec(garment_type: int) -> Array:
+	var shapes: Dictionary = FOLD_SHAPES if _folded else SHAPES
+	return shapes.get(garment_type, SHAPES[Enums.GarmentType.SHIRT])
+
+
+## Overridden: a point inside the garment, to tell the outside of the line from the
+## inside. The outline's own centre works for whole pieces and halves on the fold.
+func _interior() -> Vector2:
+	var centre := Vector2.ZERO
+	for i in _path.size() - 1:
+		centre += _path[i]
+	return centre / maxf(_path.size() - 1, 1)
+
+
+## Overridden: how much each corner of the outline wanders from the pattern.
+func _jitter() -> float:
+	return JITTER
+
+
+## Overridden: does a too-wide stretch score as good? (Pinking Shears, cutting only.)
+func _forgives_rough() -> bool:
+	return Upgrades.has("cut_pinking")
+
+
+## Overridden: does the Chalk Wheel mark the turns? (Cutting only.)
+func _shows_wheel() -> bool:
+	return Upgrades.has("cut_chalk_wheel")
+
+
+## Overridden: is the Shift speed-up owned for this bench?
+func _sprint_owned() -> bool:
+	return Upgrades.cutting_sprint()
+
+
 ## Overridden: reset the variant's own state once the outline exists.
 func _begin() -> void:
 	pass
@@ -251,7 +302,7 @@ func _update_status() -> void:
 
 func _rebuild_hints() -> void:
 	var pairs := _hint_pairs()
-	if Upgrades != null and Upgrades.cutting_sprint():
+	if Upgrades != null and _sprint_owned():
 		pairs.append(["Shift", "Faster (riskier)"])
 	_set_hints(_focus_hint(pairs))
 
@@ -310,17 +361,25 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _generate(garment_type: int) -> void:
-	var shapes: Dictionary = FOLD_SHAPES if _folded else SHAPES
-	var spec: Array = shapes.get(garment_type, SHAPES[Enums.GarmentType.SHIRT])
+	var jitter := _jitter()
 	var pts: Array = []
-	for p in spec:
-		var j := Vector2(randf_range(-JITTER, JITTER), randf_range(-JITTER, JITTER))
+	for p in _outline_spec(garment_type):
+		var j := Vector2(randf_range(-jitter, jitter), randf_range(-jitter, jitter))
 		if _folded and p is Vector2 and absf(p.x) < 0.001:
 			j.x = 0.0  # the ends of a half outline sit exactly on the fold
 		pts.append(Vector3(p.x + j.x * 0.5, p.y + j.y * 0.5, 0.0) if p is Vector3 else p + j)
-	_path = PackedVector2Array()
 	var starts: Array[int] = []
-	var runs := pts.size() if _closed else pts.size() - 1
+	_path = _trace(pts, _closed, starts)
+	_measure()
+	_find_corners(starts)
+	_measure_bends()
+
+
+## An outline spec (corners + bezier controls) as evenly spaced points; `starts` gets
+## the index each corner-to-corner run begins at. Closed: the last point is the first.
+func _trace(pts: Array, closed: bool, starts: Array[int]) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var runs := pts.size() if closed else pts.size() - 1
 	var i := 0
 	while i < runs:
 		var nxt := (i + 1) % pts.size()
@@ -329,18 +388,17 @@ func _generate(garment_type: int) -> void:
 		if curved:
 			ctrl = Vector2(pts[nxt].x, pts[nxt].y)
 			nxt = (nxt + 1) % pts.size()
-		starts.append(_path.size())
-		_append_run(pts[i], pts[nxt], curved, ctrl)
+		starts.append(out.size())
+		out.append_array(_run_points(pts[i], pts[nxt], curved, ctrl))
 		i += 2 if curved else 1
-	_path.append(_path[0] if _closed else pts[pts.size() - 1])
-	_measure()
-	_find_corners(starts)
-	_measure_bends()
+	out.append(out[0] if closed else pts[pts.size() - 1])
+	return out
 
 
 ## One corner-to-corner run, resampled evenly so every step of the cut is the same
 ## length of cloth. The end corner is left for the next run to start on.
-func _append_run(a: Vector2, b: Vector2, curved: bool, ctrl: Vector2) -> void:
+func _run_points(a: Vector2, b: Vector2, curved: bool, ctrl: Vector2) -> PackedVector2Array:
+	var out := PackedVector2Array()
 	var raw := PackedVector2Array()
 	var n := CURVE_SAMPLES if curved else 1
 	for k in n + 1:
@@ -358,7 +416,8 @@ func _append_run(a: Vector2, b: Vector2, curved: bool, ctrl: Vector2) -> void:
 			seg += 1
 		var span := lens[seg + 1] - lens[seg]
 		var t := 0.0 if span <= 0.0 else (target - lens[seg]) / span
-		_path.append(raw[seg].lerp(raw[seg + 1], t))
+		out.append(raw[seg].lerp(raw[seg + 1], t))
+	return out
 
 
 func _measure() -> void:
@@ -367,10 +426,7 @@ func _measure() -> void:
 	for i in range(1, m):
 		_cum.append(_cum[i - 1] + _path[i - 1].distance_to(_path[i]))
 	_total = _cum[m - 1]
-	var centre := Vector2.ZERO
-	for i in m - 1:
-		centre += _path[i]
-	centre /= m - 1
+	var centre := _interior()
 	var sense := 0.0
 	for i in m - 1:
 		sense += _seg_dir(i).orthogonal().dot(_path[i] - centre)
@@ -447,7 +503,7 @@ func _zone_of(d: float) -> int:
 
 
 func _record(zone: int, length: float, score: float) -> void:
-	if zone == Zone.ROUGH and Upgrades.has("cut_pinking"):
+	if zone == Zone.ROUGH and _forgives_rough():
 		score = maxf(score, ZONE_SCORE[Zone.GOOD])  # a pinked edge can't fray
 	_zone_len[zone] += length
 	_score_sum += score * length
@@ -705,7 +761,7 @@ func _paint_chalk(c: Control) -> void:
 		if int(_cum[i] * px / 12.0) % 3 != 2:
 			c.draw_line(_w(_path[i]), _w(_path[i + 1]), col, width)
 	Craft.eyelet(c, _w(_path[0]), 0.0)
-	if Upgrades.has("cut_chalk_wheel"):
+	if _shows_wheel():
 		_paint_wheel_marks(c, px)
 
 
