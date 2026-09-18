@@ -19,6 +19,20 @@ const SHOT_H := 1080
 ## reuse it (scaled) so the framing reads like the framing players get.
 const CAM_OFFSET := Vector3(0.0, 6.271325, 4.392928)
 const SETTLE := 6
+## Opt-in shots (only rendered when named on the command line).
+const EXTRA_SHOTS := ["cute"]
+## Cheerful looks for the fitting-mirror shots (`-- cute`).
+## brief = [Enums.Occasion, Enums.Style] the client asks for (so the brief fits the look).
+## parts = jacket, shirt, trousers, each [fabric, pattern, colour, style_idx] — indices
+## into Enums.Fabric / Enums.Pattern / MaterialFactory.COLORS / Enums.styles_for(part).
+const CUTE_SUITS := {
+	"picnic": {"brief": [3, 3], "parts": [[4, 4, 4, 0], [5, 11, 12, 0], [4, 0, 4, 2]]},
+	"berry": {"brief": [3, 3], "parts": [[3, 3, 7, 1], [6, 10, 16, 0], [3, 0, 7, 1]]},
+	"garden": {"brief": [0, 1], "parts": [[2, 2, 9, 1], [5, 11, 15, 0], [2, 2, 8, 2]]},
+	"powder": {"brief": [2, 2], "parts": [[0, 5, 6, 0], [7, 9, 11, 1], [0, 0, 2, 0]]},
+	"lavender": {"brief": [0, 3], "parts": [[1, 4, 2, 1], [6, 12, 13, 0], [1, 4, 2, 1]]},
+}
+const CUTE_BUDGET := 480
 
 var _main: Node
 var _player: Node
@@ -75,6 +89,7 @@ func _run() -> void:
 	await _shot_orders()
 	await _shot_newspaper()
 	await _shot_storefront()
+	await _shot_cute_suits()
 	print("promo shots written to ", OUT_DIR)
 	quit(0)
 
@@ -276,6 +291,52 @@ func _shot_storefront() -> void:
 	_save("12_shopfront_street")
 
 
+## The fitting mirror dressed in each CUTE_SUITS look, a fresh client per look:
+## whole-suit overview and the jacket zoom, into .dev/promo/cute/.
+func _shot_cute_suits() -> void:
+	if not _want("cute"):
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR + "/cute"))
+	while _orders.active.size() < 3:
+		_orders.debug_add_random()
+	for look: String in CUTE_SUITS:
+		await _clear_customers()
+		_place_player(Vector3(4.6, 0.0, 3.6), PI * 0.5)
+		var cust: Node = await _seat_customer()
+		var brief: Array = CUTE_SUITS[look]["brief"]
+		cust.preference.occasion = brief[0]
+		cust.preference.style = brief[1]
+		cust.preference.budget = CUTE_BUDGET
+		_ui.open_suit_builder(_mirror, _player)
+		var builder: Node = _ui.suit_builder
+		await _wait(10)
+		_dress_design(builder, CUTE_SUITS[look]["parts"])
+		await _wait(110)
+		_save("cute/%s_overview" % look)
+		builder._adjust(1)  # Overview -> Jacket
+		builder._height *= 1.4  # keep the face in the jacket frame
+		await _wait(120)
+		_save("cute/%s_jacket" % look)
+		_ui.close_all_menus()
+		_rig.unfocus()
+	await _clear_customers()
+
+
+## Write a look into the open suit builder and put it on the client.
+func _dress_design(builder: Node, parts: Array) -> void:
+	var order := [2, 0, 1]  # GarmentType: JACKET, SHIRT, PANTS
+	for i in order.size():
+		var p: Array = parts[i]
+		builder._design[order[i]] = {
+			"fabric": p[0],
+			"pattern": p[1],
+			"color": p[2],
+			"style_idx": p[3],
+		}
+	builder._apply_to_customer()
+	builder._refresh()
+
+
 # --- Staging helpers -------------------------------------------------------
 
 
@@ -287,6 +348,8 @@ func _dismiss_paper() -> void:
 
 
 func _want(name: String) -> bool:
+	if EXTRA_SHOTS.has(name):
+		return _wanted.has(name)
 	return _wanted.is_empty() or _wanted.has(name)
 
 
