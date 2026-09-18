@@ -33,6 +33,13 @@ var _player: AudioStreamPlayer
 ## Both _ready() and start() call this, because a host may reach either first — a
 ## screen built only from _ready() silently loses everything start() sets when a
 ## caller starts it in the same frame it is added.
+## What the player has done so far, for the tutorial's checklist to tick off live — e.g.
+## {"started": true}. Each game reports what it can; the default reports nothing, and the
+## tutorial treats a missing flag as not done yet.
+func coach_flags() -> Dictionary:
+	return {}
+
+
 func _ensure_chrome(screen_title: String, painter: Callable, frame := Style.FRAME_WIDE) -> void:
 	if _built:
 		return

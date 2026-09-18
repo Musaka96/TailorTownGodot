@@ -45,6 +45,25 @@ const M_MEASURE := (
 	+ "[b]1.4 m[/b] for pants and [b]1.6 m[/b] for a shirt, a touch more for big sizes. "
 	+ "Too short and it's useless; too long and the offcut is wasted. Measure twice, cut once!"
 )
+# The bench games have variants (CutVariants / SewVariants); these introduce the ones
+# whose controls a first-timer can't guess. Steer and Rhythm need no speech.
+const M_CUT_ALLOWANCE := (
+	"Now the worktable. The part is chalked on your cloth: hold [b]Space[/b] and the shears "
+	+ "push along it, gliding down the straight runs. The curves are yours to steer with "
+	+ "[b]A[/b] and [b]D[/b]. Keep to the chalk — cut inside it and you've nicked the garment."
+)
+const M_CUT_STROKES := (
+	"Now the worktable. Hold [b]Space[/b] to open the shears along the chalk and let go to "
+	+ "close them — long, even strokes make the cleanest edge."
+)
+const M_SEW_PEDAL := (
+	"At the machine the needle stays put and [b]you guide the cloth[/b]. Line it up on the "
+	+ "dotted guide with [b]A[/b] and [b]D[/b], then press the pedal — [b]Space[/b]. Ease off "
+	+ "at the [b]amber marks[/b] and stop on a corner to turn the cloth."
+)
+const M_SEW_PINS := "Pull each [b]pin[/b] with [b]E[/b] before the needle reaches it. "
+const M_SEW_LOCK := "At the end mark, hold [b]S[/b] with the pedal to [b]backstitch[/b]. "
+const M_SEW_CUT := "Then [b]E[/b] cuts the thread."
 const M_GREET := (
 	"Ah, the bell! Your first customer. Folk walk in with a brief in mind. "
 	+ "Greet them kindly and show them to the [b]fitting mirror[/b]."
@@ -140,23 +159,14 @@ const STEPS := [
 		"event": "piece_cut",
 		"point": "Worktable",
 		"goal": "Shape it at the worktable",
-		"checks":
-		[
-			["Bring the cloth to the worktable", "seen:worktable_screen", "", ""],
-			["Pick a part your cloth covers", "cutting", "E", "Start cutting"],
-			["Cut along the dashed line", "", "WASD", "Steer the scissors"],
-		],
+		"checks": [],  # filled for the worktable's cutting game (see _cut_checks)
 	},
 	{
 		"id": "sew",
 		"event": "piece_sewn",
 		"point": "SewingMachine",
 		"goal": "Sew the piece",
-		"checks":
-		[
-			["Take it to the sewing machine", "seen:sewing_screen", "", ""],
-			["Stitch on every ring", "", "E / Space", "Stitch on the rings"],
-		],
+		"checks": [],  # filled for the machine's sewing game (see _sew_checks)
 	},
 	{
 		"id": "hang",
@@ -456,7 +466,7 @@ func _spawn_customer() -> void:
 
 
 func _mentor_lines(step: Dictionary) -> PackedStringArray:
-	var out := PackedStringArray()
+	var out := _bench_lines(str(step.get("id", "")))
 	for line: String in step.get("mentor", []):
 		var text := line
 		if line == M_CODE_2:
@@ -464,6 +474,25 @@ func _mentor_lines(step: Dictionary) -> PackedStringArray:
 		elif line == M_PAPER:
 			text = line % _key_name("newspaper")
 		out.append(text)
+	return out
+
+
+## The mentor's introduction to the worktable or sewing machine game the player is about to
+## meet, if it needs one. The sewing one leaves out pins and backstitching when an upgrade
+## (clips, the auto-lock) has taken them off the player's hands.
+func _bench_lines(step_id: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	if step_id == "worktable":
+		match CutVariants.current():
+			CutVariants.Variant.ALLOWANCE:
+				out.append(M_CUT_ALLOWANCE)
+			CutVariants.Variant.STROKES:
+				out.append(M_CUT_STROKES)
+	elif step_id == "sew" and SewVariants.current() == SewVariants.Variant.PEDAL:
+		out.append(M_SEW_PEDAL)
+		var rest := "" if Upgrades.has("sew_clips") else M_SEW_PINS
+		rest += "" if Upgrades.has("sew_autolock") else M_SEW_LOCK
+		out.append(rest + M_SEW_CUT)
 	return out
 
 
@@ -484,9 +513,53 @@ func _goal_text(step: Dictionary) -> String:
 
 func _checks() -> Array:
 	var step: Dictionary = STEPS[_step]
-	if str(step.get("id", "")) == "design":
-		return _design_checks()
+	match str(step.get("id", "")):
+		"design":
+			return _design_checks()
+		"worktable":
+			return _cut_checks()
+		"sew":
+			return _sew_checks()
 	return step.get("checks", [])
+
+
+## The worktable checklist, for whichever cutting game the worktable runs. The keys match
+## that game's own key prompts, so the coach mark lands on them.
+func _cut_checks() -> Array:
+	var lines: Array = [
+		["Bring the cloth to the worktable", "seen:worktable_screen", "", ""],
+		["Pick a part your cloth covers", "cutting", "E", "Start cutting"],
+	]
+	match CutVariants.current():
+		CutVariants.Variant.ALLOWANCE:
+			lines.append(
+				["Hold Space / F to push the shears", "bench:started", "Space / F", "Hold to cut"]
+			)
+			lines.append(["Steer round the curves on the chalk", "", "A / D", "Steer"])
+		CutVariants.Variant.STROKES:
+			lines.append(
+				["Hold Space / F to open, let go to cut", "", "Space / F", "Open, then let go"]
+			)
+		_:
+			lines.append(["Cut along the dashed line", "", "WASD", "Steer the scissors"])
+	return lines
+
+
+## The sewing checklist, for whichever sewing game the machine runs. On Pedal & Aim each
+## line ticks as the player actually does it (MinigameScreen.coach_flags), and the pins and
+## backstitch lines drop out once an upgrade does that job for them.
+func _sew_checks() -> Array:
+	var lines: Array = [["Take it to the sewing machine", "seen:sewing_screen", "", ""]]
+	if SewVariants.current() != SewVariants.Variant.PEDAL:
+		lines.append(["Stitch on every ring", "", "E / Space", "Stitch on the rings"])
+		return lines
+	lines.append(["Line up with A / D, then pedal", "bench:started", "Space / F", "Pedal"])
+	if not Upgrades.has("sew_clips"):
+		lines.append(["Pull each pin before the needle", "bench:pins", "E", "Pull the pin"])
+	if not Upgrades.has("sew_autolock"):
+		lines.append(["Backstitch at the end mark", "bench:locked", "S + pedal", "Lock the seam"])
+	lines.append(["Cut the thread", "", "E", "Cut the thread"])
+	return lines
 
 
 ## The fitting checklist: one line per part of the premade recipe, then confirm.
@@ -718,6 +791,20 @@ func _met(cond: String) -> bool:
 	if cond == "cutting":
 		var mg: Variant = UI.worktable_screen.get("_minigame") if UI != null else null
 		return mg is Control and (mg as Control).is_visible_in_tree()
+	if cond.begins_with("bench:"):
+		return _bench_flag(cond.trim_prefix("bench:"))
+	return false
+
+
+## A progress flag from whichever bench game is on screen — the worktable's or the sewing
+## machine's (see MinigameScreen.coach_flags).
+func _bench_flag(flag: String) -> bool:
+	if UI == null:
+		return false
+	for host: Control in [UI.worktable_screen, UI.sewing_screen]:
+		var mg: Variant = host.get("_minigame")
+		if mg is MinigameScreen and (mg as MinigameScreen).is_visible_in_tree():
+			return bool((mg as MinigameScreen).coach_flags().get(flag, false))
 	return false
 
 

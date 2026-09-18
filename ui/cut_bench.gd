@@ -195,6 +195,11 @@ func _load_assets() -> void:
 
 
 ## Same contract as v1: the garment, the ticket text, and (new) the cloth it's cut from.
+## "started": the player has got going (cutting, or sewing on the machine games).
+func coach_flags() -> Dictionary:
+	return {"started": _state != State.READY}
+
+
 func start(garment_type: int, title: String, material: MaterialType = null) -> void:
 	_ensure_chrome(_screen_title(), _paint, Style.FRAME_TALL)
 	_canvas.clip_contents = true  # the cloth runs off the edges of the bench
