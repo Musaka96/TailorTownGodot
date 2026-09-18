@@ -104,7 +104,8 @@ func _load_assets() -> void:
 	_mat_tex = _load_art(MAT_ART)
 
 
-func start(garment_type: int, title: String) -> void:
+## `_material` is unused here — v1 cuts kraft paper; the v2/v3 benches lay the cloth.
+func start(garment_type: int, title: String, _material: MaterialType = null) -> void:
 	_ensure_chrome(TITLE, _paint, Style.FRAME_TALL)
 	var c := Config.data
 	_lead = 1.6

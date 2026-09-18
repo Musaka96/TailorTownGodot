@@ -82,6 +82,19 @@ extends Resource
 @export var cut_seconds: float = 15.0  ## time to cut the whole shape when aligned
 @export var cut_tolerance_deg: float = 26.0  ## how far off the line still cuts cleanly
 @export var cut_max_mistakes: int = 3
+## Which cutting game the worktable runs (the F3 debug panel can flip it live).
+@export_enum("Steer (v1)", "Seam allowance (v2)", "Strokes (v3)") var cut_variant: int = 0
+## v2/v3 zones, in shape units (1 unit ≈ 40 cm): on the chalk, the seam allowance
+## outside it, and how far inside the line you can stray before it's a nick.
+@export var cut_band_perfect: float = 0.015
+@export var cut_band_good: float = 0.05
+@export var cut_band_nick: float = 0.02
+@export var cut2_seconds: float = 18.0  ## v2: time for the whole outline at full push
+@export var cut2_turn_deg: float = 170.0  ## v2: how fast the shears turn at full lock
+@export var cut3_max_stroke: float = 0.45  ## v3: longest stroke (shape units)
+@export var cut3_min_stroke: float = 0.04  ## v3: a quick tap's snip
+@export var cut3_charge_seconds: float = 0.9  ## v3: time to open the blades fully
+@export var cut3_short_stroke: float = 0.12  ## v3: snips shorter than this chew the edge
 
 @export_group("Sewing minigame")
 @export var sew_lead_seconds: float = 1.6  ## "get ready" pause before the needle moves

@@ -17,7 +17,8 @@ var _swatch: MaterialSwatch
 var _name_label: Label
 var _sub_label: Label
 var _cloth_label: Label
-var _minigame: CuttingMinigame
+var _minigame: MinigameScreen
+var _minigame_variant := -1
 var _decor_built := false
 
 @onready var _config: Control = $Config
@@ -245,12 +246,18 @@ func _start_cutting() -> void:
 			tw.tween_property(_cloth_label, "position:x", dx, 0.04).as_relative()
 		return
 	_config.visible = false
-	if _minigame == null:
-		_minigame = CuttingMinigame.new()
+	var variant := CutVariants.current()
+	if _minigame == null or _minigame_variant != variant:
+		if _minigame != null:
+			_minigame.queue_free()
+		_minigame = CutVariants.create(variant)
+		_minigame_variant = variant
 		add_child(_minigame)
-		_minigame.finished.connect(_on_cut_finished)
+		_minigame.connect("finished", _on_cut_finished)
 	_minigame.visible = true
-	_minigame.start(_type, "%s · %s" % [Enums.garment_type_name(_type), Enums.size_name(_size)])
+	var title := "%s · %s" % [Enums.garment_type_name(_type), Enums.size_name(_size)]
+	var cloth: MaterialType = _piece.material if _piece != null else null
+	_minigame.call("start", _type, title, cloth)
 
 
 func _on_cut_finished(success: bool, quality: float) -> void:

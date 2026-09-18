@@ -24,6 +24,9 @@ const MIGRATED := [
 	"minigame_screen.gd",
 	"cutting_minigame.gd",
 	"sew_minigame.gd",
+	"cut_bench.gd",
+	"cut_allowance_minigame.gd",
+	"cut_strokes_minigame.gd",
 ]
 const PENDING: Array[String] = []
 # Not standard panel-menus: sewing_screen only hosts the sewing minigame;
@@ -37,6 +40,9 @@ const EXEMPT := ["sewing_screen.gd", "orders_panel.gd", "customer_request.gd"]
 const CHROME_BASE := {
 	"cutting_minigame.gd": "minigame_screen.gd",
 	"sew_minigame.gd": "minigame_screen.gd",
+	"cut_bench.gd": "minigame_screen.gd",
+	"cut_allowance_minigame.gd": "minigame_screen.gd",
+	"cut_strokes_minigame.gd": "minigame_screen.gd",
 }
 
 

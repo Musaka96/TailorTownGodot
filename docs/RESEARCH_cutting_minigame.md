@@ -120,7 +120,7 @@ Targets (matches the Papa's-style "generous floor, visible ceiling"):
 | Flawless | 100% + a "Clean Cut" stamp |
 
 Scoring sketch for A (per sample along the cut length):
-`perfect = 1.0, good = 0.8, rough = 0.55, nick = 0.3`; quality = average − 0.1 per
+`perfect = 1.0, good = 0.8, rough = 0.4, nick = 0.2` (as built); quality = average − 0.1 per
 slip. Ruin only after 3 sustained nicks (deliberately hard to hit by accident).
 Staying in the wide band the whole way = 80% → the floor is easy, the last 20% is
 where the skill lives. Show an end-of-cut breakdown ("Perfect 62% · Good 35% · Nicks 1").
@@ -133,3 +133,19 @@ ramp, fabric drift per textile, and a "Steady hand" assist that widens the bands
 Both versions keep the same contract — `start(garment_type, title)` and
 `finished(success, quality)` — so `worktable_screen.gd` picks one by a
 `GameConfig.cut_variant` setting. v1 stays in the codebase as-is.
+
+## Built (2026-09-18)
+
+A (v2) and B (v3) are in, alongside v1:
+
+- `ui/cut_bench.gd` — shared base (`CutBench`): curved garment outlines, the customer's
+  cloth + pattern on the mat, seam-allowance band, zone scoring, shears.
+- `ui/cut_allowance_minigame.gd` — v2 "Seam Allowance" (steer + hold, cloth turns).
+- `ui/cut_strokes_minigame.gd` — v3 "Long Strokes & Snips" (one button, ghost stroke).
+- `ui/cut_variants.gd` — factory; `GameConfig.cut_variant` picks what the worktable runs.
+- F3 debug panel → **Cutting minigame**: try v1/v2/v3 on a random bolt, pick the piece,
+  and switch what the worktable uses (live, not saved).
+
+v3 simulated (5 runs each): snipping everything ≈ 0.81; expert ≈ 1.00; "good enough"
+strokes ≈ 0.93–0.98; always-max strokes 0.85–0.97 on shirt/trousers (mostly straight),
+but slips on the jacket's rounded front.

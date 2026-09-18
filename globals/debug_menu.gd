@@ -15,6 +15,9 @@ var _layer: CanvasLayer
 var _money_label: Label
 var _status: Label
 var _amount: LineEdit
+var _cut_type: OptionButton
+var _cut_variant: OptionButton
+var _trial: CanvasLayer
 
 
 func _ready() -> void:
@@ -29,8 +32,12 @@ func _input(event: InputEvent) -> void:
 	if _layer == null:
 		return
 	if event.is_action_pressed("debug_menu"):
-		_toggle()
 		get_viewport().set_input_as_handled()
+		if _trial != null:
+			_end_trial()
+			_note("cutting trial abandoned")
+			return
+		_toggle()
 
 
 # --- Actions ---------------------------------------------------------------
@@ -134,6 +141,64 @@ func _drop_suit(suit: Suit) -> void:
 	suit.set_pickable(true)
 
 
+## Run one of the cutting games on its own, on a random bolt of cloth, over whatever
+## scene is up — no walking to the bench, no order needed. F3 abandons it.
+func _try_cut(variant: int) -> void:
+	if _trial != null:
+		return
+	var garment := _cut_type.selected - 1
+	if garment < 0:
+		garment = randi() % 3
+	var cloth := _random_cloth(garment)
+	_layer.visible = false
+	GameState.input_locked = true
+	_trial = CanvasLayer.new()
+	_trial.layer = 240  # over the HUD and the post-process filter, under this panel
+	add_child(_trial)
+	var game := CutVariants.create(variant)
+	_trial.add_child(game)
+	game.connect("finished", _on_trial_finished.bind(variant, cloth.display_name))
+	var title := "%s · M" % Enums.garment_type_name(garment)
+	game.call("start", garment, title, cloth)
+
+
+func _on_trial_finished(success: bool, quality: float, variant: int, cloth: String) -> void:
+	_end_trial()
+	var result := "%d%%" % roundi(quality * 100.0) if success else "ruined"
+	_note("%s on %s: %s" % [CutVariants.NAMES[variant], cloth, result])
+
+
+## Close the trial and bring the panel back, ready for another go.
+func _end_trial() -> void:
+	if _trial != null:
+		_trial.queue_free()
+		_trial = null
+	_layer.visible = true
+	GameState.input_locked = true
+
+
+## A bolt this part could really be cut from: its fabrics, patterns and colours.
+func _random_cloth(garment: int) -> MaterialType:
+	var fabrics := Enums.fabrics_for(garment)
+	var patterns := Enums.patterns_for(garment)
+	var colors := MaterialFactory.colors_for(garment)
+	return (
+		MaterialFactory
+		. make(
+			fabrics[randi() % fabrics.size()],
+			patterns[randi() % patterns.size()],
+			colors[randi() % colors.size()],
+			3.0,
+		)
+	)
+
+
+func _set_cut_variant(index: int) -> void:
+	if Config.data != null:
+		Config.data.cut_variant = index
+		_note("worktable now runs %s" % CutVariants.NAMES[index])
+
+
 func _end_shift() -> void:
 	if DayNight.running:
 		DayNight.running = false
@@ -205,6 +270,26 @@ func _build() -> void:
 	_button(trow2, "Expire 1st", _expire_first)
 	var trow3 := _row(tickets)
 	_button(trow3, "Ready + pickup", _ready_for_pickup)
+
+	var cut := _section(box, "Cutting minigame")
+	var cut_row := _row(cut)
+	cut_row.add_child(_make_label("Piece", 13, LABEL))
+	_cut_type = OptionButton.new()
+	for item in ["Random", "Shirt", "Pants", "Jacket"]:
+		_cut_type.add_item(item)
+	cut_row.add_child(_cut_type)
+	var try_row := _row(cut)
+	try_row.add_child(_make_label("Try", 13, LABEL))
+	for v in CutVariants.NAMES.size():
+		_button(try_row, "v%d" % (v + 1), _try_cut.bind(v))
+	var use_row := _row(cut)
+	use_row.add_child(_make_label("Worktable", 13, LABEL))
+	_cut_variant = OptionButton.new()
+	for v in CutVariants.NAMES:
+		_cut_variant.add_item(v)
+	_cut_variant.selected = CutVariants.current()
+	_cut_variant.item_selected.connect(_set_cut_variant)
+	use_row.add_child(_cut_variant)
 
 	var shift := _section(box, "Shift")
 	var shrow := _row(shift)

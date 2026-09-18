@@ -17,6 +17,12 @@ extends SceneTree
 
 const CUT_SCRIPT := "res://ui/cutting_minigame.gd"
 const SEW_SCRIPT := "res://ui/sew_minigame.gd"
+## The v2 / v3 cutting games ("cut2" / "cut3"): the tool holds Cut down from frame
+## PRESS_AT so the capture shows a cut under way rather than the ready screen.
+const CUT_VARIANTS := {
+	"cut2": "res://ui/cut_allowance_minigame.gd", "cut3": "res://ui/cut_strokes_minigame.gd"
+}
+const PRESS_AT := 20
 const GARMENT_JACKET := 2  # Enums.GarmentType.JACKET
 const CLOTH := Color("7a3b3b")  # a burgundy bolt, to show the cloth tinting
 const BACKDROP := Color("6f5b46")  # stands in for the shop behind the scrim
@@ -24,6 +30,7 @@ const BACKDROP := Color("6f5b46")  # stands in for the shop behind the scrim
 var _out := ""
 var _frames := 150
 var _count := 0
+var _hold := false
 
 
 func _initialize() -> void:
@@ -41,9 +48,14 @@ func _initialize() -> void:
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	host.add_child(back)
 
-	var game: Control = load(SEW_SCRIPT if which == "sew" else CUT_SCRIPT).new()
+	var path: String = CUT_VARIANTS.get(which, SEW_SCRIPT if which == "sew" else CUT_SCRIPT)
+	var game: Control = load(path).new()
 	host.add_child(game)
-	if which == "sew":
+	if CUT_VARIANTS.has(which):
+		var factory: GDScript = load("res://data/scripts/material_factory.gd")
+		game.start(GARMENT_JACKET, "Jacket · M", factory.make(1, 1, 0, 3.0))
+		_hold = true
+	elif which == "sew":
 		game.start("Jacket · M", CLOTH)
 	else:
 		game.start(GARMENT_JACKET, "Jacket · M")
@@ -54,6 +66,8 @@ func _initialize() -> void:
 
 func _on_frame() -> void:
 	_count += 1
+	if _hold and _count == PRESS_AT:
+		Input.action_press("cut")
 	if _count < _frames:
 		return
 	var image := get_root().get_texture().get_image()
