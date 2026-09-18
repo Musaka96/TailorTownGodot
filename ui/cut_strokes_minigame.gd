@@ -106,10 +106,12 @@ func _stroke_len() -> float:
 ## where the blades stop and you turn the cloth.
 func _target_idx(length: float) -> int:
 	var last := _path.size() - 1
+	if Upgrades.has("cut_rotary") and _straight[_idx] == 1:
+		length = INF  # the rule lies along a straight edge: one press runs it to the end
 	var j := _idx
 	while j < last and _cum[j + 1] - _cum[_idx] <= length:
 		j += 1
-		if _corners.has(j):
+		if _corners.has(j) or (length == INF and _straight[j] == 0):
 			break
 	return maxi(j, mini(_idx + 1, last))
 

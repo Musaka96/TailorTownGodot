@@ -38,6 +38,11 @@ func _initialize() -> void:
 	var which: String = args[0] if args.size() > 0 else "cut"
 	_out = args[1] if args.size() > 1 else "res://.dev/minigame_%s.png" % which
 	_frames = int(args[2]) if args.size() > 2 else 150
+	# Optional 4th arg: upgrades to grant for the shot ("cut_fold,cut_chalk_wheel").
+	if args.size() > 3 and args[3] != "":
+		for id in args[3].split(","):
+			get_root().get_node("Upgrades").debug_set(id, true)
+	var garment: int = int(args[4]) if args.size() > 4 else GARMENT_JACKET
 
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	var host := Control.new()
@@ -53,7 +58,7 @@ func _initialize() -> void:
 	host.add_child(game)
 	if CUT_VARIANTS.has(which):
 		var factory: GDScript = load("res://data/scripts/material_factory.gd")
-		game.start(GARMENT_JACKET, "Jacket · M", factory.make(1, 1, 0, 3.0))
+		game.start(garment, "Piece · M", factory.make(1, 1, 0, 3.0))
 		_hold = true
 	elif which == "sew":
 		game.start("Jacket · M", CLOTH)

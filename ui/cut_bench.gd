@@ -85,6 +85,40 @@ const SHAPES := {
 	],
 }
 
+## Half outlines for Cut on the Fold: from the fold at the top, round one side, back to
+## the fold at the bottom (x = 0 is the fold). The shirt is its own right half; a jacket
+## on the fold is cut as its back, which is symmetric where the front is not.
+const FOLD_SHAPES := {
+	Enums.GarmentType.SHIRT:
+	[
+		Vector2(0.0, -0.67),
+		Vector3(0.17, -0.67, 0.0),
+		Vector2(0.34, -0.82),
+		Vector2(0.64, -0.7),
+		Vector3(0.46, -0.4, 0.0),
+		Vector2(0.7, -0.12),
+		Vector2(0.62, 0.8),
+		Vector3(0.31, 0.89, 0.0),
+		Vector2(0.0, 0.89),
+	],
+	Enums.GarmentType.JACKET:
+	[
+		Vector2(0.0, -0.78),
+		Vector3(0.16, -0.78, 0.0),
+		Vector2(0.3, -0.88),
+		Vector2(0.66, -0.74),
+		Vector3(0.5, -0.4, 0.0),
+		Vector2(0.64, -0.1),
+		Vector3(0.52, 0.36, 0.0),
+		Vector2(0.58, 0.88),
+		Vector2(0.0, 0.9),
+	],
+}
+const STRAIGHT_LOOK := 12  # outline points ahead (~18 cm) that must be straight to glide
+const STRAIGHT_BEND := 1.2  # rad per unit: gentler than this counts as straight
+const WHEEL_AHEAD := 6  # Chalk Wheel: how many points before a turn its mark goes
+const REVEAL_TIME := 0.9
+
 ## How each cloth is drawn: [spacing, thread width (units), opacity, checked?].
 const SOLID_LOOK := [0.02, 0.002, 0.3, true]
 const PATTERN_LOOK := {
@@ -118,6 +152,13 @@ var _cum := PackedFloat32Array()
 var _corners := {}  # path index -> true where the shears pivot
 var _total := 0.0
 var _out := 1.0  # which side of the travel direction is "outside"
+var _closed := true  # false when cutting on the fold: the fold edge isn't cut
+var _folded := false
+var _bend := PackedFloat32Array()  # per point: how sharply the line turns there
+var _straight := PackedByteArray()  # per point: a straight run lies ahead
+var _marks := PackedInt32Array()  # Chalk Wheel: points that carry a "turn ahead" mark
+var _reveal := 0.0  # 0 -> 1 as the finished piece is lifted (and unfolded) for show
+var _reveal_from := {}
 
 var _trail := PackedVector2Array()
 var _trail_zone := PackedInt32Array()
@@ -164,6 +205,10 @@ func start(garment_type: int, title: String, material: MaterialType = null) -> v
 		_band_good = c.cut_band_good
 		_band_nick = c.cut_band_nick
 		_max_mistakes = c.cut_max_mistakes
+	_band_perfect *= Upgrades.mult("bench_band")
+	_folded = Upgrades.has("cut_fold") and FOLD_SHAPES.has(garment_type)
+	_closed = not _folded
+	_reveal = 0.0
 	_read_cloth(material)
 	_generate(garment_type)
 	_state = State.READY
@@ -261,15 +306,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _generate(garment_type: int) -> void:
-	var spec: Array = SHAPES.get(garment_type, SHAPES[Enums.GarmentType.SHIRT])
+	var shapes: Dictionary = FOLD_SHAPES if _folded else SHAPES
+	var spec: Array = shapes.get(garment_type, SHAPES[Enums.GarmentType.SHIRT])
 	var pts: Array = []
 	for p in spec:
 		var j := Vector2(randf_range(-JITTER, JITTER), randf_range(-JITTER, JITTER))
+		if _folded and p is Vector2 and absf(p.x) < 0.001:
+			j.x = 0.0  # the ends of a half outline sit exactly on the fold
 		pts.append(Vector3(p.x + j.x * 0.5, p.y + j.y * 0.5, 0.0) if p is Vector3 else p + j)
 	_path = PackedVector2Array()
 	var starts: Array[int] = []
+	var runs := pts.size() if _closed else pts.size() - 1
 	var i := 0
-	while i < pts.size():
+	while i < runs:
 		var nxt := (i + 1) % pts.size()
 		var curved: bool = pts[nxt] is Vector3
 		var ctrl := Vector2.ZERO
@@ -279,9 +328,10 @@ func _generate(garment_type: int) -> void:
 		starts.append(_path.size())
 		_append_run(pts[i], pts[nxt], curved, ctrl)
 		i += 2 if curved else 1
-	_path.append(_path[0])
+	_path.append(_path[0] if _closed else pts[pts.size() - 1])
 	_measure()
 	_find_corners(starts)
+	_measure_bends()
 
 
 ## One corner-to-corner run, resampled evenly so every step of the cut is the same
@@ -323,8 +373,8 @@ func _measure() -> void:
 	_out = 1.0 if sense >= 0.0 else -1.0
 	_normals = PackedVector2Array()
 	for i in m:
-		var prev := _path[i - 1] if i > 0 else _path[m - 2]
-		var nxt := _path[i + 1] if i < m - 1 else _path[1]
+		var prev := _path[i - 1] if i > 0 else (_path[m - 2] if _closed else _path[0])
+		var nxt := _path[i + 1] if i < m - 1 else (_path[1] if _closed else _path[m - 1])
 		_normals.append((nxt - prev).normalized().orthogonal() * _out)
 
 
@@ -332,10 +382,37 @@ func _find_corners(starts: Array[int]) -> void:
 	_corners = {}
 	var m := _path.size()
 	for k in starts:
+		if k == 0 and not _closed:
+			continue  # an open outline just starts; there's nothing to turn from
 		var prev := _path[k] - (_path[k - 1] if k > 0 else _path[m - 2])
 		var nxt := _path[k + 1] - _path[k]
 		if absf(angle_difference(prev.angle(), nxt.angle())) > deg_to_rad(CORNER_DEG):
 			_corners[k] = true
+
+
+## How sharply the line bends at each point, which runs ahead are straight (for gliding
+## and the rotary rule), and where the Chalk Wheel marks a turn coming.
+func _measure_bends() -> void:
+	var m := _path.size()
+	_bend = PackedFloat32Array()
+	_bend.resize(m)
+	for i in range(1, m - 1):
+		var turn := absf(angle_difference(_seg_dir(i - 1).angle(), _seg_dir(i).angle()))
+		_bend[i] = INF if _corners.has(i) else turn / STEP
+	_straight = PackedByteArray()
+	_straight.resize(m)
+	for i in m:
+		var ok := true
+		for k in range(i + 1, mini(i + STRAIGHT_LOOK, m - 1)):
+			if _bend[k] > STRAIGHT_BEND:
+				ok = false
+				break
+		_straight[i] = 1 if ok else 0
+	_marks = PackedInt32Array()
+	for i in range(1, m - 1):
+		var turning := _bend[i] > STRAIGHT_BEND
+		if turning and _bend[i - 1] <= STRAIGHT_BEND and i - WHEEL_AHEAD > 0:
+			_marks.append(i - WHEEL_AHEAD)
 
 
 func _seg_dir(i: int) -> Vector2:
@@ -366,6 +443,8 @@ func _zone_of(d: float) -> int:
 
 
 func _record(zone: int, length: float, score: float) -> void:
+	if zone == Zone.ROUGH and Upgrades.has("cut_pinking"):
+		score = maxf(score, ZONE_SCORE[Zone.GOOD])  # a pinked edge can't fray
 	_zone_len[zone] += length
 	_score_sum += score * length
 	_score_len += length
@@ -418,11 +497,29 @@ func _succeed(extra := "") -> void:
 	_stop_sounds()
 	var q := _quality()
 	_play(_complete, 0.7)
+	_start_reveal()
 	var head := "Clean cut!  " if q >= CLEAN_CUT else ""
 	_set_status("%s%s%s  →  %d%%" % [head, _breakdown(), extra, roundi(q * 100.0)], Style.FOREST)
 	_repaint()
 	await get_tree().create_timer(2.4).timeout
 	finished.emit(true, q)
+
+
+## Lift the finished piece off the cloth, pulling the camera back to see all of it —
+## and, cut on the fold, open it out to its full shape.
+func _start_reveal() -> void:
+	_reveal_from = {"zoom": _zoom, "cam": _cam, "rot": _view_rot}
+	var tw := create_tween()
+	tw.tween_method(_set_reveal, 0.0, 1.0, REVEAL_TIME).set_trans(Tween.TRANS_SINE)
+
+
+func _set_reveal(t: float) -> void:
+	_reveal = t
+	var e := smoothstep(0.0, 1.0, t)
+	_zoom = lerpf(_reveal_from["zoom"], 0.95, e)
+	_cam = (_reveal_from["cam"] as Vector2).lerp(Vector2(0.0, 0.02), e)
+	_view_rot = lerp_angle(_reveal_from["rot"], 0.0, e)
+	_repaint()
 
 
 func _fail() -> void:
@@ -484,11 +581,17 @@ func _paint(c: Control) -> void:
 		return
 	c.draw_set_transform(c.size * 0.5, _view_rot, Vector2.ONE)
 	_paint_cloth(c)
+	if _folded:
+		_paint_fold(c)
 	_paint_allowance(c)
 	_paint_chalk(c)
 	_paint_trail(c)
 	for n in _nicks:
 		_paint_x(c, _w(n), Style.CLAY, 7.0)
+	if _reveal > 0.0:
+		_paint_piece(c)
+		c.draw_set_transform_matrix(Transform2D.IDENTITY)
+		return
 	_paint_world_extra(c)
 	c.draw_set_transform_matrix(Transform2D.IDENTITY)
 	_paint_overlay(c)
@@ -523,26 +626,55 @@ func _paint_mat(c: Control) -> void:
 func _paint_cloth(c: Control) -> void:
 	var px := _px()
 	var r := Rect2(_w(-CLOTH_HALF), CLOTH_HALF * 2.0 * px)
+	if _folded:
+		# Folded in half along x = 0: only the doubled half lies on the mat.
+		var half := Vector2(CLOTH_HALF.x, CLOTH_HALF.y * 2.0) * px
+		r = Rect2(_w(Vector2(0.0, -CLOTH_HALF.y)), half)
 	Craft.card(c, Craft.pinked(r, 0.03 * px), _cloth, _cloth.darkened(0.3), 2.0)
 	var inner := r.grow(-0.03 * px)
 	if _weave_tex != null:
 		c.draw_texture_rect(_weave_tex, inner, true, _cloth)
+	_paint_pattern(c, inner, PackedVector2Array())
+
+
+## The cloth's stripes or checks across `area`; with a `clip` polygon, only inside it
+## (the lifted piece keeps its pattern).
+func _paint_pattern(c: Control, area: Rect2, clip: PackedVector2Array) -> void:
 	var look: Array = PATTERN_LOOK.get(_pattern, SOLID_LOOK)
 	var col := Style.tint(_accent, look[2])
 	if _pattern == Enums.Pattern.SOLID:
 		col = Style.tint(_cloth.darkened(0.25), look[2])
+	var px := _px()
 	var step: float = maxf(3.0, float(look[0]) * px)
 	var width: float = maxf(1.0, float(look[1]) * px)
-	var x := inner.position.x + step * 0.5
-	while x < inner.end.x:
-		c.draw_line(Vector2(x, inner.position.y), Vector2(x, inner.end.y), col, width)
+	var x := area.position.x + step * 0.5
+	while x < area.end.x:
+		_thread(c, Vector2(x, area.position.y), Vector2(x, area.end.y), clip, col, width)
 		x += step
 	if not look[3]:
 		return
-	var y := inner.position.y + step * 0.5
-	while y < inner.end.y:
-		c.draw_line(Vector2(inner.position.x, y), Vector2(inner.end.x, y), col, width)
+	var y := area.position.y + step * 0.5
+	while y < area.end.y:
+		_thread(c, Vector2(area.position.x, y), Vector2(area.end.x, y), clip, col, width)
 		y += step
+
+
+func _thread(
+	c: Control, a: Vector2, b: Vector2, clip: PackedVector2Array, col: Color, width: float
+) -> void:
+	if clip.is_empty():
+		c.draw_line(a, b, col, width)
+		return
+	for part in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([a, b]), clip):
+		c.draw_polyline(part, col, width)
+
+
+## The folded edge: a soft rounded crease, darker than the cloth.
+func _paint_fold(c: Control) -> void:
+	var top := _w(Vector2(0.0, -CLOTH_HALF.y))
+	var bottom := _w(Vector2(0.0, CLOTH_HALF.y))
+	c.draw_line(top, bottom, _cloth.darkened(0.4), 5.0)
+	c.draw_line(top + Vector2(3, 0), bottom + Vector2(3, 0), _cloth.lightened(0.15), 2.0)
 
 
 ## The seam allowance: a soft band outside the chalk, edged with a faint dashed rule.
@@ -569,6 +701,20 @@ func _paint_chalk(c: Control) -> void:
 		if int(_cum[i] * px / 12.0) % 3 != 2:
 			c.draw_line(_w(_path[i]), _w(_path[i + 1]), col, width)
 	Craft.eyelet(c, _w(_path[0]), 0.0)
+	if Upgrades.has("cut_chalk_wheel"):
+		_paint_wheel_marks(c, px)
+
+
+## Chalk Wheel: a little chevron of tracing dots across the line before each turn.
+func _paint_wheel_marks(c: Control, px: float) -> void:
+	var col := Style.tint(Style.BRASS, 0.95)
+	var r := maxf(2.0, 0.006 * px)
+	for i in _marks:
+		var at := _path[i]
+		var n := _normals[i] * 0.03
+		var back := -_seg_dir(i) * 0.02
+		for f in [-1.0, 0.0, 1.0]:
+			c.draw_circle(_w(at + n * f + back * absf(f)), r, col)
 
 
 ## The cut so far: the cloth parted along it with the mat showing through, and a
@@ -584,6 +730,50 @@ func _paint_trail(c: Control) -> void:
 	c.draw_polyline(pts, Style.WALNUT, 8.0)
 	c.draw_polyline(pts, Style.MAT.darkened(0.1), 5.5)
 	c.draw_polyline_colors(pts, cols, 2.0)
+	if Upgrades.has("cut_pinking"):
+		_paint_pinked(c, pts)
+
+
+## Pinking Shears leave a zig-zag: small teeth along both lips of the cut.
+func _paint_pinked(c: Control, pts: PackedVector2Array) -> void:
+	var gap := 0.0
+	for i in range(1, pts.size()):
+		var seg := pts[i] - pts[i - 1]
+		gap += seg.length()
+		if gap < 7.0 or seg.length() < 0.01:
+			continue
+		gap = 0.0
+		var n := seg.normalized().orthogonal() * 4.5
+		var d := seg.normalized() * 2.5
+		for side in [-1.0, 1.0]:
+			var tooth := PackedVector2Array(
+				[pts[i] + n * side - d, pts[i] + n * side * 1.8, pts[i] + n * side + d]
+			)
+			c.draw_colored_polygon(tooth, Style.WALNUT)
+
+
+## The finished piece, lifted off the cloth for a moment — opened out if it was folded.
+func _paint_piece(c: Control) -> void:
+	var lift := Vector2(0, -6.0) * smoothstep(0.0, 0.4, _reveal)
+	var half := PackedVector2Array()
+	for p in _path:
+		half.append(_w(p) + lift)
+	_paint_piece_part(c, half, _cloth.lightened(0.05))
+	var open := smoothstep(0.3, 1.0, _reveal)
+	if not _folded or open < 0.03:
+		return
+	var other := PackedVector2Array()
+	for p in _path:
+		other.append(_w(Vector2(-p.x * open, p.y)) + lift)
+	_paint_piece_part(c, other, _cloth.darkened(0.05))
+
+
+func _paint_piece_part(c: Control, poly: PackedVector2Array, fill: Color) -> void:
+	Craft.card(c, poly, fill, _cloth.darkened(0.4), 2.0)
+	var box := Rect2(poly[0], Vector2.ZERO)
+	for p in poly:
+		box = box.expand(p)
+	_paint_pattern(c, box, poly)
 
 
 # --- Shears (upright, over the world) --------------------------------------

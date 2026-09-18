@@ -10,7 +10,26 @@ extends Node
 signal changed
 
 ## id -> upgrade. tier = required Reputation.tier(); category groups them in the phone.
+## Optional "effects" are numbers the games read through mult() (multiplied together over
+## everything owned) or bonus() (added up); on/off abilities are just has(id).
 const UPGRADES := {
+	"cut_weights":
+	{
+		"name": "Pattern Weights",
+		"category": "Cutting Table",
+		"cost": 200,
+		"tier": 0,
+		"desc": "Brass weights hold the cloth flat — it barely pulls at the shears.",
+		"effects": {"cut_drift": 0.4},
+	},
+	"cut_chalk_wheel":
+	{
+		"name": "Chalk Wheel",
+		"category": "Cutting Table",
+		"cost": 350,
+		"tier": 1,
+		"desc": "Crisper chalk, with a mark before every curve and corner.",
+	},
 	"cut_sharp":
 	{
 		"name": "Sharp Scissors",
@@ -25,7 +44,32 @@ const UPGRADES := {
 		"category": "Cutting Table",
 		"cost": 1400,
 		"tier": 2,
-		"desc": "Tailor-grade shears glide faster through every cut.",
+		"desc": "Tailor-grade shears: faster cuts and a longer, quicker glide.",
+		"effects": {"cut_glide_bonus": 0.5, "cut_glide_build": 2.0},
+	},
+	"cut_pinking":
+	{
+		"name": "Pinking Shears",
+		"category": "Cutting Table",
+		"cost": 900,
+		"tier": 2,
+		"desc": "A zig-zag edge can't fray, so a cut too wide of the chalk does no harm.",
+	},
+	"cut_fold":
+	{
+		"name": "Cut on the Fold",
+		"category": "Cutting Table",
+		"cost": 1100,
+		"tier": 2,
+		"desc": "Fold the cloth for shirts and jacket backs: cut half, then unfold it.",
+	},
+	"cut_rotary":
+	{
+		"name": "Rotary Cutter & Rule",
+		"category": "Cutting Table",
+		"cost": 3000,
+		"tier": 3,
+		"desc": "The rule snaps to the chalk: straight edges roll by themselves.",
 	},
 	"sew_oiled":
 	{
@@ -43,6 +87,15 @@ const UPGRADES := {
 		"tier": 2,
 		"desc": "A stronger motor drives the needle quicker on every seam.",
 	},
+	"shop_lamp":
+	{
+		"name": "Workbench Lamp",
+		"category": "Workshop",
+		"cost": 400,
+		"tier": 1,
+		"desc": "Good light on the benches — the chalk line is easier to hit.",
+		"effects": {"bench_band": 1.15},
+	},
 	"rack_hooks":
 	{
 		"name": "Extra Hooks",
@@ -58,6 +111,14 @@ const UPGRADES := {
 		"cost": 950,
 		"tier": 2,
 		"desc": "Suppliers will cut you much longer bolts of cloth per order.",
+	},
+	"courier":
+	{
+		"name": "Courier Account",
+		"category": "Ordering",
+		"cost": 1200,
+		"tier": 2,
+		"desc": "A bicycle courier brings your cloth within minutes, not hours.",
 	},
 }
 
@@ -117,6 +178,17 @@ func can_buy(id: String) -> bool:
 	return GameState.can_afford(int(UPGRADES[id]["cost"]))
 
 
+## Debug: grant or take away an upgrade for free (the F3 panel's Upgrades list).
+func debug_set(id: String, on: bool) -> void:
+	if not UPGRADES.has(id):
+		return
+	if on:
+		_owned[id] = true
+	else:
+		_owned.erase(id)
+	changed.emit()
+
+
 ## Purchase an upgrade (spends money). Returns whether it went through.
 func buy(id: String) -> bool:
 	if not can_buy(id):
@@ -138,6 +210,30 @@ func max_roll_length() -> float:
 ## Cutting-table cadence multiplier (always-on base speed from the master shears).
 func cutting_speed() -> float:
 	return 1.3 if has("cut_master") else 1.0
+
+
+## Every owned upgrade's `key` effect multiplied together (1.0 when none has it).
+func mult(key: String) -> float:
+	var v := 1.0
+	for id: String in _owned:
+		v *= float(UPGRADES.get(id, {}).get("effects", {}).get(key, 1.0))
+	return v
+
+
+## Every owned upgrade's `key` effect added up (0.0 when none has it).
+func bonus(key: String) -> float:
+	var v := 0.0
+	for id: String in _owned:
+		v += float(UPGRADES.get(id, {}).get("effects", {}).get(key, 0.0))
+	return v
+
+
+## In-game hours from ordering cloth to it arriving at the phone.
+func delivery_hours() -> float:
+	var c: GameConfig = Config.data if Config != null else null
+	if has("courier"):
+		return c.courier_hours if c != null else 0.25
+	return c.delivery_hours if c != null else 2.0
 
 
 func cutting_sprint() -> bool:

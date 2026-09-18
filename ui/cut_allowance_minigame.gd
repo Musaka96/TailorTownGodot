@@ -22,8 +22,6 @@ const MAX_OFF_ANGLE := deg_to_rad(70.0)  # the shears never turn back on themsel
 const MAX_WANDER := 0.12  # how far off the line the shears can get before the cloth stops them
 const NICK_LEN := 0.05  # length of cutting inside the line that costs a slip
 const PIVOT_TIME := 0.24
-const GLIDE_LOOK := 12  # outline points ahead (~18 cm) that must be straight to glide
-const GLIDE_BEND := 1.2  # rad per unit: gentler than this counts as straight
 const GLIDE_UP := 1.6  # glide build-up per second
 const GLIDE_DOWN := 5.0  # and how fast it falls away off the line or into a curve
 const GLIDING := 1.2  # past this the blades are held half-open and the snips give way
@@ -31,6 +29,11 @@ const GLIDE_OPEN_DEG := 11.0  # blade spread while gliding
 const GLIDE_LOOP := "scissors_glide"
 const GLIDE_DB_QUIET := -20.0  # the glide loop fades in from here …
 const GLIDE_DB_FULL := -6.0  # … to here at full glide
+## Push speed is set against a whole garment's outline, so a shorter cut (on the fold)
+## really is quicker rather than the same time spread thinner.
+const REF_OUTLINE := 5.5
+const ROTARY_GLIDE := 3.0  # the Rotary Cutter rolls straight runs this fast
+const ROTARY_SNAP := 12.0  # how quickly the rule pulls the blade onto the chalk
 const TRAIL_STEP := 0.008
 const SNIP_PERIOD := 0.13
 ## How much each cloth pulls the blades aside (deg/s): loose, slippery weaves wander,
@@ -55,7 +58,7 @@ const STATUS := {
 var _seconds := 12.0
 var _glide_max := 1.8
 var _glide := 1.0
-var _straight := PackedByteArray()  # per outline point: a glide-able run lies ahead
+var _rolling := false  # the Rotary Cutter's rule is down on a straight run
 var _turn := deg_to_rad(170.0)
 var _p := Vector2.ZERO
 var _heading := 0.0
@@ -81,6 +84,7 @@ func _begin() -> void:
 		_seconds = c.cut2_seconds
 		_turn = deg_to_rad(c.cut2_turn_deg)
 		_glide_max = c.cut2_glide
+	_glide_max += Upgrades.bonus("cut_glide_bonus")
 	_zoom = ZOOM
 	_seg = 0
 	_p = _path[0]
@@ -93,7 +97,7 @@ func _begin() -> void:
 	_pivot_t = 0.0
 	_time = 0.0
 	_glide = 1.0
-	_find_straights()
+	_rolling = false
 	_noise.seed = randi()
 	_noise.frequency = 0.02
 	_trail.append(_p)
@@ -134,43 +138,31 @@ func _process(delta: float) -> void:
 
 ## The cloth pulling the blades aside, in rad/s — a slow wander, never a jerk.
 func _drift() -> float:
-	var rate: float = DRIFT.get(_fabric, 4.0)
+	var rate: float = DRIFT.get(_fabric, 4.0) * Upgrades.mult("cut_drift")
 	return deg_to_rad(rate) * _noise.get_noise_1d(_time * 60.0)
-
-
-## Mark where the next stretch is straight enough to glide (no corner, no curve).
-func _find_straights() -> void:
-	var m := _path.size()
-	var bend := PackedFloat32Array()
-	bend.resize(m)
-	for i in range(1, m - 1):
-		var turn := absf(angle_difference(_seg_dir(i - 1).angle(), _seg_dir(i).angle()))
-		bend[i] = INF if _corners.has(i) else turn / STEP
-	_straight = PackedByteArray()
-	_straight.resize(m)
-	for i in m:
-		var ok := true
-		for k in range(i + 1, mini(i + GLIDE_LOOK, m - 1)):
-			if bend[k] > GLIDE_BEND:
-				ok = false
-				break
-		_straight[i] = 1 if ok else 0
 
 
 ## Build up to a glide while the run ahead is straight and you're on (or near) the
 ## chalk; drop out of it at once for a curve, a corner or a wander.
 func _update_glide(delta: float) -> void:
 	var clean := _zone == Zone.PERFECT or _zone == Zone.GOOD
-	var gliding := clean and _straight[mini(_seg, _straight.size() - 1)] == 1
-	if gliding:
-		_glide = move_toward(_glide, _glide_max, GLIDE_UP * delta)
+	var straight := _straight[mini(_seg, _straight.size() - 1)] == 1
+	_rolling = straight and Upgrades.has("cut_rotary")
+	if _rolling:
+		_glide = move_toward(_glide, ROTARY_GLIDE, GLIDE_UP * 2.0 * delta)
+	elif clean and straight:
+		_glide = move_toward(
+			_glide, _glide_max, GLIDE_UP * Upgrades.mult("cut_glide_build") * delta
+		)
 	else:
 		_glide = move_toward(_glide, 1.0, GLIDE_DOWN * delta)
 
 
 func _advance(delta: float) -> void:
 	_update_glide(delta)
-	var step := (_total / _seconds) * _speed_boost() * _glide * delta
+	var step := (REF_OUTLINE / _seconds) * _speed_boost() * _glide * delta
+	if _rolling:
+		_hold_to_rule(delta)
 	_p += Vector2.from_angle(_heading) * step
 	var last := _path.size() - 1
 	# Walk the outline as the shears pass each point of it.
@@ -197,6 +189,14 @@ func _advance(delta: float) -> void:
 		_nick_run = maxf(0.0, _nick_run - step * 0.5)
 	if _seg >= last and _state == State.RUNNING:
 		_succeed()
+
+
+## Rotary Cutter: the rule lies along the chalk, so the wheel is drawn onto the line and
+## runs true down it — only the curves are left to steer.
+func _hold_to_rule(delta: float) -> void:
+	var pull := minf(1.0, ROTARY_SNAP * delta)
+	_p -= _seg_normal(_seg) * _offset(_seg, _p) * pull
+	_heading = lerp_angle(_heading, _seg_dir(_seg).angle(), pull)
 
 
 func _lay_trail() -> void:
@@ -231,7 +231,10 @@ func _glide_sound() -> void:
 	Sfx.start_loop(GLIDE_LOOP, GLIDE_DB_QUIET)
 	var t := clampf((_glide - GLIDING) / maxf(_glide_max - GLIDING, 0.01), 0.0, 1.0)
 	Sfx.set_loop_volume(GLIDE_LOOP, lerpf(GLIDE_DB_QUIET, GLIDE_DB_FULL, t))
-	Sfx.set_loop_pitch(GLIDE_LOOP, lerpf(0.94, 1.06, t) * pow(_speed_boost(), 0.3))
+	var pitch := lerpf(0.94, 1.06, t) * pow(_speed_boost(), 0.3)
+	if _rolling:
+		pitch *= 1.25  # the wheel sings a little higher than the shears
+	Sfx.set_loop_pitch(GLIDE_LOOP, pitch)
 
 
 func _stop_sounds() -> void:
@@ -285,7 +288,9 @@ func _update_status() -> void:
 		return
 	var pct := int(_cum[mini(_seg, _cum.size() - 1)] / _total * 100.0)
 	var tip := "%s   ·   %d%% cut" % [STATUS[_zone], pct]
-	if _glide > 1.3:
+	if _rolling and _moving:
+		tip = "Rolling along the rule   ·   %d%% cut" % pct
+	elif _glide > 1.3:
 		tip = "Gliding   ·   %d%% cut" % pct
 	if _pivot_t > 0.0:
 		tip = "Turning the cloth   ·   %d%% cut" % pct
@@ -303,14 +308,36 @@ func _update_status() -> void:
 ## so a curve reads as "the chalk bends away from here".
 func _paint_world_extra(c: Control) -> void:
 	var dir := Vector2.from_angle(_heading)
+	if _rolling:
+		_paint_rule(c, dir)
+		return
 	var from := _w(_p + dir * 0.06)
 	var to := _w(_p + dir * 0.34)
 	_dashed(c, from, to, Style.tint(_chalk, 0.35), 1.5)
 
 
+## The cutting rule laid along the straight, just inside the line, ticked every 2 cm.
+func _paint_rule(c: Control, dir: Vector2) -> void:
+	var inward := -_seg_normal(_seg)
+	var a := _p - dir * 0.12 + inward * 0.02
+	var b := _p + dir * 0.5 + inward * 0.02
+	var w := inward * 0.06
+	var poly := PackedVector2Array([_w(a), _w(b), _w(b + w), _w(a + w)])
+	c.draw_colored_polygon(poly, Style.tint(Style.CHALK, 0.35))
+	Craft.outline(c, poly, Style.tint(Style.STEEL_DARK, 0.8), 1.5)
+	var t := 0.0
+	while t < 0.62:
+		var at := a + dir * t
+		c.draw_line(_w(at), _w(at + inward * 0.015), Style.STEEL_DARK, 1.0)
+		t += 0.05
+
+
 func _paint_overlay(c: Control) -> void:
 	var pos := _to_screen(_p)
 	var angle := _heading + _view_rot
+	if _rolling and _moving:
+		_paint_wheel(c, pos, angle)
+		return
 	var spread := deg_to_rad(OPEN_DEG)
 	if _is_gliding():
 		# Held half-open and pushed, with the faint tremble of the cloth on the blade.
@@ -322,3 +349,18 @@ func _paint_overlay(c: Control) -> void:
 	if _zone == Zone.GOOD:
 		grip = Style.FOREST
 	_paint_scissors(c, pos, angle, spread, grip)
+
+
+## The rotary cutter: a steel wheel spinning on its guard, handle trailing behind.
+func _paint_wheel(c: Control, pos: Vector2, angle: float) -> void:
+	var back := Vector2.from_angle(angle + PI)
+	var shadow := Craft.SHADOW_OFFSET * 0.7
+	c.draw_line(pos + shadow, pos + back * 44.0 + shadow, Style.SHADOW, 12.0)
+	c.draw_line(pos, pos + back * 44.0, Style.FOREST, 12.0)
+	c.draw_circle(pos, 14.0, Style.STEEL)
+	c.draw_circle(pos, 14.0, Style.STEEL_DARK, false, 1.5, true)
+	var spin := _time * 18.0
+	for k in 3:
+		var spoke := Vector2.from_angle(spin + k * TAU / 3.0) * 10.0
+		c.draw_line(pos - spoke, pos + spoke, Style.tint(Style.STEEL_DARK, 0.6), 1.0)
+	c.draw_circle(pos, 3.5, Style.BRASS)

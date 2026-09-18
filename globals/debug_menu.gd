@@ -18,6 +18,8 @@ var _amount: LineEdit
 var _cut_type: OptionButton
 var _cut_variant: OptionButton
 var _trial: CanvasLayer
+var _upg_panel: PanelContainer
+var _upg_boxes := {}  # upgrade id -> CheckBox
 
 
 func _ready() -> void:
@@ -26,6 +28,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	EventBus.money_changed.connect(func(_m: int) -> void: _refresh_money())
+	Upgrades.changed.connect(_refresh_upgrades)
 
 
 func _input(event: InputEvent) -> void:
@@ -199,6 +202,40 @@ func _set_cut_variant(index: int) -> void:
 		_note("worktable now runs %s" % CutVariants.NAMES[index])
 
 
+## Everything ordered on the phone arrives now.
+func _deliver_now() -> void:
+	var scene := get_tree().current_scene
+	var phones := scene.find_children("*", "Phone", true, false) if scene != null else []
+	if phones.is_empty():
+		_note("no phone in scene")
+		return
+	var phone: Phone = phones[0]
+	var n := phone.pending_count()
+	phone.deliver_all_now()
+	_note("delivered %d bolt(s)" % n)
+
+
+func _toggle_upgrades() -> void:
+	_upg_panel.visible = not _upg_panel.visible
+	_refresh_upgrades()
+
+
+func _set_upgrade(on: bool, id: String) -> void:
+	Upgrades.debug_set(id, on)
+	_note("%s %s" % ["granted" if on else "removed", Upgrades.data(id).get("name", id)])
+
+
+func _set_all_upgrades(on: bool) -> void:
+	for id in Upgrades.all_ids():
+		Upgrades.debug_set(id, on)
+	_note("all upgrades %s" % ("granted" if on else "removed"))
+
+
+func _refresh_upgrades() -> void:
+	for id: String in _upg_boxes:
+		(_upg_boxes[id] as CheckBox).set_pressed_no_signal(Upgrades.has(id))
+
+
 func _end_shift() -> void:
 	if DayNight.running:
 		DayNight.running = false
@@ -227,13 +264,20 @@ func _build() -> void:
 		margin.add_theme_constant_override("margin_" + side, 10)
 	_layer.add_child(margin)
 
-	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PANEL_BG
 	sb.set_corner_radius_all(10)
 	sb.set_content_margin_all(12)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 8)
+	columns.alignment = BoxContainer.ALIGNMENT_BEGIN
+	margin.add_child(columns)
+	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", sb)
-	margin.add_child(panel)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	columns.add_child(panel)
+	_upg_panel = _build_upgrades(sb)
+	columns.add_child(_upg_panel)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -291,6 +335,11 @@ func _build() -> void:
 	_cut_variant.item_selected.connect(_set_cut_variant)
 	use_row.add_child(_cut_variant)
 
+	var upg := _section(box, "Upgrades & deliveries")
+	var urow := _row(upg)
+	_button(urow, "Upgrades ▸", _toggle_upgrades)
+	_button(urow, "Deliver now", _deliver_now)
+
 	var shift := _section(box, "Shift")
 	var shrow := _row(shift)
 	_button(shrow, "End shift", _end_shift)
@@ -300,6 +349,42 @@ func _build() -> void:
 	box.add_child(_status)
 
 	_refresh_money()
+
+
+## The upgrade list, as a second column: a tick per upgrade, grouped as the phone groups
+## them, granted or taken away for free.
+func _build_upgrades(sb: StyleBoxFlat) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.visible = false
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+	_heading(box, "UPGRADES")
+	var row := _row(box)
+	_button(row, "All", _set_all_upgrades.bind(true))
+	_button(row, "None", _set_all_upgrades.bind(false))
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(250, 470)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 2)
+	scroll.add_child(list)
+	var category := ""
+	for id: String in Upgrades.all_ids():
+		var d := Upgrades.data(id)
+		if str(d.get("category", "")) != category:
+			category = str(d.get("category", ""))
+			list.add_child(_make_label(category, 12, HEADING))
+		var tick := CheckBox.new()
+		tick.text = "%s  (T%d)" % [d.get("name", id), int(d.get("tier", 0))]
+		tick.add_theme_font_size_override("font_size", 13)
+		tick.toggled.connect(_set_upgrade.bind(id))
+		list.add_child(tick)
+		_upg_boxes[id] = tick
+	return panel
 
 
 func _toggle() -> void:

@@ -224,7 +224,8 @@ func _refresh_order() -> void:
 		_name_label.text = mat.display_name
 		_summary_label.text = mat.summary()
 	var price := "On the house!" if _free_order() else "$ %d" % cost
-	_price_label.text = "Order:  %s   for %.0f m%s%s" % [price, _length, _deals_text(), _status]
+	var note := _status if _status != "" else _on_the_way()
+	_price_label.text = "Order:  %s   for %.0f m%s%s" % [price, _length, _deals_text(), note]
 	var col := Style.FOREST if afford else Style.CLAY
 	if not afford and GameState.can_use_account(cost):
 		col = Style.AMBER
@@ -612,9 +613,18 @@ func _order_roll() -> void:
 		Sfx.play("error")
 		_refresh()
 		return
-	_phone.deliver_roll(mat, _length)
+	var when: String = _phone.order_roll(mat, _length)
+	if when != "now":
+		_status += "  ·  arrives %s" % when
 	EventBus.order_placed.emit(mat, _length, cost)
 	_refresh()
+
+
+## "  ·  2 on the way, next at 10:30" while bolts are still coming ("" when none).
+func _on_the_way() -> String:
+	if _phone == null or _phone.pending_count() == 0:
+		return ""
+	return "     %d on the way, next %s" % [_phone.pending_count(), _phone.next_arrival_text()]
 
 
 ## What this bolt costs from the current supplier today (free for the tutorial's first).

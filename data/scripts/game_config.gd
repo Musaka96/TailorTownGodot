@@ -63,6 +63,10 @@ extends Resource
 ## When you're broke, the phone lets one bolt up to this price go on account (0% interest,
 ## repaid automatically from your next collection).
 @export var account_limit: int = 120
+## In-game hours from ordering a bolt on the phone to it arriving (the Courier Account
+## upgrade uses the shorter one). Orders that would land after closing come next morning.
+@export var delivery_hours: float = 2.0
+@export var courier_hours: float = 0.25
 
 @export_group("Orders")
 ## Deadline range in shop days (the customer returns on that day's shift).
