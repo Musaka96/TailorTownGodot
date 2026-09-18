@@ -1,9 +1,12 @@
 extends Node
 
 ## Autoloaded as "Tutorial". A guided first-run walkthrough: on a NEW game the mentor
-## (Mr. Hemming, a MentorDialog) offers a tour; if accepted it steps the player through
-## ordering cloth, the make pipeline (shelf → worktable → sewing → rack), a customer
-## fitting, and a wrap-up on orders, reputation and the handbook.
+## (Mr. Hemming, a MentorDialog) offers a tour; if accepted it walks the player through
+## one whole sale. A customer walks in and has a suit designed at the mirror; the player
+## orders its cloth on the phone, then makes one part through the pipeline (shelf →
+## worktable → sewing machine) while Mr. Hemming runs up the other two. On the rack the
+## parts gather into the finished suit, the customer comes back for it, and is paid —
+## then a wrap-up on prices, reputation, the paper and the handbook.
 ##
 ## Two voices:
 ## - the MENTOR gives the welcome, general know-how and the longer "why" explanations
@@ -32,9 +35,10 @@ const M_PROMPT := (
 	+ "Shall I show you how a proper tailor's shop runs?"
 )
 const M_ORDER := (
-	"Splendid. Every suit begins with cloth, and cloth begins with the [b]telephone[/b]. "
-	+ "Ring a supplier and have a bolt sent round — any fabric you fancy. This first one's "
-	+ "[b]on the house[/b]; after that, longer bolts are cheaper per metre."
+	"Order taken — that's their ticket, up top. Every suit begins with cloth, and cloth "
+	+ "begins with the [b]telephone[/b]: ring a supplier and have a bolt of [b]%s[/b] sent "
+	+ "round for the jacket. This first one's [b]on the house[/b]; after that, longer bolts "
+	+ "are cheaper per metre."
 )
 const M_MAKE := (
 	"A suit is built in pieces. You [b]measure and cut a length[/b] off the bolt, "
@@ -66,8 +70,8 @@ const M_SEW_PINS := "Pull each [b]pin[/b] with [b]E[/b] before the needle reache
 const M_SEW_LOCK := "At the end mark, hold [b]S[/b] with the pedal to [b]backstitch[/b]. "
 const M_SEW_CUT := "Then [b]E[/b] cuts the thread."
 const M_GREET := (
-	"Ah, the bell! Your first customer. Folk walk in with a brief in mind. "
-	+ "Greet them kindly and show them to the [b]fitting mirror[/b]."
+	"Splendid — and there's the bell! Your first customer. Folk walk in with a brief in "
+	+ "mind. Greet them kindly and show them to the [b]fitting mirror[/b]."
 )
 const M_CODE_1 := (
 	"Now, the heart of the trade. Every customer has an [b]occasion[/b] — business, a party, "
@@ -95,10 +99,24 @@ const M_PAPER := (
 	+ "are coming, so you can stock the right cloth. Press [b]%s[/b] to read it any time."
 )
 const M_ORDERS := (
-	"Order taken! The price is the [b]cloth[/b] the parts need plus your [b]craft fee[/b], "
-	+ "so any cloth you waste comes out of your own pocket. The customer returns on their "
-	+ "[b]due day[/b] (red ticket = today) and pays on collection; splendid work earns a "
+	"Paid! The price is the [b]cloth[/b] the parts need plus your [b]craft fee[/b], so any "
+	+ "cloth you waste comes out of your own pocket. Most customers come back on their "
+	+ "[b]due day[/b] (red ticket = today) and pay on collection; splendid work earns a "
 	+ "[b]tip[/b]. Treat people well and they'll come back as [b]regulars[/b]."
+)
+const M_RACK := (
+	"While you were at the machine I ran up the [b]%s[/b] for this order — they're hanging "
+	+ "on the [b]rack[/b]. Take your piece over and hang it with them."
+)
+const M_COMBINE := (
+	"See that? Parts made for the same order [b]gather on one hanger[/b], under a ticket "
+	+ "saying whose they are and what's still to come — and when the last one joins, it's "
+	+ "a [b]finished suit[/b]. Each rack keeps its own, and you can always [b]take a set "
+	+ "apart[/b] from the rack."
+)
+const M_COLLECT := (
+	"And here's our customer, right on cue — most come back on their due day, but this one "
+	+ "waited. Fetch the suit off the rack and [b]hand it over[/b]."
 )
 const M_REP := (
 	"Do the work well and your [b]reputation[/b] grows — those stars, top left. A good "
@@ -109,6 +127,17 @@ const M_BYE := (
 	+ "another day when you greet them. Read the [b]Handbook[/b] when unsure, and treat "
 	+ "yourself to an upgrade when the till allows. Make the Row proud!"
 )
+
+## The parts the mentor runs up for the tutorial order are sewn to its design at this
+## quality, so the finished suit reads as good but leaves the player's own work to count.
+const READY_QUALITY := 0.88
+const GARMENT_SCENE := "res://entities/items/garment_piece.tscn"
+## How Mr. Hemming names each part.
+const SPOKEN_PART := {
+	Enums.GarmentType.JACKET: "jacket",
+	Enums.GarmentType.SHIRT: "shirt",
+	Enums.GarmentType.PANTS: "trousers",
+}
 
 # Each step:
 #   id; `event` = the EventBus signal that completes it ("" = a mentor-only talk step);
@@ -124,15 +153,35 @@ const M_BYE := (
 #   player can't do yet (the backstitch, before the needle reaches the end mark).
 const STEPS := [
 	{
+		"id": "greet",
+		"event": "customer_seated",
+		"customer": true,
+		"mentor": [M_GREET],
+		"goal": "Serve your first customer",
+		"checks":
+		[
+			["Greet them (E)", "seen:customer_request", "", ""],
+			["Send them to the mirror", "", "E", "Send to the mirror"],
+		],
+	},
+	{
+		"id": "design",
+		"event": "design_confirmed",
+		"point": "Mirror",
+		"mentor": [M_CODE_1, M_CODE_2, M_CODE_3, M_STOCK],
+		"goal": "",  # filled from the brief (see _goal_text)
+		"checks": [],  # filled from the recipe (see _design_checks)
+	},
+	{
 		"id": "order",
 		"event": "order_placed",
 		"point": "Phone",
 		"mentor": [M_ORDER],
-		"goal": "Order a bolt of cloth",
+		"goal": "Order the jacket's cloth",
 		"checks":
 		[
 			["Open the phone (E)", "seen:phone_order", "", ""],
-			["Pick a supplier and fabric", "", "", ""],
+			["Find the cloth for the jacket", "", "", ""],
 			["Place the order", "", "", ""],
 		],
 	},
@@ -157,8 +206,8 @@ const STEPS := [
 		"checks":
 		[
 			["Open the shelf empty-handed", "seen:shelf_menu", "", ""],
-			["Measure enough for a part", "adjusted", "A/D", "Measure the length"],
-			["Cut it off the bolt", "", "F", "Cut!"],
+			["Measure enough for the jacket", "adjusted", "A/D", "Measure the length"],
+			["Cut it off the new bolt", "", "F", "Cut!"],
 		],
 	},
 	{
@@ -179,35 +228,28 @@ const STEPS := [
 	},
 	{
 		"id": "hang",
-		"event": "item_stored",
-		"match": "ClothingRack",
+		"event": "order_ready",
 		"point": "ClothingRack",
-		"goal": "Hang up the finished part",
+		"mentor": [M_RACK],
+		"goal": "Finish the suit",
 		"checks":
 		[
 			["Take the sewn part off the machine", "holding:GarmentPiece", "", "", "SewingMachine"],
-			["Hang it on the clothing rack (E)", "", "", "", "ClothingRack"],
+			["Hang it with the others on the rack", "", "", "", "ClothingRack"],
 		],
 	},
+	{"id": "combined", "event": "", "mentor": [M_COMBINE]},
 	{
-		"id": "greet",
-		"event": "customer_seated",
-		"customer": true,
-		"mentor": [M_GREET],
-		"goal": "Serve your first customer",
+		"id": "collect",
+		"event": "order_fulfilled",
+		"point": "ClothingRack",
+		"mentor": [M_COLLECT],
+		"goal": "",  # names the customer (see _goal_text)
 		"checks":
 		[
-			["Greet them (E)", "seen:customer_request", "", ""],
-			["Send them to the mirror", "", "E", "Send to the mirror"],
+			["Take the suit off the rack", "holding:Suit", "E", "Take the suit", "ClothingRack"],
+			["Hand it over when they arrive", "", "", "", "@collector"],
 		],
-	},
-	{
-		"id": "design",
-		"event": "design_confirmed",
-		"point": "Mirror",
-		"mentor": [M_CODE_1, M_CODE_2, M_CODE_3, M_STOCK],
-		"goal": "",  # filled from the brief (see _goal_text)
-		"checks": [],  # filled from the recipe (see _design_checks)
 	},
 	{"id": "orders", "event": "", "mentor": [M_ORDERS]},
 	{"id": "reputation", "event": "", "mentor": [M_REP]},
@@ -243,6 +285,11 @@ const MENUS := [
 var _active := false
 var _step := 0
 var _customer: Node = null
+## The tutorial customer's order (a SuitOrder), once it's been taken at the mirror.
+var _order: Resource = null
+## The parts Mr. Hemming ran up for it (garment types), and the size the player made.
+var _prehung: Array[int] = []
+var _made_size := Enums.Size.M
 var _time := 0.0
 var _on_choose := Callable()
 var _flags := {}  # condition flags raised during the current step (seen:*, adjusted)
@@ -274,7 +321,10 @@ func _ready() -> void:
 	EventBus.item_stored.connect(func(_i, station): _try("item_stored", station))
 	EventBus.cloth_cut.connect(func(_p, _r): _try("cloth_cut"))
 	EventBus.piece_cut.connect(func(_p): _try("piece_cut"))
-	EventBus.piece_sewn.connect(func(_p): _try("piece_sewn"))
+	EventBus.piece_sewn.connect(_on_piece_sewn)
+	EventBus.order_created.connect(func(order): _order = order if _active else _order)
+	EventBus.order_ready.connect(func(_o): _try("order_ready"))
+	EventBus.order_fulfilled.connect(func(_o, _p): _try("order_fulfilled"))
 	EventBus.customer_seated.connect(_on_customer_seated)
 	EventBus.customer_waiting.connect(func(cust): _customer = cust)
 	EventBus.design_confirmed.connect(func(_d): _try("design_confirmed"))
@@ -290,6 +340,8 @@ func abort() -> void:
 	_on_choose = Callable()
 	_done_left = 0.0
 	_customer = null
+	_order = null
+	_prehung.clear()
 	_delivered_roll = null
 	if _talking:
 		_talking = false
@@ -436,8 +488,7 @@ func _apply_step() -> void:
 	_flags.clear()
 	_tag.visible = false
 	_coach.clear()
-	if step.get("id", "") == "greet" and _customer == null:
-		_spawn_customer()
+	_stage(str(step.get("id", "")))
 	var lines := _mentor_lines(step)
 	if lines.is_empty():
 		_show_tag()
@@ -445,6 +496,19 @@ func _apply_step() -> void:
 		_speak(lines, func(_c: int) -> void: _advance())
 	else:
 		_speak(lines, func(_c: int) -> void: _show_tag())
+
+
+## Set the scene for a step before it's shown: the customer walks in, the ready parts go
+## on the rack, the customer comes back for the suit.
+func _stage(step_id: String) -> void:
+	match step_id:
+		"greet":
+			if _customer == null:
+				_spawn_customer()
+		"hang":
+			_hang_ready_parts()
+		"collect":
+			_call_customer_back()
 
 
 ## Show the current step's goal tag.
@@ -482,8 +546,93 @@ func _mentor_lines(step: Dictionary) -> PackedStringArray:
 			text = line % _brief_desc()
 		elif line == M_PAPER:
 			text = line % _key_name("newspaper")
+		elif line == M_ORDER:
+			text = line % _cloth_phrase(Enums.GarmentType.JACKET)
+		elif line == M_RACK:
+			text = line % _parts_phrase(_prehung)
 		out.append(text)
 	return out
+
+
+## The part the player sews always counts toward the tutorial's order, even in a cloth that
+## doesn't quite match — the lesson mustn't strand them with a part that fits nothing.
+func _on_piece_sewn(piece: Node) -> void:
+	if _active and _order != null and int(piece.get("order_id")) == 0:
+		if _order.needs_part(int(piece.get("garment_type"))):
+			Orders.register_piece_for(piece, _order)
+	if _active:
+		_made_size = int(piece.get("size"))
+	_try("piece_sewn")
+
+
+## The parts Mr. Hemming "ran up" while the player made theirs: every part the order still
+## needs, sewn to its design and hung on the rack — where they gather into one set waiting
+## for the player's piece.
+func _hang_ready_parts() -> void:
+	_prehung.clear()
+	var rack := _station("ClothingRack")
+	if rack == null or _order == null:
+		return
+	for t: int in _order.required_types():
+		if _order.needs_part(t):
+			var part := _ready_part(t)
+			Orders.register_piece_for(part, _order)
+			rack.hang(part)
+			_prehung.append(t)
+
+
+func _ready_part(garment_type: int) -> Node:
+	var spec: Dictionary = _order.design.get(garment_type, {})
+	var part: Node = load(GARMENT_SCENE).instantiate()
+	part.material = MaterialFactory.make(
+		int(spec.get("fabric", 0)),
+		int(spec.get("pattern", 0)),
+		int(spec.get("color", 0)),
+		Pricing.part_meters(garment_type, _made_size)
+	)
+	part.garment_type = garment_type
+	part.size = _made_size
+	part.stage = Enums.Stage.SEWN
+	part.quality = READY_QUALITY
+	return part
+
+
+## The customer comes back for their suit — this once straight away, not on their due day.
+## The customer manager sends them in, as it does for any order that falls due.
+func _call_customer_back() -> void:
+	if _order == null:
+		return
+	_order.due_fired = true
+	EventBus.order_due.emit(_order)
+
+
+## The customer who has come back for the tutorial's order, once they're in the world.
+func _collector() -> Node3D:
+	for cust in get_tree().get_nodes_in_group("customer"):
+		if _order != null and cust.get("collect_order") == _order:
+			return cust as Node3D
+	return null
+
+
+## "charcoal pinstripe flannel" — the recipe's cloth for a part, as the mentor says it.
+func _cloth_phrase(garment_type: int) -> String:
+	var part: Dictionary = _recipe.get(garment_type, {})
+	var words: Array[String] = [MaterialFactory.color_name(int(part.get("color", 0)))]
+	var pattern := int(part.get("pattern", 0))
+	if pattern != Enums.Pattern.SOLID:
+		words.append(Enums.pattern_name(pattern))
+	words.append(Enums.fabric_name(int(part.get("fabric", 0))))
+	return " ".join(words).to_lower()
+
+
+## "shirt and trousers" — the parts named the way Mr. Hemming says them.
+func _parts_phrase(types: Array[int]) -> String:
+	var names: Array[String] = []
+	for t in types:
+		names.append(str(SPOKEN_PART.get(t, "parts")))
+	if names.size() <= 1:
+		return "".join(names) if not names.is_empty() else "other parts"
+	return ", ".join(names.slice(0, -1)) + " and " + names[-1]
 
 
 ## The mentor's introduction to the worktable or sewing machine game, if it needs one —
@@ -518,6 +667,8 @@ func _key_name(action: String) -> String:
 func _goal_text(step: Dictionary) -> String:
 	if str(step.get("id", "")) == "design":
 		return "Design a %s suit" % _brief_desc()
+	if str(step.get("id", "")) == "collect" and _order != null:
+		return "Hand %s their suit" % _order.customer_name
 	return str(step.get("goal", ""))
 
 
@@ -1072,6 +1223,8 @@ func _world_point() -> Vector2:
 	if step.get("customer", false):
 		return _project(_customer)
 	var target := _line_target()
+	if target == "@collector":
+		return _project(_collector())
 	if target == "":
 		target = step.get("point", "")
 	if target == "":

@@ -81,6 +81,10 @@ func _build() -> void:
 
 ## Keep the quad parented to whichever camera is current (it changes with the scene).
 func _follow_camera() -> void:
+	# The quad rides the camera, so a scene change frees it along with the old camera.
+	if not is_instance_valid(_quad):
+		_build()
+		_camera = null
 	var cam := get_viewport().get_camera_3d()
 	if cam == _camera:
 		return

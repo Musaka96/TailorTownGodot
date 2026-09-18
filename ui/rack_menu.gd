@@ -2,9 +2,11 @@ extends Control
 
 ## Browse menu for the clothing rack — the shelf menu's cousin, in the fitting-room
 ## (MIRROR) theme. Each hung item is a card: garment parts show type/size/quality,
-## finished suits show their overall quality, both with a cloth swatch. Press E to
-## take the selected one to your hands (which closes the menu). Built in code by
-## ui.gd, so no scene file is needed.
+## finished suits show their overall quality, both with a cloth swatch, and a set of
+## parts gathered for one order shows whose it is and what's still to come. Press E to
+## take the selected item to your hands (which closes the menu), or on a set to take it
+## apart onto separate hooks (the menu stays open). Built in code by ui.gd, so no scene
+## file is needed.
 
 var _rack = null
 var _actor = null
@@ -15,6 +17,7 @@ var _panel: PanelContainer
 var _title: Label
 var _list: VBoxContainer
 var _scroll: ScrollContainer
+var _hints: Control
 
 
 func _ready() -> void:
@@ -74,7 +77,29 @@ func _build() -> void:
 	_list.add_theme_constant_override("separation", Style.S2)
 	_scroll.add_child(_list)
 
-	box.add_child(Style.hint_bar([["W/S", "Select"], ["E", "Take"], ["Esc", "Close"]]))
+	_hints = Style.hint_bar(_hint_pairs())
+	box.add_child(_hints)
+
+
+## E takes the selected item — or, on a set, takes it apart.
+func _hint_pairs() -> Array:
+	var verb := "Take apart" if _selected() is GarmentSet else "Take"
+	return [["W/S", "Select"], ["E", verb], ["Esc", "Close"]]
+
+
+func _refresh_hints() -> void:
+	if _hints == null:
+		return
+	var fresh := Style.hint_bar(_hint_pairs())
+	_hints.add_sibling(fresh)
+	_hints.queue_free()
+	_hints = fresh
+
+
+func _selected() -> Node:
+	if _rack == null or _index < 0 or _index >= _rack.stored.size():
+		return null
+	return _rack.stored[_index]
 
 
 # --- List (built once per open; navigation only re-highlights) --------------
@@ -93,10 +118,11 @@ func _rebuild_list() -> void:
 			)
 		)
 	for i in items.size():
-		var card := _make_card(items[i], i == _index)
+		var card := _make_card(items[i], i)
 		_list.add_child(card)
 		_cards.append(card)
 	_title.text = "Wardrobe  ·  %d hung" % items.size()
+	_refresh_hints()
 
 
 func _highlight(old: int) -> void:
@@ -110,6 +136,7 @@ func _highlight(old: int) -> void:
 		Craft.flourish(card)
 	if _scroll != null:
 		_scroll.ensure_control_visible(card)
+	_refresh_hints()
 
 
 ## Hung items read as price tags on the rail; the selected one is brass-edged.
@@ -121,11 +148,11 @@ func _tag_look(card: CraftPanel, selected: bool) -> void:
 	card.queue_redraw()
 
 
-func _make_card(item, selected: bool) -> Control:
+func _make_card(item, index: int) -> Control:
 	var card := CraftPanel.new()
 	card.eyelet = true
 	card.setup(CraftPanel.Shape.PRICE_TAG, Style.CARD)
-	_tag_look(card, selected)
+	_tag_look(card, index == _index)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S3)
@@ -146,11 +173,13 @@ func _make_card(item, selected: bool) -> Control:
 
 	var sub := Label.new()
 	sub.text = _detail_of(item)
+	if _rack.is_loose(index):
+		sub.text += "  ·  taken apart"
 	sub.add_theme_color_override("font_color", Style.INK_SOFT)
 	sub.add_theme_font_size_override("font_size", 15)
 	col.add_child(sub)
 
-	var quality: float = clampf(item.quality if "quality" in item else 1.0, 0.0, 1.0)
+	var quality: float = clampf(_quality_of(item), 0.0, 1.0)
 	var qlabel := Label.new()
 	qlabel.text = "Quality  %d%%" % roundi(quality * 100.0)
 	qlabel.add_theme_color_override("font_color", Style.fill_color(quality).darkened(0.25))
@@ -160,9 +189,17 @@ func _make_card(item, selected: bool) -> Control:
 	return card
 
 
+func _quality_of(item) -> float:
+	if item is GarmentSet:
+		return item.average_quality()
+	return item.quality if "quality" in item else 1.0
+
+
 func _make_swatch(item) -> Control:
 	if item is Suit:
 		return _suit_preview(item)
+	if item is GarmentSet:
+		return _set_preview(item)
 	var mat: MaterialType = _material_of(item)
 	if mat != null:
 		var swatch := MaterialSwatch.new()
@@ -184,6 +221,16 @@ func _suit_preview(item) -> Control:
 	if not any:
 		var color: Color = item.primary_color if "primary_color" in item else Style.CARD
 		return _color_chip(color, 84)
+	return box
+
+
+## A set previews the parts on its hanger, like a suit does.
+func _set_preview(item) -> Control:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", Style.S2)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	for piece: Node in item.pieces:
+		box.add_child(_part_swatch(int(piece.garment_type), {"material": piece.material}))
 	return box
 
 
@@ -216,6 +263,9 @@ func _color_chip(color: Color, chip_size: int) -> Control:
 
 
 func _name_of(item) -> String:
+	if item is GarmentSet:
+		var who: String = item.customer_name()
+		return "Order #%d" % item.order_id + ("  ·  %s" % who if who != "" else "")
 	if item is Suit:
 		return "Finished Suit"
 	if item is GarmentPiece:
@@ -224,6 +274,8 @@ func _name_of(item) -> String:
 
 
 func _detail_of(item) -> String:
+	if item is GarmentSet:
+		return _set_detail(item)
 	if item is Suit:
 		var n: int = item.parts.size()
 		return "Complete  ·  %d piece%s" % [n, "" if n == 1 else "s"]
@@ -233,6 +285,20 @@ func _detail_of(item) -> String:
 		var cloth := mat.summary() if mat != null else "cloth"
 		return "Size %s  ·  %s  ·  %s" % [Enums.size_name(item.size), stage, cloth]
 	return ""
+
+
+## "Jacket + Shirt  ·  Pants still to come".
+func _set_detail(item) -> String:
+	var have: Array[String] = []
+	for piece: Node in item.pieces:
+		have.append(Enums.garment_type_name(int(piece.garment_type)))
+	var left: Array[String] = []
+	for t in item.missing():
+		left.append(Enums.garment_type_name(t))
+	var still := "order no longer open" if item.customer_name() == "" else "all here"
+	if not left.is_empty():
+		still = "%s still to come" % ", ".join(left)
+	return "%s  ·  %s" % [" + ".join(have), still]
 
 
 func _material_of(item) -> MaterialType:
@@ -272,6 +338,19 @@ func _take() -> void:
 	if _rack.stored.size() == 0:
 		close()
 		return
+	if _selected() is GarmentSet:
+		_take_apart()
+		return
 	# Taking fills your hands, so close on success.
 	if _rack.take(_index, _actor):
 		close()
+
+
+## Spread the selected set over free hooks and stay open, so a part can be taken next.
+func _take_apart() -> void:
+	if not _rack.take_apart(_index):
+		Sfx.play("error")
+		UI.toast("No free hooks to take it apart onto")
+		return
+	Sfx.play("cloth_rustle", -3.0)
+	_rebuild_list()

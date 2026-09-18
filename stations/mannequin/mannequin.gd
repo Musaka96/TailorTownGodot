@@ -4,8 +4,6 @@ extends Node3D
 ## Dress it with a sewn shirt, pants and jacket, then package them into a
 ## complete Suit. Empty-handed with an incomplete set, take the last piece back.
 
-const SUIT_SCENE := preload("res://entities/items/suit.tscn")
-
 var _dressed := {}  # GarmentType(int) -> GarmentPiece
 var _order: Array[int] = []  # placement order, for take-back
 
@@ -73,24 +71,7 @@ func _missing_text() -> String:
 
 
 func _package(actor) -> void:
-	var suit: Node = SUIT_SCENE.instantiate()
-	suit.parts = {}
-	var quality_sum := 0.0
-	for t in _dressed.keys():
-		var piece = _dressed[t]
-		suit.parts[t] = {
-			"material": piece.material,
-			"quality": piece.quality,
-			"size": piece.size,
-			"style": piece.style,
-		}
-		quality_sum += piece.quality
-	suit.quality = quality_sum / 3.0
-	var jacket = _dressed[Enums.GarmentType.JACKET]
-	if jacket.material != null:
-		suit.primary_color = jacket.material.cloth_color
-	suit.order_id = _pieces_order_id()
-
+	var suit: Node = Suit.from_pieces(_dressed.values(), _pieces_order_id())
 	for t in _dressed.keys():
 		_dressed[t].queue_free()
 	_dressed.clear()

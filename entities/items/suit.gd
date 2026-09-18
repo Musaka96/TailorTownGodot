@@ -1,7 +1,8 @@
 class_name Suit
 extends Node3D
 
-## A packaged, complete suit (shirt + pants + jacket) assembled at the mannequin.
+## A packaged, complete suit (shirt + pants + jacket): made when the last part for an
+## order joins its set on a clothing rack (see GarmentSet), or at the mannequin.
 ## Carryable; `parts` holds each piece's material/quality/size/style for the
 ## selling phase, and `quality` is their average.
 
@@ -19,6 +20,29 @@ var parts := {}
 
 func _ready() -> void:
 	_apply_visual()
+
+
+## A finished suit built from sewn parts: one entry per part with its cloth, quality, size
+## and style, the suit's quality their average, its colour the jacket's cloth. It isn't in
+## the tree yet and the pieces are left alone — the caller places the suit and frees them.
+static func from_pieces(pieces: Array, for_order: int) -> Node:
+	var suit: Node = load("res://entities/items/suit.tscn").instantiate()
+	var parts := {}
+	var quality_sum := 0.0
+	for piece: Node in pieces:
+		parts[int(piece.garment_type)] = {
+			"material": piece.material,
+			"quality": piece.quality,
+			"size": piece.size,
+			"style": piece.style,
+		}
+		quality_sum += piece.quality
+		if int(piece.garment_type) == Enums.GarmentType.JACKET and piece.material != null:
+			suit.primary_color = piece.material.cloth_color
+	suit.parts = parts
+	suit.quality = quality_sum / maxf(pieces.size(), 1.0)
+	suit.order_id = for_order
+	return suit
 
 
 func get_interaction_prompt(_actor) -> String:

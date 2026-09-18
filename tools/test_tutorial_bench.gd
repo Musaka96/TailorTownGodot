@@ -149,9 +149,13 @@ func _stations_exist() -> void:
 		var brief: String = step.get("brief", "")
 		if brief.begins_with("on:"):
 			named[brief.trim_prefix("on:")] = true
-	for lines: Array in [_tutorial.call("_cut_checks"), _tutorial.call("_sew_checks")]:
+	var every: Array = [_tutorial.call("_cut_checks"), _tutorial.call("_sew_checks")]
+	for step: Dictionary in _tutorial.get("STEPS"):
+		every.append(step.get("checks", []))
+	for lines: Array in every:
 		for c: Array in lines:
-			if c.size() > 4 and str(c[4]) != "":  # "" = no station of its own
+			# "" = no station of its own; "@..." = a person, found at run time.
+			if c.size() > 4 and str(c[4]) != "" and not str(c[4]).begins_with("@"):
 				named[c[4]] = true
 	for station: String in named:
 		var found: Node = _shop.find_child(station, true, false)
