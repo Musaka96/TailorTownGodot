@@ -143,15 +143,16 @@ All in `Upgrades.UPGRADES` (phone → Shop Upgrades), each grantable from the F3
 | cut_pinking | Pinking Shears | T2 / 900 | "Rough" scores as "Good"; zig-zag edge |
 | cut_fold | Cut on the Fold | T2 / 1100 | shirt + jacket back cut as a half, then unfolded |
 | cut_rotary | Rotary Cutter & Rule | T3 / 3000 | v2 straights roll true at 3×; v3 straights in one press |
-| sew_dial | Speed Dial | T0 / 200 | sewing v2 slows itself to a safe crawl through the amber marks |
+| sew_dial | Speed Dial | T0 / 200 | sewing v2 eases itself down as a corner or pin comes up |
 | sew_oiled | Oiled Machine | T1 / 450 | spin-up ×2, coast shorter, Shift top gear |
 | sew_guide | Magnetic Seam Guide | T1 / 400 | pull back onto the line, drift ×0.5 |
-| sew_needle_down | Needle-Down Stop | T1 / 450 | no coasting: let go and it stops |
+| sew_needle_down | Needle-Down Stop | T1 / 450 | no coasting: let go and it stops (easy to stop on a corner) |
 | sew_industrial | Industrial Motor | T2 / 1400 | top speed ×1.3, spin-up ×1.5 |
 | sew_walking_foot | Walking Foot | T2 / 1100 | drift ×0.25 |
-| sew_knee | Knee Lifter | T2 / 900 | the machine turns corners 4× faster |
+| sew_knee | Knee Lifter | T2 / 900 | turning the cloth is 1.8× faster |
 | sew_clips | Sewing Clips | T2 / 800 | no pins: sew over clips at any speed |
-| sew_roller | Roller Foot | T3 / 2200 | curves drag the cloth 60% less |
+| sew_roller | Roller Foot | T2 / 1600 | aim assist: the cloth follows curves by itself |
+| sew_autolock | Auto-Lock Button | T3 / 2200 | both ends backstitched for you |
 | shop_lamp | Workbench Lamp | T1 / 400 | perfect band ×1.15 on every bench game |
 | shop_coffee | Coffee Machine | T1 / 350 | station: 2 cups/day, each = focus for 3 bench jobs |
 | shop_iron | Pressing Iron | T2 / 1000 | station: press a piece once for +5% |
@@ -184,3 +185,13 @@ for the rest: **ease off through the amber marks** before every pin and corner �
 and the pin pulls itself / the corner turns crisp; fast and the needle bends / the
 stitches overshoot. A speed dial on the machine head goes red when you're too fast.
 Corners turn automatically. Backstitch is gone (Auto-Lock → Roller Foot).
+
+### Sewing v2 again: "Pedal & Aim" (2026-09-18, second playtest)
+
+The push-the-cloth version gave no feedback while stopped and pins vanished when run
+over; the backstitch never got a chance because the seam ended itself. Now: **aim**
+with A/D (a brass stitch guide shows where the stitches will land, even standing
+still; the cloth turns fast about a stopped needle, gently while sewing), **corners are
+just aiming** (stop on the corner, turn, go on — no button, no auto-turn), **pins glow
+with an E tag** when in reach (pull them or bend the needle), and the machine **stops
+on the end mark** so you can backstitch (S + pedal) before E cuts the thread.

@@ -132,4 +132,3 @@ extends Resource
 @export var sew2_top_speed: float = 0.36  ## v2: cloth feed at full pedal (units/s)
 @export var sew2_spin_seconds: float = 1.0  ## v2: motor 0 → full on the base machine
 @export var sew2_coast_seconds: float = 0.35  ## v2: motor full → 0 after letting go
-@export var sew2_pivot_seconds: float = 0.45  ## v2: the machine turning a corner
