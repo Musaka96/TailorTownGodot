@@ -19,8 +19,17 @@ const SHOT_H := 1080
 ## reuse it (scaled) so the framing reads like the framing players get.
 const CAM_OFFSET := Vector3(0.0, 6.271325, 4.392928)
 const SETTLE := 6
-## Opt-in shots (only rendered when named on the command line).
-const EXTRA_SHOTS := ["cute"]
+## Opt-in shots (only rendered when named on the command line). "clips" records every
+## clip; each can also be named alone.
+const EXTRA_SHOTS := [
+	"cute", "clips", "clip_shop", "clip_mirror", "clip_brief", "clip_cut", "clip_sew"
+]
+## Clip frames: Steam's description column is 1170px wide (780 logical px at 150%).
+## Record with `--fixed-fps 30` so every frame advances exactly 1/30 s of game time,
+## however slow the capture is; tools/encode_clips.py turns the frames into WebP/GIF.
+const CLIP_W := 1170
+const CLIP_H := 658
+const CLIP_FPS := 30
 ## Cheerful looks for the fitting-mirror shots (`-- cute`).
 ## brief = [Enums.Occasion, Enums.Style] the client asks for (so the brief fits the look).
 ## parts = jacket, shirt, trousers, each [fabric, pattern, colour, style_idx] — indices
@@ -40,6 +49,8 @@ var _rig: Node
 var _cm: Node
 var _mirror: Node
 var _wanted: PackedStringArray
+var _rec_dir := ""
+var _rec_frame := 0
 
 # Autoloads are not resolvable as identifiers from a top-level `--script`, so they
 # are fetched off the root once the scene is up.
@@ -90,6 +101,11 @@ func _run() -> void:
 	await _shot_newspaper()
 	await _shot_storefront()
 	await _shot_cute_suits()
+	await _clip_shop()
+	await _clip_mirror()
+	await _clip_brief()
+	await _clip_cut()
+	await _clip_sew()
 	print("promo shots written to ", OUT_DIR)
 	quit(0)
 
@@ -337,6 +353,184 @@ func _dress_design(builder: Node, parts: Array) -> void:
 	builder._refresh()
 
 
+# --- Clips (moving images for About This Game) -------------------------------
+
+
+## The shop at work: the tailor crosses the floor with a bolt while a client walks in
+## off the street and waves hello.
+func _clip_shop() -> void:
+	if not _want("clip_shop"):
+		return
+	await _clear_customers()
+	while _orders.active.size() < 3:
+		_orders.debug_add_random()
+	await _clear_hands()
+	await _give_roll("navy_worsted_pinstripe", 14.0)
+	_place_player(Vector3(5.0, 0.0, 4.4), -PI * 0.5)
+	_frame(Vector3(1.4, 0.7, 4.2), 1.35)
+	var greet: Node3D = _main.find_child("GreetSpot", true, false)
+	var door: Node3D = _main.find_child("DoorOutside", true, false)
+	var cust: Node = _spawn_customer(door.global_position, PI)
+	await _wait(10)
+	_start_rec("shop")
+	cust.walk([greet.global_position], cust.offer_greeting, PI)
+	await _hold_move("move_left", 1.25)
+	await _seconds(0.5)
+	await _hold_move("move_forward", 0.25)
+	await _seconds(2.4)
+	_stop_rec()
+	await _clear_hands()
+	await _clear_customers()
+
+
+## The fitting mirror: the same client tried in look after look, the cloth changing
+## on them live. Five looks, one second each, looping back to the first.
+func _clip_mirror() -> void:
+	if not _want("clip_mirror"):
+		return
+	await _clear_customers()
+	_place_player(Vector3(4.6, 0.0, 3.6), PI * 0.5)
+	var cust: Node = await _seat_customer()
+	cust.preference.occasion = 3  # PARTY — a brief every look in the reel suits
+	cust.preference.style = 3  # FASHION
+	cust.preference.budget = CUTE_BUDGET
+	_ui.open_suit_builder(_mirror, _player)
+	var builder: Node = _ui.suit_builder
+	var looks: Array = CUTE_SUITS.keys()
+	_dress_design(builder, CUTE_SUITS[looks[0]]["parts"])
+	await _wait(100)
+	_start_rec("mirror")
+	for i in looks.size():
+		_dress_design(builder, CUTE_SUITS[looks[i]]["parts"])
+		await _seconds(1.0)
+	_stop_rec()
+	_ui.close_all_menus()
+	_rig.unfocus()
+	await _clear_customers()
+
+
+## A walk-in comes to the counter, waves, and states the brief.
+func _clip_brief() -> void:
+	if not _want("clip_brief"):
+		return
+	await _clear_customers()
+	_place_player(Vector3(0.7, 0.0, 5.6), PI)
+	_frame(Vector3(0.7, 0.9, 4.6), 0.75)
+	var greet: Node3D = _main.find_child("GreetSpot", true, false)
+	var door: Node3D = _main.find_child("DoorInside", true, false)
+	var cust: Node = _spawn_customer(door.global_position + Vector3(0.0, 0.0, 0.4), PI)
+	await _wait(10)
+	_start_rec("brief")
+	var arrived := [false]
+	cust.walk([greet.global_position], func() -> void: arrived[0] = true, 0.0)
+	for _i in 200:
+		if arrived[0]:
+			break
+		await process_frame
+	cust.offer_greeting()
+	await _seconds(0.7)
+	_ui.open_customer_request(cust, _player)
+	await _seconds(2.2)
+	_stop_rec()
+	_ui.close_all_menus()
+	await _clear_customers()
+
+
+## The whole cut, start to "clean piece", sped up to fit a short loop.
+func _clip_cut() -> void:
+	if not _want("clip_cut"):
+		return
+	var table: Node = _main.find_child("Worktable", true, false)
+	var piece: Node = _make_item("fabric_piece", "charcoal_worsted_solid")
+	piece.length_m = 6.0
+	await _hand_over(piece)
+	table.interact(_player)
+	await _wait(6)
+	table.interact(_player)
+	await _wait(30)
+	_ui.worktable_screen._start_cutting()
+	var game: Node = _ui.worktable_screen._minigame
+	game._lead = 0.5
+	game._seconds = 3.6
+	_start_rec("cutting")
+	await _autocut(game, 1.0)
+	await _seconds(0.8)
+	_stop_rec()
+	await _seconds(0.5)
+	_ui.close_all_menus()
+	await _take_back(table)
+
+
+## A full seam in rhythm, every stitch on the beat.
+func _clip_sew() -> void:
+	if not _want("clip_sew"):
+		return
+	var machine: Node = _main.find_child("SewingMachine", true, false)
+	var part: Node = _make_item("garment_piece", "navy_worsted_pinstripe")
+	part.garment_type = 2  # JACKET
+	part.stage = 2  # CUT
+	await _hand_over(part)
+	machine.interact(_player)
+	await _wait(6)
+	machine.interact(_player)
+	var game: Node = _ui.sewing_screen._minigame
+	game._lead = 0.5
+	game._cross_seconds = 3.8
+	_start_rec("sewing")
+	await _autosew(game, 1.0)
+	await _seconds(0.8)
+	_stop_rec()
+	await _seconds(0.5)
+	_ui.close_all_menus()
+	await _take_back(machine)
+
+
+func _start_rec(name: String) -> void:
+	_rec_dir = "%s/clips/%s" % [OUT_DIR, name]
+	var abs_dir := ProjectSettings.globalize_path(_rec_dir)
+	DirAccess.make_dir_recursive_absolute(abs_dir)
+	for f in DirAccess.get_files_at(abs_dir):
+		DirAccess.remove_absolute(abs_dir.path_join(f))
+	_rec_frame = 0
+	if not process_frame.is_connected(_rec_tick):
+		process_frame.connect(_rec_tick)
+
+
+func _stop_rec() -> void:
+	if process_frame.is_connected(_rec_tick):
+		process_frame.disconnect(_rec_tick)
+	print("recorded %s (%d frames)" % [_rec_dir, _rec_frame])
+
+
+func _rec_tick() -> void:
+	var image := get_root().get_texture().get_image()
+	if image == null:
+		return
+	image.resize(CLIP_W, CLIP_H, Image.INTERPOLATE_LANCZOS)
+	image.save_jpg("%s/f%04d.jpg" % [_rec_dir, _rec_frame], 0.95)
+	_rec_frame += 1
+
+
+## Wait `secs` of game time (exact under --fixed-fps CLIP_FPS).
+func _seconds(secs: float) -> void:
+	await _wait(roundi(secs * CLIP_FPS))
+
+
+## Hold a movement action like a stick push, then let go.
+func _hold_move(action: String, secs: float) -> void:
+	root.get_node("GameState").input_locked = false
+	Input.action_press(action)
+	await _seconds(secs)
+	Input.action_release(action)
+
+
+## Pick a finished piece back up off a station and bin it, so it's free for the next run.
+func _take_back(station: Node) -> void:
+	await _wait(10)
+	station.interact(_player)
+	await _clear_hands()
+
+
 # --- Staging helpers -------------------------------------------------------
 
 
@@ -348,6 +542,8 @@ func _dismiss_paper() -> void:
 
 
 func _want(name: String) -> bool:
+	if name.begins_with("clip_") and _wanted.has("clips"):
+		return true
 	if EXTRA_SHOTS.has(name):
 		return _wanted.has(name)
 	return _wanted.is_empty() or _wanted.has(name)
@@ -438,9 +634,16 @@ func _seat_customer() -> Node:
 
 ## Empty the shop floor so a shot never shows a leftover client.
 func _clear_customers() -> void:
+	var gone: Array[Node] = []
 	for child in _cm.get_children():
 		if child is Node3D and child.has_method("despawn"):
-			child.queue_free()
+			# Switch the prompt off first so the player's interactor lets go of them
+			# before they're freed (it would otherwise keep a dangling highlight).
+			child._set_interactable(false)
+			gone.append(child)
+	await _wait(4)
+	for child in gone:
+		child.queue_free()
 	_mirror.customer = null
 	await _wait(10)
 

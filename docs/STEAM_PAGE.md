@@ -151,7 +151,31 @@ Suggested Steam order (first one is the one most people see):
 | 11 | `12_shopfront_street.png` | the shopfront and the town |
 | 12 | `03_suit_builder.png` | the fitting, whole-suit view |
 
-## 5. Asset rules worth keeping in mind
+## 5. Clips (rendered)
+
+Record, then encode (the `--fixed-fps 30` matters — it keeps game time exact while
+frames are captured):
+
+```
+godot --fixed-fps 30 --path . --script res://tools/shot_promo.gd -- clips
+python tools/encode_clips.py
+```
+
+Frames land in `.dev/promo/clips/<clip>/`; the encoder writes `<clip>.webp` (1170px,
+30 fps — upload these) and `<clip>.gif` (780px, 15 fps fallback) beside them. Name clips
+to re-record just those: `-- clip_mirror clip_brief`.
+
+| Slot | Clip | Shows | WebP |
+|---|---|---|---|
+| GIF 1 (lead) | `mirror` | five looks on one client at the mirror, 1 s each, loops | ~3.8 MB |
+| GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief | ~2.3 MB |
+| GIF 3 | `cutting` + `sewing` | a full cut, then a full seam (use both, stacked) | ~1.2 + 1.4 MB |
+| spare | `shop` | the tailor crossing the floor with a bolt as a client walks in | ~3.6 MB |
+
+The four slotted clips total ~8.7 MB. Adding `shop` takes it to ~12 MB, which is close
+to the 15 MB point where Valve may strip animations.
+
+## 6. Asset rules worth keeping in mind
 
 - Screenshots: 1920×1080 minimum, 16:9. Animation never plays in the screenshot row.
 - About This Game accepts PNG/JPG/GIF/WEBP/**MP4/WEBM**; animation plays only there and
@@ -163,7 +187,7 @@ Suggested Steam order (first one is the one most people see):
 - Capsules are separate art (920×430, 462×174, 1232×706, 748×896, 600×900) and must read
   at thumbnail size. Not screenshots.
 
-## 6. BBCode version (paste into the description field)
+## 7. BBCode version (paste into the description field)
 
 ```
 [img]{GIF_1}[/img]
