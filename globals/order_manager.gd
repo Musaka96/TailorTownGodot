@@ -278,6 +278,28 @@ func debug_complete(order: SuitOrder) -> void:
 	collect(order)
 
 
+## Mark an order READY without paying it out (every missing piece filled at full quality),
+## so its suit can be handed over by hand.
+func debug_make_ready(order: SuitOrder) -> void:
+	if order == null or not active.has(order):
+		return
+	for t in order.required_types():
+		if not order.is_part_done(t):
+			order.fill_part(t, 1.0, 1.0)
+			EventBus.order_part_filled.emit(order, t)
+	if order.state != SuitOrder.State.READY:
+		order.state = SuitOrder.State.READY
+		EventBus.order_ready.emit(order)
+
+
+## The first order nobody is on their way to collect yet — or a fresh random one.
+func debug_pickup_candidate() -> SuitOrder:
+	for order in active:
+		if not order.due_fired:
+			return order
+	return debug_add_random()
+
+
 func debug_complete_first() -> void:
 	if not active.is_empty():
 		debug_complete(active[0])

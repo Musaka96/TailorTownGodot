@@ -9,6 +9,7 @@ extends Node
 const PANEL_BG := Color(0.10, 0.11, 0.15, 0.94)
 const HEADING := Color(0.62, 0.78, 1.0)
 const LABEL := Color(0.90, 0.92, 0.98)
+const SUIT_SCENE := preload("res://entities/items/suit.tscn")
 
 var _layer: CanvasLayer
 var _money_label: Label
@@ -82,6 +83,57 @@ func _expire_first() -> void:
 	_note("expired the first ticket")
 
 
+## Finish a ticket (or a fresh one), drop its packaged suit on the floor in front of
+## the player, and send the customer in to collect it — the whole pickup flow on demand.
+func _ready_for_pickup() -> void:
+	var cm := _customer_manager()
+	if cm == null:
+		_note("no customer manager in scene")
+		return
+	var order := Orders.debug_pickup_candidate()
+	Orders.debug_make_ready(order)
+	_drop_suit(_make_suit(order))
+	cm.debug_send_collector(order)
+	_note("order #%d ready — %s is coming" % [order.id, order.customer_name])
+
+
+## A packaged suit for this order, dressed in its designed cloth.
+func _make_suit(order: SuitOrder) -> Suit:
+	var suit: Suit = SUIT_SCENE.instantiate()
+	suit.order_id = order.id
+	suit.quality = 1.0
+	suit.parts = {}
+	for t in order.required_types():
+		var c: Dictionary = order.design[t]
+		var mat := MaterialFactory.make(
+			int(c.get("fabric", 0)), int(c.get("pattern", 0)), int(c.get("color", 0)), 1.0
+		)
+		suit.parts[t] = {"material": mat, "quality": 1.0, "size": Enums.Size.M, "style": "Classic"}
+	var jacket: Dictionary = suit.parts.get(Enums.GarmentType.JACKET, {})
+	if jacket.get("material") != null:
+		suit.primary_color = (jacket["material"] as MaterialType).cloth_color
+	return suit
+
+
+## Put the suit on the ground in front of the player (through the player's own drop, so
+## it lands and saves like any dropped item); beside them if their hands are full.
+func _drop_suit(suit: Suit) -> void:
+	var scene := get_tree().current_scene
+	var parent: Node = scene.get_node_or_null("ShopRoom") if scene != null else null
+	if parent == null:
+		parent = scene if scene != null else get_tree().root
+	parent.add_child(suit)
+	var player := get_tree().get_first_node_in_group("player")
+	if player == null:
+		suit.set_pickable(true)
+		return
+	if player.carry.is_empty() and player.carry.take_item(suit):
+		player.drop_held()
+		return
+	suit.global_position = (player as Node3D).global_position + Vector3(0.7, 0.15, 0.0)
+	suit.set_pickable(true)
+
+
 func _end_shift() -> void:
 	if DayNight.running:
 		DayNight.running = false
@@ -151,6 +203,8 @@ func _build() -> void:
 	var trow2 := _row(tickets)
 	_button(trow2, "Solve all", _solve_all)
 	_button(trow2, "Expire 1st", _expire_first)
+	var trow3 := _row(tickets)
+	_button(trow3, "Ready + pickup", _ready_for_pickup)
 
 	var shift := _section(box, "Shift")
 	var shrow := _row(shift)

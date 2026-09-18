@@ -210,6 +210,15 @@ func debug_call_shopper() -> void:
 	_send_shopper(_street_end())
 
 
+## Send this order's customer in to collect it right now, whatever its due day. Marked
+## due so the order book doesn't send a second collector when the real deadline comes.
+func debug_send_collector(order: SuitOrder) -> void:
+	if order == null:
+		return
+	order.due_fired = true
+	_on_order_due(order)
+
+
 ## Remove every customer currently in the world.
 func debug_clear_customers() -> void:
 	for child in get_children():
