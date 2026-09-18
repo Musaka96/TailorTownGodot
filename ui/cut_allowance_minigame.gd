@@ -7,6 +7,10 @@ extends CutBench
 ## curves (armholes, necklines, the crotch, the hip) are where you steer. At a corner
 ## the shears stop, open, and the cloth pivots on its own — nothing can get stuck.
 ##
+## On a straight run, held on the line, the shears **glide**: real shears on a long
+## straight are pushed half-open through the cloth rather than snipped, so the dull
+## stretches go quickly and the time goes where the skill is — the curves.
+##
 ## Only one axis and one button, so keyboard and pad play the same. The seam allowance
 ## outside the chalk is wide and safe; the chalk itself is the "perfect" line; inside it
 ## you're into the garment, and a long enough nick is a slip.
@@ -17,7 +21,11 @@ const STEER_RAMP := 6.0  # 0 → full lock in ~1/6 s: a tap on a key is a small 
 const MAX_OFF_ANGLE := deg_to_rad(70.0)  # the shears never turn back on themselves
 const MAX_WANDER := 0.12  # how far off the line the shears can get before the cloth stops them
 const NICK_LEN := 0.05  # length of cutting inside the line that costs a slip
-const PIVOT_TIME := 0.32
+const PIVOT_TIME := 0.24
+const GLIDE_LOOK := 12  # outline points ahead (~18 cm) that must be straight to glide
+const GLIDE_BEND := 1.2  # rad per unit: gentler than this counts as straight
+const GLIDE_UP := 1.6  # glide build-up per second
+const GLIDE_DOWN := 5.0  # and how fast it falls away off the line or into a curve
 const TRAIL_STEP := 0.008
 const SNIP_PERIOD := 0.13
 ## How much each cloth pulls the blades aside (deg/s): loose, slippery weaves wander,
@@ -39,7 +47,10 @@ const STATUS := {
 	CutBench.Zone.NICK: "Into the piece!",
 }
 
-var _seconds := 18.0
+var _seconds := 12.0
+var _glide_max := 1.8
+var _glide := 1.0
+var _straight := PackedByteArray()  # per outline point: a glide-able run lies ahead
 var _turn := deg_to_rad(170.0)
 var _p := Vector2.ZERO
 var _heading := 0.0
@@ -64,6 +75,7 @@ func _begin() -> void:
 	if c != null:
 		_seconds = c.cut2_seconds
 		_turn = deg_to_rad(c.cut2_turn_deg)
+		_glide_max = c.cut2_glide
 	_zoom = ZOOM
 	_seg = 0
 	_p = _path[0]
@@ -75,6 +87,8 @@ func _begin() -> void:
 	_nick_run = 0.0
 	_pivot_t = 0.0
 	_time = 0.0
+	_glide = 1.0
+	_find_straights()
 	_noise.seed = randi()
 	_noise.frequency = 0.02
 	_trail.append(_p)
@@ -117,8 +131,39 @@ func _drift() -> float:
 	return deg_to_rad(rate) * _noise.get_noise_1d(_time * 60.0)
 
 
+## Mark where the next stretch is straight enough to glide (no corner, no curve).
+func _find_straights() -> void:
+	var m := _path.size()
+	var bend := PackedFloat32Array()
+	bend.resize(m)
+	for i in range(1, m - 1):
+		var turn := absf(angle_difference(_seg_dir(i - 1).angle(), _seg_dir(i).angle()))
+		bend[i] = INF if _corners.has(i) else turn / STEP
+	_straight = PackedByteArray()
+	_straight.resize(m)
+	for i in m:
+		var ok := true
+		for k in range(i + 1, mini(i + GLIDE_LOOK, m - 1)):
+			if bend[k] > GLIDE_BEND:
+				ok = false
+				break
+		_straight[i] = 1 if ok else 0
+
+
+## Build up to a glide while the run ahead is straight and you're on (or near) the
+## chalk; drop out of it at once for a curve, a corner or a wander.
+func _update_glide(delta: float) -> void:
+	var clean := _zone == Zone.PERFECT or _zone == Zone.GOOD
+	var gliding := clean and _straight[mini(_seg, _straight.size() - 1)] == 1
+	if gliding:
+		_glide = move_toward(_glide, _glide_max, GLIDE_UP * delta)
+	else:
+		_glide = move_toward(_glide, 1.0, GLIDE_DOWN * delta)
+
+
 func _advance(delta: float) -> void:
-	var step := (_total / _seconds) * _speed_boost() * delta
+	_update_glide(delta)
+	var step := (_total / _seconds) * _speed_boost() * _glide * delta
 	_p += Vector2.from_angle(_heading) * step
 	var last := _path.size() - 1
 	# Walk the outline as the shears pass each point of it.
@@ -158,7 +203,7 @@ func _lay_trail() -> void:
 
 
 func _snip_sound(delta: float) -> void:
-	_snip_accum += delta * _speed_boost()
+	_snip_accum += delta * _speed_boost() * _glide
 	if _snip_accum >= SNIP_PERIOD:
 		_snip_accum = 0.0
 		_play(_snip, 0.35)
@@ -174,6 +219,7 @@ func _start_pivot() -> void:
 	_pivot_h1 = _seg_dir(_seg).angle()
 	_pivot_t = PIVOT_TIME
 	_moving = false
+	_glide = 1.0
 	_play(_snip, 0.5)
 
 
@@ -209,6 +255,8 @@ func _update_status() -> void:
 		return
 	var pct := int(_cum[mini(_seg, _cum.size() - 1)] / _total * 100.0)
 	var tip := "%s   ·   %d%% cut" % [STATUS[_zone], pct]
+	if _glide > 1.3:
+		tip = "Gliding   ·   %d%% cut" % pct
 	if _pivot_t > 0.0:
 		tip = "Turning the cloth   ·   %d%% cut" % pct
 	elif not _moving:

@@ -140,7 +140,8 @@ A (v2) and B (v3) are in, alongside v1:
 
 - `ui/cut_bench.gd` — shared base (`CutBench`): curved garment outlines, the customer's
   cloth + pattern on the mat, seam-allowance band, zone scoring, shears.
-- `ui/cut_allowance_minigame.gd` — v2 "Seam Allowance" (steer + hold, cloth turns).
+- `ui/cut_allowance_minigame.gd` — v2 "Seam Allowance" (steer + hold, cloth turns; glides
+  1.8× on straights held on the line; base outline 12 s).
 - `ui/cut_strokes_minigame.gd` — v3 "Long Strokes & Snips" (one button, ghost stroke).
 - `ui/cut_variants.gd` — factory; `GameConfig.cut_variant` picks what the worktable runs.
 - F3 debug panel → **Cutting minigame**: try v1/v2/v3 on a random bolt, pick the piece,

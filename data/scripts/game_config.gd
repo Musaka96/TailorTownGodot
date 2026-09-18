@@ -89,7 +89,8 @@ extends Resource
 @export var cut_band_perfect: float = 0.015
 @export var cut_band_good: float = 0.05
 @export var cut_band_nick: float = 0.02
-@export var cut2_seconds: float = 18.0  ## v2: time for the whole outline at full push
+@export var cut2_seconds: float = 12.0  ## v2: whole outline at full push, no glide
+@export var cut2_glide: float = 1.8  ## v2: speed multiplier gliding a straight on the line
 @export var cut2_turn_deg: float = 170.0  ## v2: how fast the shears turn at full lock
 @export var cut3_max_stroke: float = 0.45  ## v3: longest stroke (shape units)
 @export var cut3_min_stroke: float = 0.04  ## v3: a quick tap's snip
