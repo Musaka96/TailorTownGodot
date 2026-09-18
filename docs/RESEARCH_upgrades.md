@@ -47,7 +47,6 @@ cloth drift by fabric, corners pivot on their own. ~12–14 s per piece.
 | T2 | **Cut on the Fold** | Capability | symmetric pieces (shirt, jacket back) are folded: cut half the outline, then an unfold reveal. About −45% cutting | the folded cloth + reveal |
 | T2 | **Pinking Shears** | Control | a "Rough" (too wide) stretch scores as "Good": the zig-zag edge can't fray, so a wide cut is harmless | zig-zag trail |
 | T3 | **Rotary Cutter & Rule** | Capability | straight runs cut in one press (the rule snaps to the chalk). Only curves are steered | rotary wheel on straights |
-| T4 | **Apprentice Cutter** | Hands-off | "Let the apprentice cut": skip the game at a flat 80%. Always optional | an apprentice at the table |
 
 *Addresses "too much to cut":* glide (built now) and Cut on the Fold / Rotary Cutter
 later. The base game stays about 12 s; late upgrades take it to about 5–7 s, and the curves stay where the skill is.
@@ -83,7 +82,6 @@ Each of those is a knob an upgrade can turn:
 | T3 | **Auto-Lock Button** | Capability | one tap does a perfect backstitch at each end | a button on the machine |
 | T3 | **Industrial Machine** | Tempo + Control | replaces the machine: servo motor (top speed +60%, finer pedal response), needle-down and knee lift built in | a new machine model |
 | T3 | **Overlocker** | Capability | a second machine that finishes edges: any "Rough" stretch from *cutting* is forgiven (cross-station link) | overlocker beside the machine |
-| T4 | **Apprentice Machinist** | Hands-off | skip the seam at a flat 80% | |
 
 Seam types (straight / curved / eased / topstitch) stay as variety. Upgrades change *how
 hard* each is, not whether it exists (e.g. Walking Foot makes eased seams easy).
@@ -127,3 +125,47 @@ hard* each is, not whether it exists (e.g. Walking Foot makes eased seams easy).
    (medium: fold-line geometry + reveal), then Rotary (medium).
 4. Shop-wide lamp + coffee (small, touch both games through `CutBench` and the new
    sewing base).
+
+---
+
+## Built (2026-09-18)
+
+All in `Upgrades.UPGRADES` (phone → Shop Upgrades), each grantable from the F3 panel's
+**Upgrades ▸** column. Numbers live on the entries as `effects` read through
+`Upgrades.mult(key)` / `Upgrades.bonus(key)`; on/off abilities are `Upgrades.has(id)`.
+
+| Id | Name | Tier / $ | Where it acts |
+|---|---|---|---|
+| cut_weights | Pattern Weights | T0 / 200 | v2 drift ×0.4 |
+| cut_chalk_wheel | Chalk Wheel | T1 / 350 | v2/v3 chalk marks before turns |
+| cut_sharp | Sharp Scissors | T1 / 450 | Shift = faster (all cutting games) |
+| cut_master | Master Shears | T2 / 1400 | speed ×1.3, glide +0.5 and builds ×2 (v3: longer strokes) |
+| cut_pinking | Pinking Shears | T2 / 900 | "Rough" scores as "Good"; zig-zag edge |
+| cut_fold | Cut on the Fold | T2 / 1100 | shirt + jacket back cut as a half, then unfolded |
+| cut_rotary | Rotary Cutter & Rule | T3 / 3000 | v2 straights roll true at 3×; v3 straights in one press |
+| sew_dial | Speed Dial | T0 / 200 | sewing v2 eases down near corners and pins |
+| sew_oiled | Oiled Machine | T1 / 450 | spin-up ×2, coast shorter, Shift top gear |
+| sew_guide | Magnetic Seam Guide | T1 / 400 | pull back onto the line, drift ×0.5 |
+| sew_needle_down | Needle-Down Stop | T1 / 450 | stops dead; corner windows ×2 |
+| sew_industrial | Industrial Motor | T2 / 1400 | top speed ×1.3, spin-up ×1.5 |
+| sew_walking_foot | Walking Foot | T2 / 1100 | drift ×0.25 |
+| sew_knee | Knee Lifter | T2 / 900 | pivot time ×0.25 |
+| sew_clips | Sewing Clips | T2 / 800 | sewing over a clip costs 2%, not a slip |
+| sew_autolock | Auto-Lock Button | T3 / 2200 | both ends locked automatically |
+| shop_lamp | Workbench Lamp | T1 / 400 | perfect band ×1.15 on every bench game |
+| shop_coffee | Coffee Machine | T1 / 350 | station: 2 cups/day, each = focus for 3 bench jobs |
+| shop_iron | Pressing Iron | T2 / 1000 | station: press a piece once for +5% |
+| courier | Courier Account | T2 / 1200 | cloth arrives in 15 min instead of 2 h |
+
+Not built yet: Industrial Machine and Overlocker (T3 sewing), Tall Shelving, Bolt
+Labels, Second Mannequin, Triple Mirror, Appointment Book, Radio.
+
+Cloth now takes time to arrive: `GameConfig.delivery_hours` (2 h of shop time), next
+morning if that's past closing; tutorial bolts stay instant. Pending bolts save with the
+phone. The coffee machine and ironing board are `UpgradeStation`s — hidden until owned —
+at `stations/coffee_machine/` and `stations/ironing_board/`; they still need a spot in the
+shop map (F3 → Spawn coffee / Spawn iron drops one beside you for testing).
+
+**Apprentice (changed by the owner):** no per-station apprentices. One shop-wide hire,
+gated by reputation, a fixed price, who you talk to and give jobs ("cut this", "sew
+that"), and who gets better with time. Design still to settle — see the open questions.
