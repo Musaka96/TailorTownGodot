@@ -14,6 +14,8 @@ const ROW_NAME := {
 }
 # Display order of the parts.
 const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
+# The design fields a row edits (the tutorial checks them against its recipe).
+const ROW_KEY := {Row.FABRIC: "fabric", Row.COLOR: "color", Row.PATTERN: "pattern"}
 # Camera framing. The subject (whole customer, or the selected part) is placed EXACTLY
 # at the centre of the free screen area left of the fitting panel, solved from the live
 # camera FOV, viewport aspect and panel width — so it can't drift on other resolutions.
@@ -197,6 +199,74 @@ func tutorial_busy_rects() -> Array[Rect2]:
 	return [Rect2(left, 0, _panel.get_global_rect().position.x - left, vp.y)]
 
 
+## The tutorial's coach mark (see Tutorial._update_pointers): the first part, in panel
+## order, not yet made to the recipe — the Part row until that part is shown, then its
+## first wrong row — with the value to pick. {} once it all matches (Tutorial then points
+## at E to confirm).
+func tutorial_coach(goal: Dictionary) -> Dictionary:
+	if str(goal.get("step", "")) != "design":
+		return {}
+	var recipe: Dictionary = goal.get("recipe", {})
+	for t: int in PARTS:
+		var want: Dictionary = recipe.get(t, {})
+		var wrong := _first_wrong_row(t, want)
+		if wrong < 0:
+			continue
+		if _type() != t:
+			return _coach_row(Row.PART, Enums.garment_type_name(t))
+		return _coach_row(wrong, _field_name(wrong, int(want[ROW_KEY[wrong]])))
+	return {}
+
+
+## The first design row of part `t` that differs from `want`, or -1 if it all matches.
+func _first_wrong_row(t: int, want: Dictionary) -> int:
+	if want.is_empty():
+		return -1
+	for row: int in [Row.FABRIC, Row.COLOR, Row.PATTERN]:
+		var k: String = ROW_KEY[row]
+		if int(_design[t][k]) != int(want.get(k, -1)):
+			return row
+	return -1
+
+
+## W/S to reach `row`, then A/D to set it to `value`.
+func _coach_row(row: int, value: String) -> Dictionary:
+	var i := _active_rows().find(row)
+	var n := 0
+	for child in _rows.get_children():
+		if child.is_queued_for_deletion():
+			continue
+		if n == i:
+			var text := ("A/D: pick %s" % value) if _row == i else ("W/S: go to %s" % ROW_NAME[row])
+			return {"rect": (child as Control).get_global_rect(), "text": text, "beside": true}
+		n += 1
+	return {}
+
+
+func _field_name(row: int, value: int) -> String:
+	match row:
+		Row.FABRIC:
+			return Enums.fabric_name(value)
+		Row.COLOR:
+			return MaterialFactory.color_name(value)
+	return Enums.pattern_name(value)
+
+
+## Whether `row` already matches the tutorial's recipe (a Part row: the whole part does).
+func _row_on_target(row: int) -> bool:
+	if Tutorial == null or _part_sel < 0:
+		return false
+	var want: Dictionary = Tutorial.design_target(_type())
+	if want.is_empty():
+		return false
+	if row == Row.PART:
+		return _first_wrong_row(_type(), want) < 0
+	if not ROW_KEY.has(row):
+		return false
+	var k: String = ROW_KEY[row]
+	return int(_cfg()[k]) == int(want.get(k, -1))
+
+
 ## Width kept free at the left edge (the tutorial's goal tag), so the customer is centred
 ## in the space that is actually visible.
 func _left_reserve() -> float:
@@ -378,6 +448,7 @@ func _refresh() -> void:
 ## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
 func _rebuild_hint_bar() -> void:
 	for child in _hint_bar.get_children():
+		_hint_bar.remove_child(child)  # gone now, so the tutorial finds only the live keys
 		child.queue_free()
 	var pairs := [["W/S", "Select"], ["A/D", "Change"]]
 	pairs.append(["E", "Ask / confirm"] if _pref != null else ["E", "Confirm"])
@@ -404,6 +475,13 @@ func _make_row(row: int, selected: bool) -> Control:
 	value.add_theme_color_override("font_color", Style.INK)
 	value.add_theme_font_size_override("font_size", 18)
 	hbox.add_child(value)
+	if _row_on_target(row):
+		# The tutorial's "that's right": a tick on every row already set to the recipe.
+		var tick := Label.new()
+		tick.text = "✓"
+		tick.add_theme_color_override("font_color", Style.FOREST)
+		tick.add_theme_font_size_override("font_size", 20)
+		hbox.add_child(tick)
 	return card
 
 

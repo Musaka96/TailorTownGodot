@@ -217,6 +217,7 @@ func _style() -> void:
 
 func _set_hint(pairs: Array) -> void:
 	if _hint_bar != null:
+		_hint_bar.get_parent().remove_child(_hint_bar)  # gone now, not at frame end
 		_hint_bar.queue_free()
 	_hint_bar = Style.hint_bar(pairs)
 	_hint.get_parent().add_child(_hint_bar)
@@ -736,21 +737,94 @@ func _buy_upgrade() -> void:
 	_refresh()
 
 
-## Global screen centre of the RIGHT choice for the tutorial on the current screen (not the
-## player's moving selection): Order Textiles on the hub, the first supplier in the phonebook,
-## the order summary on the order form. (-1,-1) if nothing to point at.
-func tutorial_hint_point() -> Vector2:
-	var card: Control = null
+# --- Tutorial hooks ----------------------------------------------------------
+
+
+## The tutorial's coach mark on this screen (see Tutorial._update_pointers). While it asks
+## for the jacket's cloth: the card, row or key that leads there, with the value to pick;
+## once the bolt is ordered, the way back out of the phone. {} = nothing to point at.
+func tutorial_coach(goal: Dictionary) -> Dictionary:
+	match str(goal.get("step", "")):
+		"order":
+			return _coach_order(goal.get("cloth", {}))
+		"store":
+			return {"key": "Esc", "text": "Hang up" if _screen == Screen.HUB else "Done — back out"}
+	return {}
+
+
+## Whether the order form is set to `cloth` ({fabric, color, pattern}).
+func tutorial_cloth_ok(cloth: Dictionary) -> bool:
+	return (
+		not cloth.is_empty()
+		and _fabric == int(cloth.get("fabric", -1))
+		and _color == int(cloth.get("color", -1))
+		and _pattern == int(cloth.get("pattern", -1))
+	)
+
+
+func _coach_order(cloth: Dictionary) -> Dictionary:
+	var vendor := _supplier_of(int(cloth.get("fabric", -1)))
 	match _screen:
 		Screen.HUB:
-			if _rows != null and _rows.get_child_count() > 0:
-				card = _rows.get_child(0) as Control  # Order Textiles
+			return _coach_pick(_rows, 0, 0, str(HUB_OPTIONS[0]["title"]), "Open")
 		Screen.SUPPLIERS:
-			if _contacts != null and _contacts.get_child_count() > 1:
-				card = _contacts.get_child(1) as Control  # first supplier (header is [0])
+			var who := str(Upgrades.VENDORS[vendor]["name"])
+			return _coach_pick(_contacts, vendor, 1, who, "Call")  # [0] is the header
 		Screen.ORDER:
-			card = _price_label  # the "Order: $X" line — press E to order
+			if _vendor != vendor:
+				return {"key": "Esc", "text": "Wrong supplier — back"}
+			return _coach_form(cloth)
+	return {"key": "Esc", "text": "Back"}
+
+
+## Point at card `index` of `list` (after `skip` leading children): W/S to reach it, then
+## E to `verb` it.
+func _coach_pick(list: Node, index: int, skip: int, what: String, verb: String) -> Dictionary:
+	var card := _live_child(list, index + skip)
 	if card == null:
-		return Vector2(-1, -1)
-	var r := card.get_global_rect()
-	return r.position + r.size * 0.5
+		return {}
+	var text := ("E: %s" % verb) if _row == index else ("W/S: go to %s" % what)
+	return {"rect": card.get_global_rect(), "text": text, "beside": true}
+
+
+## On the order form: the first row not yet set to the jacket's cloth, else the order key.
+func _coach_form(cloth: Dictionary) -> Dictionary:
+	var fabric := int(cloth.get("fabric", _fabric))
+	var color := int(cloth.get("color", _color))
+	var pattern := int(cloth.get("pattern", _pattern))
+	var fields := [
+		[ORow.FABRIC, _fabric == fabric, Enums.fabric_name(fabric)],
+		[ORow.COLOR, _color == color, MaterialFactory.color_name(color)],
+		[ORow.PATTERN, _pattern == pattern, Enums.pattern_name(pattern)],
+	]
+	for f: Array in fields:
+		if f[1]:
+			continue
+		var i := _order_rows().find(f[0])
+		var card := _live_child(_rows, i)
+		if card == null:
+			return {}
+		var text := ("A/D: pick %s" % f[2]) if _row == i else ("W/S: go to %s" % OROW_NAME[f[0]])
+		return {"rect": card.get_global_rect(), "text": text, "beside": true}
+	return {"key": "E", "text": "Order it"}
+
+
+## The first open supplier that stocks `fabric` (the tutorial's recipe is built from them).
+func _supplier_of(fabric: int) -> int:
+	for i in Upgrades.VENDORS.size():
+		if not _vendor_locked(i) and fabric in Upgrades.VENDORS[i]["fabrics"]:
+			return i
+	return 0
+
+
+## The `index`th child of `list` that isn't on its way out (rebuilt lists free the old
+## cards at the end of the frame).
+func _live_child(list: Node, index: int) -> Control:
+	var n := 0
+	for child in list.get_children():
+		if child.is_queued_for_deletion():
+			continue
+		if n == index:
+			return child as Control
+		n += 1
+	return null

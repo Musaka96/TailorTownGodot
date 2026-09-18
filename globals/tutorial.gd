@@ -181,7 +181,7 @@ const STEPS := [
 		"checks":
 		[
 			["Open the phone (E)", "seen:phone_order", "", ""],
-			["Find the cloth for the jacket", "", "", ""],
+			["Find the cloth for the jacket", "cloth", "", ""],
 			["Place the order", "", "", ""],
 		],
 	},
@@ -384,6 +384,14 @@ func side_reserve() -> float:
 	if not _active or _tag == null or not _tag.visible:
 		return 0.0
 	return GoalTag.WIDTH + EDGE * 2.0
+
+
+## The recipe cloth for one part while the design step runs (so the suit builder can tick
+## the rows that are already right), else {}.
+func design_target(garment_type: int) -> Dictionary:
+	if not _active or str(STEPS[_step].get("id", "")) != "design":
+		return {}
+	return _recipe.get(garment_type, {})
 
 
 ## True while a make step is running and `target` is a DIFFERENT station than this step's —
@@ -740,10 +748,11 @@ func _design_checks() -> Array:
 	var jt := int(Enums.GarmentType.JACKET)
 	var pt := int(Enums.GarmentType.PANTS)
 	var st := int(Enums.GarmentType.SHIRT)
+	# In the builder's own part order, so the coach mark walks down the list with them.
 	return [
 		["Jacket: " + _part_desc(jt), "design:%d" % jt, "A/D", "Change the value"],
-		["Pants: " + _part_desc(pt), "design:%d" % pt, "W/S", "Pick the next part"],
-		["Shirt: " + _part_desc(st), "design:%d" % st, "W/S", "Pick the next part"],
+		["Shirt: " + _part_desc(st), "design:%d" % st, "A/D", "Change the value"],
+		["Pants: " + _part_desc(pt), "design:%d" % pt, "A/D", "Change the value"],
 		["Confirm with E", "", "E", "Ask and confirm"],
 	]
 
@@ -957,7 +966,7 @@ func _update_checks() -> void:
 	for i in checks.size():
 		var cond: String = checks[i][1]
 		var key := "done:%d" % i
-		if cond.begins_with("design:"):
+		if cond.begins_with("design:") or cond == "cloth":
 			# Design lines follow the live design: change a part away and it un-ticks.
 			if _met(cond):
 				_flags[key] = true
@@ -986,7 +995,17 @@ func _met(cond: String) -> bool:
 			met = _bench_flag(arg)
 		"on":
 			met = _loaded(arg)
+		"cloth":
+			met = _phone_cloth_ok()
 	return met
+
+
+## Whether the phone's order form is set to the jacket's cloth (the order step's line).
+func _phone_cloth_ok() -> bool:
+	var phone: Variant = UI.get("phone_order") if UI != null else null
+	if not (phone is Control and (phone as Control).has_method("tutorial_cloth_ok")):
+		return false
+	return phone.tutorial_cloth_ok(_recipe.get(Enums.GarmentType.JACKET, {}))
 
 
 ## Whether the player is carrying an item of the given class (e.g. "GarmentPiece").
@@ -1166,20 +1185,20 @@ func _menu_key(menu: Control) -> String:
 
 
 ## Out in the shop the hand bobs over the station; inside a menu a coach mark points at
-## the key for the next unticked line (the phone points at its own highlighted card).
+## what to do next — the menu's own pick if it has a tutorial_coach() hook (the right
+## row, card or key, with the value to choose), else the key for the next unticked line.
 func _update_pointers() -> void:
 	var menu := _open_menu()
 	if menu == null:
 		_coach.clear()
 		_move_hand(_world_point())
 		return
-	var step: Dictionary = STEPS[_step]
-	if step.get("id", "") == "order" and menu.has_method("tutorial_hint_point"):
-		_coach.clear()
-		var p: Vector2 = menu.tutorial_hint_point()
-		_move_hand(p)
-		return
 	_hand.visible = false
+	if menu.has_method("tutorial_coach"):
+		var hint: Dictionary = menu.tutorial_coach(_coach_goal())
+		if not hint.is_empty():
+			_coach_hint(menu, hint)
+			return
 	var i := _next_check()
 	var check: Array = _checks()[i] if i >= 0 else []
 	var key: String = check[2] if check.size() > 2 and _coach_ready(check) else ""
@@ -1188,6 +1207,27 @@ func _update_pointers() -> void:
 		_coach.clear()
 	else:
 		_coach.point_at(rect, str(check[3]))
+
+
+## What the tutorial wants from the open menu, for its tutorial_coach() hook: the step, the
+## whole recipe (the suit builder) and the jacket's cloth (the phone's order).
+func _coach_goal() -> Dictionary:
+	return {
+		"step": str(STEPS[_step].get("id", "")),
+		"recipe": _recipe,
+		"cloth": _recipe.get(Enums.GarmentType.JACKET, {}),
+	}
+
+
+## Aim the coach mark at what a menu's tutorial_coach() named: {rect} (a row or card, the
+## pill beside it when `beside`) or {key} (a key-cap in its hint bar), plus the pill `text`.
+func _coach_hint(menu: Control, hint: Dictionary) -> void:
+	var rect: Rect2 = hint.get("rect", Rect2())
+	if hint.has("key"):
+		rect = _find_key(menu, str(hint["key"]))
+	if rect.size == Vector2.ZERO:
+		return  # a freshly rebuilt row isn't laid out yet: keep last frame's mark
+	_coach.point_at(rect, str(hint.get("text", "")), bool(hint.get("beside", false)))
 
 
 ## Whether a line's coach mark may show yet: always, unless it names a `when` condition

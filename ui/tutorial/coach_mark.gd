@@ -3,8 +3,10 @@ extends Control
 
 ## A tiny callout for the tutorial: a short brass pill ("Press F to cut") with a
 ## bobbing arrow pointing at one control inside an open menu (usually a key-cap in the
-## menu's hint bar). Full-screen and mouse-transparent; call point_at() every frame
-## with the target's global rect, or clear() to hide it.
+## menu's hint bar, or from beside a row/card to pick). Full-screen and mouse-transparent;
+## call point_at() every frame with the target's global rect, or clear() to hide it.
+
+enum Side { BELOW, ABOVE, LEFT }
 
 const GAP := 34.0  # distance between the pill and the target
 const BOB := 4.0
@@ -12,7 +14,7 @@ const BOB := 4.0
 var _pill: PanelContainer
 var _label: Label
 var _target := Rect2()
-var _above := true
+var _side := Side.BELOW
 var _time := 0.0
 
 
@@ -44,8 +46,9 @@ func _ready() -> void:
 	visible = false
 
 
-## Aim at `target` (global rect) with `text` in the pill.
-func point_at(target: Rect2, text: String) -> void:
+## Aim at `target` (global rect) with `text` in the pill. `beside` hangs the pill to its
+## left (for a row in a list, so the rows under it stay readable).
+func point_at(target: Rect2, text: String, beside := false) -> void:
 	if _label.text != text:
 		_label.text = text
 		_pill.reset_size()
@@ -53,7 +56,10 @@ func point_at(target: Rect2, text: String) -> void:
 	# Prefer hanging below the target (key hints sit at the bottom of a menu, so the space
 	# under them is free); go above when there's no room left at the screen bottom.
 	var room_below := get_viewport_rect().size.y - (target.end.y + GAP + _pill.size.y)
-	_above = room_below < 8.0
+	if beside:
+		_side = Side.LEFT
+	else:
+		_side = Side.ABOVE if room_below < 8.0 else Side.BELOW
 	visible = true
 	queue_redraw()
 
@@ -67,9 +73,15 @@ func _process(delta: float) -> void:
 		return
 	_time += delta
 	var bob := sin(_time * 6.0) * BOB
+	if _side == Side.LEFT:
+		var x := maxf(_target.position.x - GAP - _pill.size.x + bob, 8.0)
+		_pill.position = Vector2(x, _target.get_center().y - _pill.size.y * 0.5)
+		queue_redraw()
+		return
 	var cx := _target.get_center().x - _pill.size.x * 0.5
 	cx = clampf(cx, 8.0, get_viewport_rect().size.x - _pill.size.x - 8.0)
-	var y := _target.position.y - GAP - _pill.size.y + bob if _above else _target.end.y + GAP + bob
+	var above := _side == Side.ABOVE
+	var y := _target.position.y - GAP - _pill.size.y + bob if above else _target.end.y + GAP + bob
 	_pill.position = Vector2(cx, y)
 	queue_redraw()
 
@@ -77,15 +89,32 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if not visible:
 		return
+	if _side == Side.LEFT:
+		_draw_side_arrow()
+		return
+	var above := _side == Side.ABOVE
 	var tip := Vector2(
-		_target.get_center().x, _target.position.y - 3.0 if _above else _target.end.y + 3.0
+		_target.get_center().x, _target.position.y - 3.0 if above else _target.end.y + 3.0
 	)
-	var start := Vector2(tip.x, _pill.position.y + (_pill.size.y if _above else 0.0))
-	var dir := 1.0 if _above else -1.0
+	var start := Vector2(tip.x, _pill.position.y + (_pill.size.y if above else 0.0))
+	var dir := 1.0 if above else -1.0
 	draw_line(start, tip - Vector2(0, 7.0 * dir), Style.WALNUT, 3.0, true)
 	var head := PackedVector2Array(
 		[tip, tip + Vector2(-7.0, -9.0 * dir), tip + Vector2(7.0, -9.0 * dir)]
 	)
+	draw_colored_polygon(head, Style.BRASS)
+	head.append(tip)
+	draw_polyline(head, Style.WALNUT, 2.0, true)
+
+
+## The arrow from the pill's right end to the target's left edge.
+func _draw_side_arrow() -> void:
+	var tip := Vector2(_target.position.x - 3.0, _target.get_center().y)
+	var start := Vector2(_pill.position.x + _pill.size.x, tip.y)
+	if start.x >= tip.x - 9.0:
+		return  # squeezed against the screen edge: the pill sits on the target itself
+	draw_line(start, tip - Vector2(7.0, 0.0), Style.WALNUT, 3.0, true)
+	var head := PackedVector2Array([tip, tip + Vector2(-9.0, -7.0), tip + Vector2(-9.0, 7.0)])
 	draw_colored_polygon(head, Style.BRASS)
 	head.append(tip)
 	draw_polyline(head, Style.WALNUT, 2.0, true)
