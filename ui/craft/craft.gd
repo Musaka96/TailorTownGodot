@@ -9,6 +9,11 @@ class_name Craft
 ## Everything is static and draws onto the CanvasItem it is given, in its local space.
 
 const SHADOW_OFFSET := Vector2(0, 5)
+## How many flourish() variations there are (see _play_flourish).
+const FLOURISHES := 5
+
+## The last flourish played, so the same one never plays twice in a row.
+static var _last_flourish := -1
 
 # --- Silhouettes -------------------------------------------------------------
 
@@ -111,13 +116,33 @@ static func outline(ci: CanvasItem, poly: PackedVector2Array, col: Color, width 
 	ci.draw_polyline(closed, col, width, true)
 
 
-## A dashed running stitch `inset` px inside the polygon's edge.
+## A dashed running stitch `inset` px inside the polygon's edge. `progress` < 1 draws only
+## that fraction of the way round (from the first corner), for sewing it in.
 static func stitch(
-	ci: CanvasItem, poly: PackedVector2Array, col: Color, inset := 6.0, width := 1.5
+	ci: CanvasItem,
+	poly: PackedVector2Array,
+	col: Color,
+	inset := 6.0,
+	width := 1.5,
+	progress := 1.0,
 ) -> void:
 	var inner := offset(poly, -inset)
+	var left := INF
+	if progress < 1.0:
+		var total := 0.0
+		for i in inner.size():
+			total += inner[i].distance_to(inner[(i + 1) % inner.size()])
+		left = total * maxf(progress, 0.0)
 	for i in inner.size():
-		ci.draw_dashed_line(inner[i], inner[(i + 1) % inner.size()], col, width, 5.0)
+		var a := inner[i]
+		var b := inner[(i + 1) % inner.size()]
+		var run := a.distance_to(b)
+		if run > left:
+			if left > 1.0:
+				ci.draw_dashed_line(a, a.lerp(b, left / run), col, width, 5.0)
+			return
+		ci.draw_dashed_line(a, b, col, width, 5.0)
+		left -= run
 
 
 ## A brass eyelet (punched hole) with an optional loop of string rising from it.
@@ -231,6 +256,64 @@ static func wiggle(c: Control, deg := 3.0, rest_deg := 0.0) -> void:
 	var tw := c.create_tween()
 	for d in [deg, -deg * 0.7, deg * 0.4, 0.0]:
 		tw.tween_property(c, "rotation_degrees", rest_deg + d, 0.07)
+
+
+## The little "picked!" flourish a card gives when it becomes the selection: one of a few
+## variations in the same springy style (a wiggle, a bump, a squash, a swing off one pin,
+## the stitching sewn in), never the same one twice running.
+static func flourish(c: Control) -> void:
+	if c == null or not c.is_inside_tree():
+		return
+	if c.size.x < 1.0:
+		await c.get_tree().process_frame  # let the container lay it out so pivots are right
+		if not is_instance_valid(c) or not c.is_inside_tree():
+			return
+	var pick := randi() % FLOURISHES
+	if pick == _last_flourish:
+		pick = (pick + 1 + randi() % (FLOURISHES - 1)) % FLOURISHES
+	_last_flourish = pick
+	_play_flourish(c, pick)
+
+
+static func _play_flourish(c: Control, pick: int) -> void:
+	# A card re-selected mid-flourish starts clean rather than stacking tweens.
+	if c.has_meta("flourish_tween"):
+		var old: Tween = c.get_meta("flourish_tween")
+		if old != null and old.is_valid():
+			old.kill()
+	c.scale = Vector2.ONE
+	c.rotation_degrees = 0.0
+	var tw := c.create_tween()
+	c.set_meta("flourish_tween", tw)
+	var dir := 1.0 if randf() < 0.5 else -1.0
+	match pick:
+		0:  # wiggle, either way round
+			c.pivot_offset = Vector2(c.size.x * 0.5, 0.0)
+			for d in [1.2, -0.84, 0.48, 0.0]:
+				tw.tween_property(c, "rotation_degrees", d * dir, 0.07)
+		1:  # springy bump
+			c.pivot_offset = c.size * 0.5
+			tw.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(c, "scale", Vector2(1.035, 1.035), 0.08)
+			tw.tween_property(c, "scale", Vector2.ONE, 0.18)
+		2:  # squash & stretch, like a cushion being pressed
+			c.pivot_offset = Vector2(c.size.x * 0.5, c.size.y)
+			tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw.tween_property(c, "scale", Vector2(1.03, 0.9), 0.07)
+			tw.tween_property(c, "scale", Vector2(0.99, 1.04), 0.09)
+			tw.tween_property(c, "scale", Vector2.ONE, 0.12)
+		3:  # swings off one corner pin and settles
+			c.pivot_offset = Vector2(c.size.x if dir < 0.0 else 0.0, 0.0)
+			c.rotation_degrees = 1.6 * dir
+			tw.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+			tw.tween_property(c, "rotation_degrees", 0.0, 0.55)
+		_:  # the stitching runs round the card as it's sewn in, with a tiny lift
+			c.pivot_offset = c.size * 0.5
+			if "stitch_progress" in c:
+				c.set("stitch_progress", 0.0)
+				tw.tween_property(c, "stitch_progress", 1.0, 0.32)
+			tw.parallel().tween_property(c, "scale", Vector2(1.02, 1.02), 0.1)
+			tw.tween_property(c, "scale", Vector2.ONE, 0.14)
 
 
 ## A small scale bump (for "this changed").

@@ -25,6 +25,11 @@ var string_len := 0.0  # string rising from the eyelet
 var radius := 12.0
 var pad := Vector2(Style.S3, Style.S2)
 var line_width := 2.0
+## How far round the stitching is drawn (0..1) — animated by Craft.flourish's sew-in.
+var stitch_progress := 1.0:
+	set(v):
+		stitch_progress = v
+		queue_redraw()
 var sway := 0.0:  # string sway (animated by callers)
 	set(v):
 		sway = v
@@ -38,14 +43,14 @@ func _init() -> void:
 
 ## A selectable option card used across the menus: plain cream label normally; when
 ## selected it brightens, takes the menu's `accent` outline and a matching stitch, and
-## gives a small wiggle.
+## gives a small flourish (see Craft.flourish — it varies so scrolling doesn't repeat).
 static func option(selected: bool, accent: Color) -> CraftPanel:
 	var card := CraftPanel.new()
 	card.pad = Vector2(Style.S3, Style.S2)
 	card.setup(Shape.ROUNDED, Style.CARD)
 	card.set_option_selected(selected, accent)
 	if selected:
-		card.ready.connect(func() -> void: Craft.wiggle(card, 1.2), CONNECT_ONE_SHOT)
+		card.ready.connect(func() -> void: Craft.flourish(card), CONNECT_ONE_SHOT)
 	return card
 
 
@@ -57,9 +62,10 @@ func set_option_selected(selected: bool, accent: Color, animate := false) -> voi
 	line = accent if selected else Style.CREAM_DARK
 	line_width = 3.0 if selected else 1.5
 	stitch_color = accent if selected else Style.NONE
+	stitch_progress = 1.0
 	queue_redraw()
 	if selected and animate and is_inside_tree():
-		Craft.wiggle(self, 1.2)
+		Craft.flourish(self)
 
 
 ## Configure in one call; returns self for chaining.
@@ -118,7 +124,8 @@ func _draw() -> void:
 	var poly := polygon()
 	Craft.card(self, poly, fill, line, line_width)
 	if stitch_color.a > 0.0:
-		Craft.stitch(self, poly, stitch_color, 5.0 if shape == Shape.PATCH else 6.0)
+		var inset := 5.0 if shape == Shape.PATCH else 6.0
+		Craft.stitch(self, poly, stitch_color, inset, 1.5, stitch_progress)
 	if eyelet:
 		var at := Vector2(size.x * 0.5, 14.0)
 		if shape == Shape.PRICE_TAG:

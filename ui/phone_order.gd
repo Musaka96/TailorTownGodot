@@ -12,6 +12,11 @@ enum ORow { FABRIC, COLOR, PATTERN, PATTERN_COLOR, LENGTH }
 
 const PANEL_W := 520
 const LIST_MARGIN := 28.0  # breathing room kept below the panel when the list scrolls
+## The tallest the panel gets (a long list fills this and scrolls inside it).
+const PANEL_MAX_H := 660.0
+## Room around the cards inside the scroll area, so a card's outline, drop shadow and
+## selection flourish aren't clipped at the list's edges.
+const LIST_PAD := 6
 const LENGTH_MIN := 2.0  # fallbacks; Config.roll_min_m / roll_step_m win
 const LENGTH_STEP := 1.0
 const HUB_OPTIONS := [
@@ -48,6 +53,7 @@ var _row := 0
 var _status := ""
 var _upg_ids: Array = []
 var _list_scroll: ScrollContainer
+var _list_pad: MarginContainer
 var _selected_row: Control = null
 var _placed := false
 var _swatch: MaterialSwatch
@@ -109,25 +115,39 @@ func _wrap_rows() -> void:
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(_list_scroll)
 	box.move_child(_list_scroll, at)
+	_list_pad = MarginContainer.new()
+	_list_pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right", "top"]:
+		_list_pad.add_theme_constant_override("margin_" + side, LIST_PAD)
+	_list_pad.add_theme_constant_override("margin_bottom", LIST_PAD + 4)  # + the drop shadow
+	_list_scroll.add_child(_list_pad)
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_scroll.add_child(_rows)
+	_list_pad.add_child(_rows)
 
 
-## Size the list to its content, capped by the room left on screen, and keep the
-## selected row in view.
+## Short screens hug their content. The long upgrades list gets a FIXED panel as tall as
+## the screen allows, with the list filling it and scrolling inside — so the panel never
+## changes size as the selection moves. Either way the selected row is kept in view.
 func _fit_list() -> void:
 	if _list_scroll == null or not visible:
 		return
-	var want := _rows.get_combined_minimum_size().y
-	var others := _panel.get_combined_minimum_size().y - _list_scroll.custom_minimum_size.y
-	var room := get_viewport_rect().size.y - _panel.offset_top - LIST_MARGIN - others
-	_list_scroll.custom_minimum_size.y = clampf(want, 0.0, maxf(room, 120.0))
+	var tallest := minf(get_viewport_rect().size.y - _panel.offset_top - LIST_MARGIN, PANEL_MAX_H)
+	if _screen == Screen.UPGRADES:
+		_list_scroll.custom_minimum_size.y = 0.0
+		_list_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_panel.offset_bottom = _panel.offset_top + tallest
+	else:
+		_list_scroll.size_flags_vertical = Control.SIZE_FILL
+		_panel.offset_bottom = _panel.offset_top
+		var want := _list_pad.get_combined_minimum_size().y
+		var others := _panel.get_combined_minimum_size().y - _list_scroll.custom_minimum_size.y
+		_list_scroll.custom_minimum_size.y = clampf(want, 0.0, maxf(tallest - others, 120.0))
 	# Two frames: one for the new rows to lay out, one for the resized scroll area.
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if _selected_row == null or not is_instance_valid(_selected_row):
 		return
-	var mid := _selected_row.position.y + _selected_row.size.y * 0.5
+	var mid := LIST_PAD + _selected_row.position.y + _selected_row.size.y * 0.5
 	_list_scroll.scroll_vertical = int(mid - _list_scroll.size.y * 0.5)
 
 

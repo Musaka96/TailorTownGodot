@@ -154,7 +154,7 @@ func _highlight(old: int) -> void:
 	var card: CraftPanel = _cards[_index]
 	_card_look(card, true)
 	if old != _index:
-		Craft.wiggle(card, 1.5)
+		Craft.flourish(card)
 	if _scroll != null:
 		_scroll.ensure_control_visible(card)
 
