@@ -34,7 +34,7 @@ const DIAL_GOOD := 0.11
 const FILL_BASE := 0.26  # gauge units a second at the bottom…
 const FILL_ACCEL := 0.6  # …plus this much per unit already filled
 const SWEEP_SPEED := 0.95  # dial sweeps a second
-const BEAT_PAUSE := 0.55  # a breath between beats, with the grade showing
+const BEAT_PAUSE := 0.85  # between beats: the grade shows, the portafilter is carried on
 const PERFECT_CUP := 0.9
 const GOOD_CUP := 0.6
 
@@ -42,6 +42,10 @@ const GRIND_LOOP := "grinder"
 const POUR_LOOP := "pour"
 const LOOP_DB := -5.0
 const COUNTER_INSET := 10.0
+const COUNTER_H := 62.0  # the counter's front, below the things standing on it
+const SCENE_H := 300.0  # the tallest thing on the counter, in CoffeeArt's own units
+const TAMP_TOP := -150.0  # the tamper's face above the mat at rest…
+const TAMP_BOTTOM := -18.0  # …and rammed right down into the basket
 
 var _state := State.RUNNING
 var _armed := false  # the press that opened the counter must be let go first
@@ -53,6 +57,11 @@ var _mark := 0.5
 var _dir := 1.0
 var _holding := false
 var _pause := 0.0
+var _anim := 0.0  # free-running, for steam, beans and falling grounds
+var _beat_time := 0.0
+var _tilt := 0.0  # how far the carafe is tipped, easing after the button
+var _tamped := 0.0  # where the tamp and the pour stopped, to go on showing them
+var _poured := 0.0
 
 var _complete: AudioStream
 var _ruined: AudioStream
@@ -89,6 +98,9 @@ func start_cup(title: String) -> void:
 	_grades = []
 	_beat = -1
 	_pause = 0.0
+	_tilt = 0.0
+	_tamped = 0.0
+	_poured = 0.0
 	_max_mistakes = 0
 	_set_job(title)
 	_show_panel()
@@ -111,7 +123,12 @@ func _stop_sounds() -> void:
 
 
 func _process(delta: float) -> void:
+	_anim += delta
+	_beat_time += delta
+	var tipping := _holding and _kind() == Beat.POUR and _state == State.RUNNING
+	_tilt = lerpf(_tilt, 1.0 if tipping else 0.0, clampf(delta * 9.0, 0.0, 1.0))
 	if _state != State.RUNNING:
+		_repaint()
 		return
 	if _pause > 0.0:
 		_pause -= delta
@@ -159,6 +176,7 @@ func _next_beat() -> void:
 		_succeed()
 		return
 	_level = 0.0
+	_beat_time = 0.0
 	_dir = 1.0
 	_holding = false
 	_armed = false  # each beat wants a fresh press
@@ -216,6 +234,10 @@ func _judge(fine: float, good: float) -> int:
 func _grade(grade: int) -> void:
 	_stop_sounds()
 	_holding = false
+	if _kind() == Beat.TAMP:
+		_tamped = _level
+	elif _kind() == Beat.POUR:
+		_poured = _level
 	_grades.append(grade)
 	if _kind() == Beat.TAMP:
 		Sfx.play("tamp")
@@ -237,7 +259,6 @@ func _score() -> float:
 
 func _succeed() -> void:
 	_state = State.SUCCESS
-	set_process(false)
 	_stop_sounds()
 	_play(_complete, 0.7)
 	var score := _score()
@@ -254,7 +275,7 @@ func _succeed() -> void:
 
 func _spill() -> void:
 	_state = State.SPILLED
-	set_process(false)
+	_holding = false
 	_stop_sounds()
 	_play(_ruined, 0.8)
 	Craft.wiggle(_panel, SLIP_ROCK)
@@ -274,6 +295,8 @@ func _update_status() -> void:
 
 
 # --- Painting (called from the MinigameCanvas) -----------------------------
+# The things themselves are CoffeeArt's; this lays out the counter, moves them with the
+# game, and draws the game's marks (band, needle, fill line) on top of them.
 
 
 func _paint(c: Control) -> void:
@@ -281,134 +304,195 @@ func _paint(c: Control) -> void:
 		Vector2(COUNTER_INSET, COUNTER_INSET),
 		c.size - Vector2(COUNTER_INSET * 2.0, COUNTER_INSET * 2.0)
 	)
-	var top := StyleBoxFlat.new()
-	top.bg_color = Style.WALNUT.lightened(0.1)
-	top.set_corner_radius_all(14)
-	top.set_border_width_all(3)
-	top.border_color = Style.WALNUT
-	c.draw_style_box(top, rect)
-	var n := maxi(1, _beat_list.size())
-	var w := rect.size.x / n
-	for i in n:
-		var slot := Rect2(rect.position.x + i * w, rect.position.y, w, rect.size.y).grow(-12.0)
-		_paint_slot(c, slot, i)
+	var wall := StyleBoxFlat.new()
+	wall.bg_color = Style.CARD
+	wall.set_corner_radius_all(14)
+	wall.set_border_width_all(3)
+	wall.border_color = Style.WALNUT
+	c.draw_style_box(wall, rect)
+	var top := rect.end.y - COUNTER_H
+	var slab := Rect2(rect.position.x + 3.0, top, rect.size.x - 6.0, COUNTER_H - 3.0)
+	c.draw_rect(slab, Style.WALNUT.lightened(0.08))
+	c.draw_rect(Rect2(slab.position, Vector2(slab.size.x, 7.0)), Style.WALNUT.lightened(0.22))
+	c.draw_line(slab.position, Vector2(slab.end.x, top), Style.WALNUT, 2.0)
+	var s := clampf((rect.size.y - COUNTER_H - 8.0) / SCENE_H, 0.5, 1.5)
+	if _beat_list.size() > 1:
+		_paint_espresso_bar(c, rect, top, s)
+	else:
+		_paint_coffee_corner(c, rect, top, s)
+	c.draw_set_transform(Vector2.ZERO)
+	_paint_labels(c, rect, top)
 
 
-## One beat's place on the counter: a card, its name, its grade once made, and the thing
-## itself. The beat in hand is bright; the others wait dimmed.
-func _paint_slot(c: Control, slot: Rect2, index: int) -> void:
-	var active := index == _beat and _state == State.RUNNING
-	var card := StyleBoxFlat.new()
-	card.bg_color = Style.CARD if active else Style.tint(Style.CARD, 0.55)
-	card.set_corner_radius_all(10)
-	card.set_border_width_all(3 if active else 1)
-	card.border_color = Style.BRASS if active else Style.RIM_DARK
-	c.draw_style_box(card, slot)
-	var kind: int = _beat_list[index] if index < _beat_list.size() else Beat.POUR
-	var font := Style.bold_font()
-	var label: String = BEAT_NAME[kind]
-	if index < _grades.size():
-		label += " · " + GRADE_WORD[_grades[index]]
-	c.draw_string(font, slot.position + Vector2(12.0, 24.0), label, 0, -1, 16, Style.INK)
-	var level := _level if index == _beat else (-1.0 if index > _beat else -2.0)
-	var body := Rect2(slot.position + Vector2(0.0, 32.0), slot.size - Vector2(0.0, 40.0))
-	match kind:
-		Beat.GRIND:
-			_paint_dial(c, body, level)
-		Beat.TAMP:
-			_paint_tamp(c, body, level)
-		_:
-			_paint_cup(c, body, level)
+func _place(c: Control, at: Vector2, s: float, turn := 0.0) -> void:
+	c.draw_set_transform(at, turn, Vector2(s, s))
 
 
-## `level` < 0 means the beat is not live: -1 still to come, -2 already made.
-func _paint_dial(c: Control, body: Rect2, level: float) -> void:
-	var r := minf(body.size.x * 0.42, body.size.y - 30.0)
-	var at := Vector2(body.get_center().x, body.get_center().y + r * 0.5)
-	c.draw_arc(at, r, PI, TAU, 32, Style.WALNUT, 4.0, true)
-	c.draw_circle(at, 7.0, Style.BRASS)
-	if level < 0.0:
-		return
-	var a0 := PI + (_mark - DIAL_GOOD) * PI
-	var a1 := PI + (_mark + DIAL_GOOD) * PI
-	c.draw_arc(at, r - 9.0, a0, a1, 12, Style.tint(Style.FOREST, 0.5), 12.0)
-	var p0 := PI + (_mark - DIAL_PERFECT) * PI
-	var p1 := PI + (_mark + DIAL_PERFECT) * PI
-	c.draw_arc(at, r - 9.0, p0, p1, 8, Style.FOREST, 12.0)
-	var ang := PI + level * PI
-	c.draw_line(at, at + Vector2(cos(ang), sin(ang)) * (r - 2.0), Style.CLAY, 4.0, true)
+## Instant coffee: the filter machine, a glass mug on its saucer, and the carafe tipping
+## over it while the button is held.
+func _paint_coffee_corner(c: Control, rect: Rect2, top: float, s: float) -> void:
+	_place(c, Vector2(rect.position.x + rect.size.x * 0.2, top), s)
+	CoffeeArt.filter_machine(c)
+	var cup := Vector2(rect.position.x + rect.size.x * 0.6, top)
+	_place(c, cup, s)
+	CoffeeArt.saucer(c, CoffeeArt.MUG.x + 56.0)
+	_place(c, cup + Vector2(0.0, -9.0) * s, s)
+	_paint_vessel(c, CoffeeArt.MUG, true)
+	var spout := cup + Vector2(-8.0, -9.0 - CoffeeArt.MUG.z - 58.0) * s
+	if _holding and _state == State.RUNNING:
+		var surface := CoffeeArt.level_y(CoffeeArt.MUG, _level) - 9.0
+		c.draw_set_transform(Vector2.ZERO)
+		var fall := Vector2(spout.x + 3.0 * s, cup.y + surface * s)
+		c.draw_line(spout, fall, CoffeeArt.coffee(), 7.0 * s, true)
+		c.draw_circle(spout, 3.5 * s, CoffeeArt.coffee())
+	var turn := lerpf(-0.12, 0.62, _tilt)
+	_place(c, spout, s, turn)
+	CoffeeArt.carafe(c, turn)
 
 
-func _paint_tamp(c: Control, body: Rect2, level: float) -> void:
-	var tube := Rect2(body.get_center().x - 26.0, body.position.y + 6.0, 52.0, body.size.y - 22.0)
-	c.draw_rect(tube, Style.tint(Style.WALNUT, 0.15))
-	c.draw_rect(tube, Style.WALNUT, false, 3.0)
-	if level < 0.0:
-		return
-	_paint_band(c, tube, true)
-	# The tamper comes down from the top as the gauge climbs.
-	var y := lerpf(tube.position.y, tube.end.y, level)
-	c.draw_line(
-		Vector2(tube.get_center().x, tube.position.y - 4.0),
-		Vector2(tube.get_center().x, y),
-		Style.WALNUT,
-		8.0
+## Espresso: grinder, tamping mat and machine in a row, and the one portafilter carried
+## from each to the next as its beat is made.
+func _paint_espresso_bar(c: Control, rect: Rect2, top: float, s: float) -> void:
+	var grinder := Vector2(rect.position.x + rect.size.x * 0.14, top)
+	var mat := Vector2(rect.position.x + rect.size.x * 0.43, top)
+	var machine := Vector2(rect.position.x + rect.size.x * 0.77, top)
+	var kind := _kind()
+	var grinding := kind == Beat.GRIND and _pause <= 0.0 and _state == State.RUNNING
+	_place(c, grinder, s)
+	CoffeeArt.grinder(c, _anim if grinding else 0.0)
+	_paint_dial(c)
+	_place(c, mat, s)
+	CoffeeArt.tamp_mat(c)
+	_place(c, machine, s)
+	var pulling := kind == Beat.POUR and _holding
+	CoffeeArt.machine(c, (0.75 + 0.05 * sin(_anim * 9.0)) if pulling else 0.0)
+	_place(c, machine + CoffeeArt.TRAY_AT * s, s)
+	_paint_vessel(c, CoffeeArt.SHOT_GLASS, false)
+	if pulling and _state == State.RUNNING:
+		_paint_shot(c)
+	# The portafilter, wherever it has got to.
+	var docks := [
+		grinder + CoffeeArt.FORK_AT * s,
+		mat + CoffeeArt.MAT_AT * s,
+		machine + CoffeeArt.GROUP_AT * s,
+	]
+	var made := _grades.size()
+	var heap := 1.0 if made > 0 else (clampf(_beat_time / 1.6, 0.0, 1.0) if grinding else 0.0)
+	if grinding:
+		_paint_grounds(c, docks[0], s)
+	if kind == Beat.TAMP or (made == 1 and _pause > 0.0):
+		_paint_tamper(c, mat, s, kind == Beat.TAMP and _pause <= 0.0)
+	_place(c, _carried(docks, s), s)
+	CoffeeArt.portafilter(c, heap, made >= 2)
+
+
+## Where the portafilter is: docked for the beat in hand, or on its way to the next one
+## while the last beat's grade is showing.
+func _carried(docks: Array, s: float) -> Vector2:
+	var here: Vector2 = docks[clampi(_beat, 0, docks.size() - 1)]
+	if _pause <= 0.0 or _beat + 1 >= docks.size() or _grades.size() <= _beat:
+		return here
+	var t := smoothstep(0.15, 1.0, 1.0 - _pause / BEAT_PAUSE)
+	var there: Vector2 = docks[_beat + 1]
+	# Lifted over the counter to the mat; brought in from underneath to lock into the group.
+	var arc := -46.0 if _beat == 0 else 30.0
+	return here.lerp(there, t) + Vector2(0.0, sin(t * PI) * arc * s)
+
+
+## The grind gauge, on the grinder's own dial: the band, and the needle sweeping past it.
+func _paint_dial(c: Control) -> void:
+	var at := CoffeeArt.DIAL_AT
+	var r := CoffeeArt.DIAL_R
+	c.draw_arc(at, r - 7.0, PI, TAU, 24, Style.tint(Style.WALNUT, 0.35), 3.0, true)
+	var live := _kind() == Beat.GRIND and _state == State.RUNNING
+	if live:
+		var a0 := PI + (_mark - DIAL_GOOD) * PI
+		var a1 := PI + (_mark + DIAL_GOOD) * PI
+		c.draw_arc(at, r - 12.0, a0, a1, 12, Style.tint(Style.FOREST, 0.45), 14.0)
+		var p0 := PI + (_mark - DIAL_PERFECT) * PI
+		var p1 := PI + (_mark + DIAL_PERFECT) * PI
+		c.draw_arc(at, r - 12.0, p0, p1, 8, Style.FOREST, 14.0)
+		var notch := PI + _mark * PI
+		var rim := Vector2(cos(notch), sin(notch))
+		c.draw_line(at + rim * (r - 3.0), at + rim * (r + 5.0), Style.BRASS, 4.0)
+	var ang := PI + (_level if live else 0.0) * PI
+	c.draw_line(at, at + Vector2(cos(ang), sin(ang)) * (r - 6.0), Style.CLAY, 4.0, true)
+	c.draw_circle(at, 6.0, Style.BRASS)
+
+
+## Ground coffee falling from the chute into the basket.
+func _paint_grounds(c: Control, dock: Vector2, s: float) -> void:
+	_place(c, dock, s)
+	for k in 7:
+		var t := fmod(_anim * 2.2 + k / 7.0, 1.0)
+		var x := sin(k * 7.3) * 7.0
+		c.draw_circle(Vector2(x, lerpf(-30.0, -10.0, t)), 2.5, Style.BROWN.darkened(0.3))
+
+
+## The tamper over the mat, coming down with the gauge, and the rule beside it that the
+## brass pointer on its neck rides down: that pointer against the band is the tamp gauge.
+func _paint_tamper(c: Control, mat: Vector2, s: float, live: bool) -> void:
+	var press := _level if live else _tamped
+	var face := lerpf(TAMP_TOP, TAMP_BOTTOM, press)
+	_place(c, mat, s)
+	var span := TAMP_BOTTOM - TAMP_TOP
+	var rule := Rect2(64.0, TAMP_TOP, 24.0, span)
+	c.draw_rect(rule, Style.tint(Style.WALNUT, 0.12))
+	c.draw_rect(rule, Style.WALNUT, false, 2.0)
+	if live:
+		var y := lerpf(TAMP_TOP, TAMP_BOTTOM, _mark)
+		var good := GOOD_BAND * span
+		var fine := PERFECT_BAND * span
+		c.draw_rect(Rect2(64.0, y - good, 24.0, good * 2.0), Style.tint(Style.FOREST, 0.3))
+		c.draw_rect(Rect2(64.0, y - fine, 24.0, fine * 2.0), Style.tint(Style.FOREST, 0.55))
+		c.draw_line(Vector2(58.0, y), Vector2(98.0, y), Style.BRASS, 3.0)
+	c.draw_line(Vector2(0.0, face - 20.0), Vector2(62.0, face), Style.BRASS, 3.0, true)
+	var tip := PackedVector2Array(
+		[Vector2(64.0, face), Vector2(54.0, face - 6.0), Vector2(54.0, face + 6.0)]
 	)
-	c.draw_rect(Rect2(tube.position.x + 3.0, y - 6.0, tube.size.x - 6.0, 12.0), Style.STEEL)
+	c.draw_colored_polygon(tip, Style.BRASS)
+	_place(c, mat + Vector2(0.0, face) * s, s)
+	CoffeeArt.tamper(c)
 
 
-func _paint_cup(c: Control, body: Rect2, level: float) -> void:
-	var w := minf(body.size.x * 0.5, 130.0)
-	var cup := Rect2(body.get_center().x - w * 0.5, body.position.y + 26.0, w, body.size.y - 44.0)
-	c.draw_rect(cup, Style.tint(Style.CHALK, 0.6))
-	if level >= 0.0 or level == -2.0:
-		var shown := level if level >= 0.0 else _mark
-		var h := cup.size.y * clampf(shown, 0.0, 1.0)
-		var coffee := Rect2(cup.position.x, cup.end.y - h, cup.size.x, h)
-		c.draw_rect(coffee, Style.WALNUT.darkened(0.25))
-		c.draw_rect(Rect2(coffee.position, Vector2(cup.size.x, minf(h, 5.0))), Style.LINEN)
-	c.draw_rect(cup, Style.INK, false, 3.0)
-	c.draw_arc(
-		Vector2(cup.end.x, cup.get_center().y),
-		cup.size.y * 0.22,
-		-PI / 2.0,
-		PI / 2.0,
-		12,
-		Style.INK,
-		4.0
-	)
-	if level < 0.0:
-		return
-	_paint_band(c, cup, false)
-	if _holding:
-		var x := cup.get_center().x
-		var to := cup.end.y - cup.size.y * level
-		c.draw_line(Vector2(x, body.position.y), Vector2(x, to), Style.WALNUT.darkened(0.25), 6.0)
+## A glass with the game in it: the level while it is being poured, the line to stop at,
+## what was poured once it is done, and the mess if it went over.
+func _paint_vessel(c: Control, dims: Vector3, handle: bool) -> void:
+	var pouring := _kind() == Beat.POUR and _beat >= 0
+	var level := _level if pouring else 0.0
+	if _state == State.SUCCESS or (pouring and _pause > 0.0):
+		level = _poured
+	CoffeeArt.glass(c, dims, level, handle)
+	if pouring and _state == State.RUNNING and _pause <= 0.0:
+		CoffeeArt.fill_mark(c, dims, _mark, GOOD_BAND, PERFECT_BAND)
 	if _state == State.SPILLED:
-		c.draw_line(
-			cup.position,
-			Vector2(cup.position.x - 14.0, cup.end.y),
-			Style.WALNUT.darkened(0.25),
-			5.0
-		)
-		c.draw_line(
-			Vector2(cup.end.x, cup.position.y),
-			cup.end + Vector2(14.0, 0.0),
-			Style.WALNUT.darkened(0.25),
-			5.0
-		)
+		CoffeeArt.spill(c, dims)
+	elif _state == State.SUCCESS or (pouring and _pause > 0.0):
+		CoffeeArt.steam(c, Vector2(0.0, -dims.z - 6.0), _anim)
 
 
-## The mark on a gauge: the good band, the perfect band inside it, and a brass line with a
-## notch either side so it reads without the green. `down` gauges fill from the top.
-func _paint_band(c: Control, gauge: Rect2, down: bool) -> void:
-	var at := gauge.position.y + gauge.size.y * _mark
-	if not down:
-		at = gauge.end.y - gauge.size.y * _mark
-	var good := gauge.size.y * GOOD_BAND
-	var fine := gauge.size.y * PERFECT_BAND
-	var x := gauge.position.x
-	var w := gauge.size.x
-	c.draw_rect(Rect2(x, at - good, w, good * 2.0), Style.tint(Style.FOREST, 0.22))
-	c.draw_rect(Rect2(x, at - fine, w, fine * 2.0), Style.tint(Style.FOREST, 0.45))
-	c.draw_line(Vector2(x - 8.0, at), Vector2(x + w + 8.0, at), Style.BRASS, 3.0)
+## The shot: two thin streams from the portafilter's spouts into the glass.
+func _paint_shot(c: Control) -> void:
+	var from := CoffeeArt.GROUP_AT - CoffeeArt.TRAY_AT + Vector2(0.0, 22.0)
+	var to := CoffeeArt.level_y(CoffeeArt.SHOT_GLASS, _level)
+	for side in [-1.0, 1.0]:
+		var a := from + Vector2(9.0 * side, 0.0)
+		c.draw_line(a, Vector2(a.x - 3.0 * side, to), CoffeeArt.coffee(), 3.0, true)
+
+
+## Each beat's name on the counter's front, under its station: the one in hand bright and
+## underlined in brass, the ones made with their grade.
+func _paint_labels(c: Control, rect: Rect2, top: float) -> void:
+	var font := Style.bold_font()
+	var spots := [0.14, 0.43, 0.77] if _beat_list.size() > 1 else [0.6]
+	for i in _beat_list.size():
+		var text: String = BEAT_NAME[_beat_list[i]]
+		if i < _grades.size():
+			text += " · " + GRADE_WORD[_grades[i]]
+		var active := i == _beat and _state == State.RUNNING
+		var col := Style.CREAM if active or i < _grades.size() else Style.tint(Style.CREAM, 0.45)
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+		var at := Vector2(rect.position.x + rect.size.x * spots[i] - width * 0.5, top + 38.0)
+		c.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, col)
+		if active:
+			c.draw_line(at + Vector2(0.0, 7.0), at + Vector2(width, 7.0), Style.BRASS, 3.0, true)

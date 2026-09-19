@@ -31,6 +31,7 @@ const MIGRATED := [
 	"apprentice_menu.gd",
 	"press_minigame.gd",
 	"coffee_bench.gd",
+	"coffee_art.gd",
 	"coffee_pour_minigame.gd",
 	"espresso_minigame.gd",
 ]
@@ -58,6 +59,7 @@ const CHROME_BASE := {
 	"sew_pedal_minigame.gd": "minigame_screen.gd",
 	"press_minigame.gd": "minigame_screen.gd",
 	"coffee_bench.gd": "minigame_screen.gd",
+	"coffee_art.gd": "minigame_screen.gd",
 	"coffee_pour_minigame.gd": "minigame_screen.gd",
 	"espresso_minigame.gd": "minigame_screen.gd",
 }

@@ -371,34 +371,119 @@ func _paint_burns(c: Control) -> void:
 		_paint_x(c, p, Style.CLAY, 7.0)
 
 
-## The iron from the side: steel soleplate, enamel body, walnut handle. Lifted, it hangs
-## above its own shadow; pressed, it sits on the cloth and puffs steam.
+## The iron from the side, nose to the right: a polished soleplate, an enamel body that
+## slopes down to the nose, a walnut handle arched over it, a brass heat dial and a cord
+## trailing off the heel. Lifted, it hangs a little nose-up above its own shadow; pressed,
+## it sits flat on the cloth and breathes steam from under the plate.
 func _paint_iron(c: Control) -> void:
 	var r := _cloth_rect(c)
 	var half := IRON_HALF * r.size.x
 	var lift := 0.0 if _pressing else 26.0
-	var base := Vector2(_x_of(c, _iron), r.position.y + 10.0 - lift)
-	var shade := Rect2(base.x - half, r.position.y + 6.0, half * 2.0, 8.0)
-	c.draw_rect(shade, Style.tint(Style.WALNUT, 0.3 if _pressing else 0.15))
-	var body := PackedVector2Array(
+	var base := Vector2(_x_of(c, _iron), r.position.y + 12.0 - lift)
+	var shade := Rect2(base.x - half * 0.95, r.position.y + 8.0, half * 1.9, 10.0)
+	var dark := 0.32 if _pressing else 0.14
+	c.draw_colored_polygon(Craft.rounded(shade, 5.0), Style.tint(Style.WALNUT, dark))
+	if _pressing and _state == State.RUNNING:
+		_paint_steam(c, base, half)
+	var lean := 0.0 if _pressing else -0.06
+	c.draw_set_transform(base, lean + _vel * 0.05)
+	_paint_cord(c, half)
+	_paint_iron_body(c, half)
+	_paint_iron_handle(c, half)
+	c.draw_set_transform(Vector2.ZERO)
+
+
+## Everything below is drawn around the iron's own origin: the middle of the soleplate's
+## underside, x to the nose, y up the page negative.
+func _paint_iron_body(c: Control, half: float) -> void:
+	var body := PackedVector2Array([Vector2(-half + 3.0, -8.0)])
+	body.append_array(
+		_curve(Vector2(-half + 3.0, -8.0), Vector2(-half - 5.0, -36.0), Vector2(-half * 0.7, -44.0))
+	)
+	body.append_array(
+		_curve(Vector2(-half * 0.7, -44.0), Vector2(half * 0.6, -46.0), Vector2(half - 3.0, -8.0))
+	)
+	var enamel := Style.BURGUNDY
+	c.draw_colored_polygon(body, enamel)
+	# A band of light along the shoulder, and a cream pinstripe above the plate.
+	var shine := _curve(
+		Vector2(-half * 0.55, -38.0), Vector2(half * 0.45, -40.0), Vector2(half * 0.78, -15.0)
+	)
+	c.draw_polyline(shine, Style.tint(Style.CREAM, 0.35), 4.0, true)
+	var stripe := Style.tint(Style.CREAM, 0.7)
+	c.draw_line(Vector2(-half + 5.0, -13.0), Vector2(half - 10.0, -13.0), stripe, 1.5, true)
+	Craft.outline(c, body, Style.WALNUT, 2.0)
+	# The heat dial.
+	var dial := Vector2(-half * 0.2, -25.0)
+	c.draw_circle(dial, 7.5, Style.RIM_DARK)
+	c.draw_circle(dial, 6.0, Style.BRASS)
+	c.draw_line(dial, dial + Vector2(3.0, -4.0), Style.WALNUT, 2.0, true)
+	# The soleplate: a steel slab, bevelled up at the nose, bright along its top edge.
+	var sole := PackedVector2Array(
 		[
-			base + Vector2(-half, 0.0),
-			base + Vector2(half, 0.0),
-			base + Vector2(half * 0.8, -34.0),
-			base + Vector2(-half * 0.2, -44.0),
-			base + Vector2(-half, -14.0),
+			Vector2(-half, 0.0),
+			Vector2(half - 9.0, 0.0),
+			Vector2(half + 2.0, -6.0),
+			Vector2(half - 2.0, -9.0),
+			Vector2(-half, -9.0),
 		]
 	)
-	Craft.card(c, body, Style.BURGUNDY, Style.WALNUT, 2.0)
-	c.draw_line(base + Vector2(-half, 0.0), base + Vector2(half, 0.0), Style.STEEL, 5.0)
-	var grip_a := base + Vector2(-half * 0.55, -54.0)
-	var grip_b := base + Vector2(half * 0.75, -54.0)
-	c.draw_line(grip_a, grip_b, Style.WALNUT, 8.0)
-	c.draw_line(grip_a, grip_a + Vector2(4.0, 12.0), Style.WALNUT, 5.0)
-	c.draw_line(grip_b, grip_b + Vector2(-4.0, 16.0), Style.WALNUT, 5.0)
-	if not _pressing or _state != State.RUNNING:
-		return
-	for k in 3:
-		var t := fmod(_puff + k / 3.0, 1.0)
-		var at := base + Vector2((k - 1) * half * 0.9, -60.0 - t * 34.0)
-		c.draw_circle(at, 5.0 + t * 7.0, Style.tint(Style.CHALK, 0.55 * (1.0 - t)))
+	c.draw_colored_polygon(sole, Style.STEEL)
+	c.draw_line(Vector2(-half, -7.5), Vector2(half - 3.0, -7.5), Style.CHALK, 1.5, true)
+	Craft.outline(c, sole, Style.STEEL_DARK, 1.5)
+
+
+## The handle: one thick walnut arch from the heel to the shoulder, with rounded ends and a
+## line of light along the top of the grip.
+func _paint_iron_handle(c: Control, half: float) -> void:
+	var grip := _cubic(
+		Vector2(-half * 0.6, -41.0),
+		Vector2(-half * 0.85, -84.0),
+		Vector2(half * 0.62, -86.0),
+		Vector2(half * 0.42, -36.0)
+	)
+	c.draw_polyline(grip, Style.WALNUT.darkened(0.3), 13.0, true)
+	c.draw_polyline(grip, Style.WALNUT, 10.0, true)
+	for end in [grip[0], grip[grip.size() - 1]]:
+		c.draw_circle(end, 6.5, Style.WALNUT.darkened(0.3))
+	var light := PackedVector2Array()
+	for i in range(3, grip.size() - 3):
+		light.append(grip[i] + Vector2(0.0, -2.5))
+	c.draw_polyline(light, Style.tint(Style.CREAM, 0.3), 2.5, true)
+
+
+func _paint_cord(c: Control, half: float) -> void:
+	var cord := _cubic(
+		Vector2(-half * 0.72, -42.0),
+		Vector2(-half - 30.0, -60.0),
+		Vector2(-half - 20.0, -120.0),
+		Vector2(-half - 90.0, -150.0)
+	)
+	c.draw_polyline(cord, Style.INK, 3.5, true)
+	c.draw_circle(cord[0], 5.0, Style.INK)
+
+
+## Steam sighing out from under the plate, either side and off the nose.
+func _paint_steam(c: Control, base: Vector2, half: float) -> void:
+	for k in 5:
+		var t := fmod(_puff + k / 5.0, 1.0)
+		var side := (k - 2) / 2.0
+		var at := base + Vector2(side * half * 1.15, -4.0 - t * 46.0 - absf(side) * 6.0)
+		at.x += sin((t + k) * 5.0) * 5.0
+		c.draw_circle(at, 5.0 + t * 9.0, Style.tint(Style.CHALK, 0.5 * (1.0 - t)))
+
+
+## A quadratic curve as points (without its first point, so curves chain).
+func _curve(a: Vector2, ctrl: Vector2, b: Vector2, steps := 10) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		pts.append(a.lerp(ctrl, t).lerp(ctrl.lerp(b, t), t))
+	return pts
+
+
+func _cubic(a: Vector2, c1: Vector2, c2: Vector2, b: Vector2, steps := 16) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in steps + 1:
+		pts.append(a.bezier_interpolate(c1, c2, b, float(i) / steps))
+	return pts
