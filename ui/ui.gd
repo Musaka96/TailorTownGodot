@@ -3,6 +3,9 @@ extends CanvasLayer
 ## Root of all in-game UI — autoloaded as "UI" so any station can reach it.
 ## Holds the always-on HUD and the (hidden) shelf browse menu.
 
+const POP_HEIGHT := 2.6  # metres above the player's feet a pop-up appears at
+const OUTLINE := 8  # px of walnut outline on text drawn straight over the world
+
 ## Built in code (see _build_orders_menu / _build_clock) so the scene files never
 ## have to be regenerated to add them.
 var orders_menu: Control
@@ -16,6 +19,8 @@ var apprentice_menu: Control
 var bench_game: Control
 
 var _toast: Label
+var _toast_bar: PanelContainer
+var _toast_tween: Tween
 
 @onready var hud: Control = $HUD
 @onready var shelf_menu: Control = $ShelfMenu
@@ -231,22 +236,77 @@ func play_day_transition(old_day, new_day, earned, on_switch, on_done) -> void:
 	day_transition.play(old_day, new_day, earned, on_switch, on_done)
 
 
-## Brief centred message near the top of the screen (fades out on its own).
+## Brief centred message near the top of the screen, on a walnut bar so it reads over
+## any part of the shop (fades out on its own).
 func toast(text: String) -> void:
 	if _toast == null:
-		_toast = Label.new()
-		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_toast.add_theme_font_override("font", Style.font_medium())
-		_toast.add_theme_font_size_override("font_size", Style.T_NAME)
-		_toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-		_toast.position.y = 120
-		_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		hud.add_child(_toast)
+		_toast_bar = PanelContainer.new()
+		var sb := Style.bar(Style.tint(Style.WALNUT, 0.88), Style.S3)
+		sb.content_margin_left = Style.S3
+		sb.content_margin_right = Style.S3
+		sb.content_margin_top = Style.S1
+		sb.content_margin_bottom = Style.S1
+		_toast_bar.add_theme_stylebox_override("panel", sb)
+		_toast_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_toast = _outlined(Style.font_medium(), Style.T_VALUE, Style.CHALK)
+		_toast_bar.add_child(_toast)
+		var holder := CenterContainer.new()
+		holder.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		holder.position.y = 120
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(_toast_bar)
+		hud.add_child(holder)
 	_toast.text = text
-	_toast.modulate.a = 1.0
+	_toast_bar.modulate.a = 1.0
+	if _toast_tween != null:
+		_toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(1.6)
+	_toast_tween.tween_property(_toast_bar, "modulate:a", 0.0, 0.6)
+
+
+## A gain popping up over the player's head ("+16 reputation"), with an optional smaller
+## note under it. Outlined so it reads over floor, wall or grass. Falls back to a toast
+## when there is no player on screen.
+func pop_above_player(text: String, note := "", col: Color = Style.BRASS_LIGHT) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var cam := get_viewport().get_camera_3d()
+	if player == null or cam == null:
+		toast(text if note == "" else "%s — %s" % [text, note])
+		return
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 0)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var head := _outlined(Style.font_bold(), Style.T_TITLE, col)
+	head.text = text
+	box.add_child(head)
+	if note != "":
+		var sub := _outlined(Style.font_medium(), Style.T_BODY, Style.CHALK)
+		sub.text = note
+		box.add_child(sub)
+	hud.add_child(box)
+	var at := cam.unproject_position(player.global_position + Vector3.UP * POP_HEIGHT)
+	var size := box.get_combined_minimum_size()
+	box.position = at - Vector2(size.x * 0.5, size.y)
+	box.pivot_offset = Vector2(size.x * 0.5, size.y)
+	Craft.pop_in(box, 0.6, 0.3)
 	var tw := create_tween()
-	tw.tween_interval(1.3)
-	tw.tween_property(_toast, "modulate:a", 0.0, 0.6)
+	tw.tween_property(box, "position:y", box.position.y - 46.0, 1.9).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(box, "modulate:a", 0.0, 0.6).set_delay(1.3)
+	tw.tween_callback(box.queue_free)
+
+
+## A centred label with a walnut outline — legible on any background.
+func _outlined(font: Font, size: int, col: Color) -> Label:
+	var lbl := Label.new()
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.add_theme_font_override("font", font)
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_outline_color", Style.WALNUT)
+	lbl.add_theme_constant_override("outline_size", OUTLINE)
+	return lbl
 
 
 ## True while the shop is shut for the night — work stations refuse and show a hint.

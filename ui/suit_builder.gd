@@ -55,6 +55,7 @@ var _sub_label: Label
 var _brief_label: Label
 var _hint_bar: HBoxContainer
 var _total_slot: VBoxContainer
+var _scroll: ScrollContainer
 var _stock_badge: HBoxContainer
 var _stock_dot: Panel
 var _stock_label: Label
@@ -134,10 +135,13 @@ func _build_preview() -> void:
 	_name_label = Label.new()
 	_name_label.add_theme_font_override("font", Style.font_medium())
 	_name_label.add_theme_font_size_override("font_size", Style.T_NAME)
+	_name_label.clip_text = true
+	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(_name_label)
 	_sub_label = Label.new()
 	_sub_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sub_label.max_lines_visible = 2
 	info.add_child(_sub_label)
 	# A small "do I already have this cloth?" badge (dot + word) under the sub-line.
 	_stock_badge = HBoxContainer.new()
@@ -160,7 +164,6 @@ func _style() -> void:
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_sub_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
-	_rows.custom_minimum_size = Vector2(0, 236)
 	_build_decor_once()
 
 
@@ -183,8 +186,24 @@ func _build_decor_once() -> void:
 	_brief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_brief_label)
 	box.move_child(_brief_label, _head.get_index() + 1)
-	# Rows take the slack so the quote and the key prompts stay pinned to the bottom.
-	_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# The panel is the one fixed thing (docked right, full height): the rows fill what is
+	# left and scroll, so the quote and the key prompts stay pinned to the bottom and no
+	# content — a long cloth name, an extra badge line — can push the panel around.
+	_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var pad := MarginContainer.new()
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side: String in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, Style.S1 + 2)
+	var at := _rows.get_index()
+	box.remove_child(_rows)
+	box.add_child(_scroll)
+	box.move_child(_scroll, at)
+	_scroll.add_child(pad)
+	pad.add_child(_rows)
+	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_total_slot = VBoxContainer.new()
 	box.add_child(_total_slot)
 	_hint_bar = HBoxContainer.new()
@@ -416,7 +435,7 @@ func _refresh() -> void:
 		_name_label.text = "Whole suit"
 		_sub_label.text = "Pick a part to design and zoom in."
 	else:
-		_name_label.text = "%s — %s" % [Enums.garment_type_name(_type()), mat.display_name]
+		_name_label.text = mat.display_name
 		_sub_label.text = (
 			"%s  ·  %s" % [mat.summary(), Enums.styles_for(_type())[_cfg()["style_idx"]]]
 		)
@@ -441,12 +460,18 @@ func _refresh() -> void:
 	var rows := _active_rows()
 	_row = clampi(_row, 0, rows.size() - 1)
 	for child in _rows.get_children():
+		_rows.remove_child(child)  # gone now — old + new rows together would jolt the layout
 		child.queue_free()
 	for i in rows.size():
 		_rows.add_child(_make_row(rows[i], i == _row))
+	_keep_row_in_view.call_deferred()
 
 
-## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
+func _keep_row_in_view() -> void:
+	if _scroll != null and _row < _rows.get_child_count():
+		_scroll.ensure_control_visible(_rows.get_child(_row) as Control)
+
+
 func _clear_total() -> void:
 	for child in _total_slot.get_children():
 		_total_slot.remove_child(child)  # gone now, so it can't count toward this frame's layout
@@ -461,6 +486,7 @@ func _show_total(working: String, total: int, over: bool) -> void:
 	_total_slot.add_child(Style.total_bar(working, "Quote", total, col, note))
 
 
+## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
 func _rebuild_hint_bar() -> void:
 	for child in _hint_bar.get_children():
 		_hint_bar.remove_child(child)  # gone now, so the tutorial finds only the live keys

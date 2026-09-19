@@ -95,7 +95,7 @@ func _on_press_mention(_headline: String, reputation: int) -> void:
 		return
 	points += reputation
 	if UI != null:
-		UI.toast("+%d reputation: you made the papers!" % reputation)
+		UI.pop_above_player("+%d reputation" % reputation, "You made the papers!")
 
 
 func _on_order_expired(_order: SuitOrder) -> void:
@@ -109,9 +109,9 @@ func _on_order_late(_order: SuitOrder) -> void:
 func _toast(gain: int, loved: bool, following: bool) -> void:
 	if UI == null:
 		return
-	var note := "+%d reputation" % gain
+	var note := ""
 	if loved:
-		note += " — they loved it!"
+		note = "They loved it!"
 	elif following:
-		note += " — right on trend"
-	UI.toast(note)
+		note = "Right on trend"
+	UI.pop_above_player("+%d reputation" % gain, note)

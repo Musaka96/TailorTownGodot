@@ -16,24 +16,16 @@ var _money_started := false
 var _count_tween: Tween
 
 @onready var _prompt: Label = $Prompt
-@onready var _held: Label = $Held
 @onready var _money: Label = $Money
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # prompt visibility tracks menus, even paused
-	# The scene's own Held label carries no size override (dead theme_override_font_sizes
-	# were pruned from ui.tscn) — set it here so a scene regen can't drop it silently.
-	_held.add_theme_font_size_override("font_size", Style.T_VALUE)
 	_build_prompt_bar()
 	_build_money_panel()
 	_build_booked_badge()
 	EventBus.interaction_prompt_changed.connect(_on_prompt_changed)
-	EventBus.item_picked_up.connect(func(item): _show_held(item))
-	EventBus.item_taken.connect(func(item, _station): _show_held(item))
-	EventBus.item_stored.connect(func(_item, _station): _show_held(null))
 	EventBus.money_changed.connect(_show_money)
-	_show_held(null)
 	_show_money(GameState.money)
 	_on_prompt_changed("")
 
@@ -235,29 +227,3 @@ func _on_prompt_changed(text: String) -> void:
 	_prompt_bar.visible = text != ""
 	if changed and text != "":
 		Craft.pop_in.call_deferred(_prompt_bar, 0.8, 0.2)
-
-
-func _show_held(item) -> void:
-	if item == null:
-		_held.text = ""
-		return
-	_held.text = "Carrying: %s" % _held_desc(item)
-
-
-## A readable label for whatever is in hand — each carryable type reports different
-## things (rolls/pieces have length, garments have type/size, a suit has quality).
-func _held_desc(item) -> String:
-	if item is MaterialRoll:
-		return "%s  (%.1f m left)" % [_mat_name(item), item.remaining_length_m]
-	if item is FabricPiece:
-		return "%s  (%.1f m piece)" % [_mat_name(item), item.length_m]
-	if item is GarmentPiece:
-		var kind := Enums.garment_type_name(item.garment_type)
-		return "%s  (%s, %s)" % [kind, Enums.size_name(item.size), _mat_name(item)]
-	if item is Suit:
-		return "finished suit  (Q %d%%)" % roundi(item.quality * 100.0)
-	return "item"
-
-
-func _mat_name(item) -> String:
-	return item.material.display_name if item.material != null else "cloth"
