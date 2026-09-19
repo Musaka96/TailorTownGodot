@@ -20,12 +20,15 @@ extends Node
 const DIR := "res://data/news"
 const SPOTTED_KICKER := "SOCIETY · SPOTTED"
 const RIVAL_KICKER := "SOCIETY"
+const FILLER_PREFIX := "filler_"  # quiet-day pieces: one a day (see _compile)
 
 var current_edition: Array[NewsEvent] = []
 var current_fashion: NewsEvent = null
 
 var _all: Array[NewsEvent] = []
+## Article id -> the day it ran. (Old saves stored `true`; that reads as "some earlier day".)
 var _seen: Dictionary = {}
+var _edition_day := 0
 var _rng := RandomNumberGenerator.new()
 ## Per event id, how the shop's suits fared there so far:
 ## { entered: int, best: {name, suit, score} (empty until one makes the cut), why: String }.
@@ -142,6 +145,8 @@ func restore_spotted(saved: Dictionary) -> void:
 ## _compile then rebuilds today's edition and trend honouring this history.
 func restore_seen(seen: Dictionary) -> void:
 	_seen = seen.duplicate()
+	_edition_day = 0
+	current_edition = []
 
 
 ## The set of article ids that have run, for the save file.
@@ -165,15 +170,36 @@ func _load() -> void:
 
 
 func _on_shift_started(_start_hour: float) -> void:
+	ensure_edition()
+	EventBus.newspaper_ready.emit(_edition_day)
+
+
+## Make sure today's paper is printed. Safe to call any time: the day hasn't begun yet
+## during the tutorial, and a mid-day load starts with no edition — either way today's
+## stories are compiled once and kept, never reprinted thinner.
+func ensure_edition() -> void:
 	var day: int = Shift.day if Shift != null else 1
+	if _edition_day == day and not current_edition.is_empty():
+		return
 	var rep: int = Reputation.points if Reputation != null else 0
+	_edition_day = day
 	current_edition = _compile(day, rep)
 	for ev in current_edition:
-		_seen[ev.id] = true
+		_seen[ev.id] = day
 		if ev.kind == NewsEvent.Kind.FASHION:
 			current_fashion = ev
 	_report_spotted(day)
-	EventBus.newspaper_ready.emit(day)
+
+
+## True when `id` already ran on an earlier day (today's own stories may run again, so
+## recompiling the same morning gives the same paper).
+func _ran_before(id: String, day: int) -> bool:
+	if not _seen.has(id):
+		return false
+	var when: Variant = _seen[id]
+	if typeof(when) == TYPE_INT or typeof(when) == TYPE_FLOAT:
+		return int(when) != day
+	return true
 
 
 func _event(id: String) -> NewsEvent:
@@ -229,7 +255,7 @@ func _report_spotted(day: int) -> void:
 		var key := "spotted_" + ev.id
 		if _seen.has(key):
 			continue
-		_seen[key] = true
+		_seen[key] = day
 		var entry: Dictionary = _spotted.get(ev.id, {})
 		_spotted.erase(ev.id)
 		var won := not (entry.get("best", {}) as Dictionary).is_empty()
@@ -306,10 +332,20 @@ func _toast_later(text: String) -> void:
 ## The articles that may run today, lead story first.
 func _compile(day: int, rep: int) -> Array[NewsEvent]:
 	var out: Array[NewsEvent] = []
+	var fillers: Array[NewsEvent] = []
 	for ev in _all:
-		if ev.eligible(day, rep, _seen.has(ev.id)):
+		if not ev.eligible(day, rep, _ran_before(ev.id, day)):
+			continue
+		if ev.id.begins_with(FILLER_PREFIX):
+			fillers.append(ev)
+		else:
 			out.append(ev)
 	out.sort_custom(_rank)
+	# One quiet-day piece a day, in rotation, at the foot of the page — so there is
+	# always a paper, however little is going on.
+	if not fillers.is_empty():
+		fillers.sort_custom(_rank)
+		out.append(fillers[day % fillers.size()])
 	return out
 
 

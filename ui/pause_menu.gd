@@ -68,6 +68,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# Esc / B backs out of a sub-page to the main pause page (instead of unpausing).
 	if _sub and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel")):
+		Sfx.play("ui_cancel", -4.0)
 		_show_main()
 		vp.set_input_as_handled()
 		return
@@ -193,5 +194,8 @@ func _focus_first() -> void:
 	await get_tree().process_frame
 	for child in _box.get_children():
 		if child is Button and child.visible and not child.disabled:
-			child.grab_focus()
+			if child is CraftButton:
+				child.focus_quietly()
+			else:
+				child.grab_focus()
 			return

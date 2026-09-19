@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_vav68"]
+
+[resource]
+script = ExtResource("1_vav68")
+id = "filler_4"
+headline = "Tea Room Adds a Second Kettle"
+body = "Queues on the corner are expected to halve. The scones remain contested."
+kicker = "AROUND THE ROW"
+min_day = 2
+repeatable = true
+priority = 1

@@ -28,6 +28,9 @@ const N_BODY_LEAD := 15  # the lead story's body copy
 const N_BODY_STORY := 14  # every other story's body copy
 const N_SIDE_HEAD := 12  # side-strip panel title ("IN FASHION", "COMING UP")
 const N_SIDE_BODY := 14  # side-strip panel body
+## Presses this soon after the paper lands can't fold it away — the E that locked the
+## door (or a tap during the day card) would otherwise close a paper nobody saw.
+const OPEN_GUARD := 0.5
 
 var _dateline: Label
 var _folio: Label
@@ -36,6 +39,7 @@ var _stories: VBoxContainer
 var _fashion_body: Label
 var _events_body: Label
 var _scroll: ScrollContainer
+var _opened_at := 0.0
 
 
 func _ready() -> void:
@@ -47,8 +51,12 @@ func _ready() -> void:
 
 
 func open() -> void:
-	if News == null or News.current_edition.is_empty():
+	if News == null:
 		return
+	News.ensure_edition()
+	if News.current_edition.is_empty():
+		return
+	_opened_at = Time.get_ticks_msec() / 1000.0
 	GameState.input_locked = true
 	_fill()
 	visible = true
@@ -65,7 +73,18 @@ func _on_newspaper_ready(_day: int) -> void:
 	# Don't slide the paper up over the first-run tutorial.
 	if Tutorial != null and Tutorial.is_active():
 		return
+	# The new day starts halfway through the night card: wait for it to lift (and for the
+	# shift manager to hand input back) so the paper lands on top, not underneath.
+	var card: Control = UI.day_transition if UI != null else null
+	if card != null and card.visible:
+		if not card.visibility_changed.is_connected(_on_card_lifted):
+			card.visibility_changed.connect(_on_card_lifted, CONNECT_ONE_SHOT)
+		return
 	open()
+
+
+func _on_card_lifted() -> void:
+	open.call_deferred()
 
 
 # --- Fonts -----------------------------------------------------------------
@@ -422,6 +441,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("newspaper") and not GameState.input_locked:
 			open()
 			get_viewport().set_input_as_handled()
+		return
+	if Time.get_ticks_msec() / 1000.0 - _opened_at < OPEN_GUARD:
 		return
 	if (
 		event.is_action_pressed("newspaper")

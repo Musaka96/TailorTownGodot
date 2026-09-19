@@ -128,7 +128,7 @@ func _update_title() -> void:
 	_rolls_meta.text = (
 		"%d roll%s" % [_shelf.stored.size(), "" if _shelf.stored.size() == 1 else "s"]
 	)
-	_cut_meta.text = "cutting %.1f m" % _cut_length
+	_cut_meta.text = "cutting %.1f m  (max %.1f m)" % [_cut_length, _cut_max()]
 	_update_measure()
 
 
@@ -277,14 +277,21 @@ func _cut_min() -> float:
 	return Pricing.part_meters(Enums.GarmentType.PANTS, size)
 
 
-## Keep the requested cut length within [the shortest useful cut, the roll's remaining].
+## The longest cut allowed: the biggest single part there is — one cut piece makes one part.
+func _cut_max() -> float:
+	return Pricing.max_part_meters()
+
+
+## Keep the requested cut length within [the shortest useful cut, the longest useful cut],
+## and never past what's left on the roll.
 func _clamp_cut() -> void:
 	var rolls: Array = _shelf.stored
 	if _index < 0 or _index >= rolls.size():
 		return
 	var remaining: float = rolls[_index].remaining_length_m
 	var low := _cut_min()
-	_cut_length = snappedf(clampf(_cut_length, low, maxf(low, remaining)), CUT_STEP)
+	var high := maxf(low, minf(_cut_max(), remaining))
+	_cut_length = snappedf(clampf(_cut_length, low, high), CUT_STEP)
 
 
 func _take() -> void:

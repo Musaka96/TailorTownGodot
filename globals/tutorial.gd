@@ -90,7 +90,7 @@ const M_CODE_3 := (
 	+ "bookshelf lists every code."
 )
 const M_STOCK := (
-	"And don't fret if a cloth says [b]Not in your shop[/b] — design what the customer "
+	"And don't fret if a cloth says [b]Not in stock[/b] — design what the customer "
 	+ "wants anyway. Once they've said yes, just [b]order that bolt[/b] on the phone and "
 	+ "make the parts from it."
 )
@@ -810,7 +810,8 @@ func _brief_desc() -> String:
 	return "%s · %s" % [Enums.occasion_name(TUT_OCCASION), Enums.style_name(TUT_STYLE)]
 
 
-## One recipe part described for the bubble, e.g. "Navy · Worsted Wool · Solid".
+## One recipe part described for the bubble, e.g. "Worsted Wool · Navy · Solid" — fabric,
+## colour, pattern: the same order as the rows in the fitting room and on the phone.
 func _part_desc(garment_type: int) -> String:
 	var part: Dictionary = _recipe.get(garment_type, {})
 	if part.is_empty():
@@ -818,8 +819,8 @@ func _part_desc(garment_type: int) -> String:
 	return (
 		"%s · %s · %s"
 		% [
-			MaterialFactory.color_name(int(part.get("color", 0))),
 			Enums.fabric_name(int(part.get("fabric", 0))),
+			MaterialFactory.color_name(int(part.get("color", 0))),
 			Enums.pattern_name(int(part.get("pattern", 0))),
 		]
 	)

@@ -612,10 +612,12 @@ func _update_stock() -> void:
 		return
 	var c: Dictionary = _design[_type()] if _part_sel >= 0 else _design[Enums.GarmentType.JACKET]
 	var have := _cloth_in_stock(int(c["fabric"]), int(c["pattern"]), int(c["color"]))
-	var tint: Color = Style.FOREST if have else Style.CLAY
+	# Missing cloth is news, not an error: the designer only offers what a supplier on the
+	# phone sells, so it can always be ordered — say so, in the brass "note" tone.
+	var tint: Color = Style.FOREST if have else Style.BRASS
 	_stock_dot.add_theme_stylebox_override("panel", Style.bar(tint, 6))
-	_stock_label.text = "In stock" if have else "Not in your shop"
-	_stock_label.add_theme_color_override("font_color", tint)
+	_stock_label.text = "In stock" if have else "Not in stock · order it by phone"
+	_stock_label.add_theme_color_override("font_color", Style.text_accent(tint))
 
 
 ## True if any non-empty roll or cut piece in the shop matches this fabric + pattern

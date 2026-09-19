@@ -22,6 +22,8 @@ const PAUSES := {".": 0.20, "!": 0.20, "?": 0.20, ",": 0.07, ":": 0.10, "\n": 0.
 ## After a page starts or is revealed, presses within this many seconds can only reveal —
 ## never skip ahead — so a quick double-tap can't throw away unread text.
 const SKIP_GUARD := 0.35
+## A clickable prompt sits a shade dimmer until the pointer is over it.
+const PROMPT_REST := Color(1, 1, 1, 0.86)  # ui-check-ignore: modulate, not a palette colour
 
 # The mentor's look (character data, not UI styling).
 const LOOK_SKIN := Color(0.93, 0.79, 0.68)  # ui-check-ignore: skin data
@@ -139,6 +141,25 @@ func _on_board_input(event: InputEvent) -> void:
 		_on_confirm()
 
 
+func _on_prompt_input(event: InputEvent, on_click: Callable) -> void:
+	var mb := event as InputEventMouseButton
+	if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+		on_click.call()
+		accept_event()
+
+
+func _on_secondary_clicked() -> void:
+	if _has_secondary and not _typing:
+		_close(1)
+
+
+func _let_clicks_through(node: Control) -> void:
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for child in node.get_children():
+		if child is Control:
+			_let_clicks_through(child)
+
+
 func _on_confirm() -> void:
 	if _typing:
 		# While he's talking a press only finishes the line, at once.
@@ -247,10 +268,10 @@ func _board_content() -> Control:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	foot.add_child(spacer)
-	_secondary_box = _key_prompt("Esc")
+	_secondary_box = _key_prompt("Esc", _on_secondary_clicked)
 	_secondary_label = _secondary_box.get_child(1) as Label
 	foot.add_child(_secondary_box)
-	var primary := _key_prompt("E")
+	var primary := _key_prompt("E", _on_confirm)
 	_primary_label = primary.get_child(1) as Label
 	foot.add_child(primary)
 	_cue = _small_label("▼", Style.BRASS)
@@ -308,11 +329,20 @@ func _board_style() -> StyleBoxFlat:
 ## The keycap + verb row echoes Style.key_pill's own inner layout, just without its
 ## brass background (the board is already coloured) — so it takes its font straight
 ## from the kit: bold, at the kit's own T_CAPTION size.
-func _key_prompt(key: String) -> HBoxContainer:
+## The whole row is a click target too (`on_click`), so the mouse can answer him: it
+## lifts a touch under the pointer, and its children let the click through to it.
+func _key_prompt(key: String, on_click: Callable) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S1 + 2)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(Style.keycap(key))
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row.modulate = PROMPT_REST
+	row.mouse_entered.connect(func() -> void: row.modulate = Color.WHITE)
+	row.mouse_exited.connect(func() -> void: row.modulate = PROMPT_REST)
+	row.gui_input.connect(_on_prompt_input.bind(on_click))
+	var cap := Style.keycap(key)
+	_let_clicks_through(cap)
+	row.add_child(cap)
 	var lbl := _small_label("", Style.CHALK)
 	lbl.add_theme_font_override("font", Style.font_bold())
 	lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)

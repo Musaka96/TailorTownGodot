@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_b5br7"]
+
+[resource]
+script = ExtResource("1_b5br7")
+id = "filler_3"
+headline = "Letters: In Praise of a Proper Hem"
+body = "A reader writes that a trouser should break once upon the shoe, and no more."
+kicker = "AROUND THE ROW"
+min_day = 2
+repeatable = true
+priority = 1

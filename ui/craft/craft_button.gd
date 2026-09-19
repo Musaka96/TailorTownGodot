@@ -9,6 +9,7 @@ const GROW := 1.04
 
 var _back: Control
 var _lit := false
+var _quiet := false
 
 
 func _init() -> void:
@@ -21,10 +22,11 @@ func _init() -> void:
 		add_theme_stylebox_override(state, sb)
 	_back = _Backdrop.new()
 	add_child(_back)
-	focus_entered.connect(_refresh)
+	focus_entered.connect(_on_focus_entered)
 	focus_exited.connect(_refresh)
-	mouse_entered.connect(_refresh)
+	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_refresh)
+	pressed.connect(func() -> void: Sfx.play("ui_confirm", -4.0))
 	resized.connect(func() -> void: pivot_offset = size * 0.5)
 
 
@@ -32,8 +34,28 @@ func _process(_delta: float) -> void:
 	_back.queue_redraw()
 
 
+## Take focus without the navigation tick — for the focus a page hands out as it opens.
+func focus_quietly() -> void:
+	_quiet = true
+	grab_focus()
+	_quiet = false
+
+
 func is_lit() -> bool:
 	return not disabled and (has_focus() or is_hovered())
+
+
+## Hover takes the focus, so the mouse and the keyboard can never light two labels at once.
+func _on_mouse_entered() -> void:
+	if not disabled and not has_focus():
+		grab_focus()
+	_refresh()
+
+
+func _on_focus_entered() -> void:
+	if not _quiet:
+		Sfx.play_single("ui_move", -7.0)
+	_refresh()
 
 
 func _refresh() -> void:

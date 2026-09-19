@@ -52,7 +52,32 @@ func _run() -> void:
 	await process_frame
 	_check(rep.points < mark, "reputation fell on an expired order")
 
+	await _every_day_has_a_paper(news)
 	_finish()
+
+
+## The paper never misses a morning (quiet-day fillers cover the gaps), and printing the
+## same morning twice — the tutorial finishing, a mid-day load — keeps its stories.
+func _every_day_has_a_paper(news: Node) -> void:
+	var shift: Node = root.get_node("Shift")
+	var first: int = news.current_edition.size()
+	news.current_edition.clear()
+	news.ensure_edition()
+	_check(news.current_edition.size() == first, "day 1 reprints with the same stories")
+	var empty_days: Array[int] = []
+	for day in range(2, 15):
+		shift.day = day
+		news.ensure_edition()
+		if news.current_edition.is_empty():
+			empty_days.append(day)
+		var fillers := 0
+		for ev: Resource in news.current_edition:
+			if str(ev.id).begins_with("filler_"):
+				fillers += 1
+		_check(fillers <= 1, "day %d runs at most one quiet-day piece" % day)
+	_check(empty_days.is_empty(), "every day 2-14 has a paper (empty: %s)" % str(empty_days))
+	shift.day = 1
+	await process_frame
 
 
 func _check(ok: bool, label: String) -> void:

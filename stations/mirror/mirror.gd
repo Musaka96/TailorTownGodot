@@ -6,7 +6,8 @@ extends Node3D
 ## customer, if one is currently being fitted here).
 ##
 ## `customer` is set by whichever Customer walks up to be fitted, and cleared when
-## they leave. With no customer it's free-design mode (no order is created).
+## they leave. With nobody at the mirror there's no fitting to do, so it stays shut (the
+## builder's free-design mode is still there for tools that open it directly).
 
 var customer: Node = null
 
@@ -18,4 +19,7 @@ func get_interaction_prompt(_actor) -> String:
 
 
 func interact(actor) -> void:
+	if customer == null:
+		UI.toast("No one's at the mirror — greet a customer first")
+		return
 	UI.open_suit_builder(self, actor)

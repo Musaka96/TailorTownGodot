@@ -6,6 +6,8 @@ extends SceneTree
 ## them each morning with escalating copy; the newspaper UI supplies the countdown).
 ## Edit these in the News Editor dock, or add your own; re-run to reset the defaults.
 ##   godot --headless --path . --script res://tools/build_news.gd
+## Pass `-- --only-new` to write just the articles that don't exist yet, leaving any
+## edition already edited in the dock alone.
 ##
 ## Enum literals are integers here (class_name enums aren't resolved in --script):
 ##   Kind:     0 Story  1 Fashion  2 Event
@@ -20,7 +22,10 @@ func _initialize() -> void:
 	if not DirAccess.dir_exists_absolute(OUT_DIR):
 		DirAccess.make_dir_recursive_absolute(OUT_DIR)
 	var count := 0
+	var only_new := OS.get_cmdline_user_args().has("--only-new")
 	for ev in _events():
+		if only_new and FileAccess.file_exists("%s/%s.tres" % [OUT_DIR, ev.id]):
+			continue
 		if ResourceSaver.save(ev, "%s/%s.tres" % [OUT_DIR, ev.id]) == OK:
 			count += 1
 		else:
@@ -34,6 +39,7 @@ func _events() -> Array:
 	_stories(out)
 	_fashions(out)
 	_city_events(out)
+	_fillers(out)
 	return out
 
 
@@ -166,6 +172,42 @@ func _city_events(out: Array) -> void:
 	guild.bias_chance = 0.6
 	guild.body = "The Guild will tour the Row to judge craft and cut; a fine showing lifts a name."
 	out.append(guild)
+
+
+## Quiet-day pieces (id "filler_*"): News runs exactly one a day, in rotation, so there
+## is a paper on the mat every morning even when nothing else is happening.
+func _fillers(out: Array) -> void:
+	var pieces := [
+		["A Quiet Day on the Row", "Little stirs but the shears. Fine weather for honest work."],
+		[
+			"Pigeons Roost on the Haberdasher's Awning",
+			"Harrow's is said to be considering a scarecrow in a waistcoat.",
+		],
+		[
+			"Letters: In Praise of a Proper Hem",
+			"A reader writes that a trouser should break once upon the shoe, and no more.",
+		],
+		[
+			"Tea Room Adds a Second Kettle",
+			"Queues on the corner are expected to halve. The scones remain contested.",
+		],
+		[
+			"Lost: One Thimble, Sentimental Value",
+			"Last seen rolling toward the drain by the lamp post. Reward offered in buttons.",
+		],
+		[
+			"Weather: Mild, With a Chance of Tweed",
+			"The almanac advises a layer. The Row's tailors advise two.",
+		],
+	]
+	for i in pieces.size():
+		var ev := _mk("filler_%d" % (i + 1), 0, pieces[i][0])
+		ev.min_day = 2
+		ev.repeatable = true
+		ev.priority = 1
+		ev.kicker = "AROUND THE ROW"
+		ev.body = pieces[i][1]
+		out.append(ev)
 
 
 func _day_story(

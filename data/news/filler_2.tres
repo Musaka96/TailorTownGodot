@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_tnllh"]
+
+[resource]
+script = ExtResource("1_tnllh")
+id = "filler_2"
+headline = "Pigeons Roost on the Haberdasher's Awning"
+body = "Harrow's is said to be considering a scarecrow in a waistcoat."
+kicker = "AROUND THE ROW"
+min_day = 2
+repeatable = true
+priority = 1

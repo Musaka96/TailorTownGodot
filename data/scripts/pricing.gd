@@ -63,6 +63,16 @@ static func part_meters(garment_type: int, size: int = Enums.Size.M) -> float:
 	return ceilf(raw * 10.0 - 0.001) / 10.0
 
 
+## The longest single cut worth making: the hungriest part in the biggest size. Anything
+## longer is cloth no one part can use, so the shelf won't measure past it.
+static func max_part_meters() -> float:
+	var longest := 0.0
+	for garment_type: int in PART_METERS:
+		for size: int in SIZE_FACTOR:
+			longest = maxf(longest, part_meters(garment_type, size))
+	return longest
+
+
 static func per_meter(fabric: Enums.Fabric, pattern: Enums.Pattern) -> int:
 	var cfg := Config.data
 	var base := int(FABRIC_BASE.get(fabric, 20))

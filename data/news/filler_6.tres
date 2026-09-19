@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="NewsEvent" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/news_event.gd" id="1_x4epe"]
+
+[resource]
+script = ExtResource("1_x4epe")
+id = "filler_6"
+headline = "Weather: Mild, With a Chance of Tweed"
+body = "The almanac advises a layer. The Row's tailors advise two."
+kicker = "AROUND THE ROW"
+min_day = 2
+repeatable = true
+priority = 1

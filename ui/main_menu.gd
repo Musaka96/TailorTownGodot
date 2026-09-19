@@ -177,6 +177,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# GameState and unpause the frozen sim behind the menu.
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		if _sub:
+			Sfx.play("ui_cancel", -4.0)
 			_show_main()
 		vp.set_input_as_handled()
 		return
@@ -291,5 +292,8 @@ func _focus_first() -> void:
 	Craft.pop_in(_plate, 0.94, 0.3)
 	for child in _buttons.get_children():
 		if child is Button and child.visible and not child.disabled:
-			child.grab_focus()
+			if child is CraftButton:
+				child.focus_quietly()
+			else:
+				child.grab_focus()
 			return
