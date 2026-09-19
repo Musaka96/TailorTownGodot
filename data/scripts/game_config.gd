@@ -61,6 +61,14 @@ extends Resource
 ## expired_rep_loss) when the customer was left standing until they walked out.
 @export var apologised_rep_loss: int = 6
 @export var ignored_rep_loss: int = 6
+## A coffee offered to a customer. Greeted with one, they add up to this share of the
+## price to the bill when they collect (scaled by how good the cup was) and the gesture
+## earns a little standing. Kept waiting with one, their patience starts over and drains
+## at this rate, and a stranger is this much likelier to agree to call tomorrow.
+@export var coffee_tip_share: float = 0.06
+@export var coffee_rep: int = 2
+@export var coffee_patience_drain: float = 0.5
+@export var coffee_goodwill: float = 0.25
 ## "Best suit spotted": a suit worn to a city event makes the paper only when both its
 ## craft quality and its match to the brief reach these, AND it follows the trend.
 ## Otherwise the rival shop gets the story.

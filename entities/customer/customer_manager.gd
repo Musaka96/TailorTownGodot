@@ -255,9 +255,9 @@ func _on_collector_arrived(cust: Customer) -> void:
 	if order != null and Orders.is_ready(order):
 		cust.offer_collection(order)
 	elif order != null:
-		# Not ready: they wait at the counter to be spoken to (Customer.wait_for_order) —
+		# Not ready: they wait at the counter to be spoken to (see CustomerWait) —
 		# apologise and they may call again tomorrow; ignore them and they walk out.
-		cust.wait_for_order(order)
+		CustomerWait.begin(cust, order)
 	else:
 		dismiss(cust)
 

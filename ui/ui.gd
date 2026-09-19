@@ -209,6 +209,12 @@ func open_coffee(machine) -> void:
 	bench_game.open(game, game.start_cup.bind(title), machine.finish_coffee)
 
 
+## Speak to a customer kept waiting for a suit that isn't ready (see CustomerWait).
+func open_customer_wait(customer, actor, wait: Node) -> void:
+	Sfx.play("menu_open")
+	customer_request.open(customer, actor, wait)
+
+
 func open_suit_builder(mirror, actor) -> void:
 	if _shop_closed():
 		return

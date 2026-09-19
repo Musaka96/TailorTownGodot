@@ -684,6 +684,8 @@ func _finalize() -> void:
 	var hair: int = _customer.hair_index if _customer != null else 0
 	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
 	var flags := {"rush": _pref.rush, "picky": _pref.picky, "occasion": int(_pref.occasion)}
+	if _customer != null:
+		flags["coffee"] = float(_customer.get("coffee"))  # welcomed with a cup
 	var order := Orders.create_order(
 		_pref.display_name, _design, quote, skin, hair, hair_col, flags
 	)

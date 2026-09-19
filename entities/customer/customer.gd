@@ -15,7 +15,7 @@ signal arrived  ## the current path finished
 signal departed(customer: Node)  ## about to remove itself
 
 ## What interacting with the customer does right now.
-enum Mode { NONE, GREET, MIRROR, COLLECT, WAITING }
+enum Mode { NONE, GREET, MIRROR, COLLECT }
 
 # Reaction kinds passed to react() (see there): momentary like/dislike, a lasting
 # accepted-happy, and back to the resting face.
@@ -23,7 +23,6 @@ const REACT_NEUTRAL := 0
 const REACT_LIKE := 1
 const REACT_DISLIKE := -1
 const REACT_ACCEPT := 2
-const METER_HEIGHT := 2.55  # metres over the feet the patience meter floats at
 
 @export var walk_speed: float = 2.6
 @export var turn_speed: float = 8.0
@@ -50,16 +49,18 @@ var manager: Node = null
 ## and read back by it, so two people can never be sent to the mirror at once. Collectors
 ## coming back for a finished order never raise it — they don't use the mirror.
 var serving := false
+## A component that has taken over what interacting with this customer does (a wait at
+## the counter, a chat on the street): it answers the prompt and the interaction in our
+## place — see CustomerWait / StreetPitch. Null for the ordinary modes below.
+var takeover: Node = null
+## 0..1 — how good the coffee the player welcomed them with was (0 = none). Carried onto
+## their order, where it becomes a small thank-you on the bill.
+var coffee := 0.0
 
 var _points: Array = []
 var _done: Callable = Callable()
 var _mode := Mode.NONE
 var _face_target := NAN
-# WAITING: seconds of patience left / in all, how fast it drains, and its meter.
-var _patience := 0.0
-var _patience_max := 1.0
-var _patience_drain := 1.0
-var _meter: PatienceMeter
 
 @onready var _interactable: Interactable = $Interactable
 @onready var _rig: Node = $Rig
@@ -198,92 +199,6 @@ func offer_collection(order: SuitOrder) -> void:
 		_rig.wave()
 
 
-## Called for a suit that isn't ready: stand at the counter and wait to be spoken to, a
-## patience meter draining overhead. The player can apologise (interact) — or finish the
-## suit while they wait, which turns this into an ordinary collection. Left standing
-## until the meter runs out, they walk out (see Orders.walk_out).
-func wait_for_order(order: SuitOrder) -> void:
-	_mode = Mode.WAITING
-	collect_order = order
-	var cfg := Config.data
-	_patience_max = cfg.collector_patience_s if cfg != null else 45.0
-	if Clientele != null and Clientele.loyalty(order.customer_name) > 0:
-		_patience_max *= cfg.regular_patience_mult if cfg != null else 1.5
-	_patience = _patience_max
-	_patience_drain = 1.0
-	_meter = PatienceMeter.new()
-	WorldAnchor.pin(self, _meter, METER_HEIGHT)
-	_set_interactable(true)
-	if _rig != null:
-		_rig.wave()
-	UI.toast('%s: "I\'m here for order #%d. Is it ready?"' % [_label(), order.id])
-	Sfx.play("menu_open")
-
-
-## 0..1 of the wait left (1 when not waiting).
-func patience() -> float:
-	return clampf(_patience / maxf(_patience_max, 0.001), 0.0, 1.0)
-
-
-func _process(delta: float) -> void:
-	if _mode != Mode.WAITING:
-		return
-	if collect_order != null and Orders.is_ready(collect_order):
-		_drop_meter()
-		offer_collection(collect_order)  # finished while they waited
-		return
-	_patience -= delta * _patience_drain
-	if _meter != null:
-		_meter.value = patience()
-	if _patience <= 0.0:
-		_walk_out()
-
-
-func _drop_meter() -> void:
-	if _meter != null and is_instance_valid(_meter):
-		_meter.get_parent().queue_free()  # the WorldAnchor holding it
-	_meter = null
-
-
-## Left standing too long: the order is lost, and word gets round.
-func _walk_out() -> void:
-	var order := collect_order
-	collect_order = null
-	_drop_meter()
-	UI.toast('%s: "Nobody even spoke to me. Good day!"' % _label())
-	Orders.walk_out(order)
-	finish_and_leave("sad")
-
-
-## The player owns up. A regular lets it pass; a stranger may agree to call tomorrow; a
-## suit for an event that won't wait is simply lost.
-func _apologise() -> void:
-	var order := collect_order
-	var who := _label()
-	collect_order = null
-	_drop_meter()
-	var outcome := Orders.apologise(order, _goodwill())
-	var mood := "wave"
-	match outcome:
-		"regular":
-			UI.toast('%s: "For you? Of course. I\'ll look in tomorrow."' % who)
-		"moved":
-			UI.toast('%s: "Hm. Tomorrow, then — but I shan\'t pay full price."' % who)
-		"event":
-			mood = "sad"
-			UI.toast('%s: "It was for tonight! Tomorrow is no use to me."' % who)
-		_:
-			mood = "sad"
-			UI.toast('%s: "I\'ll take my custom elsewhere, thank you."' % who)
-	Sfx.play("happy" if mood == "wave" else "unhappy")
-	finish_and_leave(mood)
-
-
-## Extra chance a stranger forgives the delay (a coffee in hand — see soothe()).
-func _goodwill() -> float:
-	return 0.0
-
-
 ## Dress the customer in a suit: cloth materials + the chosen jacket/pants styles
 ## (which swap the actual models).
 func wear_suit(
@@ -334,7 +249,6 @@ func begin_fitting() -> void:
 ## Head for the exit. `mood` "happy" (design approved) celebrates first; "wave" (booked for
 ## later / referred) waves goodbye; "sad" (turned away) looks let down.
 func finish_and_leave(mood := "happy") -> void:
-	_drop_meter()
 	_set_interactable(false)
 	_mode = Mode.NONE
 	serving = false
@@ -356,6 +270,8 @@ func _leave() -> void:
 
 
 func get_interaction_prompt(actor) -> String:
+	if takeover != null and is_instance_valid(takeover):
+		return takeover.get_interaction_prompt(actor)
 	match _mode:
 		Mode.GREET:
 			return "Greet %s" % _label()
@@ -366,12 +282,13 @@ func get_interaction_prompt(actor) -> String:
 				var pay := collect_order.payout() if collect_order != null else 0
 				return "Hand %s order #%d  (+$%d)" % [_label(), collect_order.id, pay]
 			return "Bring %s their suit (order #%d)" % [_label(), _order_id()]
-		Mode.WAITING:
-			return "Apologise to %s — order #%d isn't ready" % [_label(), _order_id()]
 	return ""
 
 
 func interact(actor) -> void:
+	if takeover != null and is_instance_valid(takeover):
+		takeover.interact(actor)
+		return
 	match _mode:
 		Mode.GREET:
 			UI.open_customer_request(self, actor)
@@ -380,8 +297,6 @@ func interact(actor) -> void:
 				UI.open_suit_builder(mirror, actor)
 		Mode.COLLECT:
 			_try_collect(actor)
-		Mode.WAITING:
-			_apologise()
 
 
 ## Hand over the suit if the player is carrying the one that matches this order's number;

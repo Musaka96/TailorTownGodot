@@ -5,6 +5,10 @@ extends Control
 ## take the fitting, book them for a later day, send them to the rival tailor, or decline
 ## (an honest "I can't make that yet" when the brief is out of reach). See
 ## docs/CUSTOMERS.md and FrontDesk.
+##
+## The same bubble speaks for a customer kept waiting for a suit that isn't ready
+## (open() with their CustomerWait): apologise, or buy time. And once the coffee machine
+## is in, either kind of customer can be offered a cup first — you make it on the spot.
 
 const PORTRAIT_SIZE := Vector2(160, 184)
 ## Fraction of the TV that sits inside the bubble; the rest overhangs the top-right.
@@ -17,7 +21,8 @@ var _decor_built := false
 var _portrait: CustomerPortrait
 var _choices: VBoxContainer
 var _badges: ClientBadges
-var _options: Array[String] = []  # "take" / "book" / "refer" / "decline"
+var _wait: CustomerWait = null  # set when speaking to a waiting collector
+var _options: Array[String] = []  # "take" / "book" / "refer" / "decline" / "coffee" / "sorry"
 var _cards: Array[CraftPanel] = []
 var _sel := 0
 
@@ -27,9 +32,10 @@ var _sel := 0
 @onready var _hint: Label = $Center/Panel/Margin/Box/Hint
 
 
-func open(customer, actor) -> void:
+func open(customer, actor, wait: CustomerWait = null) -> void:
 	_customer = customer
 	_actor = actor
+	_wait = wait
 	GameState.input_locked = true
 	_style()
 	_fill()
@@ -49,6 +55,7 @@ func close() -> void:
 	if _customer != null and _customer.has_method("set_talking"):
 		_customer.set_talking(false)
 	_customer = null
+	_wait = null
 
 
 func _style() -> void:
@@ -125,6 +132,9 @@ func _prompt(key: String, verb: String) -> Control:
 
 func _fill() -> void:
 	var pref = _customer.get("preference") if _customer != null else null
+	if _wait != null:
+		_fill_wait()
+		return
 	if pref == null:
 		_title.text = "A customer"
 		_brief.text = "They're just browsing."
@@ -140,12 +150,89 @@ func _fill() -> void:
 	_build_options(pref)
 
 
+## A collector whose suit isn't ready: what they say, and the two things you can do.
+func _fill_wait() -> void:
+	var order := _wait.order
+	_title.text = order.customer_name
+	var lines := PackedStringArray(['"I\'m here for order #%d. Is it ready?"' % order.id])
+	if not CustomerWait.can_reschedule(order):
+		var why := "already waited a day" if order.late else "needs it for the event"
+		lines.append("(They %s — tomorrow won't do.)" % why)
+	elif Clientele != null and Clientele.loyalty(order.customer_name) > 0:
+		lines.append("(A regular — they'll understand.)")
+	_brief.text = "\n".join(lines)
+	_badges.show_for(null)
+	_options.clear()
+	if _can_offer_coffee():
+		_options.append("coffee")
+	_options.append("sorry")
+	_sel = 0
+	_draw_options(null)
+
+
+## The shop's coffee machine, if a cup can be made for this customer right now.
+func _coffee_machine() -> CoffeeMachine:
+	var scene := get_tree().current_scene
+	if scene == null or (Tutorial != null and Tutorial.is_active()):
+		return null
+	for node in scene.find_children("*", "CoffeeMachine", true, false):
+		var machine := node as CoffeeMachine
+		if machine != null and machine.can_serve_guest():
+			return machine
+	return null
+
+
+func _can_offer_coffee() -> bool:
+	if _customer == null or _coffee_machine() == null:
+		return false
+	if _wait != null:
+		return _wait.goodwill <= 0.0  # one cup per wait
+	return float(_customer.get("coffee")) <= 0.0
+
+
+## Make them a cup (the coffee game), then hand it over: a waiting collector calms down,
+## a new customer remembers the welcome on the bill. They stay where they are — greet or
+## speak to them again afterwards.
+func _offer_coffee() -> void:
+	var cust = _customer
+	var wait := _wait
+	var machine := _coffee_machine()
+	var who := "The customer"
+	if wait != null:
+		who = wait.order.customer_name
+	elif cust != null and cust.preference != null:
+		who = cust.preference.display_name
+	close()
+	if machine == null or cust == null:
+		return
+	machine.serve_guest(
+		func(quality: float) -> void:
+			if not is_instance_valid(cust):
+				return
+			if quality <= 0.0:
+				UI.toast("Spilled — %s pretends not to notice." % who)
+				return
+			if wait != null and is_instance_valid(wait):
+				wait.soothe(quality)
+				UI.toast('%s: "Oh — thank you. I can wait a little."' % who)
+			else:
+				cust.coffee = quality
+				if Reputation != null and Config.data != null:
+					Reputation.points += Config.data.coffee_rep
+				UI.toast('%s: "How civilised! Thank you."' % who)
+			if cust.has_method("react"):
+				cust.react(Customer.REACT_LIKE)
+	)
+
+
 ## The choices for this customer (only "take" during the tutorial or for a browser).
 func _build_options(pref) -> void:
 	_options.clear()
 	_options.append("take")
 	var tutorial: bool = Tutorial != null and Tutorial.is_active()
 	if pref != null and not tutorial:
+		if _can_offer_coffee():
+			_options.append("coffee")
 		_options.append_array(["book", "refer", "decline"])
 	_sel = 0
 	_draw_options(pref)
@@ -175,16 +262,21 @@ func _highlight() -> void:
 
 
 func _option_text(opt: String, pref) -> String:
+	var text := "Take the fitting (send to the mirror)"
 	match opt:
+		"coffee":
+			text = "Offer them a coffee first"
+		"sorry":
+			text = "Apologise: it isn't ready yet"
 		"book":
-			return "Book them for day %d" % FrontDesk.next_free_day()
+			text = "Book them for day %d" % FrontDesk.next_free_day()
 		"refer":
-			return "Send them to %s" % FrontDesk.RIVAL_NAME
+			text = "Send them to %s" % FrontDesk.RIVAL_NAME
 		"decline":
+			text = "Politely decline"
 			if pref != null and not FrontDesk.brief_feasible(pref):
-				return "Be honest: I can't make that yet"
-			return "Politely decline"
-	return "Take the fitting (send to the mirror)"
+				text = "Be honest: I can't make that yet"
+	return text
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -208,6 +300,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _choose(opt: String) -> void:
 	var cust = _customer
+	if opt == "coffee":
+		_offer_coffee()
+		return
+	if opt == "sorry":
+		var wait := _wait
+		close()
+		if wait != null and is_instance_valid(wait):
+			wait.say_sorry()
+		return
 	if opt == "take" or cust == null:
 		_accept()
 		return

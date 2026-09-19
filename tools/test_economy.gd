@@ -129,7 +129,10 @@ func _regulars(clientele: Node) -> void:
 	root.get_node("EventBus").order_fulfilled.emit(order, 100)
 	_check(clientele.has_regulars() and clientele.loyalty("Ms. Regular") == 1, "loyalty +1")
 	_check(is_equal_approx(clientele.budget_mult("Ms. Regular"), 1.1), "loyal budget ×1.1")
+	_check(clientele.pick_regular() == "", "but not again the day they collected")
+	root.get_node("Shift").day += 1
 	_check(clientele.pick_regular() == "Ms. Regular", "the regular can walk back in")
+	root.get_node("Shift").day -= 1
 	var rng := RandomNumberGenerator.new()
 	var p = pref_script.random_pref(rng, "Ms. Regular")
 	_check(p.regular_level == 1 and p.title().contains("★"), "regular shows a loyalty star")

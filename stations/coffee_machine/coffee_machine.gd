@@ -15,6 +15,9 @@ const PERFECT_CUP := 0.9  # the game's score for "perfect" and "good" cups
 const GOOD_CUP := 0.6
 
 var _cups := 2
+## Set while the cup being made is for a customer: called with its quality (0 = spilt)
+## instead of the player drinking it.
+var _guest_cup := Callable()
 
 @onready var _steam: GPUParticles3D = get_node_or_null("Steam")
 @onready var _espresso_kit: Node3D = get_node_or_null("Espresso")
@@ -48,9 +51,31 @@ func interact(_actor) -> void:
 	UI.open_coffee(self)
 
 
+## True when a cup can be made for a customer: the machine is in and the pot isn't empty.
+func can_serve_guest() -> bool:
+	return is_owned() and _cups > 0
+
+
+## Make a cup for a customer: the same game, but `on_done(quality)` gets the cup (0 if it
+## ends up on the floor) and the player's own focus is left alone.
+func serve_guest(on_done: Callable) -> void:
+	if not can_serve_guest():
+		return
+	_cups -= 1
+	_guest_cup = on_done
+	UI.open_coffee(self)
+
+
 ## Called by the coffee game: `quality` is the cup's score (0..1); `success` is false for
 ## a spilt cup.
 func finish_coffee(success: bool, quality: float) -> void:
+	if _guest_cup.is_valid():
+		var hand_over := _guest_cup
+		_guest_cup = Callable()
+		if success:
+			Sfx.play("coffee_pour")
+		hand_over.call(quality if success else 0.0)
+		return
 	if not success:
 		UI.toast("Spilled — no coffee for you")
 		return

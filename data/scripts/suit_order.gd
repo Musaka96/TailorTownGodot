@@ -49,6 +49,9 @@ var state: int = State.OPEN
 ## GarmentType(int) -> { score: float, quality: float } for each checked-off piece.
 var filled: Dictionary = {}
 ## Set once the deadline fires so the manager only sends the customer back once.
+## 0..1 — how good the coffee they were welcomed with was (0 = none offered). A small
+## thank-you on the bill at collection (GameConfig.coffee_tip_share).
+var coffee := 0.0
 var due_fired := false
 ## How a lost order was lost, for the standing it costs: the player apologised in person
 ## (softer), or left the customer standing until they walked out (harsher). Not saved.
@@ -157,6 +160,9 @@ func payout_breakdown() -> Dictionary:
 	var judged := score - 0.2 if picky else score
 	var base := price * Pricing.pay_share(judged)
 	var tip := price * Pricing.tip_share(score) * (2.0 if picky else 1.0)
+	# Welcomed with a coffee: a small thank-you, however the suit turned out.
+	var thanks: float = Config.data.coffee_tip_share if Config.data != null else 0.06
+	tip += price * thanks * coffee
 	if late:
 		var share: float = Config.data.late_pay if Config.data != null else 0.75
 		base *= share

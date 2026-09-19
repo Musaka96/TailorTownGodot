@@ -50,7 +50,7 @@ func _keep_someone_waiting() -> void:
 
 func _someone_waiting() -> bool:
 	for cust in get_nodes_in_group("customer"):
-		if int(cust.get("_mode")) == 4:  # Customer.Mode.WAITING
+		if cust.takeover != null:  # a CustomerWait has taken over
 			return true
 	return false
 
