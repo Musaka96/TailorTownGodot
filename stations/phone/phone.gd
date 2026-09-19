@@ -40,6 +40,11 @@ func pending_count() -> int:
 	return _pending.size()
 
 
+## Every bolt on the way: [{mat, length, day, hour}] (a copy).
+func pending() -> Array:
+	return _pending.duplicate()
+
+
 ## When the next bolt lands, as a phrase ("" when nothing is coming).
 func next_arrival_text() -> String:
 	if _pending.is_empty():

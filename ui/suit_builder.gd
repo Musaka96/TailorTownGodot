@@ -240,7 +240,7 @@ func tutorial_coach(goal: Dictionary) -> Dictionary:
 		if wrong < 0:
 			continue
 		if _type() != t:
-			return _coach_row(Row.PART, Enums.garment_type_name(t))
+			return _coach_tab(t)
 		return _coach_row(wrong, _field_name(wrong, int(want[ROW_KEY[wrong]])))
 	return {}
 
@@ -254,6 +254,31 @@ func _first_wrong_row(t: int, want: Dictionary) -> int:
 		if int(_design[t][k]) != int(want.get(k, -1)):
 			return row
 	return -1
+
+
+## W/S to reach the part tabs, then A/D across to the tab for part `t`.
+func _coach_tab(t: int) -> Dictionary:
+	for child in _rows.get_children():
+		var tabs := child as PartTabs
+		if tabs == null or tabs.is_queued_for_deletion():
+			continue
+		var on_tabs: bool = _active_rows()[_row] == Row.PART
+		var nm := Enums.garment_type_name(t)
+		var text := ("A/D: pick %s" % nm) if on_tabs else "W/S: go to the tabs"
+		return {"rect": tabs.tab_rect(PARTS.find(t)), "text": text, "beside": true}
+	return {}
+
+
+## The parts already made to the tutorial's recipe — each earns a tick on its tab.
+func _parts_on_target() -> Array:
+	var out: Array = []
+	if Tutorial == null:
+		return out
+	for t: int in PARTS:
+		var want: Dictionary = Tutorial.design_target(t)
+		if not want.is_empty() and _first_wrong_row(t, want) < 0:
+			out.append(t)
+	return out
 
 
 ## W/S to reach `row`, then A/D to set it to `value`.
@@ -500,6 +525,9 @@ func _rebuild_hint_bar() -> void:
 
 
 func _make_row(row: int, selected: bool) -> Control:
+	if row == Row.PART:
+		# Not one more value row: the part switcher is its own strip of drawn tabs.
+		return PartTabs.make(PARTS, _part_sel, selected, _parts_on_target())
 	var card := CraftPanel.option(selected, Style.ACC_MIRROR)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
@@ -620,33 +648,9 @@ func _update_stock() -> void:
 	_stock_label.add_theme_color_override("font_color", Style.text_accent(tint))
 
 
-## True if any non-empty roll or cut piece in the shop matches this fabric + pattern
-## + colour (the three things that define a bolt of cloth).
+## True if any bolt or cut length in the shop is this cloth (see ClothStock).
 func _cloth_in_stock(fabric: int, pattern: int, color_index: int) -> bool:
-	var scene := get_tree().current_scene
-	if scene == null:
-		return false
-	var target := MaterialFactory.color_value(color_index)
-	for n in scene.find_children("*", "MaterialRoll", true, false):
-		var roll := n as MaterialRoll
-		if (
-			roll != null
-			and not roll.is_empty()
-			and _mat_matches(roll.material, fabric, pattern, target)
-		):
-			return true
-	for n in scene.find_children("*", "FabricPiece", true, false):
-		var piece := n as FabricPiece
-		if piece != null and _mat_matches(piece.material, fabric, pattern, target):
-			return true
-	return false
-
-
-func _mat_matches(mat: MaterialType, fabric: int, pattern: int, target: Color) -> bool:
-	if mat == null or int(mat.fabric) != fabric or int(mat.pattern) != pattern:
-		return false
-	var c := mat.cloth_color
-	return absf(c.r - target.r) + absf(c.g - target.g) + absf(c.b - target.b) < 0.06
+	return ClothStock.has_cloth(get_tree().current_scene, fabric, pattern, color_index)
 
 
 func _confirm() -> void:

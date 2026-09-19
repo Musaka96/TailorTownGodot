@@ -146,6 +146,7 @@ func _hang_sign(down: bool) -> void:
 	var tw := create_tween().set_trans(Tween.TRANS_BACK)
 	tw.set_ease(Tween.EASE_OUT if down else Tween.EASE_IN)
 	tw.tween_property(_sign, "position:y", y, 0.55 if down else 0.35)
+	Sfx.play("sign_drop" if down else "sign_hoist", -6.0)
 	if down:
 		_wordmark.sew_in(0.9, 0.35)
 

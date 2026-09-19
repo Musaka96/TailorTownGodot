@@ -36,6 +36,8 @@ func _run() -> void:
 		g.global_position = Vector3(2.1 + i * 0.85, 0.03, -5.2)
 
 	var ui: Node = get_root().get_node("UI")
+	if ui.newspaper != null:
+		ui.newspaper.close()  # the morning paper would cover the builder
 	ui.open_suit_builder(mirror, player)
 	_menu = get_root().find_child("SuitBuilder", true, false)
 	await process_frame

@@ -66,6 +66,7 @@ var _summary_label: Label
 var _price_label: Label
 var _hint_bar: Control
 var _total_slot: VBoxContainer
+var _ledger: ClothLedger
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _dim: ColorRect = $Dim
@@ -203,6 +204,10 @@ func _place_panel() -> void:
 		_panel.anchor_bottom = 0.0
 		_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 		_panel.grow_vertical = Control.GROW_DIRECTION_END
+		# The stock-room ledger sits opposite, top-left, while cloth is being ordered.
+		_ledger = ClothLedger.new()
+		add_child(_ledger)
+		_ledger.position = Vector2(28, 72)
 	_panel.offset_left = -(PANEL_W + 28)
 	_panel.offset_right = -28
 	_panel.offset_top = 72
@@ -247,6 +252,10 @@ func _refresh() -> void:
 		child.queue_free()
 	_selected_row = null
 	_big_icon.visible = _screen == Screen.UPGRADES
+	if _ledger != null:
+		_ledger.visible = _screen == Screen.SUPPLIERS or _screen == Screen.ORDER
+		if _ledger.visible:
+			_ledger.refresh(_phone)
 	_clear_total()
 	match _screen:
 		Screen.HUB:

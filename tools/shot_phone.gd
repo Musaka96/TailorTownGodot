@@ -33,6 +33,16 @@ func _run() -> void:
 		paper.visible = false
 	await process_frame
 
+	# Two open orders, so the cloth ledger has something to say (one cloth in the shop,
+	# one not). Integer enum literals: GarmentType 0 shirt / 1 pants / 2 jacket.
+	var orders: Node = get_root().get_node("Orders")
+	var suit := {"fabric": 0, "pattern": 1, "color": 0, "style_idx": 0}
+	var shirt := {"fabric": 5, "pattern": 0, "color": 0, "style_idx": 0}
+	orders.create_order("Mr. Ashdown", {2: suit, 1: suit, 0: shirt}, 420, Color.WHITE)
+	orders.create_order(
+		"Ms. Okafor", {2: {"fabric": 1, "pattern": 0, "color": 2}}, 260, Color.WHITE
+	)
+
 	var player: Node = main.find_child("Player", true, false)
 	var phone: Node = main.find_child("Phone", true, false)
 	phone.interact(player)

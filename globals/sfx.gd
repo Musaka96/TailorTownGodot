@@ -83,6 +83,9 @@ const LIB := {
 	# the stage curtain over every scene change (synthesised, build_curtain_audio.gd)
 	"curtain_close": "curtain_close.wav",
 	"curtain_open": "curtain_open.wav",
+	"sign_drop": "sign_drop.wav",
+	"sign_hoist": "sign_hoist.wav",
+	"sign_sew": "sign_sew.wav",
 	# world stingers & ambience
 	"new_order_ping": "new_order_ping.wav",
 	"order_complete": "order_complete.wav",
