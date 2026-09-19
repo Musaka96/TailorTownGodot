@@ -8,7 +8,8 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_ui.gd -- [menu] [out] [frames]
 ##
 ## menu:   phone | book | shelf | orders | worktable | customer | mirror | rack |
-##         apprentice | pause | settings | mainmenu | all     (default: phone)
+##         apprentice | pause | settings | controls | hud | mainmenu | all
+##         (default: phone)
 ## out:    res:// PNG path (default: res://.dev/ui_<menu>.png; ignored by "all", which
 ##         always writes one res://.dev/ui_<name>.png per target it captures)
 ## frames: extra settle frames after opening (default: 40)
@@ -33,6 +34,8 @@ const GAME_MENUS := [
 	"apprentice",
 	"pause",
 	"settings",
+	"controls",
+	"hud",
 ]
 
 var _menu := "phone"
@@ -159,6 +162,11 @@ func _open(main: Node, ui: Node, menu: String) -> void:
 		"settings":
 			get_root().get_node("GameState").is_paused = true
 			ui.pause_menu._show_settings()
+		"controls":
+			get_root().get_node("GameState").is_paused = true
+			ui.pause_menu._show_controls()
+		"hud":
+			pass
 		_:
 			ui.open_phone(null, null)
 
@@ -166,6 +174,11 @@ func _open(main: Node, ui: Node, menu: String) -> void:
 ## Undo whatever `_open` did for `menu`, so the next target in an "all" run starts clean.
 func _close(ui: Node, menu: String) -> void:
 	match menu:
+		"controls":
+			ui.pause_menu._controls.close()
+			get_root().get_node("GameState").is_paused = false
+		"hud":
+			pass
 		"pause", "settings":
 			get_root().get_node("GameState").is_paused = false
 		"customer":

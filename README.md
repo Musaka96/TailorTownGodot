@@ -34,15 +34,23 @@ on the phone. A day is a timed shift you open and close.
 
 ## Controls
 
-| Action     | Keyboard        | Gamepad        |
-| ---------- | --------------- | -------------- |
-| Move       | `WASD` / arrows | Left stick     |
-| Sprint     | `Shift`         | —              |
-| Jump       | `Space`         | A / Cross      |
-| Interact   | `E`             | X / Square     |
-| Cut        | `F`             | Y / Triangle   |
-| Pause      | `Esc`          | Start          |
-| Debug menu | `F3` (debug builds) | —          |
+![Controls sheet](docs/img/controls.png)
+
+| Action                | Keyboard            | Gamepad             |
+| --------------------- | ------------------- | ------------------- |
+| Move                  | `WASD` / arrows     | Left stick          |
+| Run / fast gear       | `Shift`             | RB                  |
+| Jump                  | `Space`             | A                   |
+| Use / pick up / drop  | `E`                 | X                   |
+| Cut                   | `F`                 | Y                   |
+| Orders board          | `Tab`               | L3                  |
+| Newspaper             | `N`                 | Back                |
+| Handbook              | `H`                 | D-pad Up            |
+| Pause / back          | `Esc`               | Start / B           |
+| Sewing pedal          | `Space`             | RT (analog)         |
+| Debug menu            | `F3` (debug builds) | —                   |
+
+The same sheet is in the game: **Esc → Controls** (also on the main menu).
 
 Movement is analog on a gamepad and camera-relative on both — "up" always moves
 away from the camera. Bindings are remappable in Settings.

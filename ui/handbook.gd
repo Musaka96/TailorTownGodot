@@ -6,6 +6,9 @@ extends Control
 ## Reading freezes the game: the scene tree is paused while the book is open (the
 ## book itself keeps processing) so the clock, customers and orders all wait.
 
+## The book was shut (the pause menu uses this to come back when it opened the book).
+signal closed
+
 ## The book's fixed size — the ONLY fixed element. Everything inside stacks and
 ## scrolls within it (index on the left, preview + article on the right).
 const BOOK_SIZE := Vector2(780, 600)
@@ -51,6 +54,7 @@ func close() -> void:
 	GameState.input_locked = false
 	get_tree().paused = _was_paused
 	_actor = null
+	closed.emit()
 
 
 func _style() -> void:
@@ -219,8 +223,21 @@ func _make_tab(text: String, selected: bool) -> Control:
 	return tab
 
 
+func _can_hotkey() -> bool:
+	return UI.visible and not (GameState.input_locked or get_tree().paused or UI.any_menu_open())
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
+		# The book's own key opens it from anywhere in the shop (not over another menu).
+		if event.is_action_pressed("handbook") and _can_hotkey():
+			UI.open_handbook(get_tree().get_first_node_in_group("player"))
+			get_viewport().set_input_as_handled()
+		return
+	# (D-pad Up is also "previous topic" in here, so only a non-navigation press shuts it.)
+	if event.is_action_pressed("handbook") and not event.is_action_pressed("ui_up"):
+		close()
+		get_viewport().set_input_as_handled()
 		return
 	var count: int = _chapters[_chapter]["entries"].size()
 	if event.is_action_pressed("move_right"):

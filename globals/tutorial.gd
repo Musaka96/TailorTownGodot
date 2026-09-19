@@ -125,7 +125,7 @@ const M_REP := (
 )
 const M_BYE := (
 	"That's the lot. Busy? Flip the [b]shop sign[/b] on the phone, or book a customer for "
-	+ "another day when you greet them. Read the [b]Handbook[/b] when unsure, and treat "
+	+ "another day when you greet them. Read the [b]Handbook[/b] ([b]%s[/b]) when unsure, and treat "
 	+ "yourself to an upgrade when the till allows. Make the Row proud!"
 )
 
@@ -553,6 +553,8 @@ func _mentor_lines(step: Dictionary) -> PackedStringArray:
 		var text := line
 		if line == M_CODE_2:
 			text = line % _brief_desc()
+		elif line == M_BYE:
+			text = line % _key_name("handbook")
 		elif line == M_PAPER:
 			text = line % _key_name("newspaper")
 		elif line == M_ORDER:

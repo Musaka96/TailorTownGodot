@@ -59,6 +59,7 @@ var _selected_row: Control = null
 var _placed := false
 var _head: TitleBlock
 var _swatch: MaterialSwatch
+var _big_icon: UpgradeIcon
 var _contacts: VBoxContainer
 var _name_label: Label
 var _summary_label: Label
@@ -163,6 +164,9 @@ func _build_preview() -> void:
 	_swatch = MaterialSwatch.new()
 	_swatch.swatch_size = 96
 	_preview.add_child(_swatch)
+	_big_icon = UpgradeIcon.make("", 84.0)
+	_big_icon.visible = false
+	_preview.add_child(_big_icon)
 
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -242,6 +246,7 @@ func _refresh() -> void:
 		_rows.remove_child(child)
 		child.queue_free()
 	_selected_row = null
+	_big_icon.visible = _screen == Screen.UPGRADES
 	_clear_total()
 	match _screen:
 		Screen.HUB:
@@ -402,6 +407,8 @@ func _fabrics_text(v: Dictionary) -> String:
 
 func _show_upgrade_preview(id: String) -> void:
 	var d := Upgrades.data(id)
+	_big_icon.id = id
+	_big_icon.state = UpgradeIcon.state_of(id, _needs(id) != "")
 	_name_label.text = str(d.get("name", "?"))
 	_summary_label.text = str(d.get("desc", ""))
 	if Upgrades.has(id):
@@ -508,14 +515,18 @@ func _make_upgrade_row(id: String, selected: bool) -> Control:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
+	hbox.add_child(UpgradeIcon.make(id, 36.0, UpgradeIcon.state_of(id, _needs(id) != "")))
 	var name_label := Label.new()
 	name_label.text = str(d.get("name", "?"))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_override("font", Style.font_medium())
 	name_label.add_theme_color_override("font_color", Style.INK)
 	name_label.add_theme_font_size_override("font_size", Style.T_BODY)
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(name_label)
-	hbox.add_child(_upgrade_status(id, d))
+	var status := _upgrade_status(id, d)
+	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(status)
 	return card
 
 
@@ -525,7 +536,7 @@ func _upgrade_status(id: String, d: Dictionary) -> Label:
 		var owned := _status_label("Owned ✓", Style.FOREST)
 		return owned
 	if not Upgrades.tier_met(id) or _needs(id) != "":
-		var locked := _status_label("🔒", Style.CLAY)
+		var locked := _status_label("Locked", Style.CLAY)
 		return locked
 	var price := Style.money(int(d.get("cost", 0)), Style.T_BODY, Style.INK_SOFT)
 	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT

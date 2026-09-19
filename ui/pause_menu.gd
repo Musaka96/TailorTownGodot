@@ -9,6 +9,7 @@ var _box: VBoxContainer
 var _head: TitleBlock
 var _panel: PanelContainer
 var _sub := false  # true while a Save/Load slot list is showing (Esc goes back)
+var _controls: ControlsScreen = null  # the controls sheet, while it is up
 
 
 func _ready() -> void:
@@ -63,7 +64,7 @@ func _on_pause(paused: bool) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var vp := get_viewport()
-	if not visible or vp == null:
+	if not visible or vp == null or _controls != null:
 		return
 	# Esc / B backs out of a sub-page to the main pause page (instead of unpausing).
 	if _sub and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel")):
@@ -82,9 +83,31 @@ func _show_main() -> void:
 	_box.add_child(MenuKit.button("Resume", _resume))
 	_box.add_child(MenuKit.button("Save Game", func() -> void: _show_slots(true)))
 	_box.add_child(MenuKit.button("Load Game", func() -> void: _show_slots(false)))
+	_box.add_child(MenuKit.button("Handbook", _open_handbook))
+	_box.add_child(MenuKit.button("Controls", _show_controls))
 	_box.add_child(MenuKit.button("Settings", _show_settings))
 	_box.add_child(MenuKit.button("Main Menu", _to_menu))
 	_box.add_child(MenuKit.button("Quit to Desktop", func() -> void: get_tree().quit()))
+	_focus_first()
+
+
+## Read the Tailor's Handbook from here: the pause menu steps aside for the book (which
+## freezes the game itself) and comes back when the book is shut.
+func _open_handbook() -> void:
+	GameState.is_paused = false
+	UI.handbook.closed.connect(func() -> void: GameState.is_paused = true, CONNECT_ONE_SHOT)
+	UI.open_handbook(get_tree().get_first_node_in_group("player"))
+
+
+func _show_controls() -> void:
+	_panel.visible = false
+	_controls = ControlsScreen.open(self)
+	_controls.closed.connect(_on_controls_closed)
+
+
+func _on_controls_closed() -> void:
+	_controls = null
+	_panel.visible = true
 	_focus_first()
 
 

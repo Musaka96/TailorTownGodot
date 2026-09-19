@@ -6,6 +6,9 @@ extends Node
 ## re-saves. The Settings screen (ui/settings_ui.gd + ui/rebind_button.gd) reads/writes
 ## through here; nothing else needs to know the storage.
 
+## A key binding changed (rebind or reset) — on-screen key caps refresh on this.
+signal bindings_changed
+
 const PATH := "user://settings.cfg"
 
 ## Window modes for the dropdown (index = stored value).
@@ -18,6 +21,24 @@ const RESOLUTIONS := [
 	Vector2i(1920, 1080),
 	Vector2i(2560, 1440),
 ]
+## Controller button names by JoyButton index (Xbox layout).
+const PAD_BUTTONS := [
+	"A",
+	"B",
+	"X",
+	"Y",
+	"Back",
+	"Guide",
+	"Start",
+	"L3",
+	"R3",
+	"LB",
+	"RB",
+	"D-pad Up",
+	"D-pad Down",
+	"D-pad Left",
+	"D-pad Right",
+]
 ## Rebindable gameplay actions: [InputMap action, label]. Order = display order.
 const REBINDS := [
 	["move_forward", "Move up"],
@@ -29,6 +50,7 @@ const REBINDS := [
 	["cut", "Cut"],
 	["orders", "Orders board"],
 	["newspaper", "Newspaper"],
+	["handbook", "Handbook"],
 	["pause", "Pause / menu"],
 ]
 
@@ -183,8 +205,25 @@ func binding_text(action: String) -> String:
 		if ev is InputEventMouseButton:
 			return "Mouse %d" % (ev as InputEventMouseButton).button_index
 		if ev is InputEventJoypadButton:
-			return "Pad %d" % (ev as InputEventJoypadButton).button_index
+			return pad_button_text((ev as InputEventJoypadButton).button_index)
 	return "—"
+
+
+## The pad button an action is bound to (e.g. "X", "RB"), or "" when it has none.
+func pad_text(action: String) -> String:
+	if not InputMap.has_action(action):
+		return ""
+	for ev: InputEvent in InputMap.action_get_events(action):
+		if ev is InputEventJoypadButton:
+			return pad_button_text((ev as InputEventJoypadButton).button_index)
+	return ""
+
+
+## A controller button's everyday name (Xbox layout), e.g. 2 -> "X".
+func pad_button_text(index: int) -> String:
+	if index >= 0 and index < PAD_BUTTONS.size():
+		return PAD_BUTTONS[index]
+	return "Pad %d" % index
 
 
 ## Rebind an action to a single captured event (replacing its keyboard/mouse/pad events).
@@ -195,6 +234,7 @@ func set_binding(action: String, event: InputEvent) -> void:
 	InputMap.action_add_event(action, event)
 	_bindings[action] = _encode(event)
 	save()
+	bindings_changed.emit()
 
 
 ## Restore every action to the project defaults and forget saved bindings.
@@ -202,6 +242,7 @@ func reset_controls() -> void:
 	InputMap.load_from_project_settings()
 	_bindings.clear()
 	save()
+	bindings_changed.emit()
 
 
 func _apply_bindings() -> void:

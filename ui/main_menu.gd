@@ -33,6 +33,7 @@ var _buttons: VBoxContainer
 var _hints: Control
 var _sign_down := false
 var _drift := 0.0
+var _controls: ControlsScreen = null  # the controls sheet, while it is up
 
 @onready var _camera: Camera3D = $Camera
 @onready var _viewpoints: Node3D = $Viewpoints
@@ -170,7 +171,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# A stray event can arrive mid scene-swap once we've handed off. Cache the viewport
 	# up front so both branches use a verified-non-null reference.
 	var vp := get_viewport()
-	if vp == null:
+	if vp == null or _controls != null:
 		return
 	# Esc backs out of the load list; on the main page it's swallowed so it can't reach
 	# GameState and unpause the frozen sim behind the menu.
@@ -193,12 +194,22 @@ func _show_main() -> void:
 		_buttons.add_child(_latest_caption())
 	_buttons.add_child(MenuKit.button("New Game", _new_game))
 	_buttons.add_child(MenuKit.button("Load Game", _show_load))
+	_buttons.add_child(MenuKit.button("Controls", _show_controls))
 	_buttons.add_child(MenuKit.button("Settings", _show_settings))
 	_buttons.add_child(MenuKit.button("Quit", func() -> void: get_tree().quit()))
 	for child in _buttons.get_children():
 		if child is Button:
 			child.custom_minimum_size.x = COLUMN_W
 	_focus_first()
+
+
+func _show_controls() -> void:
+	_controls = ControlsScreen.open(_root)
+	_controls.closed.connect(
+		func() -> void:
+			_controls = null
+			_focus_first()
+	)
 
 
 func _show_settings() -> void:

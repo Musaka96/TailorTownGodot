@@ -53,6 +53,7 @@ const MIGRATED := [
 	"coffee_art.gd",
 	"coffee_pour_minigame.gd",
 	"espresso_minigame.gd",
+	"controls_screen.gd",
 	"rack_menu.gd",  # apply_skin(MIRROR) + FRAME_TALL + TitleBlock — just missing from this list
 ]
 const PENDING: Array[String] = []

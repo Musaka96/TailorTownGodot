@@ -60,6 +60,7 @@ func _ready() -> void:
 	clock = _build_clock()
 	reputation = _build_reputation()
 	_build_focus()
+	_build_handbook_pill()
 	newspaper = _build_newspaper()
 	day_transition = _build_day_transition()
 	pause_menu = _build_pause_menu()
@@ -417,6 +418,14 @@ func _build_focus() -> void:
 	widget.set_script(load("res://ui/focus_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	widget.position = Vector2(152, 164)
+	hud.add_child(widget)
+
+
+## "Handbook" key pill, bottom-left of the HUD — click it (or press its key) to read.
+func _build_handbook_pill() -> void:
+	var widget := Control.new()
+	widget.name = "HandbookPill"
+	widget.set_script(load("res://ui/handbook_pill.gd"))
 	hud.add_child(widget)
 
 
