@@ -75,8 +75,8 @@ to you as your name grows.
 Take the bolt from the shelf to the cutting table and steer the shears along the chalk —
 they glide down the straights, the curves are yours, and drift into the piece and you
 nick it; three slips and it's ruined. Then work the pedal and guide the seam through the
-machine: pull the pins, ease off at the corners, backstitch both ends. Press it on the
-board if you own an iron, and hang it on the rack — the jacket, shirt and trousers of one
+machine: pull the pins, ease off at the corners, backstitch both ends. Smooth the
+wrinkles out on the pressing board — linger and you scorch it — and hang it on the rack — the jacket, shirt and trousers of one
 order find each other there and come together into the finished suit, ready to hand over.
 How cleanly you cut and how steadily you sew becomes the quality of the piece, and the
 quality of the piece is what the client pays for.
@@ -96,7 +96,9 @@ put in front of a client before they ask.
 
 The Tailor's Gazette lands each morning with the fashion of the day and the town's
 coming events — a wedding in five days, business in nine — so the tailor who reads the
-paper is the one with the right cloth already on the shelf. Deliver well and your
+paper is the one with the right cloth already on the shelf. Dress someone beautifully
+for the big day and it's your name in the next morning's edition; fall short and the
+story goes to Pinch & Pleat down the road. Deliver well and your
 standing rises and the better cloth houses take your calls. Miss a deadline and it
 falls.
 
@@ -108,9 +110,18 @@ Everything you earn can go back into the shop, ordered from the phone as your na
 the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold
 the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the
 straights for you; a speed dial, a walking foot, clips instead of pins, a button that
-backstitches for you. A coffee machine to steady your hands, a pressing iron, a bicycle
-courier for the cloth — and, when you're ready, Percy the apprentice, who takes a whole
+backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine
+to steady your hands — pour it yourself, and later grind, tamp and pull a proper espresso — and, when you're ready, Percy the apprentice, who takes a whole
 part of an order to his own bench and gets better with every job.
+
+### Make the shop yours
+
+[GIF 4 — the same shop view redecorated on the beat: five interiors, 1 s each.]
+
+Sage panelling and fern damask, oxblood and parquet, cream and walnut, a navy atelier,
+plum damask. Wallpaper, wainscot, floor, rugs and curtains are each yours to choose —
+mix your own or buy a matched set — previewed live from above the shop and fitted in a
+cloud of dust and hammering. A handsome shop does a little for your name, too.
 
 ### Keep the shop
 
@@ -133,9 +144,12 @@ the trade before it leaves you to it.
 - Occasion-and-style dress codes that judge every part of the suit, not just the jacket.
 - Two hand-feel bench games — steering shears, a pedal-and-aim sewing machine — whose
   results carry through to what the client pays.
-- 24 workshop upgrades that change how the benches play, plus a coffee machine, a
-  pressing iron, a courier and an apprentice of your own.
+- 25 workshop upgrades that change how the benches play — and little bench games of
+  their own for pressing a piece and making the morning coffee.
+- A courier, an espresso machine and an apprentice of your own to grow into.
+- Town events with a best-dressed write-up in the paper — yours, or your rival's.
 - A reputation that opens premium textile houses and the better end of the catalogue.
+- A shop you redecorate surface by surface: wallpapers, panelling, floors, rugs, curtains.
 - A daily paper that sets the fashion and warns you what the town is planning.
 - Days you open and close, appointments, regulars and deadlines you can miss.
 - Top-down, walk-the-floor shop in a hand-built town. Keyboard or controller.
@@ -191,10 +205,40 @@ to re-record just those: `-- clip_mirror clip_brief`.
 | GIF 1 (lead) | `mirror` | two suits designed part by part at the mirror, 2x speed, 20 fps | ~6.1 MB |
 | GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief | ~2.4 MB |
 | GIF 3 | `cutting` + `sewing` | a clean Seam Allowance cut, then a Pedal & Aim seam — pins pulled, both ends backstitched (use both, stacked; 20 fps) | ~2.0 + 2.7 MB |
+| GIF 4 | `looks` | the shop redecorated five ways, 1 s each (`-- clip_looks`) | TBD |
 | spare | `shop` | the tailor crossing the floor with a bolt as a client walks in | ~3.6 MB |
 
 The four slotted clips total ~13 MB. Leave `shop` off the page (or use it in an
 announcement) — adding it passes the 15 MB point where Valve may strip animations.
+
+## 5b. Store & library art (rendered)
+
+```
+godot --path . --script res://tools/shot_promo.gd -- art     # 4K plates + logo -> .dev/promo/art/
+python tools/compose_store_art.py [client]                    # every size -> .dev/promo/store/
+```
+
+`-- art` renders clean plates (HUD off, no vignette / lens frame): the tailor with a bolt
+and a client outside the shop (`pair_<n>`, `pair_close_<n>`, `street_wide_<n>` — five
+seeded clients, pick one with the composer's argument, default 4), the shop floor from
+above, and the main menu's gold-leaf wordmark on transparency. The composer crops the
+plates, lays a forest-green wash where the wordmark goes and places it — nothing is drawn
+that isn't in the game.
+
+| File | Steam slot |
+|---|---|
+| `header_capsule_920x430.png` | Header capsule |
+| `small_capsule_462x174.png` | Small capsule (name only — it must read at 120px wide) |
+| `main_capsule_1232x706.png` | Main capsule |
+| `vertical_capsule_748x896.png` | Vertical capsule |
+| `page_background_1438x810.png` | Page background (blurred, green-toned shop floor) |
+| `library_capsule_600x900.png` | Library capsule |
+| `library_header_920x430.png` | Library header |
+| `library_hero_3840x1240.png` | Library hero (no logo, by Valve's rule) |
+| `library_logo_1280x720.png` | Library logo (transparent) |
+| `community_icon_184x184.png` | Community icon (the tailor) |
+
+Capsules may carry the logo and art only — no review quotes, awards or other copy.
 
 ## 6. Asset rules worth keeping in mind
 
@@ -227,7 +271,7 @@ Worsted wool, flannel, tweed, mohair, linen, poplin. Pinstripe, herringbone, hou
 
 [h2]Cut it, stitch it, finish it[/h2]
 [img]{GIF_3}[/img]
-Take the bolt from the shelf to the cutting table and steer the shears along the chalk — they glide down the straights, the curves are yours, and drift into the piece and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the machine: pull the pins, ease off at the corners, backstitch both ends. Press it on the board if you own an iron, and hang it on the rack — the jacket, shirt and trousers of one order find each other there and come together into the finished suit, ready to hand over. How cleanly you cut and how steadily you sew becomes the quality of the piece, and the quality of the piece is what the client pays for.
+Take the bolt from the shelf to the cutting table and steer the shears along the chalk — they glide down the straights, the curves are yours, and drift into the piece and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the machine: pull the pins, ease off at the corners, backstitch both ends. Smooth the wrinkles out on the pressing board — linger and you scorch it — and hang it on the rack — the jacket, shirt and trousers of one order find each other there and come together into the finished suit, ready to hand over. How cleanly you cut and how steadily you sew becomes the quality of the piece, and the quality of the piece is what the client pays for.
 
 [h2]Dress for the occasion[/h2]
 [img]{SHOT_HANDBOOK}[/img]
@@ -235,11 +279,15 @@ Black for a funeral. Nothing that upstages the groom. A board meeting is not a p
 
 [h2]Make your name on the Row[/h2]
 [img]{SHOT_NEWSPAPER}[/img]
-The Tailor's Gazette lands each morning with the fashion of the day and the town's coming events — a wedding in five days, business in nine — so the tailor who reads the paper is the one with the right cloth already on the shelf. Deliver well and your standing rises and the better cloth houses take your calls. Miss a deadline and it falls.
+The Tailor's Gazette lands each morning with the fashion of the day and the town's coming events — a wedding in five days, business in nine — so the tailor who reads the paper is the one with the right cloth already on the shelf. Dress someone beautifully for the big day and it's your name in the next morning's edition; fall short and the story goes to Pinch & Pleat down the road. Deliver well and your standing rises and the better cloth houses take your calls. Miss a deadline and it falls.
 
 [h2]Build up the workshop[/h2]
 [img]{SHOT_UPGRADES}[/img]
-Everything you earn can go back into the shop, ordered from the phone as your name opens the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the straights for you; a speed dial, a walking foot, clips instead of pins, a button that backstitches for you. A coffee machine to steady your hands, a pressing iron, a bicycle courier for the cloth — and, when you're ready, Percy the apprentice, who takes a whole part of an order to his own bench and gets better with every job.
+Everything you earn can go back into the shop, ordered from the phone as your name opens the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the straights for you; a speed dial, a walking foot, clips instead of pins, a button that backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine to steady your hands — pour it yourself, and later grind, tamp and pull a proper espresso — and, when you're ready, Percy the apprentice, who takes a whole part of an order to his own bench and gets better with every job.
+
+[h2]Make the shop yours[/h2]
+[img]{GIF_4}[/img]
+Sage panelling and fern damask, oxblood and parquet, cream and walnut, a navy atelier, plum damask. Wallpaper, wainscot, floor, rugs and curtains are each yours to choose — mix your own or buy a matched set — previewed live from above the shop and fitted in a cloud of dust and hammering. A handsome shop does a little for your name, too.
 
 [h2]Keep the shop[/h2]
 [img]{SHOT_ORDER_BOOK}[/img]
@@ -251,8 +299,11 @@ Open in the morning, lock up at night, and keep the bench moving in between: app
 [*] Real tailoring materials — 8 fabrics, 10+ patterns, dozens of colours — rendered as woven cloth on the garment and on the client.
 [*] Occasion-and-style dress codes that judge every part of the suit, not just the jacket.
 [*] Two hand-feel bench games — steering shears, a pedal-and-aim sewing machine — whose results carry through to what the client pays.
-[*] 24 workshop upgrades that change how the benches play, plus a coffee machine, a pressing iron, a courier and an apprentice of your own.
+[*] 25 workshop upgrades that change how the benches play — and little bench games of their own for pressing a piece and making the morning coffee.
+[*] A courier, an espresso machine and an apprentice of your own to grow into.
+[*] Town events with a best-dressed write-up in the paper — yours, or your rival's.
 [*] A reputation that opens premium textile houses and the better end of the catalogue.
+[*] A shop you redecorate surface by surface: wallpapers, panelling, floors, rugs, curtains.
 [*] A daily paper that sets the fashion and warns you what the town is planning.
 [*] Days you open and close, appointments, regulars and deadlines you can miss.
 [*] Top-down, walk-the-floor shop in a hand-built town. Keyboard or controller.

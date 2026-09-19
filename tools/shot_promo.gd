@@ -19,10 +19,20 @@ const SHOT_H := 1080
 ## reuse it (scaled) so the framing reads like the framing players get.
 const CAM_OFFSET := Vector3(0.0, 6.271325, 4.392928)
 const SETTLE := 6
+const FRONT_REF := Vector3(0.65, 0.0, 4.05)
+const BRIEF_ASIDE := 2.8  # metres the brief shots look to the client's right
 ## Opt-in shots (only rendered when named on the command line). "clips" records every
 ## clip; each can also be named alone.
 const EXTRA_SHOTS := [
-	"cute", "clips", "clip_shop", "clip_mirror", "clip_brief", "clip_cut", "clip_sew"
+	"cute",
+	"clips",
+	"clip_shop",
+	"clip_mirror",
+	"clip_brief",
+	"clip_cut",
+	"clip_sew",
+	"clip_looks",
+	"art",
 ]
 ## Clip frames: Steam's description column is 1170px wide (780 logical px at 150%).
 ## Record with `--fixed-fps 30` so every frame advances exactly 1/30 s of game time,
@@ -30,6 +40,17 @@ const EXTRA_SHOTS := [
 const CLIP_W := 1170
 const CLIP_H := 658
 const CLIP_FPS := 30
+## Key art (`-- art`): rendered at ART_W x ART_H with the HUD and the screen frame off,
+## into .dev/promo/art/; tools/compose_store_art.py cuts the Steam capsules from them.
+const ART_W := 3840
+const ART_H := 2160
+const LOGO_SCALE := 5.0
+const ART_SEED := 1907
+const ART_CLIENTS := 5  # the client is random: shoot a few, keep the best
+## The looks clip: these interiors (data/shop_looks ids), LOOK_HOLD seconds each, ending
+## where it began so it loops.
+const CLIP_LOOK_IDS := ["fern_damask", "oxblood", "cream_walnut", "navy_atelier", "plum_damask"]
+const LOOK_HOLD := 1.0
 ## The mirror clip designs these CUTE_SUITS looks one after another, part by part.
 const CLIP_LOOKS := ["berry", "garden"]
 ## Game seconds between "button presses" in the mirror clip; the clip is then saved at
@@ -137,6 +158,8 @@ func _run() -> void:
 	await _clip_brief()
 	await _clip_cut()
 	await _clip_sew()
+	await _clip_looks()
+	await _art()
 	print("promo shots written to ", OUT_DIR)
 	quit(0)
 
@@ -152,10 +175,10 @@ func _shot_overview() -> void:
 	for _i in 3:
 		_orders.debug_add_random()
 	await _give_roll("navy_worsted_pinstripe", 14.0)
-	_place_player(Vector3(2.3, 0.0, 4.9), PI)
+	_place_player(_front(Vector3(2.0, 0.0, 5.3)), 0.5)
 	await _seat_customer()
 	await _wait(20)
-	_frame(Vector3(1.9, 0.7, 4.2), 1.5)
+	_frame(_front(Vector3(1.3, 0.5, 4.5)), 1.2)
 	await _wait(SETTLE)
 	_save("01_shop_overview")
 	await _clear_hands()
@@ -167,12 +190,13 @@ func _shot_greeting() -> void:
 	if not _want("greeting"):
 		return
 	await _clear_customers()
-	var cust: Node = _spawn_customer(Vector3(0.65, 0.0, 4.05), 0.0)
+	var cust: Node = _spawn_customer(_front(Vector3(0.65, 0.0, 4.05)), 0.0)
 	await _wait(40)
 	_ui.open_customer_request(cust, _player)
-	_place_player(Vector3(0.7, 0.0, 5.6), PI)
+	_place_player(_front(Vector3(-0.5, 0.0, 5.2)), PI * 0.75)
 	await _wait(40)
-	_frame(Vector3(0.7, 0.9, 4.6), 0.75)
+	# The brief panel sits mid-screen, so the pair stand in the left third beside it.
+	_frame(_front(Vector3(0.65 + BRIEF_ASIDE, 0.9, 4.5)), 0.7)
 	await _wait(SETTLE)
 	_save("02_customer_brief")
 	_ui.close_all_menus()
@@ -185,7 +209,7 @@ func _shot_suit_builder() -> void:
 	if not _want("mirror"):
 		return
 	await _clear_customers()
-	_place_player(Vector3(4.6, 0.0, 3.6), PI * 0.5)
+	_place_player(_by_mirror(), PI * 0.5)
 	await _seat_customer()
 	_ui.open_suit_builder(_mirror, _player)
 	var builder: Node = _ui.suit_builder
@@ -274,9 +298,9 @@ func _shot_phone() -> void:
 	if not _want("phone"):
 		return
 	var phone: Node = _main.find_child("Phone", true, false)
-	_place_player(Vector3(0.5, 0.0, 3.0), PI)
+	_place_player(_at_phone(Vector3(0.3, 0.0, 1.0)), PI)
 	await _wait(20)
-	_frame(Vector3(0.5, 0.8, 2.7), 1.0)
+	_frame(_at_phone(Vector3(0.3, 0.8, 0.7)), 1.0)
 	_ui.open_phone(phone, _player)
 	await _wait(20)
 	_ui.phone_order._screen = 2  # Screen.ORDER — the cloth designer and its swatch
@@ -303,9 +327,9 @@ func _shot_upgrades() -> void:
 	for id in UPGRADES_OWNED:
 		upgrades._owned[id] = true
 	var phone: Node = _main.find_child("Phone", true, false)
-	_place_player(Vector3(0.5, 0.0, 3.0), PI)
+	_place_player(_at_phone(Vector3(0.3, 0.0, 1.0)), PI)
 	await _wait(20)
-	_frame(Vector3(0.5, 0.8, 2.7), 1.0)
+	_frame(_at_phone(Vector3(0.3, 0.8, 0.7)), 1.0)
 	_ui.open_phone(phone, _player)
 	await _wait(20)
 	var menu: Node = _ui.phone_order
@@ -385,7 +409,7 @@ func _shot_cute_suits() -> void:
 		_orders.debug_add_random()
 	for look: String in CUTE_SUITS:
 		await _clear_customers()
-		_place_player(Vector3(4.6, 0.0, 3.6), PI * 0.5)
+		_place_player(_by_mirror(), PI * 0.5)
 		var cust: Node = await _seat_customer()
 		var brief: Array = CUTE_SUITS[look]["brief"]
 		cust.preference.occasion = brief[0]
@@ -421,6 +445,79 @@ func _dress_design(builder: Node, parts: Array) -> void:
 	builder._refresh()
 
 
+# --- Key art (sources for the store capsules) ---------------------------------
+
+
+## Clean, high-resolution plates: the pair outside the shop (close and wide), the shop
+## floor from above, and the wordmark on a transparent ground.
+func _art() -> void:
+	if not _want("art"):
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR + "/art"))
+	await _clear_customers()
+	await _clear_hands()
+	_ui.close_all_menus()
+	_ui.hud.visible = false
+	var fx: Node = root.get_node("PostFX")
+	var old_profile: Resource = fx.profile
+	var clean: Resource = old_profile.duplicate()
+	for prop in ["vignette_strength", "barrel_distortion", "grain_strength"]:
+		clean.set(prop, 0.0)
+	clean.set("chromatic_aberration", 0.0)
+	fx.set_profile(clean)
+	get_root().size = Vector2i(ART_W, ART_H)
+	await _wait(10)
+	# The shop floor, empty and tidy (page background, library hero fallback).
+	_place_player(_front(Vector3(2.0, 0.0, 5.3)), 0.5)
+	await _give_roll("navy_worsted_pinstripe", 14.0)
+	_frame(_front(Vector3(1.3, 0.5, 4.2)), 1.05)
+	await _wait(30)
+	_save("art/interior")
+	# Outside, late afternoon: the tailor with a bolt, a client beside him.
+	_clock.start_shift(0.86)
+	_dismiss_paper()
+	_place_player(Vector3(1.15, 0.0, 9.9), 0.15)
+	for i in ART_CLIENTS:
+		seed(ART_SEED + i)  # the same five clients every run, so a pick stays picked
+		var cust: Node = _spawn_customer(Vector3(-0.15, 0.0, 10.0), -0.2)
+		await _wait(60)
+		_frame_eye(Vector3(0.5, 2.3, 17.5), Vector3(0.5, 1.9, 8.6))
+		await _wait(SETTLE)
+		_save("art/street_wide_%d" % i)
+		_frame_eye(Vector3(0.5, 1.5, 13.4), Vector3(0.5, 1.25, 9.9))
+		await _wait(SETTLE)
+		_save("art/pair_%d" % i)
+		_frame_eye(Vector3(0.5, 1.3, 12.5), Vector3(0.5, 1.15, 9.9))
+		await _wait(SETTLE)
+		_save("art/pair_close_%d" % i)
+		cust.queue_free()
+		await _wait(4)
+	await _clear_hands()
+	await _art_logo()
+	get_root().size = Vector2i(SHOT_W, SHOT_H)
+	fx.set_profile(old_profile)
+	_ui.hud.visible = true
+
+
+## The main menu's gold-leaf wordmark, LOGO_SCALE x, on transparency.
+func _art_logo() -> void:
+	var vp := SubViewport.new()
+	vp.transparent_bg = true
+	vp.size = Vector2i(Vector2(360, 178) * LOGO_SCALE)
+	vp.oversampling_override = LOGO_SCALE
+	vp.canvas_transform = Transform2D().scaled(Vector2.ONE * LOGO_SCALE)
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var mark := Wordmark.new()
+	mark.size = Vector2(360, 178)
+	vp.add_child(mark)
+	root.add_child(vp)
+	await _wait(6)
+	var image := vp.get_texture().get_image()
+	image.save_png("%s/art/logo.png" % OUT_DIR)
+	print("saved logo (%dx%d)" % [image.get_width(), image.get_height()])
+	vp.queue_free()
+
+
 # --- Clips (moving images for About This Game) -------------------------------
 
 
@@ -434,8 +531,8 @@ func _clip_shop() -> void:
 		_orders.debug_add_random()
 	await _clear_hands()
 	await _give_roll("navy_worsted_pinstripe", 14.0)
-	_place_player(Vector3(5.0, 0.0, 4.4), -PI * 0.5)
-	_frame(Vector3(1.4, 0.7, 4.2), 1.35)
+	_place_player(_front(Vector3(5.0, 0.0, 4.4)), -PI * 0.5)
+	_frame(_front(Vector3(1.4, 0.7, 4.2)), 1.2)
 	var greet: Node3D = _main.find_child("GreetSpot", true, false)
 	var door: Node3D = _main.find_child("DoorOutside", true, false)
 	var cust: Node = _spawn_customer(door.global_position, PI)
@@ -451,6 +548,29 @@ func _clip_shop() -> void:
 	await _clear_customers()
 
 
+## The same quiet shop, redecorated on the beat: walls, panelling, floor, rugs, curtains.
+func _clip_looks() -> void:
+	if not _want("clip_looks"):
+		return
+	var applier: Node = _main.find_child("ShopLookApplier", true, false)
+	if applier == null:
+		push_warning("clip_looks: no ShopLookApplier in the scene")
+		return
+	await _clear_customers()
+	await _clear_hands()
+	var before: int = applier.current
+	_place_player(_front(Vector3(2.0, 0.0, 5.3)), 0.5)
+	_frame(_front(Vector3(1.3, 0.5, 4.2)), 1.05)
+	applier.apply_id(CLIP_LOOK_IDS[0])
+	await _wait(10)
+	_start_rec("looks")
+	for id: String in CLIP_LOOK_IDS:
+		applier.apply_id(id)
+		await _seconds(LOOK_HOLD)
+	_stop_rec()
+	applier.apply(before)
+
+
 ## The fitting mirror, played like a (sped-up) session: pick a part, step through its
 ## fabric / colour / pattern / style, next part, back out to the whole suit — then the
 ## next look. Each CLIP_LOOKS suit is built one press at a time.
@@ -458,7 +578,7 @@ func _clip_mirror() -> void:
 	if not _want("clip_mirror"):
 		return
 	await _clear_customers()
-	_place_player(Vector3(4.6, 0.0, 3.6), PI * 0.5)
+	_place_player(_by_mirror(), PI * 0.5)
 	var cust: Node = await _seat_customer()
 	cust.preference.occasion = 3  # PARTY — a brief every look in the reel suits
 	cust.preference.style = 3  # FASHION
@@ -540,9 +660,9 @@ func _clip_brief() -> void:
 		return
 	await _clear_customers()
 	# Stand beside the client's line from the door (it runs straight up x ~ 0.65), not
-	# on it, turned to where they'll stop.
-	_place_player(Vector3(1.9, 0.0, 4.5), atan2(-1.25, -0.45))
-	_frame(Vector3(0.9, 0.9, 4.6), 0.75)
+	# on it and clear of the brief panel, turned to where they'll stop.
+	_place_player(_front(Vector3(-0.6, 0.0, 4.9)), atan2(1.25, -0.85))
+	_frame(_front(Vector3(0.65 + BRIEF_ASIDE, 0.9, 4.5)), 0.7)
 	var greet: Node3D = _main.find_child("GreetSpot", true, false)
 	var door: Node3D = _main.find_child("DoorInside", true, false)
 	var cust: Node = _spawn_customer(door.global_position + Vector3(0.0, 0.0, 0.4), PI)
@@ -711,6 +831,24 @@ func _frame_eye(eye: Vector3, look: Vector3) -> void:
 	_rig.focus(eye, look)
 	var cam: Camera3D = _rig.get_node("Camera3D")
 	cam.global_transform = Transform3D(Basis.looking_at(look - eye, Vector3.UP), eye)
+
+
+## Front-of-shop staging is written against a greeting spot at FRONT_REF and moved to
+## wherever the map's GreetSpot really is, so the shots survive a new shop layout.
+func _front(pos: Vector3) -> Vector3:
+	var greet: Node3D = _main.find_child("GreetSpot", true, false)
+	return pos + (greet.global_position - FRONT_REF if greet != null else Vector3.ZERO)
+
+
+## Where the tailor waits during a fitting: beside the mirror spot, out of the frame.
+func _by_mirror() -> Vector3:
+	var spot: Node3D = _main.find_child("MirrorSpot", true, false)
+	return spot.global_position + Vector3(-1.2, 0.0, 1.8)
+
+
+func _at_phone(offset: Vector3) -> Vector3:
+	var phone: Node3D = _main.find_child("Phone", true, false)
+	return phone.global_position * Vector3(1.0, 0.0, 1.0) + offset
 
 
 func _place_player(pos: Vector3, yaw: float) -> void:
