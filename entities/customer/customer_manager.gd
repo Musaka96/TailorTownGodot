@@ -14,6 +14,8 @@ const GLASSES_CHANCE := 0.2
 @export var mirror_path: NodePath
 @export var greet_path: NodePath
 @export var mirror_spot_path: NodePath
+## Where a returning customer stands to collect their suit. Unset → beside the greet spot.
+@export var collect_spot_path: NodePath
 @export var door_in_path: NodePath
 @export var door_out_path: NodePath
 @export var street_west_path: NodePath
@@ -35,6 +37,7 @@ var _mirror_spot := Vector3.ZERO
 ## rotation, so moving/rotating that waypoint also re-aims the fitting camera (the
 ## suit builder frames the customer from their front, i.e. along their facing).
 var _mirror_spot_yaw := 0.0
+var _collect_spot_pos := Vector3.ZERO
 var _door_in := Vector3.ZERO
 var _door_out := Vector3.ZERO
 var _street_west := Vector3.ZERO
@@ -59,6 +62,7 @@ func _start() -> void:
 	_greet = _pos(greet_path)
 	_mirror_spot = _pos(mirror_spot_path)
 	_mirror_spot_yaw = _yaw(mirror_spot_path)
+	_collect_spot_pos = _pos(collect_spot_path)
 	_door_in = _pos(door_in_path)
 	_door_out = _pos(door_out_path)
 	_street_west = _pos(street_west_path)
@@ -263,9 +267,12 @@ func _on_collector_arrived(cust: Customer) -> void:
 		dismiss(cust)
 
 
-## Where a returning customer waits — just inside the door, clear of the mirror.
+## Where a returning customer waits — at the counter, beside the greet spot (so they
+## don't stand on a waiting shopper), clear of the mirror.
 func _collect_spot() -> Vector3:
-	return _door_in + Vector3(0.9, 0.0, 0.0)
+	if _collect_spot_pos != Vector3.ZERO:
+		return _collect_spot_pos
+	return _greet + Vector3(0.9, 0.0, 0.0)
 
 
 func _on_shopper_waiting(cust: Customer) -> void:
