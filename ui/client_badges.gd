@@ -52,7 +52,7 @@ func _badge(text: String, fill: Color, ink: Color) -> Control:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_override("font", Style.bold_font())
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", Style.T_MICRO)
 	lbl.add_theme_color_override("font_color", ink)
 	tag.add_child(lbl)
 	return tag

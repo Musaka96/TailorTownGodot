@@ -38,7 +38,7 @@ func _ready() -> void:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 	_step_label = Label.new()
-	_step_label.add_theme_font_size_override("font_size", 11)
+	_step_label.add_theme_font_size_override("font_size", Style.T_MICRO)
 	_step_label.add_theme_color_override("font_color", Style.BURGUNDY)
 	_step_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_step_label)
@@ -46,7 +46,7 @@ func _ready() -> void:
 	_goal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_goal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_goal.add_theme_font_override("font", Style.bold_font())
-	_goal.add_theme_font_size_override("font_size", 17)
+	_goal.add_theme_font_size_override("font_size", Style.T_BODY)
 	_goal.add_theme_color_override("font_color", Style.WALNUT)
 	box.add_child(_goal)
 	_list = VBoxContainer.new()
@@ -71,7 +71,7 @@ func set_goal(step_text: String, goal: String, items: PackedStringArray) -> void
 		lbl.text = line
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.add_theme_font_size_override("font_size", 14)
+		lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 		lbl.add_theme_color_override("font_color", Style.INK)
 		row.add_child(lbl)
 		_list.add_child(row)

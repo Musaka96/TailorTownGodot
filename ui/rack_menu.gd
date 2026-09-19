@@ -49,7 +49,7 @@ func close() -> void:
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.5)
+	dim.color = Style.SCRIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -172,8 +172,9 @@ func _make_card(item, index: int) -> Control:
 
 	var title := Label.new()
 	title.text = _name_of(item)
+	title.add_theme_font_override("font", Style.font_medium())
 	title.add_theme_color_override("font_color", Style.INK)
-	title.add_theme_font_size_override("font_size", 21)
+	title.add_theme_font_size_override("font_size", Style.T_NAME)
 	col.add_child(title)
 
 	var sub := Label.new()
@@ -181,14 +182,14 @@ func _make_card(item, index: int) -> Control:
 	if _rack.is_loose(index):
 		sub.text += "  ·  taken apart"
 	sub.add_theme_color_override("font_color", Style.INK_SOFT)
-	sub.add_theme_font_size_override("font_size", 15)
+	sub.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	col.add_child(sub)
 
 	var quality: float = clampf(_quality_of(item), 0.0, 1.0)
 	var qlabel := Label.new()
 	qlabel.text = "Quality  %d%%" % roundi(quality * 100.0)
 	qlabel.add_theme_color_override("font_color", Style.fill_color(quality).darkened(0.25))
-	qlabel.add_theme_font_size_override("font_size", 15)
+	qlabel.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	col.add_child(qlabel)
 
 	return card
@@ -255,7 +256,7 @@ func _part_swatch(garment_type: int, spec: Dictionary) -> Control:
 	lbl.text = Enums.garment_type_name(garment_type)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", Style.T_MICRO)
 	col.add_child(lbl)
 	return col
 

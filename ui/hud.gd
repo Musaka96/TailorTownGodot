@@ -22,6 +22,9 @@ var _count_tween: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # prompt visibility tracks menus, even paused
+	# The scene's own Held label carries no size override (dead theme_override_font_sizes
+	# were pruned from ui.tscn) — set it here so a scene regen can't drop it silently.
+	_held.add_theme_font_size_override("font_size", Style.T_VALUE)
 	_build_prompt_bar()
 	_build_money_panel()
 	_build_booked_badge()
@@ -63,7 +66,7 @@ func _build_money_panel() -> void:
 	row.add_child(_coin_badge())
 	_money_value = Label.new()
 	_money_value.add_theme_font_override("font", Style.bold_font())
-	_money_value.add_theme_font_size_override("font_size", 20)
+	_money_value.add_theme_font_size_override("font_size", Style.T_VALUE)
 	_money_value.add_theme_color_override("font_color", Style.INK)
 	_money_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_money_value)
@@ -86,7 +89,7 @@ func _coin_badge() -> Control:
 	lbl.text = "$"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_override("font", Style.bold_font())
-	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	lbl.add_theme_color_override("font_color", Style.CHALK)
 	badge.add_child(lbl)
 	return badge
@@ -140,13 +143,15 @@ func _flash_money(gain: bool) -> void:
 	t.tween_property(_money_panel, "line", Style.WALNUT, 0.35)
 
 
-## A floating "+$50" / "-$20" that rises above the purse and fades out.
+## A floating "+$50" / "-$20" that rises above the purse and fades out. Same size,
+## weight and colour as the orders board's own payout float (orders_panel.gd
+## _float_payout) — a gain reads the same wherever it floats up from.
 func _spawn_delta(delta: int) -> void:
 	var lbl := Label.new()
 	lbl.text = ("+$%d" if delta > 0 else "-$%d") % absi(delta)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	lbl.add_theme_font_override("font", Style.bold_font())
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", Style.T_NAME)
 	lbl.add_theme_color_override("font_color", Style.FOREST if delta > 0 else Style.CLAY)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.anchor_left = 1.0
@@ -191,7 +196,7 @@ func _build_prompt_bar() -> void:
 	row.add_child(Style.keycap("E"))
 	_prompt_verb = Label.new()
 	_prompt_verb.add_theme_font_override("font", Style.bold_font())
-	_prompt_verb.add_theme_font_size_override("font_size", 15)
+	_prompt_verb.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_prompt_verb.add_theme_color_override("font_color", Style.WALNUT)
 	_prompt_verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_prompt_verb)
@@ -217,7 +222,7 @@ func _build_booked_badge() -> void:
 	var lbl := Label.new()
 	lbl.text = "Fully booked"
 	lbl.add_theme_font_override("font", Style.bold_font())
-	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	lbl.add_theme_color_override("font_color", Style.CHALK)
 	_booked_badge.add_child(lbl)
 	add_child(_booked_badge)

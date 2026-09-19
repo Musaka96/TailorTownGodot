@@ -128,11 +128,15 @@ func _refresh_calendar() -> void:
 		col.add_theme_constant_override("separation", 0)
 		card.add_child(col)
 		var head := "Today" if first else "Day %d" % int(d["day"])
-		col.add_child(_line(head, 13, Style.INK))
-		col.add_child(_line("%d pickup%s" % [due, "" if due == 1 else "s"], 11, Style.INK_SOFT))
+		col.add_child(_line(head, Style.T_CAPTION, Style.INK))
+		col.add_child(
+			_line("%d pickup%s" % [due, "" if due == 1 else "s"], Style.T_MICRO, Style.INK_SOFT)
+		)
 		if appts > 0:
 			col.add_child(
-				_line("%d fitting%s" % [appts, "" if appts == 1 else "s"], 11, Style.BRASS)
+				_line(
+					"%d fitting%s" % [appts, "" if appts == 1 else "s"], Style.T_MICRO, Style.BRASS
+				)
 			)
 		_calendar.add_child(card)
 		first = false
@@ -150,7 +154,7 @@ func _refresh() -> void:
 	for child in _list.get_children():
 		child.queue_free()
 	if orders.is_empty():
-		_list.add_child(_line("No open orders.", 16, Style.INK_SOFT))
+		_list.add_child(_line("No open orders.", Style.T_BODY, Style.INK_SOFT))
 	for i in orders.size():
 		_list.add_child(_make_list_card(orders[i], i == _sel, i))
 
@@ -158,7 +162,9 @@ func _refresh() -> void:
 		child.queue_free()
 	if orders.is_empty():
 		_detail.add_child(
-			_line("Greet a customer and design a suit to take an order.", 16, Style.INK_SOFT)
+			_line(
+				"Greet a customer and design a suit to take an order.", Style.T_BODY, Style.INK_SOFT
+			)
 		)
 	else:
 		_fill_detail(orders[_sel])
@@ -184,14 +190,14 @@ func _make_list_card(order, selected: bool, index: int) -> Control:
 	card.add_child(box)
 	var head := HBoxContainer.new()
 	box.add_child(head)
-	var who := _line("#%d  %s" % [order.id, order.customer_name], 17, Style.INK)
+	var who := _line("#%d  %s" % [order.id, order.customer_name], Style.T_BODY, Style.INK)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(who)
 	head.add_child(_status_label(order))
 	box.add_child(
 		_line(
 			"%d / %d pieces done" % [_done_count(order), order.required_types().size()],
-			13,
+			Style.T_CAPTION,
 			Style.INK_SOFT
 		)
 	)
@@ -202,14 +208,25 @@ func _make_list_card(order, selected: bool, index: int) -> Control:
 
 
 func _fill_detail(order) -> void:
-	_detail.add_child(_line("Order #%d  ·  %s" % [order.id, order.customer_name], 22, Style.INK))
+	_detail.add_child(
+		_line("Order #%d  ·  %s" % [order.id, order.customer_name], Style.T_NAME, Style.INK)
+	)
 	_detail.add_child(_status_line(order))
-	_detail.add_child(_line("Agreed price: $%d" % order.price, 16, Style.LEAF))
+	_detail.add_child(_price_row(order))
 
 	_detail.add_child(StitchRule.make(Style.ACC_ORDERS, false, 2.0))
 
 	for t in order.required_types():
 		_detail.add_child(_piece_row(order, t))
+
+
+## "Agreed price" as a soft label beside the bold, forest figure — never the price alone.
+func _price_row(order) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", Style.S1)
+	row.add_child(_line("Agreed price", Style.T_BODY, Style.INK_SOFT))
+	row.add_child(Style.money(order.price, Style.T_BODY, Style.FOREST))
+	return row
 
 
 func _piece_row(order, garment_type: int) -> Control:
@@ -230,8 +247,8 @@ func _piece_row(order, garment_type: int) -> Control:
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(text)
-	text.add_child(_line(Enums.garment_type_name(garment_type), 17, Style.INK))
-	text.add_child(_line(order.part_summary(garment_type), 14, Style.INK_SOFT))
+	text.add_child(_line(Enums.garment_type_name(garment_type), Style.T_BODY, Style.INK))
+	text.add_child(_line(order.part_summary(garment_type), Style.T_CAPTION, Style.INK_SOFT))
 
 	var done: bool = order.is_part_done(garment_type)
 	row.add_child(_stamp("DONE" if done else "TO MAKE", Style.FOREST if done else Style.AMBER))
@@ -253,35 +270,37 @@ func _stamp(text: String, ink: Color) -> Control:
 	box.add_theme_stylebox_override("panel", sb)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.rotation_degrees = -8.0
-	var lbl := _line(text, 13, ink)
-	lbl.add_theme_font_override("font", Style.bold_font())
-	box.add_child(lbl)
+	box.add_child(_line(text, Style.T_CAPTION, ink, true))
 	return box
 
 
 # --- Bits ------------------------------------------------------------------
 
 
-func _status_line(order) -> Label:
+## The in-progress line splits off the due-date word so only that reads bold — the
+## sentence around it stays plain (the bold rule: never a whole sentence).
+func _status_line(order) -> Control:
 	var days: int = order.days_left_ceil()
 	if order.state == SuitOrder.State.READY:
-		return _line("Ready for pickup — order #%d" % order.id, 16, Style.LEAF)
+		return _line("Ready for pickup — order #%d" % order.id, Style.T_BODY, Style.FOREST)
 	if order.is_complete():
-		return _line("Pieces made — assemble at the mannequin", 16, Style.BRASS)
-	return _line(
-		"In progress — due %s" % (("in " if days > 2 else "") + Style.due_text(days).to_lower()),
-		16,
-		Style.due_color(days)
-	)
+		return _line("Pieces made — assemble at the mannequin", Style.T_BODY, Style.BRASS)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 0)
+	row.add_child(_line("In progress — due ", Style.T_BODY, Style.INK_SOFT))
+	var due_word := ("in " if days > 2 else "") + Style.due_text(days).to_lower()
+	row.add_child(_line(due_word, Style.T_BODY, Style.due_color(days), true))
+	return row
 
 
+## The ticket's status chip: a short word (or the due date), always bold like a stamp.
 func _status_label(order) -> Label:
 	if order.state == SuitOrder.State.READY:
-		return _line("READY", 14, Style.LEAF)
+		return _line("READY", Style.T_CAPTION, Style.FOREST, true)
 	if order.is_complete():
-		return _line("ASSEMBLE", 14, Style.BRASS)
+		return _line("ASSEMBLE", Style.T_CAPTION, Style.BRASS, true)
 	var left: int = order.days_left_ceil()
-	return _line(Style.due_text(left), 14, Style.due_color(left))
+	return _line(Style.due_text(left), Style.T_CAPTION, Style.due_color(left), true)
 
 
 func _done_count(order) -> int:
@@ -292,9 +311,11 @@ func _done_count(order) -> int:
 	return n
 
 
-func _line(text: String, size: int, color: Color) -> Label:
+func _line(text: String, size: int, color: Color, bold: bool = false) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
+	if bold:
+		lbl.add_theme_font_override("font", Style.font_bold())
 	lbl.add_theme_font_size_override("font_size", size)
 	lbl.add_theme_color_override("font_color", color)
 	return lbl

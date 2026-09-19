@@ -206,14 +206,15 @@ func _make_card(roll, selected: bool) -> Control:
 
 	var name_label := Label.new()
 	name_label.text = mat.display_name
+	name_label.add_theme_font_override("font", Style.font_medium())
 	name_label.add_theme_color_override("font_color", Style.INK)
-	name_label.add_theme_font_size_override("font_size", 21)
+	name_label.add_theme_font_size_override("font_size", Style.T_NAME)
 	col.add_child(name_label)
 
 	var sub := Label.new()
 	sub.text = mat.summary()
 	sub.add_theme_color_override("font_color", Style.INK_SOFT)
-	sub.add_theme_font_size_override("font_size", 15)
+	sub.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	col.add_child(sub)
 
 	var frac: float = roll.remaining_length_m / maxf(mat.roll_length_m, 0.001)
@@ -223,7 +224,7 @@ func _make_card(roll, selected: bool) -> Control:
 		% [roll.remaining_length_m, mat.roll_length_m, roundi(frac * 100.0)]
 	)
 	left.add_theme_color_override("font_color", Style.fill_color(frac).darkened(0.25))
-	left.add_theme_font_size_override("font_size", 15)
+	left.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	col.add_child(left)
 
 	return card

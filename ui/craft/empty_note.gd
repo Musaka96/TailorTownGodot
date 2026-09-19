@@ -19,7 +19,7 @@ static func make(text: String, icon: int = Icon.HANGER) -> EmptyNote:
 	lbl.text = text
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", Style.T_BODY)
 	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
 	note.add_child(lbl)
 	return note

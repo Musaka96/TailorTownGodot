@@ -1308,8 +1308,8 @@ func _build() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var theme := Theme.new()
-	theme.default_font = UI.FONT
-	theme.default_font_size = 16
+	theme.default_font = Style.font_body()
+	theme.default_font_size = Style.T_BODY
 	root.theme = theme
 	_layer.add_child(root)
 

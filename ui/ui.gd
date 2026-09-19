@@ -55,12 +55,12 @@ func _ready() -> void:
 	clock = _build_clock()
 	reputation = _build_reputation()
 	_build_focus()
-	newspaper = _build_newspaper(theme)
+	newspaper = _build_newspaper()
 	day_transition = _build_day_transition()
-	pause_menu = _build_pause_menu(theme)
-	rack_menu = _build_rack_menu(theme)
-	apprentice_menu = _build_code_menu(theme, "ApprenticeMenu", "res://ui/apprentice_menu.gd")
-	bench_game = _build_code_menu(theme, "BenchGameScreen", "res://ui/bench_game_screen.gd")
+	pause_menu = _build_pause_menu()
+	rack_menu = _build_rack_menu()
+	apprentice_menu = _build_code_menu("ApprenticeMenu", "res://ui/apprentice_menu.gd")
+	bench_game = _build_code_menu("BenchGameScreen", "res://ui/bench_game_screen.gd")
 	_wire_pop_ins()
 
 
@@ -236,7 +236,8 @@ func toast(text: String) -> void:
 	if _toast == null:
 		_toast = Label.new()
 		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_toast.add_theme_font_size_override("font_size", 22)
+		_toast.add_theme_font_override("font", Style.font_medium())
+		_toast.add_theme_font_size_override("font_size", Style.T_NAME)
 		_toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 		_toast.position.y = 120
 		_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -289,12 +290,12 @@ func _build_orders_menu() -> Control:
 	var margin := MarginContainer.new()
 	margin.name = "Margin"
 	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 8)
+		margin.add_theme_constant_override("margin_" + side, Style.S2)
 	panel.add_child(margin)
 
 	var box := VBoxContainer.new()
 	box.name = "Box"
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", Style.S2)
 	margin.add_child(box)
 
 	var title := Label.new()
@@ -303,7 +304,7 @@ func _build_orders_menu() -> Control:
 
 	var pages := HBoxContainer.new()
 	pages.name = "Pages"
-	pages.add_theme_constant_override("separation", 16)
+	pages.add_theme_constant_override("separation", Style.S3)
 	box.add_child(pages)
 
 	var list := VBoxContainer.new()
@@ -361,43 +362,41 @@ func _build_focus() -> void:
 
 ## The morning paper — a modal broadsheet attached to the root UI (above the HUD) so
 ## it covers everything. Auto-opens on EventBus.newspaper_ready. Built in code.
-func _build_newspaper(theme: Theme) -> Control:
+## No .theme assignment needed: it inherits the root window's base theme, the same
+## way _build_day_transition() always has.
+func _build_newspaper() -> Control:
 	var paper := Control.new()
 	paper.name = "Newspaper"
 	paper.set_script(load("res://ui/newspaper.gd"))
-	paper.theme = theme
 	add_child(paper)
 	return paper
 
 
 ## The pause overlay (Resume / Save / Load / Main Menu / Quit), attached above the
 ## HUD. Processes while the tree is paused so its buttons stay live. Built in code.
-func _build_pause_menu(theme: Theme) -> Control:
+func _build_pause_menu() -> Control:
 	var menu := Control.new()
 	menu.name = "PauseMenu"
 	menu.set_script(load("res://ui/pause_menu.gd"))
-	menu.theme = theme
 	add_child(menu)
 	return menu
 
 
 ## A station menu built entirely in code from `script`, attached to the root UI.
-func _build_code_menu(theme: Theme, menu_name: String, script: String) -> Control:
+func _build_code_menu(menu_name: String, script: String) -> Control:
 	var menu := Control.new()
 	menu.name = menu_name
 	menu.set_script(load(script))
-	menu.theme = theme
 	add_child(menu)
 	return menu
 
 
 ## The clothing-rack browse menu (like the shelf's, fitting-room theme). Built in
 ## code and attached to the root UI so no scene file is needed.
-func _build_rack_menu(theme: Theme) -> Control:
+func _build_rack_menu() -> Control:
 	var menu := Control.new()
 	menu.name = "RackMenu"
 	menu.set_script(load("res://ui/rack_menu.gd"))
-	menu.theme = theme
 	add_child(menu)
 	return menu
 

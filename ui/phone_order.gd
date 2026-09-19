@@ -64,6 +64,7 @@ var _name_label: Label
 var _summary_label: Label
 var _price_label: Label
 var _hint_bar: Control
+var _total_slot: VBoxContainer
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _dim: ColorRect = $Dim
@@ -170,15 +171,17 @@ func _build_preview() -> void:
 	_preview.add_child(info)
 
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", 21)
+	_name_label.add_theme_font_override("font", Style.font_medium())
+	_name_label.add_theme_font_size_override("font_size", Style.T_NAME)
 	_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_name_label)
 	_summary_label = Label.new()
-	_summary_label.add_theme_font_size_override("font_size", 15)
+	_summary_label.add_theme_font_override("font", Style.font_body())
+	_summary_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_summary_label)
 	_price_label = Label.new()
-	_price_label.add_theme_font_size_override("font_size", 18)
+	_price_label.add_theme_font_size_override("font_size", Style.T_VALUE)
 	_price_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_price_label)
 
@@ -215,6 +218,10 @@ func _style() -> void:
 	_summary_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
 	_hint.visible = false
+	if _total_slot == null:
+		# Pinned above the hint bar, same slot the order total lives in (see suit_builder).
+		_total_slot = VBoxContainer.new()
+		_hint.get_parent().add_child(_total_slot)
 
 
 func _set_hint(pairs: Array) -> void:
@@ -235,6 +242,7 @@ func _refresh() -> void:
 		_rows.remove_child(child)
 		child.queue_free()
 	_selected_row = null
+	_clear_total()
 	match _screen:
 		Screen.HUB:
 			_refresh_hub()
@@ -288,17 +296,42 @@ func _refresh_order() -> void:
 		_swatch.setup(mat, mat.roll_length_m)
 		_name_label.text = mat.display_name
 		_summary_label.text = mat.summary()
-	var price := "On the house!" if _free_order() else "$ %d" % cost
 	var note := _status if _status != "" else _on_the_way()
-	_price_label.text = "Order:  %s   for %.0f m%s%s" % [price, _length, _deals_text(), note]
-	var col := Style.FOREST if afford else Style.CLAY
-	if not afford and GameState.can_use_account(cost):
-		col = Style.AMBER
-		_price_label.text += "\nE: put it on account (repaid from your next sale)"
-	_price_label.add_theme_color_override("font_color", col)
+	if not afford and not _free_order() and GameState.can_use_account(cost):
+		note += "\nE: put it on account (repaid from your next sale)"
+	_price_label.text = note.strip_edges()
+	_price_label.add_theme_color_override("font_color", Style.INK_SOFT)
+	_show_order_total(cost, afford)
 	for i in rows.size():
 		_rows.add_child(_make_cfg_row(rows[i], _row == i))
 	_set_hint([["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Back"]])
+
+
+func _clear_total() -> void:
+	for child in _total_slot.get_children():
+		_total_slot.remove_child(child)  # gone now, so it can't count toward this frame's layout
+		child.queue_free()
+
+
+## The live order cost as the panel's footer: length + any deals on the left, the
+## price large and bold on the right — pinned above the hint bar.
+func _show_order_total(cost: int, afford: bool) -> void:
+	_clear_total()
+	if _free_order():
+		_total_slot.add_child(
+			Style.total_bar(_deals_text(), "Order", 0, Style.FOREST, "On the house!")
+		)
+		return
+	var col := Style.INK
+	var note := ""
+	if not afford:
+		if GameState.can_use_account(cost):
+			col = Style.AMBER
+			note = "On account"
+		else:
+			col = Style.CLAY
+			note = "Can't afford"
+	_total_slot.add_child(Style.total_bar(_deals_text(), "Order", cost, col, note))
 
 
 ## Order-form rows for the current supplier. The Pattern Dye row only appears for premium
@@ -405,13 +438,13 @@ func _make_hub_card(title: String, desc: String, selected: bool) -> Control:
 	card.add_child(box)
 	var head := Label.new()
 	head.text = ("▸  %s" % title) if selected else title
-	head.add_theme_font_override("font", Style.bold_font())
-	head.add_theme_font_size_override("font_size", 21)
+	head.add_theme_font_override("font", Style.font_bold() if selected else Style.font_medium())
+	head.add_theme_font_size_override("font_size", Style.T_NAME)
 	head.add_theme_color_override("font_color", Style.INK)
 	box.add_child(head)
 	var sub := Label.new()
 	sub.text = desc
-	sub.add_theme_font_size_override("font_size", 14)
+	sub.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	sub.add_theme_color_override("font_color", Style.INK_SOFT)
 	box.add_child(sub)
 	return card
@@ -422,18 +455,7 @@ func _make_cfg_row(row: int, selected: bool) -> Control:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
-	var name_label := Label.new()
-	name_label.text = OROW_NAME[row]
-	name_label.custom_minimum_size = Vector2(96, 0)
-	name_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	name_label.add_theme_font_size_override("font_size", 17)
-	hbox.add_child(name_label)
-	var value := Label.new()
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.text = ("‹  %s  ›" % _cfg_value(row)) if selected else _cfg_value(row)
-	value.add_theme_color_override("font_color", Style.INK)
-	value.add_theme_font_size_override("font_size", 18)
-	hbox.add_child(value)
+	Style.field_row(hbox, OROW_NAME[row], _cfg_value(row), selected)
 	return card
 
 
@@ -459,7 +481,7 @@ func _make_contact_card(i: int, selected: bool) -> Control:
 	card.add_child(box)
 	box.add_child(_contact_title(v, i, locked, selected))
 	var sub := Label.new()
-	sub.add_theme_font_size_override("font_size", 12)
+	sub.add_theme_font_size_override("font_size", Style.T_MICRO)
 	if locked:
 		sub.text = "Unlocks at %s" % _tier_name(int(v["tier"]))
 		sub.add_theme_color_override("font_color", Style.CLAY)
@@ -475,7 +497,7 @@ func _contact_title(v: Dictionary, i: int, locked: bool, selected: bool) -> Labe
 	var stars := "★".repeat(i + 1) + "☆".repeat(maxi(0, 2 - i))
 	var mark := "🔒 " if locked else ("▸ " if selected else "")
 	head.text = "%s%s  %s" % [mark, str(v["name"]), stars]
-	head.add_theme_font_size_override("font_size", 15)
+	head.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	head.add_theme_color_override("font_color", Style.INK_SOFT if locked else Style.INK)
 	return head
 
@@ -489,27 +511,34 @@ func _make_upgrade_row(id: String, selected: bool) -> Control:
 	var name_label := Label.new()
 	name_label.text = str(d.get("name", "?"))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_font_override("font", Style.font_medium())
 	name_label.add_theme_color_override("font_color", Style.INK)
-	name_label.add_theme_font_size_override("font_size", 17)
+	name_label.add_theme_font_size_override("font_size", Style.T_BODY)
 	hbox.add_child(name_label)
 	hbox.add_child(_upgrade_status(id, d))
 	return card
 
 
+## Right-hand status of an upgrade row: owned / locked, or its price (always bold).
 func _upgrade_status(id: String, d: Dictionary) -> Label:
-	var status := Label.new()
-	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.add_theme_font_size_override("font_size", 17)
 	if Upgrades.has(id):
-		status.text = "Owned ✓"
-		status.add_theme_color_override("font_color", Style.FOREST)
-	elif not Upgrades.tier_met(id) or _needs(id) != "":
-		status.text = "🔒"
-		status.add_theme_color_override("font_color", Style.CLAY)
-	else:
-		status.text = "$ %d" % int(d.get("cost", 0))
-		status.add_theme_color_override("font_color", Style.INK_SOFT)
-	return status
+		var owned := _status_label("Owned ✓", Style.FOREST)
+		return owned
+	if not Upgrades.tier_met(id) or _needs(id) != "":
+		var locked := _status_label("🔒", Style.CLAY)
+		return locked
+	var price := Style.money(int(d.get("cost", 0)), Style.T_BODY, Style.INK_SOFT)
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	return price
+
+
+func _status_label(text: String, col: Color) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	lbl.add_theme_font_size_override("font_size", Style.T_BODY)
+	lbl.add_theme_color_override("font_color", col)
+	return lbl
 
 
 # --- Input -----------------------------------------------------------------
@@ -710,18 +739,19 @@ func _free_order() -> bool:
 	return Tutorial != null and Tutorial.is_active() and Tutorial.first_bolt_free()
 
 
-## "  (−10% bulk · market day −25%)" — the discounts that apply to this bolt.
+## "10 m · −10% bulk · market day −25%" — the length plus any deals on this bolt, the
+## working text for the order total's footer.
 func _deals_text() -> String:
-	var deals := PackedStringArray()
+	var parts := PackedStringArray(["%.0f m" % _length])
 	var bulk := Pricing.bulk_discount(_length)
 	if bulk > 0.0:
-		deals.append("−%d%% bulk" % roundi(bulk * 100.0))
+		parts.append("−%d%% bulk" % roundi(bulk * 100.0))
 	if Pricing.is_market_day():
-		deals.append("market day −%d%%" % roundi(Pricing.market_discount() * 100.0))
+		parts.append("market day −%d%%" % roundi(Pricing.market_discount() * 100.0))
 	var mult := Pricing.vendor_mult(_vendor)
 	if mult > 1.0:
-		deals.append("premium +%d%%" % roundi((mult - 1.0) * 100.0))
-	return "  (%s)" % " · ".join(deals) if not deals.is_empty() else ""
+		parts.append("premium +%d%%" % roundi((mult - 1.0) * 100.0))
+	return " · ".join(parts)
 
 
 func _len_min() -> float:

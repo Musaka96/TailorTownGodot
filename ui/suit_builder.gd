@@ -132,10 +132,11 @@ func _build_preview() -> void:
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	_preview.add_child(info)
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", 20)
+	_name_label.add_theme_font_override("font", Style.font_medium())
+	_name_label.add_theme_font_size_override("font_size", Style.T_NAME)
 	info.add_child(_name_label)
 	_sub_label = Label.new()
-	_sub_label.add_theme_font_size_override("font_size", 14)
+	_sub_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(_sub_label)
 	# A small "do I already have this cloth?" badge (dot + word) under the sub-line.
@@ -146,7 +147,7 @@ func _build_preview() -> void:
 	_stock_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_stock_badge.add_child(_stock_dot)
 	_stock_label = Label.new()
-	_stock_label.add_theme_font_size_override("font_size", 13)
+	_stock_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_stock_badge.add_child(_stock_label)
 	info.add_child(_stock_badge)
 
@@ -448,6 +449,7 @@ func _refresh() -> void:
 ## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
 func _clear_total() -> void:
 	for child in _total_slot.get_children():
+		_total_slot.remove_child(child)  # gone now, so it can't count toward this frame's layout
 		child.queue_free()
 
 

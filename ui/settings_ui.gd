@@ -44,7 +44,7 @@ static func _label(text: String) -> Label:
 	l.text = text
 	l.custom_minimum_size = Vector2(120, 0)
 	l.add_theme_color_override("font_color", Style.INK)
-	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_font_size_override("font_size", Style.T_BODY)
 	return l
 
 
@@ -70,6 +70,7 @@ static func _slider(label: String, value: float, setter: Callable) -> HBoxContai
 	val.text = "%d%%" % roundi(value * 100.0)
 	val.custom_minimum_size = Vector2(46, 0)
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	val.add_theme_font_size_override("font_size", Style.T_BODY)
 	val.add_theme_color_override("font_color", Style.INK_SOFT)
 	row.add_child(val)
 	s.value_changed.connect(

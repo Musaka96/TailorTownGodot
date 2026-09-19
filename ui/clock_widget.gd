@@ -71,10 +71,9 @@ func _draw() -> void:
 	_draw_labels(c, r)
 
 
+## The time reads bold, like focus_widget's own numerals; "Ends" stays body weight,
+## the smaller of the two so the readout still keeps its own emphasis.
 func _draw_labels(c: Vector2, r: float) -> void:
-	var font := get_theme_default_font()
-	if font == null:
-		return
 	var y := c.y + r + 22.0
 	var status := "CLOSED" if _ended else _time_text()
 	var status_col := END_COL if _ended else TEXT
@@ -82,15 +81,21 @@ func _draw_labels(c: Vector2, r: float) -> void:
 	var tag := Craft.ticket(Rect2(Vector2(size.x * 0.5 - 34, y - 17), Vector2(68, 38)), 7.0)
 	Craft.card(self, tag, Style.CARD, Style.WALNUT, 1.5)
 	draw_string(
-		font, Vector2(0.0, y + 1), status, HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, status_col
+		Style.font_bold(),
+		Vector2(0.0, y + 1),
+		status,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		size.x,
+		Style.T_BODY,
+		status_col
 	)
 	draw_string(
-		font,
+		Style.font_body(),
 		Vector2(0.0, y + 15.0),
 		"Ends %s" % _fmt(_hour_end()),
 		HORIZONTAL_ALIGNMENT_CENTER,
 		size.x,
-		10,
+		Style.T_MICRO,
 		Color(TEXT, 0.7)
 	)
 

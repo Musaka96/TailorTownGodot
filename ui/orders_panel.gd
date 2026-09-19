@@ -95,7 +95,7 @@ func _on_fulfilled(order, payout: int) -> void:
 		return
 	_tickets.erase(order)
 	_float_payout(ticket["card"], payout)
-	_complete(ticket["card"], Style.LEAF)
+	_complete(ticket["card"], Style.FOREST)
 
 
 func _on_expired(order) -> void:
@@ -138,11 +138,15 @@ func _make_ticket(order) -> Dictionary:
 	head.add_theme_constant_override("separation", Style.S1)
 	box.add_child(head)
 	var who := _label(
-		"#%d %s" % [order.id, order.customer_name], 13, Style.INK, HORIZONTAL_ALIGNMENT_LEFT
+		"#%d %s" % [order.id, order.customer_name],
+		Style.T_CAPTION,
+		Style.INK,
+		HORIZONTAL_ALIGNMENT_LEFT
 	)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(who)
-	var days := _label("", 12, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
+	# The due date, always bold (the bold rule: due dates are the thing you came to read).
+	var days := _label("", Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT, true)
 	head.add_child(days)
 
 	# Slim fabric-colour strip — the look at a glance, no roll/durability meter.
@@ -155,7 +159,7 @@ func _make_ticket(order) -> Dictionary:
 	strip.add_theme_stylebox_override("panel", strip_style)
 	box.add_child(strip)
 
-	var spec := _label(order.describe(), 11, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
+	var spec := _label(order.describe(), Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
 	spec.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	spec.custom_minimum_size = Vector2(100, 0)
 	box.add_child(spec)
@@ -165,9 +169,11 @@ func _make_ticket(order) -> Dictionary:
 	chips.add_theme_constant_override("separation", Style.S1)
 	box.add_child(chips)
 
-	var state := _label("", 12, Style.BRASS, HORIZONTAL_ALIGNMENT_CENTER)
+	var state := _label("", Style.T_MICRO, Style.BRASS, HORIZONTAL_ALIGNMENT_CENTER, true)
 	box.add_child(state)
-	var price := _label("$%d" % order.price, 15, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER)
+	# Money is always bold.
+	var price := Style.money(order.price, Style.T_CAPTION, Style.FOREST)
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(price)
 
 	var ticket := {
@@ -206,7 +212,7 @@ func _update_days(ticket: Dictionary) -> void:
 	var state: Label = ticket["state"]
 	if order.state == SuitOrder.State.READY:
 		state.text = "READY FOR PICKUP"
-		state.add_theme_color_override("font_color", Style.LEAF)
+		state.add_theme_color_override("font_color", Style.FOREST)
 	elif order.is_complete():
 		state.text = "ASSEMBLE AT MANNEQUIN"
 		state.add_theme_color_override("font_color", Style.BRASS)
@@ -218,20 +224,22 @@ func _update_days(ticket: Dictionary) -> void:
 func _chip(text: String, done: bool) -> Control:
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override(
-		"panel", Style.card(Style.LEAF if done else Style.CREAM_DARK, 7)
+		"panel", Style.card(Style.FOREST if done else Style.CREAM_DARK, 7)
 	)
 	var lbl := _label(
-		text, 12, Style.CHALK if done else Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER
+		text, Style.T_MICRO, Style.CHALK if done else Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER
 	)
 	lbl.custom_minimum_size = Vector2(16, 0)
 	chip.add_child(lbl)
 	return chip
 
 
-func _label(text: String, size: int, color: Color, align: int) -> Label:
+func _label(text: String, size: int, color: Color, align: int, bold: bool = false) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.horizontal_alignment = align
+	if bold:
+		lbl.add_theme_font_override("font", Style.font_bold())
 	lbl.add_theme_font_size_override("font_size", size)
 	lbl.add_theme_color_override("font_color", color)
 	return lbl
@@ -260,8 +268,12 @@ func _complete(ticket: Control, flash: Color) -> void:
 	tween.tween_callback(ticket.queue_free)
 
 
+## Same size, weight and colour as the HUD's own floating money delta (hud.gd
+## _spawn_delta) — a gain reads the same wherever it floats up from.
 func _float_payout(ticket: Control, payout: int) -> void:
-	var lbl := _label("+$%d" % payout, 24, Style.LEAF, HORIZONTAL_ALIGNMENT_CENTER)
+	var lbl := _label(
+		"+$%d" % payout, Style.T_NAME, Style.FOREST, HORIZONTAL_ALIGNMENT_CENTER, true
+	)
 	add_child(lbl)
 	lbl.global_position = ticket.global_position + Vector2(45, 30)
 	var tween := create_tween().set_parallel()

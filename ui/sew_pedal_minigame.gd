@@ -816,7 +816,13 @@ func _paint_pull_tag(c: Control, at: Vector2) -> void:
 	c.draw_style_box(box, chip)
 	var font := Style.bold_font()
 	c.draw_string(
-		font, chip.position + Vector2(7, 19), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Style.CREAM
+		font,
+		chip.position + Vector2(7, 19),
+		"E",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		Style.T_BODY,
+		Style.CREAM
 	)
 
 

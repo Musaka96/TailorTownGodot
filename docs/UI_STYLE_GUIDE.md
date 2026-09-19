@@ -64,19 +64,60 @@ Panels `radius 20`, cards `radius 12–14`, key-caps `radius 6`. Panels get the
 **atelier frame** (§5): a stitched inner border + chalk corner ticks in the menu's
 accent, over a paper base.
 
-### Type — Fredoka, applied via the shared theme
+### Type — two faces, seven sizes, real weights
 
-| Role            | Size | Colour     | Weight |
-|-----------------|------|------------|--------|
-| Screen title    | 26   | `WALNUT`   | bold   |
-| Section header  | 18   | accent     | bold   |
-| Body / value    | 17–19| `WALNUT`   | –      |
-| Caption / sub   | 15   | `INK_SOFT` | –      |
-| Hint / key-cap  | 14–15| see §4     | –      |
+Two type families, both variable fonts, so every weight is the font's own design
+instead of a synthetic embolden:
 
-Bold is a real weight (`Style.bold_font()`, an embolden of Fredoka), used for
-titles, headers and emphasised words — **[JUDGE]** every screen has a clear bold
-title and at least one bolded key term; body copy is not a flat wall of one weight.
+| Face | File | Use |
+|------|------|-----|
+| **Fredoka** | `assets/fonts/Fredoka.ttf` (`wght` 300–700, `wdth` 75–125) | everything except titles — body, rows, buttons, kickers |
+| **Fraunces (soft)** | `assets/fonts/Fraunces.ttf` (`wght`, optical size, a `SOFT` axis that rounds the serifs) | the display face — wordmark, screen titles, day card |
+
+**Never load the bare file.** Fredoka's default instance is Light (300); nothing
+should render at that weight by accident. Every face is a named, cached
+`FontVariation` built once in `Style` — menus call the accessor below, never
+`FontVariation.new()` or `preload("res://assets/fonts/...")` directly (newspaper's
+`.duplicate()` of a `Style` face, to tweak only its glyph spacing, is fine).
+**[CHECK]** T2, §8.
+
+| Token | Weight | Use |
+|-------|--------|-----|
+| `Style.font_body()` | Fredoka 450 | default everywhere — body copy, row labels |
+| `Style.font_medium()` | Fredoka 550 | row values, card names, buttons |
+| `Style.font_bold()` | Fredoka 650 | headers, money, key terms, pills — the *real* bold cut, not an embolden (`Style.bold_font()` is kept as an alias so old call sites still read) |
+| `Style.font_caps()` | Fredoka 600, `wdth` 90, +2 glyph spacing | kickers / small-caps labels (set the text in capitals) |
+| `Style.font_display()` | Fraunces 700, `SOFT` 100, high optical size | wordmark, screen titles, day card — never body, rows, values or prompts |
+
+**[CHECK]** T3 — no `variation_embolden` anywhere in `ui/`; a faux bold is banned
+now that the real weight is one call away.
+
+### Scale — seven steps, named, nothing else allowed
+
+| Token | px | Role |
+|-------|----|------|
+| `Style.T_MICRO` | 12 | badges, folio, tape numerals |
+| `Style.T_CAPTION` | 14 | sub-lines, hints, kickers, pills |
+| `Style.T_BODY` | 16 | body copy, row labels |
+| `Style.T_VALUE` | 18 | row values, buttons, section headers |
+| `Style.T_NAME` | 21 | card / item names |
+| `Style.T_TITLE` | 28 | screen titles |
+| `Style.T_HERO` | 46 | day card, wordmark base |
+
+**[CHECK]** T1 — no numeral font size outside `style.gd`: every
+`add_theme_font_size_override(...)` / `font_size = ...` in `ui/` takes a
+`Style.T_*` constant or a file-local named const (the newspaper keeps a private
+sub-scale built from these same faces, e.g. `N_HEAD_LEAD`) — never a bare number.
+
+### Bold, written down
+
+> Bold is *the thing you came to read*: names, money, due dates, the selected
+> value, one key term per sentence of body copy. Never whole paragraphs, never
+> row labels.
+
+**[JUDGE]** every screen has a clear bold title and at least one bolded key term;
+body copy is not a flat wall of one weight, and nothing is bold just because it's
+long.
 
 ---
 
@@ -107,6 +148,116 @@ Frame presets in `Style`: `FRAME_SMALL (560×360)`, `FRAME_WIDE (820×520)`,
   ("`E` Order", "`Esc` Close"). One consistent cap style everywhere.
 - **Emphasis via bold, not colour-only.** Bold the key term; don't rely on a hue a
   colour-blind player can't separate.
+
+### 4.1 Title block
+
+Every panel's head is one component, `TitleBlock` (`ui/craft/title_block.gd`):
+
+```
+  ORDER PAD                      ← kicker: T_MICRO, font_caps, the skin accent (Style.text_accent)
+  Harrow's Haberdashery          ← title: T_TITLE, font_display, always INK
+  ━━━━━━━╸ ─ ─ ─ ─ ─ ─ ─ ─ ─     ← rule: a bar-tack in the accent + a running stitch to the edge
+  Budget $500        ·  3 rolls  ← meta: T_CAPTION, optional, hidden until something is added
+```
+
+- **kicker** — what surface this is ("ORDER PAD", "FITTING ROOM", "THE BENCH"), in
+  the skin accent via `Style.text_accent()` (which darkens a pale accent like
+  brass so it stays legible on cream). Optional — cleared with `set_kicker("")`.
+- **title** — the specific thing on this surface today: the supplier, the
+  customer's name, the garment. Always `font_display` at `T_TITLE`, always
+  **INK** — never the skin accent, so contrast never depends on which menu is
+  open (this replaced four different title-colour conventions with one).
+- **rule** — `StitchRule` (`ui/craft/stitch_rule.gd`): a short solid bar in the
+  skin accent, then a running stitch out to the panel's edge, like a seam started
+  with a bar tack.
+- **meta** — the one sanctioned home for what used to get wedged under a title:
+  budget, roll count, client badges, day/money on the pause page. An
+  `HFlowContainer`, hidden until a child is added to it; fill it with
+  `TitleBlock.meta_label(text, strong)`.
+- **right** — an `HBoxContainer` sharing the title's row, for anything that must
+  sit beside it (a minigame's slips and pips).
+- Left-aligned in panels — the top-left is reserved for it (the collision rule in
+  §5). Centred only on *cards* (the sign, the day card, the goal tag, the gazette
+  masthead — none of which are a `TitleBlock`; they keep their own treatment).
+
+**Building one.** `TitleBlock.make(text, kicker, accent)` builds a fresh title;
+`TitleBlock.adopt(label, kicker, accent)` wraps a `Title` label a scene already
+owns, in place, so a menu's existing `_title.text = ...` calls keep working.
+Calling `adopt()` again on an already-adopted label is a no-op that returns the
+existing block, so a menu that rebuilds its head on every open doesn't nest
+boxes. `Style.title_label()` is retired — **[CHECK]** T4, no file in `ui/` may
+call it any more.
+
+**Per-skin kickers** (from the actual `TitleBlock.` call in each menu):
+
+| Menu | Skin | Kicker |
+|------|------|--------|
+| Phone order | `ORDER` | "Order pad" |
+| Handbook | `BOOK` | "Handbook" |
+| Shelf browse | `SHELF` | "Bolt shelf" |
+| Suit builder / mirror | `MIRROR` | "Fitting room" |
+| Wardrobe (clothing rack) | `MIRROR` | "Fitting room" |
+| Worktable / sewing | `WORK` | "The bench" |
+| Orders board | `ORDERS` | "Orders board" |
+| Apprentice | `WORK` | "Apprentice" |
+| The bench (cutting/sewing minigames, via `MinigameScreen`) | `WORK` | "The bench" |
+| Main menu sub-pages / Pause | — (a sign, not a `MenuSkin`) | "TailorTown" |
+
+`Style.header()` gets the same treatment at a smaller scale for a sub-section
+inside a panel (settings' "Audio" / "Display" / "Controls") — `T_VALUE` bold, a
+hairline `StitchRule`, and the accent comes from the panel it's on rather than
+defaulting to `BRASS`.
+
+### 4.2 Rows, money, totals
+
+Shared builders so every menu says the same thing the same way:
+
+- **`Style.field_row(row, label, value, selected)`** — a caption-sized label in a
+  fixed-width column (`INK_SOFT`), then the value (`font_medium`, `INK`;
+  `font_bold` with `‹ arrows ›` when selected). Used by phone / mirror /
+  worktable's config rows instead of each hand-rolling its own label/value pair.
+- **`Style.money(amount, size, col)`** — always `font_bold`; `INK` for a price,
+  `FOREST` for income, `CLAY` when it can't be afforded. **[CHECK]** T5 — never
+  `Style.LEAF`, which is retired.
+- **`Style.total_bar(working, total_name, total, total_col, note)`** — the
+  quote/price summary as a footer block: a stitched rule above, the working
+  (`"Cloth $96 + Craft $180"`) in soft caption text on the left, the total large
+  and bold on the right (`"QUOTE" "$276"`), and an optional `note` (e.g. "OVER
+  BUDGET") under the working. Used by the mirror and the phone order form.
+- **Footer pinning** — a panel's key-cap hints (and a total bar, where present)
+  pin to the bottom of the panel; the scroll region above them absorbs whatever
+  slack the content leaves, instead of the hints floating wherever the last row
+  happened to end.
+
+### 4.3 Front door
+
+The main menu (`ui/main_menu.gd`) is a `Node3D` boot scene: a hand-owned 3D
+backdrop (the starting shop, a camera that eases between `Marker3D` viewpoints)
+with the whole 2D side built in code.
+
+- **Fascia sign** — a `PanelContainer` dressed by `SignBoard.dress(panel)` with
+  `plate = false` (a bare walnut board with a brass inlay, not the usual cream
+  plate — there is no menu content on it, just the `Wordmark`). It hangs on
+  chains from the top of the screen and sways gently.
+- **Wordmark** (`ui/craft/wordmark.gd`) — the two-line "Tailor / Town" lockup in
+  `font_display`, drawn as flat gold leaf (a brass face, a dark lower-right edge,
+  a pale upper-left highlight — no gradients, consistent with §7.1), a running
+  stitch sewn underneath that ends in a threaded needle (`sew_in()` animates it
+  in on boot), and a tracked small-caps tagline.
+- **Slim button column** — under the sign on the main page: `MenuKit.button()`
+  labels (New Game / Continue / Load / Settings / Quit), narrow enough to read
+  as a list of sewn labels rather than a form. `Continue` shows the latest save's
+  day and money inline.
+- **Sub-pages** (Load / Settings) hoist the sign up on its chains and swap in a
+  cream plate — `Style.skin_base(Style.BRASS)` — with an ordinary `TitleBlock` on
+  it ("Load a save" / "Settings"), while the camera eases to a different
+  viewpoint.
+- **Footer** — the version string bottom-left in a small walnut chip, and
+  `Style.hint_bar(...)` bottom-centre — the one screen with no key prompts
+  before this pass.
+- **Pause menu** (`ui/pause_menu.gd`) reuses the same fascia + `TitleBlock`
+  pattern in miniature ("Paused", with the day and money as its meta row)
+  rather than a bespoke overlay.
 
 ---
 
@@ -156,10 +307,11 @@ brief) uses a small **speech bubble** — a compact cream rounded panel with a
 downward tail (`ui/speech_tail.gd`) and light key-cap prompts, not the full atelier
 frame. These are `EXEMPT` in the checker.
 
-**Collision rule [JUDGE]:** the screen title lives top-left, so solid shape
-accents are tucked hard into the top-right or edges, never top-left; the pattern
-stays a faint watermark and fabric swatches sit above it. No solid decoration or
-label may overlap a label. Verify by screenshot for every migrated menu.
+**Collision rule [JUDGE]:** the title block (kicker + title + rule + meta, §4.1)
+owns the top-left of the panel, so solid shape accents are tucked hard into the
+top-right or edges, never top-left and never crossing the rule; the pattern stays
+a faint watermark and fabric swatches sit above it. No solid decoration or label
+may overlap a label. Verify by screenshot for every migrated menu.
 
 ---
 
@@ -353,12 +505,29 @@ read at on screen, and all three must tile seamlessly in both directions.
 - **[CHECK]** rules → `tools/check_ui.gd` (headless, part of the dev loop). Run:
   `godot --headless --path . --script res://tools/check_ui.gd`. Report in
   `.dev/ui_check.log`; non-zero exit on any violation. Screens that aren't modal
-  panels (minigame hosts, HUD strips) are listed `EXEMPT`. A legitimate non-styling
+  panels (minigame hosts, HUD strips) are listed `EXEMPT`; screens with real text
+  but no skin panel or screen title of their own (the newspaper, the day card,
+  the HUD, the tutorial overlays…) are `TYPE_ONLY` — the structural rules below
+  don't apply to them, but the typography rules do. A legitimate non-styling
   `Color()` literal (e.g. a skin/hair data fallback) is allowed by adding a
   `# ui-check-ignore` marker on that line.
-- **[JUDGE]** rules → screenshot each changed menu (`tools/screenshot.gd`) and
-  rate against §2 (type hierarchy), §4 (prompts/emphasis), §5 (distinct surface),
-  §6 (staging). This is the checklist a dedicated UI-rater agent uses.
+- **[CHECK] typography (T1–T5)** run against *every* `.gd` file under `ui/`
+  (recursively) except `style.gd` — a hardcoded size or a faux bold is wrong
+  wherever it lives, not only in a migrated menu:
+  - **T1** — no numeral as a font-size argument; `Style.T_*` or a named local
+    const only (§2).
+  - **T2** — no `FontVariation.new()`, no `preload("res://assets/fonts/...")`
+    outside `style.gd` (`.duplicate()` of a `Style` face is fine).
+  - **T3** — no `variation_embolden` (faux bold is banned; §2).
+  - **T4** — no `Style.title_label()` anywhere; a migrated menu's screen title
+    must be built with `TitleBlock` (§4.1).
+  - **T5** — no `Style.LEAF` (legacy accent; money/positive is `Style.FOREST`).
+- **[JUDGE]** rules → screenshot each changed menu (`tools/shot_ui.gd -- <menu>`,
+  or `-- all` to capture every in-game target in one run; `tools/shot_type_specimen.gd`
+  renders every face × size on each paper colour, for tuning weights by eye) and
+  rate against §2 (type hierarchy), §4 (title block, prompts/emphasis), §5
+  (distinct surface), §6 (staging). This is the checklist a dedicated UI-rater
+  agent uses.
 
 **Definition of done for any UI change:** `check_ui.gd` passes, `gdlint` clean,
 a screenshot exists, and the change is consistent with the skin table (§5).

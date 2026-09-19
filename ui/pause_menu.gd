@@ -21,7 +21,7 @@ func _ready() -> void:
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.55)
+	dim.color = Style.SCRIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -50,6 +50,7 @@ func _build() -> void:
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", Style.S2)
 	outer.add_child(_box)
+	outer.add_child(Style.hint_bar([["W/S", "Select"], ["E", "Choose"], ["Esc", "Back"]]))
 
 
 func _on_pause(paused: bool) -> void:

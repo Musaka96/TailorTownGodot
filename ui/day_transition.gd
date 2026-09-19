@@ -8,7 +8,8 @@ extends Control
 const BG := Color(0.05, 0.06, 0.12, 1.0)
 
 var _title: Label
-var _subtitle: Label
+var _subtitle: Label  # the plain half of the line ("Earnings today: " / "The shop…")
+var _subtitle_money: Label  # the bold, forest figure — shown only alongside earnings
 var _on_switch := Callable()
 var _on_done := Callable()
 
@@ -40,15 +41,24 @@ func _ready() -> void:
 
 	_title = _make_label(Style.T_HERO, Style.WALNUT, Style.font_display())
 	box.add_child(_title)
+
+	var subtitle_row := HBoxContainer.new()
+	subtitle_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	subtitle_row.add_theme_constant_override("separation", Style.S1)
+	box.add_child(subtitle_row)
 	_subtitle = _make_label(Style.T_NAME, Style.FOREST, Style.font_medium())
-	box.add_child(_subtitle)
+	subtitle_row.add_child(_subtitle)
+	# Money is always bold, even here on the night sign.
+	_subtitle_money = _make_label(Style.T_NAME, Style.FOREST, Style.font_bold())
+	subtitle_row.add_child(_subtitle_money)
 
 
 func play(old_day: int, new_day: int, earned: int, on_switch: Callable, on_done: Callable) -> void:
 	_on_switch = on_switch
 	_on_done = on_done
 	_title.text = "Day %d complete" % old_day
-	_subtitle.text = "Earnings today:  $%d" % earned
+	_subtitle.text = "Earnings today:  "
+	_subtitle_money.text = "$%d" % earned
 	visible = true
 	modulate.a = 0.0
 	var tw := create_tween()
@@ -63,6 +73,7 @@ func play(old_day: int, new_day: int, earned: int, on_switch: Callable, on_done:
 func _switch(new_day: int) -> void:
 	_title.text = "Day %d" % new_day
 	_subtitle.text = "The shop opens at midday"
+	_subtitle_money.text = ""
 	if _on_switch.is_valid():
 		_on_switch.call()
 

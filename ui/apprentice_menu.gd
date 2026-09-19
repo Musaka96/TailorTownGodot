@@ -135,11 +135,12 @@ func _make_card(job: Dictionary, selected: bool) -> Control:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(col)
-	var head := _line(col, 19, Style.INK)
+	var head := _line(col, Style.T_VALUE, Style.INK)
+	head.add_theme_font_override("font", Style.font_medium())
 	head.text = (
 		"#%d  %s — %s" % [order.id, order.customer_name, Enums.garment_type_name(job["type"])]
 	)
-	var sub := _line(col, 14, Style.INK_SOFT if job["cloth"] else Style.CLAY)
+	var sub := _line(col, Style.T_CAPTION, Style.INK_SOFT if job["cloth"] else Style.CLAY)
 	var cloth := mat.display_name if mat != null else "cloth"
 	sub.text = (
 		"%s  ·  on the shelf ✓" % cloth

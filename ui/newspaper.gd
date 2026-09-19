@@ -15,6 +15,20 @@ const GRAIN_SHADER := preload("res://assets/shaders/paper_grain.gdshader")
 const PAPER_W := 600.0
 const SIDE_W := 216.0
 
+# The paper's own private type sub-scale — smaller and denser than the rest of the
+# game's UI, as befits a broadsheet, but every size still lives here named rather than
+# bare at a call site (style guide §2).
+const N_MASTHEAD := 30  # THE TAILOR'S GAZETTE lockup
+const N_FLAVOR := 10  # the flanking "BESPOKE / SINCE TODAY" flavour text
+const N_FOLIO := 11  # the rule-lined folio line
+const N_KICKER := 11  # a story's kicker ("CITY EVENT · IN 3 DAYS")
+const N_HEAD_LEAD := 26  # the lead story's headline
+const N_HEAD_STORY := 18  # every other story's headline
+const N_BODY_LEAD := 15  # the lead story's body copy
+const N_BODY_STORY := 14  # every other story's body copy
+const N_SIDE_HEAD := 12  # side-strip panel title ("IN FASHION", "COMING UP")
+const N_SIDE_BODY := 14  # side-strip panel body
+
 var _dateline: Label
 var _folio: Label
 var _lead: VBoxContainer
@@ -172,7 +186,7 @@ func _build_masthead(body: VBoxContainer) -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_override("font", _masthead_font(1))
-	title.add_theme_font_size_override("font_size", 30)
+	title.add_theme_font_size_override("font_size", N_MASTHEAD)
 	title.add_theme_color_override("font_color", Style.INK)
 	row.add_child(title)
 
@@ -210,12 +224,12 @@ func _side_panel(parent: VBoxContainer, title: String, accent: Color) -> Label:
 	var head := Label.new()
 	head.text = title
 	head.add_theme_font_override("font", _font(0.4, 2))
-	head.add_theme_font_size_override("font_size", 12)
+	head.add_theme_font_size_override("font_size", N_SIDE_HEAD)
 	head.add_theme_color_override("font_color", accent.darkened(0.35))
 	col.add_child(head)
 	var body := Label.new()
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.add_theme_font_size_override("font_size", 14)
+	body.add_theme_font_size_override("font_size", N_SIDE_BODY)
 	body.add_theme_color_override("font_color", Style.WALNUT)
 	col.add_child(body)
 	return body
@@ -241,7 +255,7 @@ func _flavor(text: String, align: int) -> Label:
 	lbl.horizontal_alignment = align
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_override("font", _font(0.0, 2))
-	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_font_size_override("font_size", N_FLAVOR)
 	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
 	return lbl
 
@@ -250,7 +264,7 @@ func _folio_label() -> Label:
 	var lbl := Label.new()
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_override("font", _font(0.0, 3))
-	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_font_size_override("font_size", N_FOLIO)
 	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
 	return lbl
 
@@ -302,14 +316,14 @@ func _fill_story(parent: VBoxContainer, ev: NewsEvent, lead: bool) -> void:
 		var k := Label.new()
 		k.text = kicker
 		k.add_theme_font_override("font", _font(0.3, 2))
-		k.add_theme_font_size_override("font_size", 11)
+		k.add_theme_font_size_override("font_size", N_KICKER)
 		k.add_theme_color_override("font_color", _kicker_color(ev))
 		parent.add_child(k)
 	var head := Label.new()
 	head.text = ev.headline
 	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	head.add_theme_font_override("font", _font(0.4, 0))
-	head.add_theme_font_size_override("font_size", 26 if lead else 18)
+	head.add_theme_font_size_override("font_size", N_HEAD_LEAD if lead else N_HEAD_STORY)
 	head.add_theme_color_override("font_color", Style.INK)
 	parent.add_child(head)
 	var body_text := _body_text(ev)
@@ -317,7 +331,7 @@ func _fill_story(parent: VBoxContainer, ev: NewsEvent, lead: bool) -> void:
 		var text := Label.new()
 		text.text = body_text
 		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		text.add_theme_font_size_override("font_size", 15 if lead else 14)
+		text.add_theme_font_size_override("font_size", N_BODY_LEAD if lead else N_BODY_STORY)
 		text.add_theme_color_override("font_color", Style.INK_SOFT)
 		parent.add_child(text)
 

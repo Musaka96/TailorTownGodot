@@ -65,7 +65,7 @@ func _build() -> void:
 	add_child(fill_bg)
 
 	_fill_fg = Panel.new()
-	_fill_fg.add_theme_stylebox_override("panel", Style.bar(Style.LEAF, 5))
+	_fill_fg.add_theme_stylebox_override("panel", Style.bar(Style.FOREST, 5))
 	_fill_fg.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
 	_fill_fg.offset_right = 0
 	_fill_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -84,7 +84,7 @@ func _build() -> void:
 	_badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_badge_label.add_theme_color_override("font_color", Color.WHITE)
-	_badge_label.add_theme_font_size_override("font_size", 13)
+	_badge_label.add_theme_font_size_override("font_size", Style.T_MICRO)
 	_badge.add_child(_badge_label)
 
 	_update_size()

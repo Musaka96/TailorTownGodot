@@ -69,13 +69,15 @@ func _build_preview() -> void:
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	_preview.add_child(info)
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", 22)
+	_name_label.add_theme_font_override("font", Style.font_medium())
+	_name_label.add_theme_font_size_override("font_size", Style.T_NAME)
 	info.add_child(_name_label)
 	_sub_label = Label.new()
-	_sub_label.add_theme_font_size_override("font_size", 15)
+	_sub_label.add_theme_font_override("font", Style.font_body())
+	_sub_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	info.add_child(_sub_label)
 	_cloth_label = Label.new()
-	_cloth_label.add_theme_font_size_override("font_size", 15)
+	_cloth_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	info.add_child(_cloth_label)
 
 
@@ -151,18 +153,7 @@ func _make_row(row: int, selected: bool) -> Control:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
-	var name_label := Label.new()
-	name_label.text = ROW_NAME[row]
-	name_label.custom_minimum_size = Vector2(110, 0)
-	name_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	name_label.add_theme_font_size_override("font_size", 18)
-	hbox.add_child(name_label)
-	var value := Label.new()
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.text = ("‹  %s  ›" % _value_text(row)) if selected else _value_text(row)
-	value.add_theme_color_override("font_color", Style.INK)
-	value.add_theme_font_size_override("font_size", 19)
-	hbox.add_child(value)
+	Style.field_row(hbox, ROW_NAME[row], _value_text(row), selected)
 	return card
 
 

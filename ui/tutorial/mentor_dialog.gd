@@ -231,8 +231,8 @@ func _board_content() -> Control:
 	_text.custom_minimum_size = Vector2(0, 118)
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text.add_theme_color_override("default_color", Style.CHALK)
-	_text.add_theme_font_size_override("normal_font_size", 17)
-	_text.add_theme_font_size_override("bold_font_size", 17)
+	_text.add_theme_font_size_override("normal_font_size", Style.T_BODY)
+	_text.add_theme_font_size_override("bold_font_size", Style.T_BODY)
 	_text.add_theme_font_override("bold_font", Style.bold_font())
 	_text.add_theme_constant_override("line_separation", 3)
 	box.add_child(_text)
@@ -279,7 +279,7 @@ func _nameplate() -> Control:
 	name_lbl.text = MENTOR_NAME
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.add_theme_font_override("font", Style.bold_font())
-	name_lbl.add_theme_font_size_override("font_size", 15)
+	name_lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	name_lbl.add_theme_color_override("font_color", Style.WALNUT)
 	col.add_child(name_lbl)
 	var role := _small_label(MENTOR_ROLE, Style.WALNUT)
@@ -305,13 +305,17 @@ func _board_style() -> StyleBoxFlat:
 	return sb
 
 
+## The keycap + verb row echoes Style.key_pill's own inner layout, just without its
+## brass background (the board is already coloured) — so it takes its font straight
+## from the kit: bold, at the kit's own T_CAPTION size.
 func _key_prompt(key: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.S1 + 2)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(Style.keycap(key))
 	var lbl := _small_label("", Style.CHALK)
-	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_font_override("font", Style.font_bold())
+	lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	row.add_child(lbl)
 	return row
 
@@ -319,7 +323,7 @@ func _key_prompt(key: String) -> HBoxContainer:
 func _small_label(text: String, color: Color) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", Style.T_MICRO)
 	lbl.add_theme_color_override("font_color", color)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return lbl

@@ -72,8 +72,8 @@ func _style() -> void:
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body.add_theme_color_override("default_color", Style.INK)
 	_body.add_theme_font_override("bold_font", Style.bold_font())
-	_body.add_theme_font_size_override("normal_font_size", 17)
-	_body.add_theme_font_size_override("bold_font_size", 17)
+	_body.add_theme_font_size_override("normal_font_size", Style.T_BODY)
+	_body.add_theme_font_size_override("bold_font_size", Style.T_BODY)
 	_build_decor_once()
 
 
@@ -140,7 +140,7 @@ func _refresh() -> void:
 		child.free()
 	var selected_card: Control = null
 	for i in entries.size():
-		var card := _make_card(entries[i]["title"], i == _topic, 16)
+		var card := _make_card(entries[i]["title"], i == _topic, Style.T_BODY)
 		_index.add_child(card)
 		if i == _topic:
 			selected_card = card
@@ -205,7 +205,7 @@ func _make_card(text: String, selected: bool, font_size: int) -> Control:
 ## A chapter tab: the open chapter is a burgundy ribbon bookmark with chalk lettering.
 func _make_tab(text: String, selected: bool) -> Control:
 	if not selected:
-		return _make_card(text, false, 18)
+		return _make_card(text, false, Style.T_VALUE)
 	var tab := CraftPanel.new()
 	tab.pad = Vector2(Style.S3, Style.S1 + 2)
 	tab.setup(CraftPanel.Shape.TICKET, Style.ACC_BOOK, Style.WALNUT)
@@ -213,7 +213,7 @@ func _make_tab(text: String, selected: bool) -> Control:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_override("font", Style.bold_font())
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", Style.T_VALUE)
 	label.add_theme_color_override("font_color", Style.CHALK)
 	tab.add_child(label)
 	return tab

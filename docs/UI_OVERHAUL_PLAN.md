@@ -1,7 +1,7 @@
 # UI Overhaul Plan — type, titles, and the front door
 
-Status: **proposed** (2026-09-19). Companion to `docs/UI_STYLE_GUIDE.md`; when a phase
-lands, its rules move into the style guide and this file shrinks.
+Status: **in progress** (2026-09-19). Companion to `docs/UI_STYLE_GUIDE.md`; when a
+phase lands, its rules move into the style guide and this file shrinks.
 
 The atelier identity (paper, brass, stitching, craft objects) stays exactly as it is. This
 pass is about **typography and placement** — the things that currently make good surfaces
@@ -188,22 +188,38 @@ Shared builders so every menu says the same thing the same way:
 
 ---
 
-## 7. Phases
+## 7. Phases — progress
 
 Each phase ends with: `check_ui` green, gdlint clean, before/after shots, commit + push.
 
-| Phase | Work | Size | Visible change |
-|-------|------|------|----------------|
-| **0 — Tooling** | Fix `shot_ui.gd` (load `main.tscn` explicitly; add mirror, rack, apprentice, pause, settings, main-menu targets; document worktable/customer). Add `tools/shot_type_specimen.gd` — one sheet showing every font token × scale step on each paper colour. Capture a "before" set. | S | none |
-| **1 — Type foundation** | Real Fredoka instances; add Fraunces; `T_*` scale; `atelier_theme.tres` + `gui/theme/custom`; remove the `ui.gd` manual theme plumbing; `bold_font()` aliased. Tune weights on the specimen sheet. | M | **Large** — every label in the game gets heavier and crisper at once. Needs your eyes before going further. |
-| **2 — Title block** | `Style.title_block` + upgraded `Style.header`; migrate all 10 titled menus + `MinigameScreen`; kicker names per skin; per-skin top padding; day card + gazette masthead onto `font_display`. | M | Large |
-| **3 — Inner hierarchy** | `field_row`, `money`, `total_bar`, footer anchoring; sweep ~130 size literals onto `T_*`; unify card names; fold `coach_mark` / `mentor_dialog` pills back into `Style.key_pill`; newspaper onto `Style` fonts; retire `LEAF`; delete dead `ui.tscn` sizes. Menu by menu: phone → mirror → worktable → orders → shelf/rack → apprentice → HUD strips. | L | Medium per menu, cumulative |
-| **4 — Main menu** | Wordmark, split layout, boot animation, slot rows, footer, pause-menu parity, builder cleanup. | M | **The showpiece** |
-| **5 — Guardrails** | `check_ui.gd` typography rules: no numeric `font_size` literal outside `style.gd` (must be `Style.T_*`); titled menus must call `title_block`; no `FontVariation.new()` outside `style.gd`; bring the 8 unchecked files into MIGRATED/EXEMPT. Rewrite style guide §2 *Type* + add §4.1 *Title block* and the bold rule. | S | none — stops it drifting again |
+| Phase | Work | Size | Status | Landed in |
+|-------|------|------|--------|-----------|
+| **0 — Tooling** | Fix `shot_ui.gd` (load `main.tscn` explicitly; add mirror, rack, apprentice, pause, settings, main-menu targets; document worktable/customer). Add `tools/shot_type_specimen.gd` — one sheet showing every font token × scale step on each paper colour. Capture a "before" set. | S | ✅ Done | `5d6d752` |
+| **1 — Type foundation** | Real Fredoka instances; add Fraunces; `T_*` scale; a base theme; remove the `ui.gd` manual theme plumbing; `bold_font()` aliased. Tune weights on the specimen sheet. | M | ✅ Done | `0e02e8b` |
+| **2 — Title block** | `TitleBlock` component (`ui/craft/title_block.gd`) + upgraded `Style.header`; migrate all titled menus + `MinigameScreen`; kicker names per skin; per-skin top padding. | M | ✅ Done | `80e91e1` |
+| **3 — Inner hierarchy** | `field_row`, `money`, `total_bar`, footer anchoring; sweep ~130 size literals onto `T_*`; unify card names; fold `coach_mark` / `mentor_dialog` pills back into `Style.key_pill`; newspaper onto `Style` fonts; retire `LEAF`; delete dead `ui.tscn` sizes. Menu by menu: phone → mirror → worktable → orders → shelf/rack → apprentice → HUD strips. | L | 🚧 In progress | builders (`field_row`/`money`/`total_bar`) + the fitting room in `e8eca13`; the size-literal sweep of the remaining menus is running now |
+| **4 — Main menu** | Wordmark, split layout, boot animation, slot rows, footer, pause-menu parity, builder cleanup. | M | ✅ Done | `ac7823a`, `ef3397b`, `1d224fb` |
+| **5 — Guardrails** | `check_ui.gd` typography rules: no numeric `font_size` literal outside `style.gd` (must be `Style.T_*`); titled menus must call `TitleBlock`; no `FontVariation.new()` outside `style.gd`; bring the unchecked files into MIGRATED/TYPE_ONLY. Rewrite style guide §2 *Type* + add §4.1 *Title block* and the bold rule. | S | 🚧 In progress | this pass (T1–T5 in `check_ui.gd`; style guide §2/§4.1–4.3 rewritten) |
 
 **Order rationale:** Phase 1 is the cheapest big win and changes text metrics everywhere,
-so it must land before anyone fine-tunes placement. Phase 4 can be pulled forward to right
-after Phase 1 if you want the showpiece early — it only depends on the fonts.
+so it must land before anyone fine-tunes placement. Phase 4 was pulled forward to right
+after Phase 2, ahead of Phase 3 finishing — it only depended on the fonts and the title
+block, not on the per-menu sweep.
+
+**Deviations from the plan:**
+
+- **No `.tres` theme.** §3's `data/ui/atelier_theme.tres` + `gui/theme/custom` in
+  `project.godot` never happened. Instead the base theme is built in code —
+  `Style.base_theme()` — and the UI autoload hangs it on the root window at runtime.
+  This covers every scene the same way the `.tres` would have, but the editor
+  preview does not pick it up (a Control opened in the editor still shows Godot's
+  default theme; the fonts and sizes only appear when the game is actually running).
+- **Main menu scene was not rebuilt.** Phase 4 landed the wordmark, fascia sign and
+  slim button column, all built in code (`ui/main_menu.gd`), but `build_main_menu.gd`
+  was deliberately **not** re-run against `main_menu.tscn` — the owner had hand-tuned
+  `View_Main` (the camera marker the fascia eases to) and a regenerate would have
+  overwritten that tuning. The `.tscn`'s 3D side stays hand-owned; only the 2D layer
+  is code-built and rebuilt live on every boot.
 
 ## 8. Risks
 

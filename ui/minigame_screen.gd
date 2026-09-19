@@ -74,7 +74,7 @@ func _ensure_chrome(screen_title: String, painter: Callable, frame := Style.FRAM
 
 	_status_lbl = Label.new()
 	_status_lbl.add_theme_font_override("font", Style.bold_font())
-	_status_lbl.add_theme_font_size_override("font_size", 16)
+	_status_lbl.add_theme_font_size_override("font_size", Style.T_BODY)
 	box.add_child(_status_lbl)
 
 	_hint_slot = VBoxContainer.new()
@@ -115,7 +115,7 @@ func _build_ticket() -> Control:
 	_ticket.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_job_lbl = Label.new()
 	_job_lbl.add_theme_font_override("font", Style.bold_font())
-	_job_lbl.add_theme_font_size_override("font_size", 16)
+	_job_lbl.add_theme_font_size_override("font_size", Style.T_BODY)
 	_job_lbl.add_theme_color_override("font_color", Style.INK)
 	_ticket.add_child(_job_lbl)
 	row.add_child(_ticket)

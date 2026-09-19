@@ -497,8 +497,8 @@ func _paint_labels(c: Control, rect: Rect2, top: float) -> void:
 			text += " · " + GRADE_WORD[_grades[i]]
 		var active := i == _beat and _state == State.RUNNING
 		var col := Style.CREAM if active or i < _grades.size() else Style.tint(Style.CREAM, 0.45)
-		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_BODY).x
 		var at := Vector2(rect.position.x + rect.size.x * spots[i] - width * 0.5, top + 38.0)
-		c.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, col)
+		c.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_BODY, col)
 		if active:
 			c.draw_line(at + Vector2(0.0, 7.0), at + Vector2(width, 7.0), Style.BRASS, 3.0, true)

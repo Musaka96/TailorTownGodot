@@ -61,7 +61,9 @@ func _draw() -> void:
 		_draw_bean(Vector2(x0, cy))
 		var font := Style.bold_font()
 		var at := Vector2(x0 + BEAN_R + 3.0, cy + 5.0)
-		draw_string(font, at, str(_jobs), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Style.CHALK)
+		draw_string(
+			font, at, str(_jobs), HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_CAPTION, Style.CHALK
+		)
 		return
 	for i in _jobs:
 		_draw_bean(Vector2(x0 + i * BEAN_STEP, cy))

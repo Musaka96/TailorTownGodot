@@ -39,8 +39,8 @@ func _ready() -> void:
 	_pill.add_theme_stylebox_override("panel", sb)
 	add_child(_pill)
 	_label = Label.new()
-	_label.add_theme_font_override("font", Style.bold_font())
-	_label.add_theme_font_size_override("font_size", 15)
+	_label.add_theme_font_override("font", Style.font_bold())
+	_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_label.add_theme_color_override("font_color", Style.WALNUT)
 	_pill.add_child(_label)
 	visible = false
