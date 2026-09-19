@@ -177,8 +177,9 @@ chrome through one throw-away host, `ui/bench_game_screen.gd` (`UI.open_pressing
   It does not spend coffee focus. Knobs: consts at the top of the game, and
   `GameConfig.press_bonus_best` / `press_scorch_penalty`.
 - *Coffee* (`ui/coffee_bench.gd` + `coffee_pour_minigame.gd` / `espresso_minigame.gd`):
-  one-button beats — GRIND (stop the needle in the band), TAMP and POUR (hold, let go at
-  the mark; the gauge speeds up as it climbs). Instant coffee is POUR alone; the Espresso
+  one-button beats — GRIND, TAMP and POUR, all hold-and-let-go-at-the-mark (nothing moves
+  until the button is held; the gauge speeds up as it climbs; the grind band sits near the
+  end of the dial). Drawn as real things by `ui/coffee_art.gd`. Instant coffee is POUR alone; the Espresso
   Machine (an upgrade *to* the coffee machine — the `needs` key, honoured by
   `Upgrades.can_buy` and shown on the phone) plays all three and adds `coffee_jobs` /
   `coffee_cups` effects. Over the rim = spilt, cup wasted.

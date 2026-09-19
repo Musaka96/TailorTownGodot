@@ -4,12 +4,12 @@ extends MinigameScreen
 ## The coffee counter both coffee games share. A cup is made in one or more one-button
 ## beats, laid out left to right on the counter with the one in hand lit:
 ##
-##   GRIND  a needle sweeps the grinder's dial — tap to stop it in the band
+##   GRIND  hold to run the grinder, let go when the dial's needle is in the band
 ##   TAMP   hold to press the tamper down, let go at the mark
 ##   POUR   hold to pour, let go at the line; over the rim is a spill, and the cup is lost
 ##
-## TAMP and POUR are the same hold-and-release gauge: it climbs faster the further it gets,
-## so the last stretch takes a little nerve. A subclass only names its beats (_beats) and
+## Nothing moves until the button is held. All three are the same hold-and-release gauge:
+## it climbs faster the further it gets, so the last stretch takes a little nerve. A subclass only names its beats (_beats) and
 ## its title. Emits finished(success, quality): quality is the mean of the beats' grades;
 ## success is false only for a spilt cup. No slips, so the header's pins stay empty.
 
@@ -23,7 +23,7 @@ const GRADE_SCORE := [1.0, 0.7, 0.3]
 const GRADE_WORD := ["Perfect", "Good", "Off"]
 const BEAT_NAME := ["Grind", "Tamp", "Pour"]
 const BEAT_HINT := [
-	"Stop the grinder in the band",
+	"Hold to grind, let go in the band",
 	"Hold to tamp, let go at the mark",
 	"Hold to pour, let go at the line",
 ]
@@ -33,7 +33,6 @@ const DIAL_PERFECT := 0.045
 const DIAL_GOOD := 0.11
 const FILL_BASE := 0.26  # gauge units a second at the bottom…
 const FILL_ACCEL := 0.6  # …plus this much per unit already filled
-const SWEEP_SPEED := 0.95  # dial sweeps a second
 const BEAT_PAUSE := 0.85  # between beats: the grade shows, the portafilter is carried on
 const PERFECT_CUP := 0.9
 const GOOD_CUP := 0.6
@@ -45,7 +44,10 @@ const COUNTER_INSET := 10.0
 const COUNTER_H := 62.0  # the counter's front, below the things standing on it
 const SCENE_H := 300.0  # the tallest thing on the counter, in CoffeeArt's own units
 const TAMP_TOP := -150.0  # the tamper's face above the mat at rest…
-const TAMP_BOTTOM := -18.0  # …and rammed right down into the basket
+const TAMP_BOTTOM := -24.0  # …and rammed right down into the basket
+const TAMP_TOUCH := 0.3  # the gauge level at which the tamper meets the coffee
+const HEAP_FOOT := -31.0  # the basket's rim over the mat, where the mound starts…
+const HEAP_RISE := 16.0  # …and how high loose coffee heaps above it
 
 var _state := State.RUNNING
 var _armed := false  # the press that opened the counter must be let go first
@@ -54,7 +56,6 @@ var _grades: Array = []
 var _beat := 0
 var _level := 0.0  # the gauge (tamp, pour) or the needle (grind)
 var _mark := 0.5
-var _dir := 1.0
 var _holding := false
 var _pause := 0.0
 var _anim := 0.0  # free-running, for steam, beans and falling grounds
@@ -139,10 +140,7 @@ func _process(delta: float) -> void:
 	var held := _button_held()
 	if not _armed and not held:
 		_armed = true
-	if _kind() == Beat.GRIND:
-		_sweep(delta, _armed and held)
-	else:
-		_fill(delta, _armed and held)
+	_fill(delta, _armed and held)
 	_repaint()
 
 
@@ -177,13 +175,11 @@ func _next_beat() -> void:
 		return
 	_level = 0.0
 	_beat_time = 0.0
-	_dir = 1.0
 	_holding = false
 	_armed = false  # each beat wants a fresh press
 	match _kind():
 		Beat.GRIND:
-			_mark = randf_range(0.3, 0.7)
-			Sfx.start_loop(GRIND_LOOP, LOOP_DB)
+			_mark = randf_range(0.74, 0.87)  # towards the end of the dial
 		Beat.TAMP:
 			_mark = randf_range(0.6, 0.8)
 		_:
@@ -192,25 +188,17 @@ func _next_beat() -> void:
 	_update_status()
 
 
-## The grinder's needle swings back and forth; the press stops it where it is.
-func _sweep(delta: float, held: bool) -> void:
-	if held:
-		_grade(_judge(DIAL_PERFECT, DIAL_GOOD))
-		return
-	_level += _dir * SWEEP_SPEED * delta
-	if _level >= 1.0 or _level <= 0.0:
-		_level = clampf(_level, 0.0, 1.0)
-		_dir = -_dir
-	Sfx.set_loop_pitch(GRIND_LOOP, 0.9 + 0.2 * _level)
-
-
-## Hold to fill, let go to be judged. Topping out ends it for you: a tamp pressed too hard
-## is only "off", but a cup poured over the rim is a spill.
+## Hold to fill, let go to be judged. Topping out ends it for you: beans ground too long
+## or a tamp pressed too hard are only "off", but a cup poured over the rim is a spill.
 func _fill(delta: float, held: bool) -> void:
 	if held:
 		if not _holding and _kind() == Beat.POUR:
 			Sfx.start_loop(POUR_LOOP, LOOP_DB)
+		elif not _holding and _kind() == Beat.GRIND:
+			Sfx.start_loop(GRIND_LOOP, LOOP_DB)
 		_holding = true
+		if _kind() == Beat.GRIND:
+			Sfx.set_loop_pitch(GRIND_LOOP, 0.9 + 0.25 * _level)
 		_level = minf(1.0, _level + (FILL_BASE + FILL_ACCEL * _level) * delta)
 		if _level >= 1.0:
 			if _kind() == Beat.POUR:
@@ -220,7 +208,10 @@ func _fill(delta: float, held: bool) -> void:
 		return
 	if not _holding:
 		return
-	_grade(_judge(PERFECT_BAND, GOOD_BAND))
+	if _kind() == Beat.GRIND:
+		_grade(_judge(DIAL_PERFECT, DIAL_GOOD))
+	else:
+		_grade(_judge(PERFECT_BAND, GOOD_BAND))
 
 
 ## How close the gauge (or needle) stopped to its mark.
@@ -357,7 +348,7 @@ func _paint_espresso_bar(c: Control, rect: Rect2, top: float, s: float) -> void:
 	var mat := Vector2(rect.position.x + rect.size.x * 0.43, top)
 	var machine := Vector2(rect.position.x + rect.size.x * 0.77, top)
 	var kind := _kind()
-	var grinding := kind == Beat.GRIND and _pause <= 0.0 and _state == State.RUNNING
+	var grinding := kind == Beat.GRIND and _holding and _state == State.RUNNING
 	_place(c, grinder, s)
 	CoffeeArt.grinder(c, _anim if grinding else 0.0)
 	_paint_dial(c)
@@ -377,7 +368,10 @@ func _paint_espresso_bar(c: Control, rect: Rect2, top: float, s: float) -> void:
 		machine + CoffeeArt.GROUP_AT * s,
 	]
 	var made := _grades.size()
-	var heap := 1.0 if made > 0 else (clampf(_beat_time / 1.6, 0.0, 1.0) if grinding else 0.0)
+	var heap := 1.0 if made > 0 else clampf(_level / 0.8, 0.0, 1.0)
+	if kind == Beat.TAMP and _pause <= 0.0:
+		# The tamper squashes the mound down as it comes.
+		heap = clampf((HEAP_FOOT - _tamp_face(_level)) / HEAP_RISE, 0.0, 1.0)
 	if grinding:
 		_paint_grounds(c, docks[0], s)
 	if kind == Beat.TAMP or (made == 1 and _pause > 0.0):
@@ -399,7 +393,8 @@ func _carried(docks: Array, s: float) -> Vector2:
 	return here.lerp(there, t) + Vector2(0.0, sin(t * PI) * arc * s)
 
 
-## The grind gauge, on the grinder's own dial: the band, and the needle sweeping past it.
+## The grind gauge, on the grinder's own dial: the band near the end of it, and the needle
+## that climbs towards it while the grinder runs.
 func _paint_dial(c: Control) -> void:
 	var at := CoffeeArt.DIAL_AT
 	var r := CoffeeArt.DIAL_R
@@ -429,11 +424,22 @@ func _paint_grounds(c: Control, dock: Vector2, s: float) -> void:
 		c.draw_circle(Vector2(x, lerpf(-30.0, -10.0, t)), 2.5, Style.BROWN.darkened(0.3))
 
 
-## The tamper over the mat, coming down with the gauge, and the rule beside it that the
-## brass pointer on its neck rides down: that pointer against the band is the tamp gauge.
+## How high the tamper's face is over the mat for a gauge level: it drops quickly onto the
+## mound, then grinds slowly down into the basket — so at the mark it is pressing the puck.
+func _tamp_face(level: float) -> float:
+	if level < TAMP_TOUCH:
+		return lerpf(TAMP_TOP, HEAP_FOOT - HEAP_RISE, level / TAMP_TOUCH)
+	return lerpf(HEAP_FOOT - HEAP_RISE, TAMP_BOTTOM, (level - TAMP_TOUCH) / (1.0 - TAMP_TOUCH))
+
+
+## The tamper over the mat, coming down onto the coffee, and a pressure rule beside it
+## whose brass pointer slides down with the gauge: the pointer against the band is the game.
 func _paint_tamper(c: Control, mat: Vector2, s: float, live: bool) -> void:
-	var press := _level if live else _tamped
-	var face := lerpf(TAMP_TOP, TAMP_BOTTOM, press)
+	# Once the tamp is made the tamper lifts clear again, ahead of the portafilter leaving.
+	var lifting := clampf(_pause / BEAT_PAUSE * 2.5 - 1.5, 0.0, 1.0)
+	var press := _level if live else _tamped * lifting
+	var face := _tamp_face(press)
+	var gauge := lerpf(TAMP_TOP, TAMP_BOTTOM, press)
 	_place(c, mat, s)
 	var span := TAMP_BOTTOM - TAMP_TOP
 	var rule := Rect2(64.0, TAMP_TOP, 24.0, span)
@@ -446,9 +452,8 @@ func _paint_tamper(c: Control, mat: Vector2, s: float, live: bool) -> void:
 		c.draw_rect(Rect2(64.0, y - good, 24.0, good * 2.0), Style.tint(Style.FOREST, 0.3))
 		c.draw_rect(Rect2(64.0, y - fine, 24.0, fine * 2.0), Style.tint(Style.FOREST, 0.55))
 		c.draw_line(Vector2(58.0, y), Vector2(98.0, y), Style.BRASS, 3.0)
-	c.draw_line(Vector2(0.0, face - 20.0), Vector2(62.0, face), Style.BRASS, 3.0, true)
 	var tip := PackedVector2Array(
-		[Vector2(64.0, face), Vector2(54.0, face - 6.0), Vector2(54.0, face + 6.0)]
+		[Vector2(66.0, gauge), Vector2(52.0, gauge - 8.0), Vector2(52.0, gauge + 8.0)]
 	)
 	c.draw_colored_polygon(tip, Style.BRASS)
 	_place(c, mat + Vector2(0.0, face) * s, s)

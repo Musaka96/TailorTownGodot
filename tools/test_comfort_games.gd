@@ -159,14 +159,12 @@ func _bot_press_burn(game: Node) -> void:
 	_hold("cut", game.get("_armed") or Input.is_action_pressed("cut") and game.get("_pressing"))
 
 
-## Grind: stop the needle on the mark. Tamp and pour: hold until the mark, then let go.
+## Every beat is the same: hold until the mark, then let go.
 func _bot_coffee(game: Node) -> void:
 	var level: float = game.get("_level")
 	var mark: float = game.get("_mark")
 	if game.get("_pause") > 0.0 or not game.get("_armed") and not game.get("_holding"):
 		_hold("cut", false)
-	elif game.call("_kind") == 0:
-		_hold("cut", absf(level - mark) < 0.03)
 	else:
 		_hold("cut", level < mark - 0.01)
 
