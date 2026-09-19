@@ -215,15 +215,24 @@ announcement) — adding it passes the 15 MB point where Valve may strip animati
 
 ```
 godot --path . --script res://tools/shot_promo.gd -- art     # 4K plates + logo -> .dev/promo/art/
-python tools/compose_store_art.py [client]                    # every size -> .dev/promo/store/
+python tools/compose_store_art.py [scene ...]                 # every size -> .dev/promo/store/<scene>/
 ```
 
-`-- art` renders clean plates (HUD off, no vignette / lens frame): the tailor with a bolt
-and a client outside the shop (`pair_<n>`, `pair_close_<n>`, `street_wide_<n>` — five
-seeded clients, pick one with the composer's argument, default 4), the shop floor from
-above, and the main menu's gold-leaf wordmark on transparency. The composer crops the
-plates, lays a forest-green wash where the wordmark goes and places it — nothing is drawn
-that isn't in the game.
+`-- art` renders clean 4K plates (HUD off, no vignette / lens frame) and the main menu's
+gold-leaf wordmark on transparency; the composer crops them, lays a forest-green wash where
+the wordmark goes and places it — nothing is drawn that isn't in the game. Each scene gets
+its own full set in `.dev/promo/store/<scene>/`:
+
+| Scene | Plate | Shows |
+|---|---|---|
+| `mirror` (lead) | `mirror_<look><take>` | the tailor sizing up a client in a showcase suit at the fitting mirror, tape measure in hand (arms posed by the tool — there is no measuring clip) |
+| `work` | `work_<take>` | the tailor at the cutting table, Percy the apprentice beside him |
+| `street` | `pair_<n>` | the tailor with a bolt and a client outside the shopfront |
+
+`-- art_mirror` / `-- art_work` re-render one scene; add `draft` for quick 1280x720 plates.
+Clients are seeded (`ART_SEED`), so a chosen plate stays the same between runs; two takes
+(`a`/`b`) are shot a moment apart so one of them is never mid-blink. Which plate a scene
+uses, and where its people stand, is the `SCENES` table at the top of the composer.
 
 | File | Steam slot |
 |---|---|

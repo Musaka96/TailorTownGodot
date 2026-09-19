@@ -27,6 +27,18 @@ const SPRINT_ANIM_MULT := 1.6
 ## Upward velocity applied on jump (m/s).
 @export var jump_velocity: float = 5.0
 
+@export_group("Look")
+## Head + hair combo from the wardrobe. -1 = the first combo that is still switched on
+## in the face profiles (char preview), so a combo turned off there is off for the
+## tailor too; a combo picked here that is later turned off falls back the same way.
+@export var head_combo: int = 2
+@export var skin_color := Color(0.90, 0.76, 0.66)
+@export var hair_color := Color(0.28, 0.18, 0.1)
+## The tailor's own suit: cloth (data/materials id) and jacket / trouser cut.
+@export var suit_cloth: StringName = &"navy_worsted_pinstripe"
+@export var jacket_style: int = 1  # Double-Breasted
+@export var trouser_style: int = 1  # Pleated
+
 # Read the gravity from Project Settings so it stays consistent with the rest of
 # the physics world instead of being a magic number.
 var _step_t := 0.0
@@ -43,18 +55,38 @@ func _ready() -> void:
 	# So systems like the roof fader can find us without a wired-up NodePath.
 	add_to_group("player")
 	ContactShadow.attach(self)
-	# The shopkeeper wears a sharp charcoal suit over a white shirt.
-	if _model.has_method("set_palette"):
-		_model.set_palette(Color(0.90, 0.76, 0.66))
-	if _model.has_method("set_outfit"):
-		var suit: MaterialType = Catalog.get_material(&"charcoal_worsted_solid")
-		if suit != null:
-			_model.set_outfit(suit, null, suit)
+	_dress()
 	# Carry items from the rig's hand bone so they follow the hand and turn with us.
 	if _model.has_method("carry_point"):
 		var point: Node3D = _model.carry_point()
 		if point != null:
 			carry.set_hold_point(point)
+
+
+## The shopkeeper's look: an enabled head/hair combo and a sharp suit over a white shirt.
+func _dress() -> void:
+	if _model.has_method("set_head"):
+		var combo := _usable_combo()
+		_model.set_head(combo)
+		_model.set_hair(combo)
+		_model.set_hair_color(hair_color)
+	if _model.has_method("set_palette"):
+		_model.set_palette(skin_color)
+	if _model.has_method("set_outfit"):
+		var suit: MaterialType = Catalog.get_material(suit_cloth)
+		if suit != null:
+			_model.set_outfit(suit, null, suit, jacket_style, trouser_style)
+
+
+## `head_combo` if it's switched on, else the first combo that is (0 if none are).
+func _usable_combo() -> int:
+	var profiles := FaceProfiles.load_or_default()
+	if head_combo >= 0 and head_combo < Wardrobe.head_count() and profiles.is_enabled(head_combo):
+		return head_combo
+	for i in Wardrobe.head_count():
+		if profiles.is_enabled(i):
+			return i
+	return 0
 
 
 func _physics_process(delta: float) -> void:

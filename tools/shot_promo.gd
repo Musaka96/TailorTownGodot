@@ -19,6 +19,7 @@ const SHOT_H := 1080
 ## reuse it (scaled) so the framing reads like the framing players get.
 const CAM_OFFSET := Vector3(0.0, 6.271325, 4.392928)
 const SETTLE := 6
+const FACTORY_PATH := "res://data/scripts/material_factory.gd"
 const FRONT_REF := Vector3(0.65, 0.0, 4.05)
 const BRIEF_ASIDE := 2.8  # metres the brief shots look to the client's right
 ## Opt-in shots (only rendered when named on the command line). "clips" records every
@@ -33,6 +34,9 @@ const EXTRA_SHOTS := [
 	"clip_sew",
 	"clip_looks",
 	"art",
+	"art_mirror",
+	"art_work",
+	"draft",
 ]
 ## Clip frames: Steam's description column is 1170px wide (780 logical px at 150%).
 ## Record with `--fixed-fps 30` so every frame advances exactly 1/30 s of game time,
@@ -46,6 +50,19 @@ const ART_W := 3840
 const ART_H := 2160
 const LOGO_SCALE := 5.0
 const ART_SEED := 1907
+## The mirror plate: which CUTE_SUITS the client wears, and the hand-staged pose.
+const ART_MIRROR_LOOKS := ["berry", "garden", "picnic"]
+const ART_CLIENT_YAW := -0.25
+const ART_TAILOR_OFFSET := Vector3(-1.3, 0.0, 0.3)
+const ART_TAILOR_YAW := 0.8
+## Where the tailor's hands hold the tape: forward, either side, height (his own frame).
+const ART_TAPE_HOLD := Vector3(0.3, 0.74, 0.42)
+## The workroom plate.
+const ART_AT_TABLE := Vector3(0.1, 0.0, -0.95)
+const ART_TABLE_YAW := 0.25
+const ART_PERCY_AT_TABLE := Vector3(1.55, 0.0, -0.5)
+const ART_PERCY_YAW := -0.55
+const ART_TAKES := 2
 const ART_CLIENTS := 5  # the client is random: shoot a few, keep the best
 ## The looks clip: these interiors (data/shop_looks ids), LOOK_HOLD seconds each, ending
 ## where it began so it loops.
@@ -451,7 +468,7 @@ func _dress_design(builder: Node, parts: Array) -> void:
 ## Clean, high-resolution plates: the pair outside the shop (close and wide), the shop
 ## floor from above, and the wordmark on a transparent ground.
 func _art() -> void:
-	if not _want("art"):
+	if not (_want("art") or _want("art_mirror") or _want("art_work")):
 		return
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR + "/art"))
 	await _clear_customers()
@@ -465,9 +482,142 @@ func _art() -> void:
 		clean.set(prop, 0.0)
 	clean.set("chromatic_aberration", 0.0)
 	fx.set_profile(clean)
-	get_root().size = Vector2i(ART_W, ART_H)
+	var draft := _wanted.has("draft")
+	get_root().size = Vector2i(ART_W, ART_H) / (3 if draft else 1)
 	await _wait(10)
-	# The shop floor, empty and tidy (page background, library hero fallback).
+	if _want("art_mirror") or _want("art"):
+		await _art_mirror()
+	if _want("art_work") or _want("art"):
+		await _art_work()
+	if _want("art"):
+		await _art_floor_and_street()
+		await _art_logo()
+	get_root().size = Vector2i(SHOT_W, SHOT_H)
+	fx.set_profile(old_profile)
+	_ui.hud.visible = true
+
+
+## The fitting: a client in a bright showcase suit on the mirror spot, the tailor beside
+## them with a tape measure drawn across their shoulders. There is no measuring clip, so
+## the tailor's arms are posed by hand for the plate (and the rig rebuilt afterwards).
+func _art_mirror() -> void:
+	await _clear_customers()
+	var spot: Node3D = _main.find_child("MirrorSpot", true, false)
+	var at := spot.global_position
+	_place_player(at + Vector3(-5.0, 0.0, 3.0), 0.0)  # out of the way while they walk in
+	# The racks of finished suits hang right where this camera stands.
+	var racks: Array[Node] = [_main.find_child("ClothingRack", true, false)]
+	racks.append_array(_main.find_children("int_rack_right_*", "Node3D", true, false))
+	for rack: Node3D in racks:
+		rack.visible = false
+	for i in ART_MIRROR_LOOKS.size():
+		_cm._rng.seed = ART_SEED + 10 + i  # the same clients every run
+		var cust: Node = await _seat_customer()
+		_wear_look(cust, CUTE_SUITS[ART_MIRROR_LOOKS[i]]["parts"])
+		cust.rotation.y = ART_CLIENT_YAW
+		_place_player(at + ART_TAILOR_OFFSET, 0.0)
+		var model: Node3D = _player.get_node("Model")
+		model.rotation.y = ART_TAILOR_YAW
+		await _wait(20)
+		var tape := _pose_measuring(model)
+		await _wait(4)
+		_frame_eye(at + Vector3(-0.8, 1.2, 3.3), at + Vector3(-0.65, 0.95, 0.0))
+		for take in ART_TAKES:  # a few frames apart, so one of them isn't mid-blink
+			await _wait(SETTLE + take * 35)
+			_save("art/mirror_%d%s" % [i, "abc"[take]])
+		tape.queue_free()
+		_unpose(model)
+		await _clear_customers()
+	for rack: Node3D in racks:
+		rack.visible = true
+
+
+## Put a CUTE_SUITS look (jacket, shirt, trousers rows) straight onto a client.
+func _wear_look(cust: Node, parts: Array) -> void:
+	# Loaded at run time: naming the class here would compile it before the autoloads exist.
+	var factory: GDScript = load(FACTORY_PATH)
+	var mats: Array = []
+	for p: Array in parts:
+		mats.append(factory.make(p[0], p[1], p[2], 1.0))
+	cust.wear_suit(mats[0], mats[1], mats[2], parts[0][3], parts[2][3])
+
+
+## Freeze the rig's animation and hold both arms out in front; returns the tape measure
+## stretched between the hands.
+func _pose_measuring(model: Node3D) -> Node3D:
+	var tree: AnimationTree = model.find_children("*", "AnimationTree", true, false)[0]
+	tree.active = false
+	var sk: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	var fwd := model.global_transform.basis.z.normalized()
+	var side := model.global_transform.basis.x.normalized()
+	var chest := model.global_position + Vector3.UP * ART_TAPE_HOLD.y + fwd * ART_TAPE_HOLD.z
+	_aim_arm(sk, "l", chest + side * ART_TAPE_HOLD.x)
+	_aim_arm(sk, "r", chest - side * ART_TAPE_HOLD.x)
+	var a := sk.global_transform * sk.get_bone_global_pose(sk.find_bone("hand.l")).origin
+	var b := sk.global_transform * sk.get_bone_global_pose(sk.find_bone("hand.r")).origin
+	var tape := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.07, 0.008, a.distance_to(b) + 0.12)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.98, 0.8, 0.25)
+	mat.roughness = 0.6
+	box.material = mat
+	tape.mesh = box
+	_main.add_child(tape)
+	tape.look_at_from_position((a + b) * 0.5, b, Vector3.UP)
+	return tape
+
+
+## Swing one straight arm so the hand points at `target` (world space).
+func _aim_arm(sk: Skeleton3D, side: String, target: Vector3) -> void:
+	for bone: String in ["lowerarm.", "wrist.", "hand."]:
+		sk.reset_bone_pose(sk.find_bone(bone + side))
+	var upper := sk.find_bone("upperarm." + side)
+	var lower := sk.find_bone("lowerarm." + side)
+	var world := sk.global_transform
+	var pose := world * sk.get_bone_global_pose(upper)
+	var elbow := (world * sk.get_bone_global_pose(lower)).origin
+	var turn := Quaternion((elbow - pose.origin).normalized(), (target - pose.origin).normalized())
+	pose.basis = Basis(turn) * pose.basis
+	sk.set_bone_global_pose(upper, world.affine_inverse() * pose)
+
+
+func _unpose(model: Node3D) -> void:
+	var tree: AnimationTree = model.find_children("*", "AnimationTree", true, false)[0]
+	tree.active = true
+
+
+## The workroom: the tailor at the cutting table with cloth, Percy at his own bench.
+func _art_work() -> void:
+	await _clear_customers()
+	var upgrades: Node = root.get_node("Upgrades")
+	var had: bool = upgrades.has("apprentice")
+	upgrades._owned["apprentice"] = true
+	upgrades.changed.emit()
+	var bench: Node3D = _main.find_child("ApprenticeBench", true, false)
+	var table: Node3D = _main.find_child("Worktable", true, false)
+	var percy: Node3D = bench.get_node("Apprentice")
+	var percy_home := percy.global_transform
+	percy.global_position = table.global_position + ART_PERCY_AT_TABLE
+	percy.global_rotation.y = ART_PERCY_YAW
+	_place_player(table.global_position + ART_AT_TABLE, 0.0)
+	_player.get_node("Model").rotation.y = ART_TABLE_YAW
+	await _give_roll("navy_worsted_pinstripe", 14.0)
+	await _wait(30)
+	var at := table.global_position
+	_frame_eye(at + Vector3(0.85, 1.35, 2.25), at + Vector3(0.75, 0.95, -0.6))
+	for take in ART_TAKES:
+		await _wait(SETTLE + take * 35)
+		_save("art/work_%s" % "abc"[take])
+	percy.global_transform = percy_home
+	await _clear_hands()
+	if not had:
+		upgrades._owned.erase("apprentice")
+		upgrades.changed.emit()
+
+
+## The empty shop floor from above, then the pair outside the shop (five seeded clients).
+func _art_floor_and_street() -> void:
 	_place_player(_front(Vector3(2.0, 0.0, 5.3)), 0.5)
 	await _give_roll("navy_worsted_pinstripe", 14.0)
 	_frame(_front(Vector3(1.3, 0.5, 4.2)), 1.05)
@@ -478,7 +628,7 @@ func _art() -> void:
 	_dismiss_paper()
 	_place_player(Vector3(1.15, 0.0, 9.9), 0.15)
 	for i in ART_CLIENTS:
-		seed(ART_SEED + i)  # the same five clients every run, so a pick stays picked
+		_cm._rng.seed = ART_SEED + i  # the same five clients every run, so a pick stays picked
 		var cust: Node = _spawn_customer(Vector3(-0.15, 0.0, 10.0), -0.2)
 		await _wait(60)
 		_frame_eye(Vector3(0.5, 2.3, 17.5), Vector3(0.5, 1.9, 8.6))
@@ -487,16 +637,9 @@ func _art() -> void:
 		_frame_eye(Vector3(0.5, 1.5, 13.4), Vector3(0.5, 1.25, 9.9))
 		await _wait(SETTLE)
 		_save("art/pair_%d" % i)
-		_frame_eye(Vector3(0.5, 1.3, 12.5), Vector3(0.5, 1.15, 9.9))
-		await _wait(SETTLE)
-		_save("art/pair_close_%d" % i)
 		cust.queue_free()
 		await _wait(4)
 	await _clear_hands()
-	await _art_logo()
-	get_root().size = Vector2i(SHOT_W, SHOT_H)
-	fx.set_profile(old_profile)
-	_ui.hud.visible = true
 
 
 ## The main menu's gold-leaf wordmark, LOGO_SCALE x, on transparency.
@@ -507,7 +650,7 @@ func _art_logo() -> void:
 	vp.oversampling_override = LOGO_SCALE
 	vp.canvas_transform = Transform2D().scaled(Vector2.ONE * LOGO_SCALE)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	var mark := Wordmark.new()
+	var mark: Control = load("res://ui/craft/wordmark.gd").new()
 	mark.size = Vector2(360, 178)
 	vp.add_child(mark)
 	root.add_child(vp)
@@ -601,7 +744,7 @@ func _clip_mirror() -> void:
 ## to each target value, then return to the whole-suit overview.
 func _design_by_hand(builder: Node, parts: Array) -> void:
 	var enums: Script = load("res://data/scripts/enums.gd")
-	var factory: Script = load("res://data/scripts/material_factory.gd")
+	var factory: Script = load(FACTORY_PATH)
 	var types := [2, 0, 1]  # JACKET, SHIRT, PANTS — the order parts[] is written in
 	var keys := ["fabric", "color", "pattern", "style_idx"]  # the builder's row order
 	var src := [0, 2, 1, 3]  # where each key sits in a CUTE_SUITS part entry
