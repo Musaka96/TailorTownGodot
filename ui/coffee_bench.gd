@@ -9,8 +9,8 @@ extends MinigameScreen
 ##   POUR   hold to pour, let go at the line; over the rim is a spill, and the cup is lost
 ##
 ## Nothing moves until the button is held. All three are the same hold-and-release gauge:
-## it climbs faster the further it gets, so the last stretch takes a little nerve. A subclass only names its beats (_beats) and
-## its title. Emits finished(success, quality): quality is the mean of the beats' grades;
+## it climbs faster the further it gets, so the last stretch takes a little nerve. A
+## subclass only names its beats (_beats) and its title. Emits finished(success, quality): quality is the mean of the beats' grades;
 ## success is false only for a spilt cup. No slips, so the header's pins stay empty.
 
 signal finished(success: bool, quality: float)
