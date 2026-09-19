@@ -6,8 +6,6 @@
 script = ExtResource("1_5f4ej")
 film_preset = 1
 film_strength = 0.065
-tilt_shift = 1.0
-tilt_focus_size = 1.0
 scanline_strength = 0.049
 scanline_count = 500.0
 chromatic_aberration = 0.069

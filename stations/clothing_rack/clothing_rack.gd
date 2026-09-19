@@ -17,6 +17,7 @@ var _slots: Array[Node3D] = []
 var _base_slots := 0
 ## Parts taken apart here, which mustn't gather again until they've left the rack.
 var _loose := {}
+var _sway := RackSway.new()
 
 @onready var _slots_root: Node3D = $Slots
 
@@ -26,6 +27,8 @@ func _ready() -> void:
 		if child is Marker3D:
 			_slots.append(child)
 	_base_slots = _slots.size()
+	_sway.hooks = _slots_root
+	add_child(_sway)
 	_apply_extra_hooks()
 	if Upgrades != null:
 		Upgrades.changed.connect(_apply_extra_hooks)
@@ -93,6 +96,7 @@ func hang(item: Node) -> bool:
 	else:
 		_gather(group, item)
 	EventBus.item_stored.emit(item, self)
+	_sway.kick(stored.find(group if group != null else item))
 	_finish_complete()
 	return true
 
@@ -110,6 +114,7 @@ func take(index: int, actor) -> bool:
 	actor.carry.take_item(piece)
 	EventBus.item_taken.emit(piece, self)
 	_reflow()
+	_sway.kick(mini(index, stored.size() - 1), 0.7)
 	return true
 
 

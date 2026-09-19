@@ -25,7 +25,6 @@ render_mode
 //
 // ============================================================
 
-uniform sampler2D screen_tex : hint_screen_texture, repeat_disable, filter_linear;
 uniform sampler2D depth_tex : hint_depth_texture, repeat_disable, filter_nearest;
 uniform sampler2D normal_tex : hint_normal_roughness_texture, repeat_disable, filter_nearest;
 
@@ -95,8 +94,6 @@ void fragment()
 {
 	vec2 uv = SCREEN_UV;
 
-	vec3 base = texture(screen_tex, uv).rgb;
-
 	// Spatial shaders have VIEWPORT_SIZE (SCREEN_PIXEL_SIZE is canvas_item only).
 	vec2 px = thickness / VIEWPORT_SIZE;
 
@@ -146,5 +143,9 @@ void fragment()
 
 	float amount = clamp(line, 0.0, 1.0) * opacity * outline_color.a;
 
-	ALBEDO = mix(base, outline_color.rgb, amount);
+	// Only the lines are drawn, blended over the frame. (Repainting the whole frame from
+	// the screen copy — taken before the transparent pass — wiped out every transparent
+	// object in the scene: particles, glass, decals on glass.)
+	ALBEDO = outline_color.rgb;
+	ALPHA = amount;
 }
