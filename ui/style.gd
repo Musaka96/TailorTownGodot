@@ -56,6 +56,7 @@ const SCRIM := Color(0, 0, 0, 0.5)  # the dim behind a full-screen menu
 const LINEN := Color("c9b48c")  # undyed linen — cloth stand-in when none is known
 const NONE := Color(0, 0, 0, 0)  # "no colour" (e.g. no pin / no stitch)
 const RIM_DARK := Color("8a6a2a")  # dark brass (chains, rims)
+const BRASS_LIGHT := Color("e8ce86")  # brass catching the light (gold-leaf edge)
 const STEEL := Color("bcc3c9")  # polished blade / pin shaft
 const STEEL_DARK := Color("70797f")  # steel in shadow, blade outlines
 const TAPE := Color("f2c94c")  # tape-measure yellow
@@ -299,10 +300,16 @@ static func title_label(text: String, accent: Color = WALNUT) -> Label:
 static func header(text: String, accent: Color = BRASS) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_override("font", bold_font())
-	lbl.add_theme_font_size_override("font_size", 18)
-	lbl.add_theme_color_override("font_color", accent)
+	lbl.add_theme_font_override("font", font_bold())
+	lbl.add_theme_font_size_override("font_size", T_VALUE)
+	lbl.add_theme_color_override("font_color", text_accent(accent))
 	return lbl
+
+
+## An accent made safe to set text in: brass is too pale to read on cream, so light
+## accents are darkened; the dark ones (forest, burgundy, walnut) pass through.
+static func text_accent(accent: Color) -> Color:
+	return accent.darkened(0.3) if accent.get_luminance() > 0.35 else accent
 
 
 # --- Prompts & readability -------------------------------------------------

@@ -62,9 +62,7 @@ func _build(label: Label, kicker_text: String, accent: Color) -> void:
 	kicker = Label.new()
 	kicker.add_theme_font_override("font", Style.font_caps())
 	kicker.add_theme_font_size_override("font_size", Style.T_MICRO)
-	# Brass is too pale to read as text on cream; every other accent is dark enough.
-	var ink := accent.darkened(0.3) if accent.get_luminance() > 0.35 else accent
-	kicker.add_theme_color_override("font_color", ink)
+	kicker.add_theme_color_override("font_color", Style.text_accent(accent))
 	add_child(kicker)
 	set_kicker(kicker_text)
 

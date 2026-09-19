@@ -1,11 +1,12 @@
 extends Node3D
 
-## The game's front door — the boot scene (project.godot run/main_scene). A 3D scene
-## (authored by tools/build_main_menu.gd, then editable): the starting shop nested as a
-## backdrop, a Camera that eases between Marker3D "Viewpoints", and a left-anchored menu.
-## This script only DRIVES it — it eases the camera to the current page's viewpoint and
-## fills the button list. It pauses the tree so the autoloaded sim stays frozen behind the
-## menu, and runs anyway (PROCESS_MODE_ALWAYS). New/Load hand off to SaveManager.
+## The game's front door — the boot scene (project.godot run/main_scene). The 3D side is
+## a scene (the starting shop as a backdrop, a Camera that eases between Marker3D
+## "Viewpoints") and is edited by hand. The 2D side is built here: the shop's hanging
+## fascia sign with the wordmark, a slim column of sewn-label buttons under it (or, on
+## the Load / Settings pages, a cream plate with a title block), and a footer with the
+## version and key prompts. It pauses the tree so the autoloaded sim stays frozen behind
+## the menu, and runs anyway (PROCESS_MODE_ALWAYS). New/Load hand off to SaveManager.
 
 ## How fast the camera eases toward the active viewpoint (higher = snappier).
 const CAM_SPEED := 3.2
@@ -13,14 +14,26 @@ const CAM_SPEED := 3.2
 const VIEW_MAIN := "View_Main"
 const VIEW_LOAD := "View_Load"
 const VIEW_SETTINGS := "View_Settings"
+const EDGE := 48.0  # gap from the screen's left edge to the sign
+const SIGN_TOP := 44.0
+const COLUMN_W := 300.0  # the main page's button column
+const PLATE_W := 480.0  # the Load / Settings plate
+const HINTS_W := 460.0
+const FOOTER_H := 32.0
 
 var _sub := false  # true while the Load slot list is showing (Esc goes back)
 var _target: Node3D
+var _sign: PanelContainer
+var _wordmark: Wordmark
+var _plate: PanelContainer
+var _head: TitleBlock
+var _buttons: VBoxContainer
+var _hints: Control
+var _sign_down := false
 
 @onready var _camera: Camera3D = $Camera
 @onready var _viewpoints: Node3D = $Viewpoints
-@onready var _title: Label = $MenuLayer/Root/Left/Margin/Content/Title
-@onready var _buttons: VBoxContainer = $MenuLayer/Root/Left/Margin/Content/Buttons
+@onready var _root: Control = $MenuLayer/Root
 
 
 func _ready() -> void:
@@ -33,10 +46,104 @@ func _ready() -> void:
 	_target = _view(VIEW_MAIN)
 	if _target != null:
 		_camera.global_transform = _target.global_transform
-	# The menu hangs like a shop sign on chains.
-	SignBoard.dress($MenuLayer/Root/Left)
-	_title.add_theme_color_override("font_color", Style.WALNUT)
+	_build_sign()
+	_build_plate()
+	_build_footer()
+	_sign.position.y = -400.0
 	_show_main()
+
+
+# --- Layout ----------------------------------------------------------------
+
+
+## The shop's name on a walnut fascia, hung on chains from the top of the screen.
+func _build_sign() -> void:
+	_sign = PanelContainer.new()
+	_sign.position = Vector2(EDGE, SIGN_TOP)
+	_root.add_child(_sign)
+	SignBoard.dress(_sign).plate = false
+	_wordmark = Wordmark.new()
+	_sign.add_child(_wordmark)
+
+
+## Everything under the sign. On the main page it is invisible and just holds the
+## button column; on a sub-page it becomes a cream plate with a title block.
+func _build_plate() -> void:
+	_plate = PanelContainer.new()
+	_root.add_child(_plate)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", Style.S3)
+	_plate.add_child(box)
+	_head = TitleBlock.make("", "TailorTown", Style.BRASS)
+	box.add_child(_head)
+	_buttons = VBoxContainer.new()
+	_buttons.add_theme_constant_override("separation", Style.S2)
+	box.add_child(_buttons)
+
+
+func _build_footer() -> void:
+	var number := str(ProjectSettings.get_setting("application/config/version", ""))
+	var version := TitleBlock.meta_label("v%s" % (number if number != "" else "0.1"))
+	version.add_theme_color_override("font_color", Style.CHALK)
+	var chip := PanelContainer.new()
+	var sb := Style.bar(Style.tint(Style.WALNUT, 0.75), Style.S2)
+	sb.content_margin_left = Style.S2
+	sb.content_margin_right = Style.S2
+	chip.add_theme_stylebox_override("panel", sb)
+	chip.add_child(version)
+	var holder := HBoxContainer.new()
+	holder.alignment = BoxContainer.ALIGNMENT_BEGIN
+	holder.add_child(chip)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_pin_bottom(holder, 0.0, EDGE, EDGE + 200.0)
+	_root.add_child(holder)
+	_hints = Style.hint_bar([["W/S", "Select"], ["E", "Choose"], ["Esc", "Back"]])
+	_pin_bottom(_hints, 0.5, -HINTS_W * 0.5, HINTS_W * 0.5)
+	_root.add_child(_hints)
+
+
+## Anchor `c` to the bottom edge, FOOTER_H tall, between two x offsets from `anchor_x`.
+func _pin_bottom(c: Control, anchor_x: float, left: float, right: float) -> void:
+	c.anchor_left = anchor_x
+	c.anchor_right = anchor_x
+	c.anchor_top = 1.0
+	c.anchor_bottom = 1.0
+	c.offset_left = left
+	c.offset_right = right
+	c.offset_top = -FOOTER_H - Style.S3
+	c.offset_bottom = -Style.S3
+
+
+## Dress the plate for a page: bare column (main) or titled cream plate (sub-page).
+func _set_page(title: String) -> void:
+	var sub := title != ""
+	_head.visible = sub
+	_head.title.text = title
+	var width := PLATE_W if sub else COLUMN_W
+	var sb: StyleBox = Style.skin_base(Style.BRASS) if sub else StyleBoxEmpty.new()
+	_plate.add_theme_stylebox_override("panel", sb)
+	_plate.custom_minimum_size = Vector2(width, 0)
+	_plate.size = Vector2(width, 0)
+	# Main page: the column hangs centred under the sign. Sub-page: the sign is hoisted
+	# out of the way on its chains and the plate takes its place.
+	var sign_size := _sign.get_combined_minimum_size()
+	var inset := 0.0 if sub else (sign_size.x - COLUMN_W) * 0.5
+	var top := SIGN_TOP if sub else SIGN_TOP + sign_size.y + Style.S4
+	_plate.position = Vector2(EDGE + inset, top)
+	_hang_sign(not sub)
+
+
+## Lower the sign into view, or hoist it clear of the screen.
+func _hang_sign(down: bool) -> void:
+	if down == _sign_down:
+		return
+	_sign_down = down
+	var y := SIGN_TOP if down else -_sign.get_combined_minimum_size().y - 40.0
+	var tw := create_tween().set_trans(Tween.TRANS_BACK)
+	tw.set_ease(Tween.EASE_OUT if down else Tween.EASE_IN)
+	tw.tween_property(_sign, "position:y", y, 0.55 if down else 0.35)
+	if down:
+		_wordmark.sew_in(0.9, 0.35)
 
 
 ## Ease the camera toward the active page's viewpoint (position + rotation).
@@ -74,13 +181,17 @@ func _show_main() -> void:
 	_sub = false
 	_target = _view(VIEW_MAIN)
 	_clear()
-	_title.text = "TailorTown"
-	_buttons.add_child(MenuKit.button("New Game", _new_game))
+	_set_page("")
 	if SaveManager.has_any_save():
 		_buttons.add_child(MenuKit.button("Continue", _continue))
+		_buttons.add_child(_latest_caption())
+	_buttons.add_child(MenuKit.button("New Game", _new_game))
 	_buttons.add_child(MenuKit.button("Load Game", _show_load))
 	_buttons.add_child(MenuKit.button("Settings", _show_settings))
 	_buttons.add_child(MenuKit.button("Quit", func() -> void: get_tree().quit()))
+	for child in _buttons.get_children():
+		if child is Button:
+			child.custom_minimum_size.x = COLUMN_W
 	_focus_first()
 
 
@@ -88,7 +199,7 @@ func _show_settings() -> void:
 	_sub = true
 	_target = _view(VIEW_SETTINGS)
 	_clear()
-	_title.text = "Settings"
+	_set_page("Settings")
 	SettingsUI.build(_buttons)
 	_buttons.add_child(MenuKit.button("Back", _show_main))
 	_focus_first()
@@ -98,7 +209,7 @@ func _show_load() -> void:
 	_sub = true
 	_target = _view(VIEW_LOAD)
 	_clear()
-	_title.text = "Load a save"
+	_set_page("Load a save")
 	for info: Dictionary in SaveManager.slot_infos():
 		var slot: Variant = info["slot"]
 		if bool(info.get("exists", false)):
@@ -109,6 +220,21 @@ func _show_load() -> void:
 			_buttons.add_child(empty)
 	_buttons.add_child(MenuKit.button("Back", _show_main))
 	_focus_first()
+
+
+## "Day 12 · $1,840" under Continue, so the player knows what they are continuing.
+func _latest_caption() -> Control:
+	var latest: Variant = SaveManager.latest_slot()
+	var text := ""
+	for info: Dictionary in SaveManager.slot_infos():
+		if str(info.get("slot")) == str(latest) and bool(info.get("exists", false)):
+			text = "Day %d  ·  $%d" % [int(info.get("day", 1)), int(info.get("money", 0))]
+	var lbl := TitleBlock.meta_label(text, true)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_color_override("font_color", Style.CHALK)
+	lbl.add_theme_color_override("font_shadow_color", Style.SHADOW)
+	lbl.visible = text != ""
+	return lbl
 
 
 func _new_game() -> void:
@@ -145,7 +271,7 @@ func _clear() -> void:
 
 func _focus_first() -> void:
 	await get_tree().process_frame
-	Craft.pop_in($MenuLayer/Root/Left, 0.94, 0.3)
+	Craft.pop_in(_plate, 0.94, 0.3)
 	for child in _buttons.get_children():
 		if child is Button and child.visible and not child.disabled:
 			child.grab_focus()

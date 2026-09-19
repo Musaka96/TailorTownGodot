@@ -11,6 +11,9 @@ const BORDER := 14.0  # walnut showing around the cream plate
 const SWAY_DEG := 0.6
 
 var chains := true
+## false = a bare walnut fascia with a brass inlay line (for gold lettering); true = the
+## cream plate that menu content sits on.
+var plate := true
 var _time := 0.0
 
 
@@ -67,10 +70,11 @@ func _draw() -> void:
 		)
 		y += 11.0
 	var plate_rect := full.grow(-BORDER)
-	var plate := Craft.rounded(plate_rect, 10.0)
-	draw_colored_polygon(plate, Style.CREAM)
-	Craft.outline(self, plate, Style.BRASS, 2.0)
-	Craft.stitch(self, plate, Style.CREAM_DARK, 6.0)
+	var inner := Craft.rounded(plate_rect, 10.0)
+	if plate:
+		draw_colored_polygon(inner, Style.CREAM)
+		Craft.stitch(self, inner, Style.CREAM_DARK, 6.0)
+	Craft.outline(self, inner, Style.BRASS, 2.0)
 	for c in [
 		plate_rect.position,
 		Vector2(plate_rect.end.x, plate_rect.position.y),

@@ -12,8 +12,8 @@ static func button(text: String, cb: Callable) -> Button:
 	var b := CraftButton.new()
 	b.text = text
 	b.custom_minimum_size = BTN_WIDE
-	b.add_theme_font_override("font", Style.bold_font())
-	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_font_override("font", Style.font_medium())
+	b.add_theme_font_size_override("font_size", Style.T_VALUE)
 	for role in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(role, Style.INK)
 	b.add_theme_color_override("font_disabled_color", Style.INK_SOFT)
