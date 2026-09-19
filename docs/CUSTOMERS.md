@@ -98,8 +98,52 @@ red / amber / green like the tickets) and booked fittings.
 | `HONEST_REP` | 2 |
 | `OPENING_BELL` | 0.01 – 0.05 of the shift |
 
+## Opening and closing: the door sign
+The day has three phases (`Shift.Phase`), and the OPEN / CLOSED sign just inside the door
+(`scenes/world/door_sign.gd`, built in code — no map edit) moves between them:
+
+| Phase | What's happening | Flip the sign to… |
+|---|---|---|
+| **Morning** | The day has dawned (`EventBus.day_began`): the paper lands, the pot is refilled. The clock waits at the opening hour, the benches work — prep time. No customers. | **open** the shop (`Shift.open_shop()` → `shift_started`) |
+| **Open** | The clock runs; walk-ins, appointments and collectors arrive. | **close early** and finish the day. It asks first (flip again within 5 s); anyone still due today calls first thing tomorrow. |
+| **After hours** | The bell has rung: no new shoppers, the work stations refuse. | **lock up** and finish the day. |
+
+Finishing the day plays the night card and dawns the next morning. A save made in the
+morning loads back into the morning; a direct boot of `main.tscn` (tests, F5) opens at once.
+
+## When the suit isn't ready
+A collector whose suit isn't finished no longer turns on his heel. He waits at the counter
+with a patience meter overhead (`CustomerWait`, `collector_patience_s`; regulars ×1.5):
+
+- **Finish the suit while he waits** → it becomes an ordinary collection.
+- **Speak to him** → the bubble offers *Apologise*:
+  - a **regular** always agrees to call tomorrow, and no standing is lost;
+  - a **stranger** agrees `reschedule_chance` of the time (the usual late penalty: part
+    pay, −`late_rep_loss`); otherwise the order is lost, softened to −`apologised_rep_loss`;
+  - **never twice** for one order, and **never past a city event** the suit is for — those
+    are simply lost (softened).
+- **Leave him standing** until the meter empties → he walks out: the order is lost and it
+  costs `expired_rep_loss` **plus** `ignored_rep_loss`.
+
+## A coffee for the customer
+Once the coffee machine is in (and the pot isn't empty), both bubbles gain *Offer them a
+coffee first*. You make the cup on the spot — the same minigame, one of the day's cups.
+
+- **Greeting a new customer:** the welcome is remembered on their order (`SuitOrder.coffee`)
+  as a small thank-you on the bill (`coffee_tip_share` × cup quality) and earns
+  `coffee_rep` standing. Greet them again afterwards to carry on.
+- **A waiting collector:** patience starts over and drains at `coffee_patience_drain`, and a
+  stranger is `coffee_goodwill` likelier to agree to call tomorrow. One cup per wait.
+
+## Pitching to passers-by
+Every stroller on the street can be pitched to, once (`StreetPitch`): the player calls out
+a line, they stop and answer, and sometimes they turn for the door as a walk-in (tagged
+"Won over by your pitch on the street"). The odds are `pitch_base_chance` +
+`pitch_tier_bonus` per reputation tier. It can't make more work than the shop can take: no
+pitching while someone is being served, Fully Booked is up, or the book is swamped — and a
+win uses one of the day's planned walk-ins (`FrontDesk.claim_walk_in`).
+
 ## Ideas not built yet
-- A visible door sign prop.
 - Haggling.
 - Rush orders you can counter-offer ("the day after tomorrow?").
 - Named rival shop visits.

@@ -55,8 +55,8 @@ briefs. The whole thing saves/loads and has a guided first-run tutorial.
 | **UI** | `ui/ui.tscn` (`ui/ui.gd`) | Root of in-game UI; `open_*` entry points; builds several screens in code. |
 | **PostFX** | `globals/postfx.gd` | Full-screen retro shader driven by a `PostFxProfile`. |
 | **Settings** | `globals/settings.gd` | Player options → `user://settings.cfg` (audio, display, key rebinds). |
-| **Shift** | `globals/shift_manager.gd` | Working-day lifecycle; "lock up shop" door; `is_open()` gates work/spawns. |
-| **DayNight** | `globals/day_night.gd` | Shift clock + sun sweep; `start_shift`/`shift_ended`. Does NOT auto-start at boot. |
+| **Shift** | `globals/shift_manager.gd` | Working-day lifecycle in three phases (MORNING → OPEN → AFTER_HOURS), moved along by flipping the door sign (`scenes/world/door_sign.gd`): open, close early, lock up. `is_open()` gates spawns; `is_after_hours()` gates the benches. See docs/CUSTOMERS.md. |
+| **DayNight** | `globals/day_night.gd` | Shift clock + sun sweep; `start_shift`/`shift_ended`; `hold_morning()` parks it at the opening hour. Does NOT auto-start at boot. |
 | **SaveManager** | `globals/save_manager.gd` | Save/load orchestrator; boot flow; autosave on `shift_ended`. |
 | **Tutorial** | `globals/tutorial.gd` | Data-driven first-run walkthrough (hand pointer, EventBus-driven steps). |
 | **Debug** | `globals/debug_menu.gd` | F3 in-game console (money, customers, orders, shift) — debug builds only. |
@@ -67,6 +67,12 @@ Autoload order is deliberate: EventBus first; Config before GameState (reads
 Tutorial last. `UI` is referenced by Tutorial/Reputation but always null-guarded.
 
 ### Entities (`entities/`)
+
+- **Customer components** (`entities/customer/`): a component can take over what
+  interacting with a `Customer` does via `Customer.takeover` — `CustomerWait` (a collector
+  kept waiting for an unfinished suit: patience meter, apology, walk-out) and
+  `StreetPitch` (pitching the shop to a passer-by). World-pinned HUD for both:
+  `ui/world_anchor.gd` (+ `patience_meter.gd`, `world_bubble.gd`).
 
 - **Player** (`scenes/player/player.gd`, `Player`, CharacterBody3D): camera-relative
   movement + sprint, Jolt gravity/jump, drives the rig's locomotion/carry anim,
@@ -143,7 +149,7 @@ Emitted: `item_picked_up/dropped/stored/taken`, `interaction_prompt_changed`,
 `suit_packaged` (no listeners — informational), `design_confirmed`,
 `customer_waiting/seated`,
 `order_created/part_filled/pieces_ready/ready/due/fulfilled/expired`,
-`shift_started/ended`, `reputation_changed`, `newspaper_ready`. The customer
+`day_began` (dawn — always before that day's `shift_started`; the paper and the coffee pot hang off it), `shift_started/ended`, `reputation_changed`, `newspaper_ready`. The customer
 departure flow uses `Customer.departed` directly (not an EventBus signal).
 
 ## 5. Save system
