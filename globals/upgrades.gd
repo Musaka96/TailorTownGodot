@@ -173,7 +173,21 @@ const UPGRADES := {
 		"category": "Workshop",
 		"cost": 350,
 		"tier": 1,
-		"desc": "Two cups a day: each steadies your hands for the next 3 bench jobs.",
+		"desc": "Two cups a day: pour one well and it steadies your hands for a few jobs.",
+	},
+	"shop_espresso":
+	{
+		"name": "Espresso Machine",
+		"category": "Workshop",
+		"cost": 1400,
+		"tier": 2,
+		"needs": "shop_coffee",
+		"desc":
+		(
+			"Grind, tamp and pull a real shot: an extra cup a day, and each one keeps"
+			+ " your hands steady for longer."
+		),
+		"effects": {"coffee_jobs": 2.0, "coffee_cups": 1.0},
 	},
 	"shop_iron":
 	{
@@ -181,7 +195,7 @@ const UPGRADES := {
 		"category": "Workshop",
 		"cost": 1000,
 		"tier": 2,
-		"desc": "Press as you sew: every piece pressed on the board gains a little quality.",
+		"desc": "Press each piece on the board for a little more quality. Mind the scorching.",
 	},
 	"apprentice":
 	{
@@ -235,6 +249,7 @@ const VENDORS := [
 		"tier": 1,
 		"price_mult": 1.1,  # a premium mill: +10% per metre
 		"fabrics": [0, 1, 2, 4, 5, 6, 7],  # + tweed, linen
+		"pattern_dye": true,  # premium mills dye the pattern thread to order
 	},
 	{
 		"name": "Savile Silk & Co.",
@@ -273,6 +288,9 @@ func tier_met(id: String) -> bool:
 ## Buyable right now: not owned, reputation high enough, and affordable.
 func can_buy(id: String) -> bool:
 	if not UPGRADES.has(id) or has(id) or not tier_met(id):
+		return false
+	var needs := str(UPGRADES[id].get("needs", ""))  # an upgrade to another upgrade
+	if needs != "" and not has(needs):
 		return false
 	return GameState.can_afford(int(UPGRADES[id]["cost"]))
 
