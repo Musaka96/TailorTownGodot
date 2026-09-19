@@ -29,6 +29,7 @@ static func build(box: VBoxContainer) -> void:
 	col.add_child(_mode_row())
 	col.add_child(_resolution_row())
 	col.add_child(_vsync_row())
+	col.add_child(_antialiasing_row())
 
 	col.add_child(Style.header("Controls"))
 	for r: Array in Settings.REBINDS:
@@ -121,6 +122,19 @@ static func _mode_row() -> HBoxContainer:
 		opt.add_item(m)
 	opt.selected = Settings.mode
 	opt.item_selected.connect(func(i: int) -> void: Settings.set_mode(i))
+	row.add_child(opt)
+	return row
+
+
+static func _antialiasing_row() -> HBoxContainer:
+	var row := _row()
+	row.add_child(_label("Smooth edges"))
+	var opt := OptionButton.new()
+	opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for level: Array in Settings.ANTIALIASING:
+		opt.add_item(level[0])
+	opt.selected = Settings.antialiasing
+	opt.item_selected.connect(func(i: int) -> void: Settings.set_antialiasing(i))
 	row.add_child(opt)
 	return row
 

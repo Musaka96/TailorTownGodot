@@ -1,10 +1,10 @@
 extends Node
 
 ## Autoloaded as "Settings". Global player options — audio, display (mode / resolution /
-## vsync) and key bindings — persisted to user://settings.cfg, SEPARATE from save slots so
-## they apply to every game. Loaded and applied once at boot, and each setter applies live +
-## re-saves. The Settings screen (ui/settings_ui.gd + ui/rebind_button.gd) reads/writes
-## through here; nothing else needs to know the storage.
+## vsync / anti-aliasing) and key bindings — persisted to user://settings.cfg, SEPARATE
+## from save slots so they apply to every game. Loaded and applied once at boot, and each
+## setter applies live + re-saves. The Settings screen (ui/settings_ui.gd +
+## ui/rebind_button.gd) reads/writes through here; nothing else needs to know the storage.
 
 ## A key binding changed (rebind or reset) — on-screen key caps refresh on this.
 signal bindings_changed
@@ -21,6 +21,14 @@ const RESOLUTIONS := [
 	Vector2i(1600, 900),
 	Vector2i(1920, 1080),
 	Vector2i(2560, 1440),
+]
+## Edge smoothing levels for the dropdown (index = stored value): [label, MSAA, screen AA].
+## SMAA also softens the drawn outlines, which MSAA alone can't reach.
+const ANTIALIASING := [
+	["Off", Viewport.MSAA_DISABLED, Viewport.SCREEN_SPACE_AA_DISABLED],
+	["Low", Viewport.MSAA_DISABLED, Viewport.SCREEN_SPACE_AA_SMAA],
+	["Medium", Viewport.MSAA_2X, Viewport.SCREEN_SPACE_AA_SMAA],
+	["High", Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_SMAA],
 ]
 ## Controller button names by JoyButton index (Xbox layout).
 const PAD_BUTTONS := [
@@ -61,6 +69,7 @@ var sfx := 1.0
 var mode := 0  # index into MODES
 var resolution := Vector2i(1280, 720)
 var vsync := true
+var antialiasing := 3  # index into ANTIALIASING
 
 var _bindings := {}  # action -> encoded event dict (only actions the player changed)
 
@@ -81,6 +90,7 @@ func load_settings() -> void:
 	mode = int(cfg.get_value("display", "mode", mode))
 	resolution = cfg.get_value("display", "resolution", resolution)
 	vsync = bool(cfg.get_value("display", "vsync", vsync))
+	antialiasing = int(cfg.get_value("display", "antialiasing", antialiasing))
 	_bindings = {}
 	if cfg.has_section("controls"):
 		for action in cfg.get_section_keys("controls"):
@@ -95,6 +105,7 @@ func save() -> void:
 	cfg.set_value("display", "mode", mode)
 	cfg.set_value("display", "resolution", resolution)
 	cfg.set_value("display", "vsync", vsync)
+	cfg.set_value("display", "antialiasing", antialiasing)
 	for action: String in _bindings:
 		cfg.set_value("controls", action, _bindings[action])
 	cfg.save(PATH)
@@ -161,6 +172,12 @@ func set_vsync(on: bool) -> void:
 	save()
 
 
+func set_antialiasing(level: int) -> void:
+	antialiasing = clampi(level, 0, ANTIALIASING.size() - 1)
+	_apply_antialiasing()
+	save()
+
+
 ## Index of the current resolution within RESOLUTIONS (0 if unknown).
 func resolution_index() -> int:
 	for i in RESOLUTIONS.size():
@@ -173,6 +190,7 @@ func _apply_display() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	_apply_vsync()
+	_apply_antialiasing()
 	var screen := DisplayServer.screen_get_size()
 	match mode:
 		1:
@@ -192,6 +210,12 @@ func _apply_display() -> void:
 			# so the size is set once the mode change has landed.
 			var usable := DisplayServer.screen_get_usable_rect().size
 			_size_window.call_deferred(resolution.min(usable))
+
+
+func _apply_antialiasing() -> void:
+	var level: Array = ANTIALIASING[clampi(antialiasing, 0, ANTIALIASING.size() - 1)]
+	get_window().msaa_3d = level[1]
+	get_window().screen_space_aa = level[2]
 
 
 ## On its own, so flipping VSync never resizes or re-centres the window.

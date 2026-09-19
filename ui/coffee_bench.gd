@@ -266,7 +266,7 @@ func _succeed() -> void:
 	_set_status(word, Style.FOREST if score >= GOOD_CUP else Style.AMBER)
 	_repaint()
 	_stamp_verdict(score, word)
-	await get_tree().create_timer(STAMP_HOLD).timeout
+	await get_tree().create_timer(_stamp_hold(score)).timeout
 	finished.emit(true, score)
 
 

@@ -18,7 +18,19 @@ const CANVAS_MIN := Vector2(600, 260)
 const PIP_SIZE := Vector2(18, 18)
 const SLIP_ROCK := 1.8  # degrees the bench rocks when a slip lands
 ## One word for how a piece came out, best first: [quality at or above, word].
-const VERDICTS := [[0.97, "Flawless"], [0.85, "Fine work"], [0.7, "Good enough"], [0.0, "Rough"]]
+## "Flawless" means exactly that — a piece that shows as 100%. Just short of it is still
+## something to be proud of, and says so.
+const FLAWLESS_AT := 0.995
+const FINE_AT := 0.85
+const VERDICTS := [
+	[FLAWLESS_AT, "Flawless"],
+	[0.93, "Exquisite"],
+	[FINE_AT, "Fine work"],
+	[0.7, "Good enough"],
+	[0.0, "Rough"],
+]
+const FANFARE_NOTES := [0, 4, 7, 12, 16]  # semitones: up the major chord
+const FLAWLESS_HOLD := 2.2  # seconds a flawless finish lingers (others: STAMP_HOLD)
 ## Semitones above the base note for each step of a perfect streak (major pentatonic, so
 ## any run of them is a tune); past the last step it holds the top note.
 const STREAK_SCALE := [0, 2, 4, 7, 9, 12, 14, 16, 19]
@@ -271,16 +283,43 @@ func _verdict(quality: float) -> String:
 
 
 ## Thump the result onto the finished piece: the word for `quality`, or `word` if the
-## game has its own ("Perfect cup"). Forest for fine work and better, walnut below.
+## game has its own ("Perfect cup"). The better the work, the bigger the moment: plain ink
+## below fine work, a ring of thread snippets for fine work and better, and for a truly
+## flawless piece — 100%, nothing less — gold foil, rays, confetti and a little fanfare.
 func _stamp_verdict(quality: float, word := "") -> void:
 	if _juice == null:
 		return
-	var fine: bool = quality >= float(VERDICTS[1][0])
-	_juice.stamp(word if word != "" else _verdict(quality), Style.FOREST if fine else Style.WALNUT)
+	var text := word if word != "" else _verdict(quality)
+	var fine: bool = quality >= FINE_AT
 	Sfx.play("juice_stamp", -3.0, 0.95, 1.05)
+	if quality >= FLAWLESS_AT:
+		_juice.stamp(text, Style.RIM_DARK, JuiceLayer.Fanfare.GRAND)
+		Craft.wiggle(_panel, 1.4)
+		Craft.bump(_panel, 1.03)
+		_fanfare()
+		return
+	var weight: int = JuiceLayer.Fanfare.FINE if fine else JuiceLayer.Fanfare.PLAIN
+	_juice.stamp(text, Style.FOREST if fine else Style.WALNUT, weight)
 	Craft.wiggle(_panel, 0.7)
 	if fine:
 		_good_feedback(1.0)
+		Sfx.play("juice_top", -10.0, 1.0, 1.0)
+
+
+## How long a finished game lingers so the stamp can be enjoyed.
+func _stamp_hold(quality: float) -> float:
+	return FLAWLESS_HOLD if quality >= FLAWLESS_AT else STAMP_HOLD
+
+
+## A quick run up the chord, ending on the shimmer — only ever for a flawless piece.
+func _fanfare() -> void:
+	for i in FANFARE_NOTES.size():
+		var pitch := pow(2.0, float(FANFARE_NOTES[i]) / 12.0)
+		var last := i == FANFARE_NOTES.size() - 1
+		var key := "juice_top" if last else "juice_note"
+		get_tree().create_timer(0.1 + 0.09 * i).timeout.connect(
+			func() -> void: Sfx.play(key, -6.0, pitch, pitch)
+		)
 
 
 func _paint_chip() -> void:

@@ -578,7 +578,7 @@ func _succeed() -> void:
 	_repaint()
 	# The stamp lands as the piece finishes lifting off the cloth.
 	get_tree().create_timer(REVEAL_TIME).timeout.connect(_stamp_verdict.bind(q))
-	await get_tree().create_timer(2.4).timeout
+	await get_tree().create_timer(REVEAL_TIME + _stamp_hold(q) + 0.2).timeout
 	finished.emit(true, q)
 
 

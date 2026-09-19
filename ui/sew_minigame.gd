@@ -249,7 +249,7 @@ func _succeed() -> void:
 	var quality := clampf(score / _pts.size(), 0.15, 1.0)
 	_set_status("%s  ·  %d%%" % [_verdict(quality), roundi(quality * 100.0)], Style.FOREST)
 	_stamp_verdict(quality)
-	await get_tree().create_timer(STAMP_HOLD).timeout
+	await get_tree().create_timer(_stamp_hold(quality)).timeout
 	finished.emit(true, quality)
 
 

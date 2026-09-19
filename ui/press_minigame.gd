@@ -234,7 +234,7 @@ func _succeed() -> void:
 	_set_status(word, Style.FOREST if _mistakes < 2 else Style.AMBER)
 	_repaint()
 	_stamp_verdict(_quality(), word)
-	await get_tree().create_timer(STAMP_HOLD).timeout
+	await get_tree().create_timer(_stamp_hold(_quality())).timeout
 	finished.emit(true, _quality())
 
 
