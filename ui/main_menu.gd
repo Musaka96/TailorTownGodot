@@ -10,6 +10,8 @@ extends Node3D
 
 ## How fast the camera eases toward the active viewpoint (higher = snappier).
 const CAM_SPEED := 3.2
+## How far (metres, sideways / up) the idle camera drifts around its viewpoint.
+const DRIFT := Vector2(0.45, 0.15)
 ## Which viewpoint marker each page frames.
 const VIEW_MAIN := "View_Main"
 const VIEW_LOAD := "View_Load"
@@ -30,6 +32,7 @@ var _head: TitleBlock
 var _buttons: VBoxContainer
 var _hints: Control
 var _sign_down := false
+var _drift := 0.0
 
 @onready var _camera: Camera3D = $Camera
 @onready var _viewpoints: Node3D = $Viewpoints
@@ -146,14 +149,17 @@ func _hang_sign(down: bool) -> void:
 		_wordmark.sew_in(0.9, 0.35)
 
 
-## Ease the camera toward the active page's viewpoint (position + rotation).
+## Ease the camera toward the active page's viewpoint (position + rotation), with a slow
+## drift around it so the town never sits as a still photograph.
 func _process(delta: float) -> void:
 	if _target == null:
 		return
+	_drift += delta
+	var goal := _target.global_transform
+	goal.origin += goal.basis.x * sin(_drift * 0.23) * DRIFT.x
+	goal.origin += goal.basis.y * sin(_drift * 0.17 + 1.3) * DRIFT.y
 	var w := clampf(delta * CAM_SPEED, 0.0, 1.0)
-	_camera.global_transform = _camera.global_transform.interpolate_with(
-		_target.global_transform, w
-	)
+	_camera.global_transform = _camera.global_transform.interpolate_with(goal, w)
 
 
 func _view(nm: String) -> Node3D:
