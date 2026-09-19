@@ -21,7 +21,6 @@ const TITLE := "Cutting Table"
 const ZONE_SCORE := [1.0, 0.8, 0.4, 0.2]
 const SLIP_COST := 0.1
 ## The one-word verdict shown when the piece is done: [lowest quality, word].
-const VERDICTS := [[0.97, "Flawless"], [0.85, "Fine work"], [0.7, "Good enough"], [0.0, "Rough"]]
 const FINE_WORK := 0.85
 const MAX_MISTAKES := 3
 const CORNER_DEG := 35.0  # a turn sharper than this is a corner the shears pivot at
@@ -119,6 +118,7 @@ const STRAIGHT_LOOK := 12  # outline points ahead (~18 cm) that must be straight
 const STRAIGHT_BEND := 1.2  # rad per unit: gentler than this counts as straight
 const WHEEL_AHEAD := 6  # Chalk Wheel: how many points before a turn its mark goes
 const REVEAL_TIME := 0.9
+const BEAT_LEN := 0.16  # shape units of perfect line per streak beat (~6 cm of cloth)
 
 ## How each cloth is drawn: [spacing, thread width (units), opacity, checked?].
 const SOLID_LOOK := [0.02, 0.002, 0.3, true]
@@ -167,6 +167,7 @@ var _zone_len := [0.0, 0.0, 0.0, 0.0]
 var _score_sum := 0.0
 var _score_len := 0.0
 var _nicks := PackedVector2Array()
+var _perfect_run := 0.0  # line kept perfect since the last streak beat
 
 var _cloth := Style.LINEN
 var _accent := Style.WALNUT
@@ -514,19 +515,31 @@ func _record(zone: int, length: float, score: float) -> void:
 	_zone_len[zone] += length
 	_score_sum += score * length
 	_score_len += length
+	_celebrate(zone, length)
+
+
+## Every BEAT_LEN of line kept perfect is one beat of the streak (one at most per call,
+## so a long stroke is a note, not a chord). A good stretch holds the streak; rough work
+## or a nick ends it.
+func _celebrate(zone: int, length: float) -> void:
+	if zone == Zone.PERFECT:
+		_perfect_run += length
+		if _perfect_run >= BEAT_LEN:
+			_perfect_run = 0.0
+			_perfect_beat(_tool_at(), Style.BRASS_LIGHT)  # reads on any cloth
+	elif zone != Zone.GOOD:
+		_perfect_run = 0.0
+		_break_streak()
+
+
+## Where the tool is on the play surface, for the sparks. Variants override.
+func _tool_at() -> Vector2:
+	return _canvas.size * 0.5
 
 
 func _quality() -> float:
 	var q := 1.0 if _score_len <= 0.0 else _score_sum / _score_len
 	return clampf(q - SLIP_COST * _mistakes, 0.15, 1.0)
-
-
-## One word for how the piece came out.
-func _verdict(q: float) -> String:
-	for v: Array in VERDICTS:
-		if q >= float(v[0]):
-			return v[1]
-	return VERDICTS[VERDICTS.size() - 1][1]
 
 
 func _register_mistake(at: Vector2) -> void:
@@ -563,6 +576,8 @@ func _succeed() -> void:
 	var col := Style.FOREST if q >= FINE_WORK else Style.INK_SOFT
 	_set_status("%s  ·  %d%%" % [_verdict(q), roundi(q * 100.0)], col)
 	_repaint()
+	# The stamp lands as the piece finishes lifting off the cloth.
+	get_tree().create_timer(REVEAL_TIME).timeout.connect(_stamp_verdict.bind(q))
 	await get_tree().create_timer(2.4).timeout
 	finished.emit(true, q)
 

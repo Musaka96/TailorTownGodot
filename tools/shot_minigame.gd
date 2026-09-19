@@ -7,6 +7,9 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_minigame.gd -- cut  res://.dev/cut.png 150
 ##   godot --path . --script res://tools/shot_minigame.gd -- sew  res://.dev/sew.png 150
 ##
+## A 6th arg shows the celebration for review: "streak" (a run of perfects: sparks + the
+## streak chip) or "stamp" (the verdict stamp), fired a few frames before the capture.
+##
 ## Args (after the `--`): which ("cut" / "sew"), out path, frames to settle. The
 ## frame count matters — each game holds a lead-in of ~1.6s before it starts, so
 ## capture past ~120 frames to see one actually running.
@@ -39,6 +42,8 @@ var _out := ""
 var _frames := 150
 var _count := 0
 var _hold := false
+var _game: Control
+var _juice := ""
 
 
 func _initialize() -> void:
@@ -51,6 +56,7 @@ func _initialize() -> void:
 		for id in args[3].split(","):
 			get_root().get_node("Upgrades").debug_set(id, true)
 	var garment: int = int(args[4]) if args.size() > 4 else GARMENT_JACKET
+	_juice = args[5] if args.size() > 5 else ""
 
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	var host := Control.new()
@@ -65,6 +71,7 @@ func _initialize() -> void:
 	path = COMFORT.get(which, path)
 	var game: Control = load(path).new()
 	host.add_child(game)
+	_game = game
 	if which == "press":
 		game.start_piece(garment, "Jacket · M", _factory().make(1, 1, 0, 3.0))
 		_hold = true
@@ -91,6 +98,10 @@ func _on_frame() -> void:
 	_count += 1
 	if _hold and _count == PRESS_AT:
 		Input.action_press("cut")
+	if _juice == "streak" and _count >= _frames - 14 and _count % 2 == 0 and _count < _frames:
+		_game.call("_perfect_beat", _game.get("_canvas").size * Vector2(0.5, 0.55))
+	if _juice == "stamp" and _count == _frames - 40:
+		_game.call("_stamp_verdict", 0.98)
 	if _count < _frames:
 		return
 	var image := get_root().get_texture().get_image()

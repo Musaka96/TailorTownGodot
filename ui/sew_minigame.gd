@@ -189,6 +189,10 @@ func _try_stitch() -> void:
 		var perfect := d <= _perfect_window
 		_judge[idx] = Stitch.PERFECT if perfect else Stitch.GOOD
 		_play(_perfect_snd if perfect else _stitch_snd, 0.75)
+		if perfect:
+			_perfect_beat(Vector2(_seam_x(_pts[idx]), _seam_y()), Style.BRASS_LIGHT)
+		else:
+			_break_streak()
 	else:
 		# Tapped too early (no point in range yet) — a wasted stitch.
 		_register_mistake()
@@ -243,7 +247,9 @@ func _succeed() -> void:
 	for j in _judge:
 		score += 1.0 if j == Stitch.PERFECT else (0.7 if j == Stitch.GOOD else 0.0)
 	var quality := clampf(score / _pts.size(), 0.15, 1.0)
-	await get_tree().create_timer(0.9).timeout
+	_set_status("%s  ·  %d%%" % [_verdict(quality), roundi(quality * 100.0)], Style.FOREST)
+	_stamp_verdict(quality)
+	await get_tree().create_timer(STAMP_HOLD).timeout
 	finished.emit(true, quality)
 
 

@@ -7,10 +7,27 @@ extends Control
 ## sewing differ only in their rules and in what they paint on that surface, so
 ## everything a player sees *around* the game lives here and the two screens read as
 ## one bench. See docs/UI_STYLE_GUIDE.md §3 (fixed frame), §4 (prompts), §5 (WORK).
+##
+## It also owns how a bench *celebrates* (docs/MINIGAME_JUICE.md, tier 1), so every game
+## does it the same way: _perfect_beat() for each perfect stitch / stroke / stretch — a
+## note that climbs a scale as the streak grows, sparks off the tool, a streak chip by the
+## slip pins; _break_streak() when the run of perfects ends; _stamp_verdict() to thump
+## the result onto the finished piece. _good_feedback() is the twin of _slip_feedback().
 
 const CANVAS_MIN := Vector2(600, 260)
 const PIP_SIZE := Vector2(18, 18)
 const SLIP_ROCK := 1.8  # degrees the bench rocks when a slip lands
+## One word for how a piece came out, best first: [quality at or above, word].
+const VERDICTS := [[0.97, "Flawless"], [0.85, "Fine work"], [0.7, "Good enough"], [0.0, "Rough"]]
+## Semitones above the base note for each step of a perfect streak (major pentatonic, so
+## any run of them is a tune); past the last step it holds the top note.
+const STREAK_SCALE := [0, 2, 4, 7, 9, 12, 14, 16, 19]
+const STREAK_SHOWN := 2  # the chip appears once a streak is this long
+const STREAK_WARM := 5  # ...turns brass here
+const STREAK_HOT := 10  # ...and forest here
+const STREAK_MOURNED := 4  # breaking a streak this long gets the soft falling note
+const CHIP_SIZE := Vector2(108, 24)
+const STAMP_HOLD := 1.3  # seconds a finished game lingers so the stamp can be read
 
 var _max_mistakes := 3
 var _mistakes := 0
@@ -25,6 +42,10 @@ var _slips_lbl: Label
 var _pips_box: HBoxContainer
 var _hint_slot: VBoxContainer
 var _player: AudioStreamPlayer
+var _streak := 0
+var _best_streak := 0
+var _juice: JuiceLayer
+var _chip: Control
 
 # --- Chrome ----------------------------------------------------------------
 
@@ -71,6 +92,8 @@ func _ensure_chrome(screen_title: String, painter: Callable, frame := Style.FRAM
 	_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_canvas.painter = painter
 	box.add_child(_canvas)
+	_juice = JuiceLayer.new()
+	_canvas.add_child(_juice)  # over the play surface, in its coordinates
 
 	_status_lbl = Label.new()
 	_status_lbl.add_theme_font_override("font", Style.bold_font())
@@ -91,6 +114,12 @@ func _load_assets() -> void:
 ## word plus a row of pins — the count never rides on colour alone (§2).
 func _build_head(screen_title: String) -> Control:
 	var head := TitleBlock.make(screen_title, "The bench", Style.ACC_WORK)
+	# The streak chip keeps its place even when empty, so the header never jumps.
+	_chip = Control.new()
+	_chip.custom_minimum_size = CHIP_SIZE
+	_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_chip.draw.connect(_paint_chip)
+	head.right.add_child(_chip)
 	_slips_lbl = Label.new()
 	_slips_lbl.add_theme_font_override("font", Style.font_bold())
 	_slips_lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
@@ -160,6 +189,7 @@ func _build_pips() -> void:
 		pip.draw.connect(_paint_pip.bind(pip, i))
 		_pips_box.add_child(pip)
 	_refresh_pips()
+	_reset_juice()  # pins are laid out once a run, so this is "a new run starts"
 
 
 func _refresh_pips() -> void:
@@ -185,6 +215,92 @@ func _paint_pip(pip: Control, index: int) -> void:
 func _slip_feedback() -> void:
 	Craft.wiggle(_panel, SLIP_ROCK)
 	_refresh_pips()
+	_break_streak()  # a slip always ends the run of perfects
+
+
+# --- Celebration -----------------------------------------------------------
+
+
+func _reset_juice() -> void:
+	_streak = 0
+	_best_streak = 0
+	if _juice != null:
+		_juice.reset()
+	if _chip != null:
+		_chip.queue_redraw()
+
+
+## The twin of _slip_feedback(): the bench takes a little breath. `level` 0..1.
+func _good_feedback(level := 0.5) -> void:
+	Craft.bump(_panel, lerpf(1.004, 1.014, clampf(level, 0.0, 1.0)))
+
+
+## One perfect stitch / stroke / stretch of line, made at `at` (play-surface pixels).
+## The streak grows, its note climbs the scale, sparks fly in `col`.
+func _perfect_beat(at: Vector2, col: Color = Style.BRASS_LIGHT) -> void:
+	_streak += 1
+	_best_streak = maxi(_best_streak, _streak)
+	var step := mini(_streak - 1, STREAK_SCALE.size() - 1)
+	var pitch := pow(2.0, float(STREAK_SCALE[step]) / 12.0)
+	var top := step == STREAK_SCALE.size() - 1
+	Sfx.play("juice_top" if top else "juice_note", -9.0, pitch, pitch)
+	if _juice != null:
+		_juice.burst(at, col, 5 + mini(_streak, 6))
+	if _streak == STREAK_WARM or _streak == STREAK_HOT:
+		_good_feedback(1.0)
+	if _chip != null:
+		_chip.queue_redraw()
+		if _streak >= STREAK_SHOWN:
+			Craft.bump(_chip, 1.12)
+
+
+## The run of perfects ended. Quiet on purpose: losing the tune is the penalty.
+func _break_streak() -> void:
+	if _streak >= STREAK_MOURNED:
+		Sfx.play("juice_drop", -12.0)
+	_streak = 0
+	if _chip != null:
+		_chip.queue_redraw()
+
+
+func _verdict(quality: float) -> String:
+	for v: Array in VERDICTS:
+		if quality >= float(v[0]):
+			return v[1]
+	return VERDICTS[VERDICTS.size() - 1][1]
+
+
+## Thump the result onto the finished piece: the word for `quality`, or `word` if the
+## game has its own ("Perfect cup"). Forest for fine work and better, walnut below.
+func _stamp_verdict(quality: float, word := "") -> void:
+	if _juice == null:
+		return
+	var fine: bool = quality >= float(VERDICTS[1][0])
+	_juice.stamp(word if word != "" else _verdict(quality), Style.FOREST if fine else Style.WALNUT)
+	Sfx.play("juice_stamp", -3.0, 0.95, 1.05)
+	Craft.wiggle(_panel, 0.7)
+	if fine:
+		_good_feedback(1.0)
+
+
+func _paint_chip() -> void:
+	if _streak < STREAK_SHOWN:
+		return
+	var fill := Style.CARD
+	var ink := Style.INK
+	if _streak >= STREAK_HOT:
+		fill = Style.FOREST
+		ink = Style.CHALK
+	elif _streak >= STREAK_WARM:
+		fill = Style.BRASS
+	var poly := Craft.rounded(Rect2(Vector2.ZERO, _chip.size), 11.0)
+	Craft.card(_chip, poly, fill, Style.WALNUT, 2.0)
+	Craft.stitch(_chip, poly, Style.tint(ink, 0.45), 3.5, 1.0)
+	var font := Style.font_bold()
+	var text := "×%d Perfect" % _streak
+	var text_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO).x
+	var base := Vector2((_chip.size.x - text_w) * 0.5, _chip.size.y * 0.5 + 4.5)
+	_chip.draw_string(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO, ink)
 
 
 ## Spend one job of coffee focus on this run, if there is any. Returns how much wider the

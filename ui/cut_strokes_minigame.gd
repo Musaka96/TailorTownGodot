@@ -179,6 +179,11 @@ func _tick_stroke(delta: float) -> void:
 		_succeed()
 
 
+## Sparks fly from where the stroke lands.
+func _tool_at() -> Vector2:
+	return _to_screen(_anim_to if _anim_t > 0.0 else _path[_idx])
+
+
 func _shears_pos() -> Vector2:
 	if _anim_t > 0.0:
 		var t := 1.0 - _anim_t / STROKE_TIME

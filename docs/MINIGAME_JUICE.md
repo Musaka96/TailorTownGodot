@@ -1,6 +1,13 @@
 # TailorTown — Minigame "juice": ideas for rewarding a line done really well
 
-> Suggestions only — nothing here is built yet. Pick what you like and it becomes a task.
+> **Tier 1 is built** (2026-09-19): `MinigameScreen._perfect_beat / _break_streak /
+> _stamp_verdict / _good_feedback`, `ui/juice_layer.gd` (sparks + stamp), the streak chip by
+> the slip pins, and `tools/build_juice_audio.gd` (juice_note / _top / _drop / _stamp).
+> Wired into cutting v2/v3 + pedal sewing (one beat per `CutBench.BEAT_LEN` of perfect
+> line), rhythm sewing (per perfect stitch), pressing (per wrinkle smoothed) and coffee
+> (per perfect beat). Legacy cutting v1 is not wired. Review shots:
+> `tools/shot_minigame.gd -- cut2 out.png 150 "" 2 streak|stamp`.
+> Tiers 2-3 are still suggestions — pick what you like and it becomes a task.
 > Written after the 2026-09-19 playtest ("add more dopamine for when you do a line real nice").
 
 ## Where we are
@@ -25,7 +32,7 @@ Everything a reward needs is already computed and thrown away:
 | Pressing | each wrinkle flattened, scorches | `PressMinigame` wrinkle loop |
 | Coffee | per-beat grade (Perfect / Good / Off) | `CoffeeBench._grade()` |
 
-## Tier 1 — cheap, high impact (a day or two, all five games at once)
+## Tier 1 — cheap, high impact — BUILT
 
 1. **`_good_feedback(level)` on `MinigameScreen`** — the missing twin of `_slip_feedback()`:
    a tiny scale "breathe" of the panel (`Craft.bump`), a soft chime, and an optional word.

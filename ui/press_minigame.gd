@@ -190,6 +190,8 @@ func _flatten(delta: float) -> void:
 		_flat[i] = minf(1.0, _flat[i] + delta / FLATTEN_SECONDS)
 		if _flat[i] >= 1.0:
 			Sfx.play("steam_hiss", -4.0)
+			var board := _board_rect(_canvas)
+			_perfect_beat(Vector2(_x_of(_canvas, _at[i]), board.get_center().y), Style.CHALK)
 	if _smooth_count() >= _at.size():
 		_succeed()
 
@@ -231,7 +233,8 @@ func _succeed() -> void:
 	var word := "Crisp" if _mistakes == 0 else ("Pressed" if _mistakes == 1 else "Singed")
 	_set_status(word, Style.FOREST if _mistakes < 2 else Style.AMBER)
 	_repaint()
-	await get_tree().create_timer(0.9).timeout
+	_stamp_verdict(_quality(), word)
+	await get_tree().create_timer(STAMP_HOLD).timeout
 	finished.emit(true, _quality())
 
 

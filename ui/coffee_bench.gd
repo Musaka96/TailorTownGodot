@@ -235,6 +235,10 @@ func _grade(grade: int) -> void:
 		Sfx.play("tamp")
 	elif _kind() == Beat.POUR:
 		Sfx.play("putdown")
+	if grade == Grade.PERFECT:
+		_perfect_beat(_canvas.size * Vector2(0.5, 0.45), Style.BRASS_LIGHT)
+	elif grade == Grade.WEAK:
+		_break_streak()
 	var col: Color = [Style.FOREST, Style.FOREST, Style.AMBER][grade]
 	_set_status("%s — %s" % [BEAT_NAME[_kind()], GRADE_WORD[grade].to_lower()], col)
 	_pause = BEAT_PAUSE
@@ -261,7 +265,8 @@ func _succeed() -> void:
 		word = "Good cup"
 	_set_status(word, Style.FOREST if score >= GOOD_CUP else Style.AMBER)
 	_repaint()
-	await get_tree().create_timer(0.8).timeout
+	_stamp_verdict(score, word)
+	await get_tree().create_timer(STAMP_HOLD).timeout
 	finished.emit(true, score)
 
 

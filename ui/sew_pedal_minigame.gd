@@ -793,6 +793,10 @@ func _paint_clip(c: Control, at: Vector2, angle: float, col: Color) -> void:
 	)
 
 
+func _tool_at() -> Vector2:
+	return _to_screen(_p)
+
+
 ## The machine, drawn upright over the moving cloth: the needle plate with its seam
 ## guide, the presser foot, the needle bobbing, the arm with its speed dial — and the
 ## E tag on a pin that's in reach.

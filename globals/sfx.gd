@@ -86,6 +86,10 @@ const LIB := {
 	"sign_drop": "sign_drop.wav",
 	"sign_hoist": "sign_hoist.wav",
 	"sign_sew": "sign_sew.wav",
+	"juice_note": "juice_note.wav",
+	"juice_top": "juice_top.wav",
+	"juice_drop": "juice_drop.wav",
+	"juice_stamp": "juice_stamp.wav",
 	# world stingers & ambience
 	"new_order_ping": "new_order_ping.wav",
 	"order_complete": "order_complete.wav",

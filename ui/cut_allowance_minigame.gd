@@ -330,6 +330,10 @@ func _paint_rule(c: Control, dir: Vector2) -> void:
 		t += 0.05
 
 
+func _tool_at() -> Vector2:
+	return _to_screen(_p)
+
+
 func _paint_overlay(c: Control) -> void:
 	var pos := _to_screen(_p)
 	var angle := _heading + _view_rot
