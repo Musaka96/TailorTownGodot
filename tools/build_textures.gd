@@ -46,7 +46,7 @@ const WEAVE_SS := 3  # supersamples per axis when rasterising threads
 ## sharkskin the same weave with a 1-and-1 order — so these are the actual cloths.
 # Tweed neps: how many coloured flecks per tile and their albedo tints (multipliers
 # around 1.0, so a nep re-tints the cloth colour instead of painting over it).
-const NEP_COUNT := 110
+const NEP_COUNT := 150
 const NEP_COLORS := [
 	Color(1.5, 0.9, 0.65),  # rust
 	Color(1.45, 1.25, 0.7),  # gold
@@ -68,12 +68,12 @@ func _initialize() -> void:
 	# --- Fabrics: a heightfield each, written as the grayscale weave (albedo
 	# multiplier, unchanged look) plus a baked <name>_n.png normal map so the weave
 	# shades with the room's light. Tweed also carries coloured neps in its albedo.
-	_fabric("worsted", _fab_worsted(), 5.0)
-	_fabric("flannel", _fab_flannel(), 3.0)
+	_fabric("worsted", _fab_worsted(), 8.0)
+	_fabric("flannel", _fab_flannel(), 5.0)
 	var tweed := _fab_tweed()
-	_fabric("tweed", tweed["h"], 8.0, tweed["tint"])
-	_fabric("mohair", _fab_mohair(), 2.0)
-	_fabric("linen", _fab_linen(), 8.0)
+	_fabric("tweed", tweed["h"], 14.0, tweed["tint"])
+	_fabric("mohair", _fab_mohair(), 3.5)
+	_fabric("linen", _fab_linen(), 14.0)
 
 	# --- Patterns: woven on the loom ---
 	for name in WEAVES:
@@ -160,7 +160,7 @@ func _fab_tweed() -> Dictionary:
 	for k in NEP_COUNT:
 		var cx := _hash(k * 3 + 1, 17) * FAB_SIZE
 		var cy := _hash(k * 7 + 5, 91) * FAB_SIZE
-		var r := 1.0 + _hash(k, 57) * 1.4
+		var r := 1.2 + _hash(k, 57) * 2.0
 		var col: Color = NEP_COLORS[int(_hash(k, 33) * NEP_COLORS.size()) % NEP_COLORS.size()]
 		_stamp_nep(h, tint, cx, cy, r, col)
 	return {"h": h, "tint": tint}
@@ -178,8 +178,8 @@ func _stamp_nep(
 			var x := posmod(int(cx) + ox, FAB_SIZE)
 			var y := posmod(int(cy) + oy, FAB_SIZE)
 			var i := y * FAB_SIZE + x
-			h[i] += fall * 0.12
-			tint[i] = tint[i].lerp(col, fall * 0.85)
+			h[i] += fall * 0.2
+			tint[i] = tint[i].lerp(col, fall)
 
 
 func _fab_mohair() -> PackedFloat32Array:
@@ -232,7 +232,7 @@ func _woven(name: String) -> void:
 	_write(name, cover, relief)
 	# The same thread relief, baked as a normal map so a woven pattern's threads
 	# catch the light (flat printed patterns carry no relief and get none).
-	_bake_normal(relief, PAT_SIZE, 2.0, PAT_DIR + "/%s_n.png" % name)
+	_bake_normal(relief, PAT_SIZE, 3.5, PAT_DIR + "/%s_n.png" % name)
 
 
 ## One point of woven cloth: whether the thread showing here is an accent thread, and

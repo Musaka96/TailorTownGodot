@@ -27,6 +27,7 @@ var _row_label: Label
 var _col_labels: Array[Label] = []
 var _cloth: Array[ShaderMaterial] = []
 var _figs: Array[Node3D] = []
+var _base_live: ShaderMaterial
 var _shots: Array[Image] = []
 var _setup := 0
 var _rim_on := false
@@ -162,6 +163,8 @@ func _on_frame() -> void:
 	_frames += 1
 	if _frames == 2:
 		_hide_overlays()  # again: some autoload UI spawns deferred
+		if not _closeup:
+			_apply_setup()  # window size is settled now — fixes the label unprojection
 	if _frames < 8:
 		return
 	_frames = 0
@@ -228,11 +231,19 @@ func _close_pos(i: int) -> Vector3:
 
 ## The whole Tier 1 bundle on or off: rim sheen (B1), weave normals (B2) and macro
 ## breakup (B4). Tweed's coloured neps (B3) are baked into the albedo texture and
-## show on both sides. ON values match tools/build_cloth_materials.gd.
+## show on both sides. ON restores the live values from the base .tres.
 func _set_tier1(cloth: ShaderMaterial, fabric: int, on: bool) -> void:
 	cloth.set_shader_parameter("rim_strength", ClothMaterial.fabric_rim(fabric) if on else 0.0)
-	cloth.set_shader_parameter("normal_depth", 1.0 if on else 0.0)
-	cloth.set_shader_parameter("macro_strength", 0.07 if on else 0.0)
+	cloth.set_shader_parameter("normal_depth", _live("normal_depth") if on else 0.0)
+	cloth.set_shader_parameter("macro_strength", _live("macro_strength") if on else 0.0)
+
+
+## A live global's value straight off the base material.
+func _live(key: String) -> float:
+	if _base_live == null:
+		_base_live = load(ClothMaterial.BASE_PATH) as ShaderMaterial
+	var v: Variant = _base_live.get_shader_parameter(key)
+	return float(v) if v != null else 0.0
 
 
 ## Stack the OFF shot above the ON shot into one comparison sheet.

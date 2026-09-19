@@ -36,7 +36,7 @@ const GAME_DIST := 7.66
 const GAME_FOV := 75.0
 # Tier 1 bundle: the tuned values the "Tier 1" preset switches on. Features whose
 # uniform isn't in the shader yet are shown greyed out and never sent.
-const TIER1 := {"normal_depth": 1.0, "macro_strength": 0.07}
+const TIER1 := {"normal_depth": 1.8, "macro_strength": 0.12}
 # Globals that live on the base .tres (tools/build_cloth_materials.gd).
 const BASE_KEYS := [
 	"fabric_strength", "pattern_strength", "pattern_relief", "rim_power", "rim_tint"
@@ -78,6 +78,7 @@ var _pscale: Array = []
 var _pint: Array = []
 var _g := {}  # global dial values by key
 var _on := {}  # feature enable flags by key ("rim", "normal_depth", ...)
+var _ab_new := true  # A/B toggle state: true = Tier 1 look, false = pre-Tier-1
 var _uniforms := {}  # uniform names present in cloth.gdshader
 # Every node the lab dresses: {node, kind, fabric, pattern} (-1 = follow the controls).
 var _dressers: Array = []
@@ -250,6 +251,7 @@ func _build_dial_controls(col: VBoxContainer) -> void:
 	presets.add_child(_button("Everything off", _preset_off))
 	presets.add_child(_button("Tier 1", _preset_tier1))
 	col.add_child(presets)
+	col.add_child(_button("A / B  old-new  (Tab)", _ab_toggle))
 	col.add_child(_heading("Global dials"))
 	for d: Array in GLOBAL_DIALS:
 		col.add_child(_slider(d[1], d[2], d[3], d[4], _g[d[0]], _on_global.bind(d[0]), d[0]))
@@ -791,9 +793,12 @@ func _load_live() -> void:
 	_pint = ClothMaterial.PATTERN_INTENSITY.duplicate()
 	_on["rim"] = true
 	_on["pattern_color2"] = false
+	# Feature dials read their LIVE values off the base .tres too (B2/B4 ship on);
+	# a Tier 2 stub that isn't on the .tres yet stays 0/off.
 	for d: Array in FEATURE_DIALS:
-		_g[d[0]] = 0.0
-		_on[d[0]] = false
+		var v: Variant = base.get_shader_parameter(d[0]) if base != null else null
+		_g[d[0]] = float(v) if v != null else 0.0
+		_on[d[0]] = _g[d[0]] > 0.0
 
 
 func _preset_live() -> void:
@@ -806,8 +811,28 @@ func _preset_live() -> void:
 func _preset_off() -> void:
 	_load_live()
 	_on["rim"] = false
+	for d: Array in FEATURE_DIALS:
+		_on[d[0]] = false
 	_sync_dials()
 	_status.text = "Preset: everything off (pre-Tier-1)"
+
+
+## One-key flip between the old look and the Tier 1 bundle — stare at the suit
+## and hammer Tab until you see it.
+func _ab_toggle() -> void:
+	_ab_new = not _ab_new
+	if _ab_new:
+		_preset_tier1()
+	else:
+		_preset_off()
+	_status.text = "A/B: %s  (Tab flips)" % ("NEW — Tier 1" if _ab_new else "OLD — pre-Tier-1")
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if (event as InputEventKey).keycode == KEY_TAB:
+			_ab_toggle()
+			get_viewport().set_input_as_handled()
 
 
 func _preset_tier1() -> void:

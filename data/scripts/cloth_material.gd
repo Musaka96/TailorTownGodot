@@ -86,14 +86,14 @@ const PATTERN_INTENSITY := [
 # Mohair is sold on it; flannel is dead-matte. Indexed by Enums.Fabric. Tune in the
 # Cloth Lab (scenes/dev/cloth_lab.tscn) at the gameplay-cam preset, then Copy tuning.
 const FABRIC_RIM := [
-	0.08,  # worsted wool
-	0.0,  # flannel
-	0.05,  # tweed
-	0.35,  # mohair blend
-	0.12,  # linen
-	0.05,  # cotton
-	0.08,  # poplin
-	0.05,  # oxford cloth
+	0.12,  # worsted wool
+	0.0,  # flannel — dead matte, the reference
+	0.08,  # tweed
+	0.45,  # mohair blend — sold on its sheen
+	0.2,  # linen
+	0.06,  # cotton
+	0.1,  # poplin
+	0.06,  # oxford cloth
 ]
 
 # Pattern textures that are woven (tools/build_textures.gd WEAVES) and so ship a
