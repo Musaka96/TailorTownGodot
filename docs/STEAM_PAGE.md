@@ -202,13 +202,13 @@ to re-record just those: `-- clip_mirror clip_brief`.
 
 | Slot | Clip | Shows | WebP |
 |---|---|---|---|
-| GIF 1 (lead) | `mirror` | two suits designed part by part at the mirror, 2x speed, 20 fps | ~6.1 MB |
-| GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief | ~2.4 MB |
-| GIF 3 | `cutting` + `sewing` | a clean Seam Allowance cut, then a Pedal & Aim seam — pins pulled, both ends backstitched (use both, stacked; 20 fps) | ~2.0 + 2.7 MB |
-| GIF 4 | `looks` | the shop redecorated five ways, 1 s each (`-- clip_looks`) | TBD |
+| GIF 1 (lead) | `mirror` | two suits designed part by part at the mirror, 2x speed, 20 fps | ~6.2 MB |
+| GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief (20 fps) | ~1.8 MB |
+| GIF 3 | `cutting` + `sewing` | a clean Seam Allowance cut, then a Pedal & Aim seam — pins pulled, both ends backstitched (use both, stacked; 20 fps) | ~2.0 + 2.9 MB |
+| GIF 4 | `looks` | the shop redecorated five ways, 1 s each (`-- clip_looks`, 10 fps) | ~1.0 MB |
 | spare | `shop` | the tailor crossing the floor with a bolt as a client walks in | ~3.6 MB |
 
-The four slotted clips total ~13 MB. Leave `shop` off the page (or use it in an
+The five slotted clips total ~13 MB. Leave `shop` off the page (or use it in an
 announcement) — adding it passes the 15 MB point where Valve may strip animations.
 
 ## 5b. Store & library art (rendered)

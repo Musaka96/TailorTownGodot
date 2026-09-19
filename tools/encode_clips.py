@@ -22,8 +22,8 @@ FPS = 30
 # Clips re-timed on output (fewer frames = smaller file). The mirror reel is already
 # sped up and changes every frame, so 20 fps keeps it well inside the page budget; the
 # v2 benches turn the camera with the tool, so they re-time the same way.
-OUT_FPS = {"mirror": 20, "cutting": 20, "sewing": 20}
-QUALITY = {"mirror": 70, "cutting": 72, "sewing": 72}
+OUT_FPS = {"mirror": 20, "cutting": 20, "sewing": 20, "brief": 20, "looks": 10}
+QUALITY = {"mirror": 60, "cutting": 72, "sewing": 72, "brief": 70, "looks": 70}
 WEBP_QUALITY = 78
 GIF_WIDTH = 780
 GIF_STEP = 2  # every 2nd frame -> 15 fps
