@@ -28,7 +28,7 @@ static func build(box: VBoxContainer) -> void:
 	col.add_child(Style.header("Display"))
 	col.add_child(_mode_row())
 	col.add_child(_resolution_row())
-	col.add_child(_check("VSync", Settings.vsync, Settings.set_vsync))
+	col.add_child(_vsync_row())
 
 	col.add_child(Style.header("Controls"))
 	for r: Array in Settings.REBINDS:
@@ -90,6 +90,25 @@ static func _check(label: String, on: bool, setter: Callable) -> HBoxContainer:
 	cb.button_pressed = on
 	cb.toggled.connect(func(pressed: bool) -> void: setter.call(pressed))
 	row.add_child(cb)
+	return row
+
+
+## VSync with a live frame-rate readout beside it, so the switch visibly does something.
+static func _vsync_row() -> HBoxContainer:
+	var row := _check("VSync", Settings.vsync, Settings.set_vsync)
+	var fps := Label.new()
+	fps.add_theme_font_size_override("font_size", Style.T_CAPTION)
+	fps.add_theme_color_override("font_color", Style.INK_SOFT)
+	row.add_child(fps)
+	row.move_child(fps, 1)
+	var timer := Timer.new()
+	timer.wait_time = 0.5
+	timer.autostart = true
+	timer.process_mode = Node.PROCESS_MODE_ALWAYS
+	timer.timeout.connect(
+		func() -> void: fps.text = "%d fps" % roundi(Engine.get_frames_per_second())
+	)
+	fps.add_child(timer)
 	return row
 
 

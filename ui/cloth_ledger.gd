@@ -8,7 +8,7 @@ extends PanelContainer
 ##   ledger.refresh(phone)
 
 const PANEL := Vector2(340, 470)
-const SWATCH := 30
+const SWATCH := 34
 
 var _head: TitleBlock
 var _list: VBoxContainer
@@ -101,6 +101,7 @@ func _row(e: Dictionary, sub: String, chip: String, tint: Color, who: String) ->
 	var mat := e["material"] as MaterialType
 	var swatch := MaterialSwatch.new()
 	swatch.swatch_size = SWATCH
+	swatch.plain = true
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hbox.add_child(swatch)
 	swatch.setup(mat, mat.roll_length_m)

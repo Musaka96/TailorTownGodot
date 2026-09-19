@@ -13,7 +13,8 @@ const PATH := "user://settings.cfg"
 
 ## Window modes for the dropdown (index = stored value).
 const MODES := ["Windowed", "Fullscreen", "Borderless"]
-## Selectable windowed resolutions.
+## Selectable resolutions: the window's size when windowed, the 3D render size when the
+## game fills the screen (the UI always stays at the screen's own sharpness).
 const RESOLUTIONS := [
 	Vector2i(1280, 720),
 	Vector2i(1366, 768),
@@ -155,7 +156,8 @@ func set_resolution(res: Vector2i) -> void:
 
 func set_vsync(on: bool) -> void:
 	vsync = on
-	_apply_display()
+	_apply_vsync()
+	_rebuild_swapchain()
 	save()
 
 
@@ -170,26 +172,71 @@ func resolution_index() -> int:
 func _apply_display() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	var vs := DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED
-	DisplayServer.window_set_vsync_mode(vs)
+	_apply_vsync()
+	var screen := DisplayServer.screen_get_size()
 	match mode:
 		1:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+			_render_at(screen)
 		2:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-			DisplayServer.window_set_size(DisplayServer.screen_get_size())
-			DisplayServer.window_set_position(Vector2i.ZERO)
+			# Godot's plain FULLSCREEN is a borderless window over the whole screen.
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			_render_at(screen)
 		_:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-			DisplayServer.window_set_size(resolution)
-			_center_window()
+			get_window().scaling_3d_scale = 1.0
+			# A window can't outgrow the desktop; leaving fullscreen settles a frame late,
+			# so the size is set once the mode change has landed.
+			var usable := DisplayServer.screen_get_usable_rect().size
+			_size_window.call_deferred(resolution.min(usable))
+
+
+## On its own, so flipping VSync never resizes or re-centres the window.
+func _apply_vsync() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var vs := DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED
+	DisplayServer.window_set_vsync_mode(vs)
+
+
+## The D3D12 driver only picks a new VSync mode up when the swapchain is rebuilt, which
+## a bare window_set_vsync_mode() doesn't do — so a live toggle nudges the window a pixel
+## and back (or, when it fills the screen and its size is fixed, steps out to a window and back).
+func _rebuild_swapchain() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if mode != 0:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_size(DisplayServer.screen_get_size() / 2)
+	else:
+		DisplayServer.window_set_size(DisplayServer.window_get_size() - Vector2i(0, 1))
+	for i in 3:
+		await get_tree().process_frame
+	_apply_display()
+
+
+## Filling the screen, the window is always the screen's size — so the chosen resolution
+## becomes the 3D render size instead, scaled up to fit. Never above native.
+func _render_at(screen: Vector2i) -> void:
+	var scale := float(resolution.y) / float(maxi(screen.y, 1))
+	get_window().scaling_3d_scale = clampf(scale, 0.25, 1.0)
+
+
+func _size_window(to: Vector2i) -> void:
+	if mode != 0:
+		return
+	DisplayServer.window_set_size(to)
+	_center_window()
 
 
 func _center_window() -> void:
-	var screen := DisplayServer.screen_get_size()
-	DisplayServer.window_set_position((screen - DisplayServer.window_get_size()) / 2)
+	var area := DisplayServer.screen_get_usable_rect()
+	DisplayServer.window_set_position(
+		area.position + (area.size - DisplayServer.window_get_size()) / 2
+	)
 
 
 # --- Key bindings ----------------------------------------------------------

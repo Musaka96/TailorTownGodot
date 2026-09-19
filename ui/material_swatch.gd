@@ -25,6 +25,9 @@ const FABRIC_BADGE := [
 	Color("7f93a6"),
 ]
 @export var swatch_size := 84
+## Just the cloth — no fabric badge or fill bar. For small swatches (list rows), where
+## the overlays would cover the very thing the swatch is there to show.
+@export var plain := false
 
 var _rect: ColorRect
 var _shader_mat: ShaderMaterial
@@ -52,6 +55,10 @@ func _build() -> void:
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_rect)
 	resized.connect(_update_size)
+	if plain:
+		_shader_mat.set_shader_parameter("corner_radius", 8.0)
+		_update_size()
+		return
 
 	# Fill bar along the bottom.
 	var fill_bg := Panel.new()
@@ -109,6 +116,8 @@ func setup(mat: MaterialType, remaining: float) -> void:
 	_shader_mat.set_shader_parameter("pattern_scale", ClothMaterial.pattern_scale(pat))
 	_shader_mat.set_shader_parameter("pattern_intensity", ClothMaterial.pattern_intensity(pat))
 
+	if plain:
+		return
 	var frac := clampf(remaining / maxf(mat.roll_length_m, 0.001), 0.0, 1.0)
 	_fill_fg.anchor_right = frac
 	_fill_fg.add_theme_stylebox_override("panel", Style.bar(Style.fill_color(frac), 5))

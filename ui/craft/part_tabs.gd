@@ -1,8 +1,8 @@
 class_name PartTabs
 extends Control
 
-## The fitting room's part switcher: a strip of drawn tabs — the whole suit, then each
-## garment — instead of one more value row. The current tab is a brass label with a
+## The fitting room's part switcher: a strip of small icon tabs — an eye for the whole
+## suit, then each garment — instead of one more value row. The current tab is a brass label with a
 ## stitched underline; when the strip itself is the selected row it gains a brass running
 ## stitch and ‹ › chevrons, so A/D visibly belongs to it. Flat shapes from Style tokens,
 ## each glyph drawn in a 0..1 box and scaled to its tab.
@@ -10,9 +10,10 @@ extends Control
 ## `parts` are GarmentTypes; tab 0 is always the overview, so `current` is -1 for it (the
 ## suit builder's own convention) and `ticks` lists the parts that earn a ✓.
 
-const HEIGHT := 78.0
+const HEIGHT := 50.0
+const TAB_W := 52.0
 const GAP := 6.0
-const ICON := 34.0
+const ICON := 28.0
 const CHEVRON_W := 16.0
 
 var parts: Array = []
@@ -49,16 +50,19 @@ func _draw() -> void:
 	for i in count:
 		_draw_tab(i, _tab_rect(i))
 	if focused:
-		var mid := size.y * 0.5 - 8.0
-		_chevron(Vector2(CHEVRON_W * 0.5, mid), -1.0)
-		_chevron(Vector2(size.x - CHEVRON_W * 0.5, mid), 1.0)
+		var mid := (size.y - 8.0) * 0.5
+		_chevron(Vector2(_tab_rect(0).position.x - CHEVRON_W * 0.5, mid), -1.0)
+		_chevron(Vector2(_tab_rect(count - 1).end.x + CHEVRON_W * 0.5, mid), 1.0)
 
 
 func _tab_rect(i: int) -> Rect2:
+	# Fixed-width tabs, centred as a group (narrower only if the strip can't hold them).
 	var count := parts.size() + 1
-	var inner := size.x - CHEVRON_W * 2.0
-	var w := (inner - GAP * float(count - 1)) / float(count)
-	return Rect2(Vector2(CHEVRON_W + (w + GAP) * float(i), 0.0), Vector2(w, size.y - 8.0))
+	var room := (size.x - CHEVRON_W * 2.0 - GAP * float(count - 1)) / float(count)
+	var w := minf(TAB_W, room)
+	var total := w * float(count) + GAP * float(count - 1)
+	var left := (size.x - total) * 0.5
+	return Rect2(Vector2(left + (w + GAP) * float(i), 0.0), Vector2(w, size.y - 8.0))
 
 
 func _draw_tab(i: int, rect: Rect2) -> void:
@@ -70,13 +74,8 @@ func _draw_tab(i: int, rect: Rect2) -> void:
 	if on and focused:
 		Craft.stitch(self, poly, Style.WALNUT, 4.0, 1.2)
 	var ink := Style.WALNUT if on else Style.INK_SOFT
-	var icon_at := Vector2(rect.get_center().x - ICON * 0.5, rect.position.y + 7.0)
+	var icon_at := rect.get_center() - Vector2(ICON, ICON) * 0.5
 	_glyph(-1 if i == 0 else int(parts[i - 1]), Rect2(icon_at, Vector2(ICON, ICON)), ink, fill)
-	var font := Style.font_bold() if on else Style.font_medium()
-	var text := "Overview" if i == 0 else Enums.garment_type_name(int(parts[i - 1]))
-	var text_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO).x
-	var base := Vector2(rect.get_center().x - text_w * 0.5, rect.end.y - 9.0)
-	draw_string(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO, ink)
 	if on:
 		# The stitched underline that marks "you are here", even when the cursor isn't.
 		var y := rect.end.y + 5.0
@@ -85,14 +84,14 @@ func _draw_tab(i: int, rect: Rect2) -> void:
 			draw_line(Vector2(x, y), Vector2(minf(x + 7.0, rect.end.x - 10.0), y), Style.BRASS, 2.0)
 			x += 12.0
 	if i > 0 and ticks.has(parts[i - 1]):
-		var at := rect.position + Vector2(rect.size.x - 12.0, 12.0)
-		draw_circle(at, 7.0, Style.FOREST)
+		var at := rect.position + Vector2(rect.size.x - 8.0, 8.0)
+		draw_circle(at, 6.0, Style.FOREST)
 		draw_polyline(
 			PackedVector2Array(
-				[at + Vector2(-3.5, 0), at + Vector2(-1, 2.8), at + Vector2(3.6, -2.6)]
+				[at + Vector2(-3, 0), at + Vector2(-0.8, 2.4), at + Vector2(3, -2.2)]
 			),
 			Style.CHALK,
-			1.8,
+			1.6,
 			true
 		)
 
@@ -120,7 +119,7 @@ func _glyph(kind: int, box: Rect2, ink: Color, cut: Color) -> void:
 		Enums.GarmentType.PANTS:
 			_pants(box, ink, cut)
 		_:
-			_figure(box, ink, cut)
+			_eye(box, ink, cut)
 
 
 func _poly(box: Rect2, pts: Array, col: Color) -> void:
@@ -196,25 +195,16 @@ func _pants(box: Rect2, ink: Color, cut: Color) -> void:
 	_line(box, Vector2(0.22, 0.2), Vector2(0.78, 0.2), cut, 1.0)
 
 
-## The whole suit on its wearer: head, jacket and legs.
-func _figure(box: Rect2, ink: Color, cut: Color) -> void:
-	_dot(box, Vector2(0.5, 0.11), 0.1, ink)
-	var top := [Vector2(0.30, 0.25), Vector2(0.70, 0.25), Vector2(0.72, 0.62), Vector2(0.28, 0.62)]
-	_poly(box, top, ink)
-	for side: float in [-1.0, 1.0]:
-		var arm := [
-			Vector2(0.5 + 0.20 * side, 0.25),
-			Vector2(0.5 + 0.36 * side, 0.34),
-			Vector2(0.5 + 0.33 * side, 0.64),
-			Vector2(0.5 + 0.25 * side, 0.63),
-		]
-		_poly(box, arm, ink)
-		var leg := [
-			Vector2(0.5 + 0.21 * side, 0.64),
-			Vector2(0.5 + 0.01 * side, 0.64),
-			Vector2(0.5 + 0.04 * side, 0.98),
-			Vector2(0.5 + 0.20 * side, 0.98),
-		]
-		_poly(box, leg, ink)
-	_line(box, Vector2(0.43, 0.25), Vector2(0.5, 0.44), cut)
-	_line(box, Vector2(0.57, 0.25), Vector2(0.5, 0.44), cut)
+## The overview: an almond eye with an iris and a little catchlight.
+func _eye(box: Rect2, ink: Color, cut: Color) -> void:
+	var lid := []
+	for k in 13:
+		var t := float(k) / 12.0
+		lid.append(Vector2(0.04 + 0.92 * t, 0.5 - 0.30 * sin(t * PI)))
+	for k in range(1, 12):
+		var t := 1.0 - float(k) / 12.0
+		lid.append(Vector2(0.04 + 0.92 * t, 0.5 + 0.30 * sin(t * PI)))
+	_poly(box, lid, ink)
+	_dot(box, Vector2(0.5, 0.5), 0.20, cut)
+	_dot(box, Vector2(0.5, 0.5), 0.11, ink)
+	_dot(box, Vector2(0.56, 0.44), 0.04, cut)

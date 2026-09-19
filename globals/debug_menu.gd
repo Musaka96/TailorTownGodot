@@ -1,7 +1,7 @@
 extends Node
 
 ## Autoloaded as "Debug". A togglable in-game debug console (F3, debug builds only)
-## for driving game actions by hand: manage money, call customers, add/solve order
+## for driving game actions by hand: manage money and reputation, call customers, add/solve order
 ## tickets, and control the shift. Built entirely in code as its own CanvasLayer
 ## above everything, so no scene edits are needed. This is meant to grow — new
 ## in-game actions get a button here via _button()/_section().
@@ -18,6 +18,9 @@ var _layer: CanvasLayer
 var _money_label: Label
 var _status: Label
 var _amount: LineEdit
+var _rep_label: Label
+var _rep_amount: LineEdit
+var _rep_tier: OptionButton
 var _cut_type: OptionButton
 var _cut_variant: OptionButton
 var _sew_type: OptionButton
@@ -35,6 +38,7 @@ func _ready() -> void:
 	_build()
 	EventBus.money_changed.connect(func(_m: int) -> void: _refresh_money())
 	Upgrades.changed.connect(_refresh_upgrades)
+	EventBus.reputation_changed.connect(func(_p: int, _t: int) -> void: _refresh_reputation())
 
 
 func _input(event: InputEvent) -> void:
@@ -61,6 +65,23 @@ func _set_money() -> void:
 	if _amount.text.is_valid_int():
 		GameState.money = int(_amount.text)
 		_note("money set to $%d" % GameState.money)
+
+
+func _add_reputation(amount: int) -> void:
+	Reputation.points += amount
+	_note("reputation %+d" % amount)
+
+
+func _set_reputation() -> void:
+	if _rep_amount.text.is_valid_int():
+		Reputation.points = int(_rep_amount.text)
+		_note("reputation set to %d (%s)" % [Reputation.points, Reputation.tier_name()])
+
+
+## Jump straight to a rank's threshold.
+func _set_reputation_tier(index: int) -> void:
+	Reputation.points = int(Reputation.TIERS[index]["at"])
+	_note("reputation now %s" % Reputation.tier_name())
 
 
 func _call_customer() -> void:
@@ -385,6 +406,27 @@ func _build() -> void:
 	srow.add_child(_amount)
 	_button(srow, "Set", _set_money)
 
+	var rep := _section(box, "Reputation")
+	_rep_label = _make_label("", 16, LABEL)
+	rep.add_child(_rep_label)
+	var rrow := _row(rep)
+	_button(rrow, "+10", _add_reputation.bind(10))
+	_button(rrow, "+50", _add_reputation.bind(50))
+	_button(rrow, "-10", _add_reputation.bind(-10))
+	var rset := _row(rep)
+	_rep_amount = LineEdit.new()
+	_rep_amount.placeholder_text = "points"
+	_rep_amount.custom_minimum_size = Vector2(96, 0)
+	rset.add_child(_rep_amount)
+	_button(rset, "Set", _set_reputation)
+	var rtier := _row(rep)
+	rtier.add_child(_make_label("Rank", 13, LABEL))
+	_rep_tier = OptionButton.new()
+	for t: Dictionary in Reputation.TIERS:
+		_rep_tier.add_item("%s (%d)" % [t["name"], int(t["at"])])
+	_rep_tier.item_selected.connect(_set_reputation_tier)
+	rtier.add_child(_rep_tier)
+
 	var cust := _section(box, "Customers")
 	var crow := _row(cust)
 	_button(crow, "Call customer", _call_customer)
@@ -466,6 +508,7 @@ func _build() -> void:
 	box.add_child(_status)
 
 	_refresh_money()
+	_refresh_reputation()
 
 
 ## The upgrade list, as a second column: a tick per upgrade, grouped as the phone groups
@@ -522,6 +565,12 @@ func _fit_main() -> void:
 func _refresh_money() -> void:
 	if _money_label != null:
 		_money_label.text = "Balance:  $%d" % GameState.money
+
+
+func _refresh_reputation() -> void:
+	if _rep_label != null:
+		_rep_label.text = "%d pts  ·  %s" % [Reputation.points, Reputation.tier_name()]
+		_rep_tier.select(Reputation.tier())
 
 
 func _note(text: String) -> void:
