@@ -10,6 +10,9 @@ enum State { AVAILABLE, OWNED, LOCKED }
 
 ## Half the unit canvas: the glyph box is -16..16, the patch disc reaches 19.
 const UNIT := 20.0
+## How far a glyph may reach from the centre: just inside the stitched ring (16.2).
+## A glyph that reaches further is scaled down to fit, so nothing crosses the stitching.
+const FIT := 14.2
 
 var id := "":
 	set(value):
@@ -26,6 +29,9 @@ var _brass := Style.BRASS
 var _steel := Style.STEEL
 var _dark := Style.WALNUT
 var _warm := Style.CLAY
+# While measuring, the helpers record how far the glyph reaches instead of drawing.
+var _measuring := false
+var _reach := 0.0
 
 
 static func make(upgrade_id: String, px: float, icon_state: int = State.AVAILABLE) -> UpgradeIcon:
@@ -57,7 +63,10 @@ func _draw() -> void:
 	_dark = Style.BROWN if locked else Style.WALNUT
 	_warm = Style.BROWN if locked else Style.CLAY
 	_plate(locked)
+	var k := minf(1.0, FIT / maxf(glyph_reach(), 0.001))
+	draw_set_transform(size * 0.5, 0.0, Vector2(s * k, s * k))
 	_glyph()
+	draw_set_transform(size * 0.5, 0.0, Vector2(s, s))
 	if state == State.OWNED:
 		_badge_tick()
 	elif locked:
@@ -73,6 +82,15 @@ func _plate(locked: bool) -> void:
 	for i in 20:
 		var a := TAU * i / 20.0
 		draw_arc(Vector2.ZERO, 16.2, a, a + TAU / 40.0, 4, thread, 1.0, true)
+
+
+## How far this icon's glyph reaches from the centre, stroke widths included (unscaled).
+func glyph_reach() -> float:
+	_measuring = true
+	_reach = 0.0
+	_glyph()
+	_measuring = false
+	return _reach
 
 
 func _glyph() -> void:
@@ -117,21 +135,61 @@ func _badge_lock() -> void:
 
 # --- Drawing helpers -------------------------------------------------------------
 
+# Every glyph draws through these, so glyph_reach() sees exactly what gets drawn.
+
+
+func _grow(pts: Array, pad: float) -> void:
+	for p: Vector2 in pts:
+		_reach = maxf(_reach, p.length() + pad)
+
 
 func _line(pts: Array, col: Color, width := 2.0) -> void:
+	if _measuring:
+		_grow(pts, width * 0.5)
+		return
 	draw_polyline(PackedVector2Array(pts), col, width, true)
 
 
 func _poly(pts: Array, col: Color) -> void:
+	if _measuring:
+		_grow(pts, 0.0)
+		return
 	draw_colored_polygon(PackedVector2Array(pts), col)
 
 
+func _dot(at: Vector2, rad: float, col: Color) -> void:
+	if _measuring:
+		_reach = maxf(_reach, at.length() + rad)
+		return
+	draw_circle(at, rad, col)
+
+
+func _arc(
+	at: Vector2, rad: float, from: float, to: float, segs: int, col: Color, width := 2.0
+) -> void:
+	if _measuring:
+		var pts := []
+		for i in segs + 1:
+			var a := lerpf(from, to, float(i) / segs)
+			pts.append(at + Vector2(cos(a), sin(a)) * rad)
+		_grow(pts, width * 0.5)
+		return
+	draw_arc(at, rad, from, to, segs, col, width, true)
+
+
 func _ring(at: Vector2, rad: float, col: Color, width := 2.0) -> void:
-	draw_arc(at, rad, 0, TAU, 20, col, width, true)
+	_arc(at, rad, 0, TAU, 20, col, width)
+
+
+func _dash(a: Vector2, b: Vector2, col: Color, width := 1.5, dash := 2.5) -> void:
+	if _measuring:
+		_grow([a, b], width * 0.5)
+		return
+	draw_dashed_line(a, b, col, width, dash)
 
 
 func _box(r: Rect2, col: Color, rad := 2.0) -> void:
-	draw_colored_polygon(Craft.rounded(r, rad, 3), col)
+	_poly(Array(Craft.rounded(r, rad, 3)), col)
 
 
 ## A pair of shears, points up. `zig` gives the right blade a pinked edge.
@@ -148,7 +206,7 @@ func _shears(zig := false) -> void:
 		_line(teeth, _light, 1.4)
 	_ring(Vector2(-6.5, 11), 3.6, _brass, 2.4)
 	_ring(Vector2(6.5, 11), 3.6, _brass, 2.4)
-	draw_circle(pivot, 1.6, _dark)
+	_dot(pivot, 1.6, _dark)
 
 
 func _star(at: Vector2, rad: float, col: Color) -> void:
@@ -179,11 +237,11 @@ func _i_cut_weights() -> void:
 
 
 func _i_cut_chalk_wheel() -> void:
-	_line([Vector2(10, -11), Vector2(-2, 3)], _brass, 3.4)
-	draw_circle(Vector2(-5, 6), 6.0, _light)
+	_line([Vector2(9, -10), Vector2(-2, 3)], _brass, 3.4)
+	_dot(Vector2(-5, 6), 6.0, _light)
 	_ring(Vector2(-5, 6), 6.0, _dark, 1.4)
-	draw_circle(Vector2(-5, 6), 1.5, _dark)
-	draw_dashed_line(Vector2(-13, 13), Vector2(8, 13), _light, 1.4, 2.5)
+	_dot(Vector2(-5, 6), 1.5, _dark)
+	_dash(Vector2(-10, 12), Vector2(4, 12), _light, 1.4, 2.5)
 
 
 func _i_cut_sharp() -> void:
@@ -202,30 +260,30 @@ func _i_cut_pinking() -> void:
 func _i_cut_fold() -> void:
 	_poly([Vector2(-12, -8), Vector2(12, -8), Vector2(12, 10), Vector2(-12, 10)], _light)
 	_poly([Vector2(12, -8), Vector2(12, 10), Vector2(0, 10)], Style.CREAM_DARK)
-	draw_dashed_line(Vector2(0, -12), Vector2(0, 13), _warm, 1.6, 2.5)
+	_dash(Vector2(0, -12), Vector2(0, 13), _warm, 1.6, 2.5)
 	_line([Vector2(-5, -2), Vector2(-9, 1), Vector2(-5, 4)], _dark, 1.5)
 
 
 func _i_cut_rotary() -> void:
-	_line([Vector2(11, -12), Vector2(1, 1)], _brass, 3.6)
-	draw_circle(Vector2(-3, 5), 7.0, _steel)
-	_ring(Vector2(-3, 5), 7.0, _dark, 1.4)
-	draw_circle(Vector2(-3, 5), 1.8, _brass)
-	_box(Rect2(-14, 12, 28, 3.5), Style.TAPE if state != State.LOCKED else _light, 1.0)
+	_line([Vector2(9, -10), Vector2(1, 0)], _brass, 3.6)
+	_dot(Vector2(-3, 4), 7.0, _steel)
+	_ring(Vector2(-3, 4), 7.0, _dark, 1.4)
+	_dot(Vector2(-3, 4), 1.8, _brass)
+	_box(Rect2(-10, 9.5, 20, 3.5), Style.TAPE if state != State.LOCKED else _light, 1.0)
 
 
 # --- Sewing machine ----------------------------------------------------------------
 
 
 func _i_sew_dial() -> void:
-	draw_circle(Vector2(0, 1), 12.0, _light)
+	_dot(Vector2(0, 1), 12.0, _light)
 	_ring(Vector2(0, 1), 12.0, _brass, 2.2)
 	for i in 5:
 		var a := PI + PI * i / 4.0
 		var d := Vector2(cos(a), sin(a))
 		_line([Vector2(0, 1) + d * 8.0, Vector2(0, 1) + d * 10.5], _dark, 1.4)
 	_line([Vector2(0, 1), Vector2(6, -6)], _warm, 2.2)
-	draw_circle(Vector2(0, 1), 2.0, _dark)
+	_dot(Vector2(0, 1), 2.0, _dark)
 
 
 func _i_sew_oiled() -> void:
@@ -235,7 +293,7 @@ func _i_sew_oiled() -> void:
 
 
 func _i_sew_guide() -> void:
-	draw_arc(Vector2(0, 1), 8.0, 0, PI, 16, _warm, 5.0, true)
+	_arc(Vector2(0, 1), 8.0, 0, PI, 16, _warm, 5.0)
 	_line([Vector2(-8, 1), Vector2(-8, -6)], _warm, 5.0)
 	_line([Vector2(8, 1), Vector2(8, -6)], _warm, 5.0)
 	_line([Vector2(-8, -7), Vector2(-8, -11)], _steel, 5.0)
@@ -245,7 +303,7 @@ func _i_sew_guide() -> void:
 func _i_sew_needle_down() -> void:
 	_line([Vector2(-4, -13), Vector2(-4, 6)], _steel, 2.4)
 	_poly([Vector2(-5.4, 6), Vector2(-2.6, 6), Vector2(-4, 12)], _steel)
-	draw_circle(Vector2(-4, 3), 1.0, _dark)
+	_dot(Vector2(-4, 3), 1.0, _dark)
 	_line([Vector2(7, -8), Vector2(7, 6)], _brass, 2.4)
 	_line([Vector2(3, 2), Vector2(7, 7), Vector2(11, 2)], _brass, 2.4)
 
@@ -284,18 +342,18 @@ func _i_sew_knee() -> void:
 func _i_sew_clips() -> void:
 	_poly([Vector2(-12, -2), Vector2(6, -7), Vector2(11, -3), Vector2(-12, 2)], _warm)
 	_poly([Vector2(-12, 2), Vector2(11, 3), Vector2(6, 8), Vector2(-12, 5)], _light)
-	draw_circle(Vector2(-7, 1.6), 1.6, _dark)
+	_dot(Vector2(-7, 1.6), 1.6, _dark)
 
 
 func _i_sew_roller() -> void:
 	_foot()
 	for x: float in [-5.5, 4.5]:
-		draw_circle(Vector2(x, 8.5), 3.6, _brass)
-		draw_circle(Vector2(x, 8.5), 1.2, _dark)
+		_dot(Vector2(x, 8.5), 3.6, _brass)
+		_dot(Vector2(x, 8.5), 1.2, _dark)
 
 
 func _i_sew_autolock() -> void:
-	draw_circle(Vector2.ZERO, 11.0, _warm)
+	_dot(Vector2.ZERO, 11.0, _warm)
 	_ring(Vector2.ZERO, 11.0, _dark, 1.5)
 	_ring(Vector2.ZERO, 7.5, _light, 1.2)
 	_line(
@@ -319,7 +377,7 @@ func _i_shop_lamp() -> void:
 
 func _i_shop_coffee() -> void:
 	_poly([Vector2(-10, -2), Vector2(7, -2), Vector2(5, 11), Vector2(-8, 11)], _light)
-	draw_arc(Vector2(7.5, 3.5), 4.0, -PI / 2.0, PI / 2.0, 10, _light, 2.2, true)
+	_arc(Vector2(7.5, 3.5), 4.0, -PI / 2.0, PI / 2.0, 10, _light, 2.2)
 	_line([Vector2(-10, -2), Vector2(7, -2)], _dark, 1.6)
 	for x: float in [-5.0, 1.0]:
 		_line(
@@ -341,7 +399,7 @@ func _i_shop_iron() -> void:
 		_steel,
 	)
 	_line([Vector2(-13, 9), Vector2(12, 9)], _dark, 2.0)
-	draw_arc(Vector2(3, -1), 7.0, PI * 1.05, TAU * 0.98, 12, _dark, 2.8, true)
+	_arc(Vector2(3, -1), 7.0, PI * 1.05, TAU * 0.98, 12, _dark, 2.8)
 	for x: float in [-8.0, -3.0]:
 		_line([Vector2(x, -5), Vector2(x - 1.5, -8), Vector2(x, -11)], _light, 1.4)
 
@@ -350,12 +408,12 @@ func _i_shop_iron() -> void:
 
 
 func _i_apprentice() -> void:
-	draw_circle(Vector2(0, 0), 7.5, Style.LINEN if state != State.LOCKED else _light)
+	_dot(Vector2(0, 0), 7.5, Style.LINEN if state != State.LOCKED else _light)
 	_poly([Vector2(-9, -3), Vector2(-7, -10), Vector2(6, -11), Vector2(9, -3)], _warm)
 	_line([Vector2(6, -3.5), Vector2(14, -2.5)], _warm, 2.4)
-	draw_circle(Vector2(-2.5, 1), 1.0, _dark)
-	draw_circle(Vector2(3, 1), 1.0, _dark)
-	draw_arc(Vector2(0.2, 2.5), 3.0, 0.3, PI - 0.3, 8, _dark, 1.2, true)
+	_dot(Vector2(-2.5, 1), 1.0, _dark)
+	_dot(Vector2(3, 1), 1.0, _dark)
+	_arc(Vector2(0.2, 2.5), 3.0, 0.3, PI - 0.3, 8, _dark, 1.2)
 	_poly([Vector2(-10, 13), Vector2(-5, 8), Vector2(5, 8), Vector2(10, 13)], _light)
 
 
@@ -363,7 +421,7 @@ func _i_rack_hooks() -> void:
 	_line([Vector2(-14, -9), Vector2(14, -9)], _brass, 3.0)
 	for x: float in [-9.0, 0.0, 9.0]:
 		_line([Vector2(x, -9), Vector2(x, 2)], _steel, 2.0)
-		draw_arc(Vector2(x - 2.5, 2), 2.5, 0, PI, 8, _steel, 2.0, true)
+		_arc(Vector2(x - 2.5, 2), 2.5, 0, PI, 8, _steel, 2.0)
 	_line([Vector2(-5, 10), Vector2(0, 6), Vector2(5, 10), Vector2(-5, 10)], _light, 1.6)
 
 
@@ -372,8 +430,8 @@ func _i_bulk_orders() -> void:
 	for i in 3:
 		var y := 6.0 - i * 7.0
 		_box(Rect2(-12 + i * 1.5, y, 22, 6.5), cols[i], 3.0)
-		draw_circle(Vector2(10 + i * 1.5, y + 3.25), 3.25, Style.CREAM_DARK)
-		draw_circle(Vector2(10 + i * 1.5, y + 3.25), 1.0, _dark)
+		_dot(Vector2(10 + i * 1.5, y + 3.25), 3.25, Style.CREAM_DARK)
+		_dot(Vector2(10 + i * 1.5, y + 3.25), 1.0, _dark)
 
 
 func _i_courier() -> void:
