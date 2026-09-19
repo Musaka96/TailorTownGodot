@@ -12,6 +12,23 @@ class_name Style
 enum MenuSkin { ORDER, BOOK, SHELF, MIRROR, WORK, ORDERS }
 
 const _FONT := preload("res://assets/fonts/Fredoka.ttf")
+const _DISPLAY := preload("res://assets/fonts/Fraunces.ttf")
+
+# Type scale — the only font sizes a screen may use (style guide §2).
+const T_MICRO := 12  # badges, folio, tape numerals
+const T_CAPTION := 14  # sub-lines, hints, kickers, pills
+const T_BODY := 16  # body copy, row labels
+const T_VALUE := 18  # row values, buttons, section headers
+const T_NAME := 21  # card / item names
+const T_TITLE := 28  # screen titles
+const T_HERO := 46  # day card, wordmark base
+
+# Variable-font weights. Fredoka runs 300–700 and its default instance is Light, so
+# every face below names its weight — never use the bare file.
+const W_BODY := 450
+const W_MEDIUM := 550
+const W_BOLD := 650
+const W_DISPLAY := 700
 
 # Palette
 const CREAM := Color("f4ead2")  # panel paper (default)
@@ -63,16 +80,69 @@ const FRAME_SMALL := Vector2(560, 360)
 const FRAME_WIDE := Vector2(820, 520)
 const FRAME_TALL := Vector2(640, 560)
 
-static var _bold: FontVariation
+static var _faces: Dictionary = {}
+static var _theme: Theme
+
+# --- Type ------------------------------------------------------------------
 
 
-## A real bold weight — Fredoka has no bold face, so embolden the base font.
+## One cached instance of a variable font: `axes` maps an OpenType axis name ("wght",
+## "wdth", "SOFT", "opsz") to its value; `spacing` is extra px between glyphs.
+static func _face(key: String, base: Font, axes: Dictionary, spacing: int = 0) -> FontVariation:
+	if _faces.has(key):
+		return _faces[key]
+	var ts := TextServerManager.get_primary_interface()
+	var coords := {}
+	for axis: String in axes:
+		coords[ts.name_to_tag(axis)] = axes[axis]
+	var fv := FontVariation.new()
+	fv.base_font = base
+	fv.variation_opentype = coords
+	fv.spacing_glyph = spacing
+	_faces[key] = fv
+	return fv
+
+
+## Body copy, row labels — the default face everywhere.
+static func font_body() -> FontVariation:
+	return _face("body", _FONT, {"wght": W_BODY})
+
+
+## Row values, card names, buttons.
+static func font_medium() -> FontVariation:
+	return _face("medium", _FONT, {"wght": W_MEDIUM})
+
+
+## Headers, money, key terms, pills.
+static func font_bold() -> FontVariation:
+	return _face("bold", _FONT, {"wght": W_BOLD})
+
+
+## Tracked, slightly condensed — kickers and small-caps style labels (set the text
+## in capitals).
+static func font_caps() -> FontVariation:
+	return _face("caps", _FONT, {"wght": 600, "wdth": 90}, 2)
+
+
+## The display serif (Fraunces, soft) — wordmark, screen titles, day card. Never for
+## body, rows, values or prompts.
+static func font_display() -> FontVariation:
+	return _face("display", _DISPLAY, {"wght": W_DISPLAY, "SOFT": 100, "opsz": 72, "WONK": 0})
+
+
+## Kept for callers from before the type scale: the real bold cut.
 static func bold_font() -> FontVariation:
-	if _bold == null:
-		_bold = FontVariation.new()
-		_bold.base_font = _FONT
-		_bold.variation_embolden = 0.4
-	return _bold
+	return font_bold()
+
+
+## The project-wide base theme (body face + default size). UI hangs it on the root
+## window so every Control — menus, title screen, day card — inherits it.
+static func base_theme() -> Theme:
+	if _theme == null:
+		_theme = Theme.new()
+		_theme.default_font = font_body()
+		_theme.default_font_size = T_VALUE
+	return _theme
 
 
 # --- Panels ----------------------------------------------------------------

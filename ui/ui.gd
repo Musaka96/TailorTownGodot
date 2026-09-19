@@ -3,8 +3,6 @@ extends CanvasLayer
 ## Root of all in-game UI — autoloaded as "UI" so any station can reach it.
 ## Holds the always-on HUD and the (hidden) shelf browse menu.
 
-const FONT := preload("res://assets/fonts/Fredoka.ttf")
-
 ## Built in code (see _build_orders_menu / _build_clock) so the scene files never
 ## have to be regenerated to add them.
 var orders_menu: Control
@@ -41,10 +39,10 @@ func _ready() -> void:
 	customer_request.visible = false
 	handbook.visible = false
 	orders_menu.visible = false
-	# Apply the rounded font project-wide via a shared theme.
-	var theme := Theme.new()
-	theme.default_font = FONT
-	theme.default_font_size = 18
+	# One base theme (Style's body face) on the root window, so every Control in the
+	# game inherits it — including scenes this layer doesn't build, like the title screen.
+	var theme := Style.base_theme()
+	get_tree().root.theme = theme
 	hud.theme = theme
 	shelf_menu.theme = theme
 	phone_order.theme = theme
