@@ -7,6 +7,9 @@
 > line), rhythm sewing (per perfect stitch), pressing (per wrinkle smoothed) and coffee
 > (per perfect beat). Legacy cutting v1 is not wired. Review shots:
 > `tools/shot_minigame.gd -- cut2 out.png 150 "" 2 streak|stamp`.
+> Verdicts (owner feedback, same day): **Flawless is 100% only** and gets the gold-foil
+> stamp with stars, rays, confetti, twinkles and a fanfare; 93-99% is **Exquisite**; then
+> Fine work / Good enough / Rough (`MinigameScreen.VERDICTS`, `JuiceLayer.Fanfare`).
 > Tiers 2-3 are still suggestions — pick what you like and it becomes a task.
 > Written after the 2026-09-19 playtest ("add more dopamine for when you do a line real nice").
 

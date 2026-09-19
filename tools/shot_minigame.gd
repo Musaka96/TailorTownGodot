@@ -8,7 +8,8 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_minigame.gd -- sew  res://.dev/sew.png 150
 ##
 ## A 6th arg shows the celebration for review: "streak" (a run of perfects: sparks + the
-## streak chip) or "stamp" (the verdict stamp), fired a few frames before the capture.
+## streak chip), "stamp" (a fine verdict stamp) or "flawless" (the gold one), fired just
+## before the capture.
 ##
 ## Args (after the `--`): which ("cut" / "sew"), out path, frames to settle. The
 ## frame count matters — each game holds a lead-in of ~1.6s before it starts, so
@@ -101,7 +102,13 @@ func _on_frame() -> void:
 	if _juice == "streak" and _count >= _frames - 14 and _count % 2 == 0 and _count < _frames:
 		_game.call("_perfect_beat", _game.get("_canvas").size * Vector2(0.5, 0.55))
 	if _juice == "stamp" and _count == _frames - 40:
-		_game.call("_stamp_verdict", 0.98)
+		_game.call("_stamp_verdict", 0.96)
+	# Timed, not framed: the window may run far past 60 fps, and the stamp's landing,
+	# confetti and rays are all measured in seconds.
+	if _juice == "flawless" and _count == _frames - 1:
+		_game.call("_stamp_verdict", 1.0)
+		_frames = 1 << 30
+		create_timer(0.5).timeout.connect(func() -> void: _frames = 0)
 	if _count < _frames:
 		return
 	var image := get_root().get_texture().get_image()

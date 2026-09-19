@@ -24,7 +24,7 @@ const TWINKLE_EVERY := 0.11  # seconds between twinkles around a GRAND stamp
 ## Confetti is cut from the workroom: thread and cloth colours, never neon.
 const CONFETTI := [Style.BRASS_LIGHT, Style.BRASS, Style.FOREST, Style.BURGUNDY, Style.CHALK]
 
-var _sparks: Array[Dictionary] = []  # {pos, vel, life, max, col, len}
+var _sparks: Array[Dictionary] = []  # {pos, vel, life, max, col, len, wide}
 var _twinkles: Array[Dictionary] = []  # {pos, life, max, size}
 var _stamp_text := ""
 var _stamp_col := Style.FOREST
@@ -108,7 +108,10 @@ func _on_landed() -> void:
 		var angle := TAU * float(i) / count + randf_range(-0.15, 0.15)
 		var speed := SPARK_SPEED * randf_range(0.9, 2.1 if grand else 1.4)
 		var col: Color = CONFETTI.pick_random() if grand else _stamp_col.lightened(0.25)
-		_add_spark(size * 0.5, angle, speed, SPARK_LIFE * (2.6 if grand else 1.5), col)
+		_add_spark(size * 0.5, angle, speed, SPARK_LIFE * (3.4 if grand else 1.5), col)
+		if grand:
+			_sparks[-1]["len"] = randf_range(12.0, 20.0)  # proper confetti, not dust
+			_sparks[-1]["wide"] = 4.5
 
 
 func _add_spark(at: Vector2, angle: float, speed: float, life: float, col: Color) -> void:
@@ -120,6 +123,7 @@ func _add_spark(at: Vector2, angle: float, speed: float, life: float, col: Color
 		"max": lived,
 		"col": col,
 		"len": randf_range(7.0, 12.0),
+		"wide": 3.0,
 	}
 	_sparks.append(spark)
 
@@ -139,7 +143,7 @@ func _draw() -> void:
 		var pos: Vector2 = spark["pos"]
 		var dir := (spark["vel"] as Vector2).normalized()
 		var col := Style.tint(spark["col"], fade)
-		draw_line(pos, pos - dir * float(spark["len"]) * fade, col, 3.0, true)
+		draw_line(pos, pos - dir * float(spark["len"]) * fade, col, float(spark["wide"]), true)
 	if _stamp_t >= 0.0:
 		_draw_stamp()
 	for tw in _twinkles:
@@ -155,7 +159,7 @@ func _draw_rays() -> void:
 	var turn := _stamp_t * RAY_TURN
 	for i in RAYS:
 		# Alternate strong and faint, so the fan reads as light rather than a wheel.
-		var col := Style.tint(Style.BRASS_LIGHT, (0.42 if i % 2 == 0 else 0.22) * show)
+		var col := Style.tint(Style.BRASS_LIGHT, (0.34 if i % 2 == 0 else 0.16) * show)
 		var a := turn + TAU * float(i) / RAYS
 		var half := TAU / RAYS * 0.25
 		var pts := PackedVector2Array(
