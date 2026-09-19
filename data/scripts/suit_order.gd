@@ -40,6 +40,10 @@ const COLOR_TOLERANCE := 0.14
 @export var rush := false
 ## A picky client: full pay only for near-perfect work, but double tips.
 @export var picky := false
+## The city event (NewsEvent id) this suit is meant to be worn at, "" if none. Set when
+## the order is taken during an event's run-up for its occasion; the due day is capped
+## at the event, and the collected suit is judged for the paper's "best suit spotted".
+@export var event_id := ""
 
 var state: int = State.OPEN
 ## GarmentType(int) -> { score: float, quality: float } for each checked-off piece.

@@ -47,6 +47,15 @@ raises the quality of pieces you craft while it's active.
 
 ## B. "Best suit spotted" newspaper announcement + bonus reputation
 
+> **Shipped (2026-09-19).** An order taken in a city event's run-up for its occasion is
+> tagged for the event (`SuitOrder.event_id`, due by the event day). Collected in time,
+> it's judged by `News.judge`: it must be very well made (`spotted_quality` /
+> `spotted_match` in GameConfig, both 0.85) AND follow the running trend. The morning
+> after the event the paper leads with the best winner (+`NewsEvent.spotted_bonus`
+> reputation via `EventBus.press_mention`), or, if nothing made the cut, with rival
+> Pinch & Pleat taking the glory. Test: `tools/test_spotted.gd`. The coffee focus now
+> shows on the HUD (`ui/focus_widget.gd`, one bean per focused job).
+
 **Idea:** when you make a good-enough suit during a relevant city event, the next
 paper runs a "best suit spotted" story that promotes the shop and grants extra rep.
 

@@ -10,8 +10,16 @@ extends Node
 ## dated EVENT skews which customers arrive as its day nears. It then emits
 ## EventBus.newspaper_ready so the HUD can slide the paper up. Read-only content:
 ## the editor dock and tools/build_news.gd author the .tres files.
+##
+## "Best suit spotted": orders taken in an event's run-up for its occasion are tagged
+## for it (Orders._tag_event). Each one collected in time is judged (judge()); the
+## morning after the event the paper leads with the best one that made the cut, and
+## the shop gains standing (EventBus.press_mention). If none did, the rival shop gets
+## the story instead.
 
 const DIR := "res://data/news"
+const SPOTTED_KICKER := "SOCIETY · SPOTTED"
+const RIVAL_KICKER := "SOCIETY"
 
 var current_edition: Array[NewsEvent] = []
 var current_fashion: NewsEvent = null
@@ -19,12 +27,16 @@ var current_fashion: NewsEvent = null
 var _all: Array[NewsEvent] = []
 var _seen: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
+## Per event id, how the shop's suits fared there so far:
+## { entered: int, best: {name, suit, score} (empty until one makes the cut), why: String }.
+var _spotted: Dictionary = {}
 
 
 func _ready() -> void:
 	_rng.randomize()
 	_load()
 	EventBus.shift_started.connect(_on_shift_started)
+	EventBus.order_fulfilled.connect(_on_order_fulfilled)
 
 
 ## Everything in the current edition, lead story first.
@@ -83,6 +95,48 @@ func event_bias(day: int, rng: RandomNumberGenerator) -> Dictionary:
 	return {}
 
 
+## The EVENT whose run-up (bias window) covers `day` and wants `occasion`, or null.
+func event_for(occasion: int, day: int) -> NewsEvent:
+	for ev in _all:
+		if ev.kind != NewsEvent.Kind.EVENT or ev.event_day <= 0:
+			continue
+		if ev.event_occasion != occasion:
+			continue
+		if day >= ev.event_day - ev.bias_days and day <= ev.event_day:
+			return ev
+	return null
+
+
+## An event's name for running text: "the Autumn Charity Gala".
+func event_title(id: String) -> String:
+	var ev := _event(id)
+	if ev == null:
+		return "the event"
+	return "the " + ev.headline.trim_prefix("The ")
+
+
+## Would this suit make the society pages? Very nicely made (craft quality AND match to
+## the brief at the spotted_* bars) and in style (follows the running trend).
+## Returns {ok: bool, why: "" | "craft" | "trend"}.
+func judge(order: SuitOrder) -> Dictionary:
+	var q_min: float = Config.data.spotted_quality if Config.data != null else 0.85
+	var m_min: float = Config.data.spotted_match if Config.data != null else 0.85
+	if order.average_quality() < q_min or order.average_match() < m_min:
+		return {"ok": false, "why": "craft"}
+	if not fashion_matches(order.design):
+		return {"ok": false, "why": "trend"}
+	return {"ok": true, "why": ""}
+
+
+## The best-suit tallies for the save file (events not yet reported).
+func spotted_snapshot() -> Dictionary:
+	return _spotted.duplicate(true)
+
+
+func restore_spotted(saved: Dictionary) -> void:
+	_spotted = saved.duplicate(true)
+
+
 ## Restore which articles have already run (from a save). Call before the day's
 ## shift_started so already-seen, non-repeatable stories don't reappear; the next
 ## _compile then rebuilds today's edition and trend honouring this history.
@@ -118,7 +172,135 @@ func _on_shift_started(_start_hour: float) -> void:
 		_seen[ev.id] = true
 		if ev.kind == NewsEvent.Kind.FASHION:
 			current_fashion = ev
+	_report_spotted(day)
 	EventBus.newspaper_ready.emit(day)
+
+
+func _event(id: String) -> NewsEvent:
+	for ev in _all:
+		if ev.id == id:
+			return ev
+	return null
+
+
+# --- Best suit spotted -----------------------------------------------------
+
+
+## A tagged suit was collected: if it's in time for its event, judge it and keep the
+## best entry that made the cut. The client's parting word hints how it will go.
+func _on_order_fulfilled(order: SuitOrder, _payout: int) -> void:
+	if order == null or order.event_id == "":
+		return
+	var ev := _event(order.event_id)
+	if ev == null:
+		return
+	var at := event_title(ev.id)
+	var today: int = Shift.day if Shift != null else 1
+	if today > ev.event_day:
+		_toast_later("%s's suit came too late for %s" % [order.customer_name, at])
+		return
+	var entry: Dictionary = _spotted.get(ev.id, {"entered": 0, "best": {}, "why": ""})
+	entry["entered"] = int(entry.get("entered", 0)) + 1
+	var verdict := judge(order)
+	if bool(verdict["ok"]):
+		var score := order.average_quality() * order.average_match()
+		var best: Dictionary = entry.get("best", {})
+		if best.is_empty() or score > float(best.get("score", 0.0)):
+			entry["best"] = {
+				"name": order.customer_name, "suit": _suit_words(order), "score": score
+			}
+		_toast_later("%s wears it to %s. The papers will be watching!" % [order.customer_name, at])
+	else:
+		entry["why"] = verdict["why"]
+		var short := (
+			"not quite fine enough" if verdict["why"] == "craft" else "not quite in fashion"
+		)
+		var who := order.customer_name
+		_toast_later("%s wears it to %s: handsome, but %s for the papers" % [who, at, short])
+	_spotted[ev.id] = entry
+
+
+## The morning after a city event, lead the paper with who wore the best suit there:
+## the shop's (and its standing rises), or the rival's if nothing of ours made the cut.
+func _report_spotted(day: int) -> void:
+	for ev in _all:
+		if ev.kind != NewsEvent.Kind.EVENT or ev.event_day != day - 1:
+			continue
+		var key := "spotted_" + ev.id
+		if _seen.has(key):
+			continue
+		_seen[key] = true
+		var entry: Dictionary = _spotted.get(ev.id, {})
+		_spotted.erase(ev.id)
+		var won := not (entry.get("best", {}) as Dictionary).is_empty()
+		var story := _spotted_story(ev, entry) if won else _rival_story(ev, entry)
+		story.id = key
+		story.priority = 100
+		current_edition.push_front(story)
+		if won:
+			EventBus.press_mention.emit(story.headline, ev.spotted_bonus)
+
+
+func _spotted_story(ev: NewsEvent, entry: Dictionary) -> NewsEvent:
+	var best: Dictionary = entry["best"]
+	var story := NewsEvent.new()
+	story.kicker = SPOTTED_KICKER
+	story.headline = "Best Suit Spotted at %s" % event_title(ev.id)
+	story.body = (
+		(
+			"Of all the finery on show, one suit had the room talking: %s's %s, cut to "
+			+ "the season's fashion by a shop on the Row. By the end of the night half "
+			+ "the guests were asking for the tailor's card."
+		)
+		% [best.get("name", "a guest"), best.get("suit", "suit")]
+	)
+	return story
+
+
+func _rival_story(ev: NewsEvent, entry: Dictionary) -> NewsEvent:
+	var rival: String = FrontDesk.RIVAL_NAME if FrontDesk != null else "Pinch & Pleat"
+	var story := NewsEvent.new()
+	story.kicker = RIVAL_KICKER
+	if int(entry.get("entered", 0)) <= 0:
+		story.headline = "%s Dress %s" % [rival, event_title(ev.id)]
+		story.body = (
+			(
+				"%s dressed half the room, and it did not go unnoticed. The other houses "
+				+ "on the Row were nowhere to be seen."
+			)
+			% rival
+		)
+		return story
+	var fault := (
+		"not yet the finished article"
+		if entry.get("why", "") == "craft"
+		else "a step behind the season's fashion"
+	)
+	story.headline = "%s Carry the Night at %s" % [rival, event_title(ev.id)]
+	story.body = (
+		(
+			"The honours went to %s, whose tailoring was the talk of the evening. A suit "
+			+ "from a newer shop on the Row was spotted too: handsome, our correspondent "
+			+ "allows, but %s."
+		)
+		% [rival, fault]
+	)
+	return story
+
+
+## "navy glen check worsted suit": the jacket as a society column would put it.
+func _suit_words(order: SuitOrder) -> String:
+	var words := order.part_summary(Enums.GarmentType.JACKET)
+	if words == "—":
+		words = order.part_summary(order.required_types()[0])
+	return words.to_lower() + " suit"
+
+
+func _toast_later(text: String) -> void:
+	if UI == null:
+		return
+	# After Reputation's own "+N reputation" toast for the same collection.
+	get_tree().create_timer(2.2).timeout.connect(func() -> void: UI.toast(text))
 
 
 ## The articles that may run today, lead story first.

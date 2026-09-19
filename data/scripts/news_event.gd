@@ -17,6 +17,8 @@ enum Kind { STORY, FASHION, EVENT }
 @export var headline: String = ""
 @export_multiline var body: String = ""
 @export var kind: Kind = Kind.STORY
+## Small caps line above the headline; "" = the paper picks one from the kind.
+@export var kicker: String = ""
 
 @export_group("When it runs")
 ## Fires only on this exact in-game day (0 = ignore, use the range instead).
@@ -51,6 +53,9 @@ enum Kind { STORY, FASHION, EVENT }
 @export var bias_days: int = 2
 ## Chance (0..1) a shopper in the window is biased toward the event.
 @export var bias_chance: float = 0.6
+## Reputation for the shop when its suit is judged best at the event (the paper's
+## "best suit spotted" story the morning after). See News.judge / _report_spotted.
+@export var spotted_bonus: int = 20
 
 
 ## True when this article may run on `day` at `reputation` (and hasn't been shown,

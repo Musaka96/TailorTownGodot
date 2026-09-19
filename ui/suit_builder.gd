@@ -647,8 +647,13 @@ func _finalize() -> void:
 	var skin: Color = _customer.skin_color if _customer != null else _SKIN_FALLBACK
 	var hair: int = _customer.hair_index if _customer != null else 0
 	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
-	var flags := {"rush": _pref.rush, "picky": _pref.picky}
-	Orders.create_order(_pref.display_name, _design, quote, skin, hair, hair_col, flags)
+	var flags := {"rush": _pref.rush, "picky": _pref.picky, "occasion": int(_pref.occasion)}
+	var order := Orders.create_order(
+		_pref.display_name, _design, quote, skin, hair, hair_col, flags
+	)
+	if order.event_id != "":
+		var title := News.event_title(order.event_id)
+		UI.toast("For %s on day %d: make it the best in the room" % [title, order.due_day])
 	if Clientele != null and _customer != null:
 		Clientele.note_customer(_customer)  # remember their face so they can return
 	EventBus.design_confirmed.emit(_design.duplicate(true))

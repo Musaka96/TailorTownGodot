@@ -34,6 +34,7 @@ func _ready() -> void:
 	EventBus.order_fulfilled.connect(_on_order_fulfilled)
 	EventBus.order_expired.connect(_on_order_expired)
 	EventBus.order_late.connect(_on_order_late)
+	EventBus.press_mention.connect(_on_press_mention)
 
 
 ## Extra share of reputation gained thanks to the shop's decorations (ShopDecoration
@@ -86,6 +87,15 @@ func _on_order_fulfilled(order: SuitOrder, _payout: int) -> void:
 	gain = int(round(gain * (1.0 + decor_bonus())))
 	points += gain
 	_toast(gain, loved, following)
+
+
+## The paper praised the shop (best suit spotted at a city event).
+func _on_press_mention(_headline: String, reputation: int) -> void:
+	if reputation <= 0:
+		return
+	points += reputation
+	if UI != null:
+		UI.toast("+%d reputation: you made the papers!" % reputation)
 
 
 func _on_order_expired(_order: SuitOrder) -> void:

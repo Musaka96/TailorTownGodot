@@ -50,6 +50,11 @@ extends Resource
 @export var late_pay: float = 0.75
 @export var late_rep_loss: int = 6
 @export var expired_rep_loss: int = 12
+## "Best suit spotted": a suit worn to a city event makes the paper only when both its
+## craft quality and its match to the brief reach these, AND it follows the trend.
+## Otherwise the rival shop gets the story.
+@export var spotted_quality: float = 0.85
+@export var spotted_match: float = 0.85
 
 @export_subgroup("Cloth ordering")
 @export var roll_min_m: float = 2.0

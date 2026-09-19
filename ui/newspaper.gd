@@ -334,6 +334,8 @@ func _event_urgency(days: int) -> String:
 
 
 func _kicker(ev: NewsEvent) -> String:
+	if ev.kicker != "":
+		return ev.kicker
 	match ev.kind:
 		NewsEvent.Kind.FASHION:
 			return "IN FASHION"
@@ -380,6 +382,7 @@ func _events_text(day: int) -> String:
 		lines.append(
 			"Day %d · %s (%s)" % [ev.event_day, Enums.occasion_name(ev.event_occasion), when]
 		)
+	lines.append("Best dressed makes the paper: fine work, on trend.")
 	return "\n".join(lines)
 
 

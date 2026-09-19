@@ -56,6 +56,7 @@ func _ready() -> void:
 	orders_menu.theme = theme
 	clock = _build_clock()
 	reputation = _build_reputation()
+	_build_focus()
 	newspaper = _build_newspaper(theme)
 	day_transition = _build_day_transition()
 	pause_menu = _build_pause_menu(theme)
@@ -348,6 +349,16 @@ func _build_reputation() -> Control:
 	widget.position = Vector2(20, 164)
 	hud.add_child(widget)
 	return widget
+
+
+## Coffee focus badge, beside the reputation patch (hidden while there's no focus).
+func _build_focus() -> void:
+	var widget := Control.new()
+	widget.name = "Focus"
+	widget.set_script(load("res://ui/focus_widget.gd"))
+	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	widget.position = Vector2(152, 164)
+	hud.add_child(widget)
 
 
 ## The morning paper — a modal broadsheet attached to the root UI (above the HUD) so

@@ -30,7 +30,11 @@ var account_owed: int = 0:
 		EventBus.account_changed.emit(account_owed)
 
 ## Coffee focus: how many more bench games (cutting, sewing) get steadier hands.
-var focus := 0
+## Setter announces changes so the HUD's coffee badge can follow it.
+var focus: int = 0:
+	set(value):
+		focus = maxi(value, 0)
+		EventBus.focus_changed.emit(focus)
 
 var is_paused := false:
 	set(value):

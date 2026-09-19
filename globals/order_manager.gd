@@ -77,11 +77,24 @@ func create_order(
 		var lo: int = Config.data.deadline_min_days if Config.data != null else DAYS_MIN
 		var hi: int = Config.data.deadline_max_days if Config.data != null else DAYS_MAX
 		order.due_day = _today() + _rng.randi_range(lo, maxi(lo, hi))
+	_tag_event(order, int(flags.get("occasion", -1)))
 	order.deadline_days = order.due_day - _today()
 	order.arrive_at = _rng.randf_range(ARRIVE_MIN, ARRIVE_MAX)
 	active.append(order)
 	EventBus.order_created.emit(order)
 	return order
+
+
+## An order taken in a city event's run-up for that event's occasion is for the event:
+## tag it and make sure it's due by the event day (it's no use to them afterwards).
+func _tag_event(order: SuitOrder, occasion: int) -> void:
+	if occasion < 0 or News == null:
+		return
+	var ev: NewsEvent = News.event_for(occasion, _today())
+	if ev == null or ev.event_day <= _today():
+		return
+	order.event_id = ev.id
+	order.due_day = mini(order.due_day, ev.event_day)
 
 
 ## Check a freshly-sewn piece off the first open order that still needs a matching
@@ -212,6 +225,7 @@ func save_state() -> Array:
 					"late": order.late,
 					"rush": order.rush,
 					"picky": order.picky,
+					"event_id": order.event_id,
 					"state": order.state,
 					"filled": order.filled.duplicate(true),
 				}
@@ -244,6 +258,7 @@ func restore(saved: Array) -> void:
 		order.late = bool(d.get("late", false))
 		order.rush = bool(d.get("rush", false))
 		order.picky = bool(d.get("picky", false))
+		order.event_id = str(d.get("event_id", ""))
 		order.state = int(d.get("state", SuitOrder.State.OPEN))
 		order.filled = (d.get("filled", {}) as Dictionary).duplicate(true)
 		active.append(order)

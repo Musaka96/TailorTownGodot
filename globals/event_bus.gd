@@ -72,3 +72,10 @@ signal shift_ended
 signal reputation_changed(points: int, tier: int)
 ## A fresh edition of the paper is ready for the given day (auto-opens the HUD paper).
 signal newspaper_ready(day: int)
+## The paper ran a story praising the shop (e.g. best suit spotted at a city event);
+## Reputation adds `reputation` points and the HUD toasts it.
+signal press_mention(headline: String, reputation: int)
+
+# --- Workshop ---
+## Coffee focus changed: `jobs` bench games left with steadier hands (0 = none).
+signal focus_changed(jobs: int)
