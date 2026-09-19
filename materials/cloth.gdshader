@@ -26,6 +26,13 @@ uniform float pattern_scale = 1.0;
 uniform float pattern_intensity = 1.0;
 // How strongly a woven pattern's thread relief shades the cloth.
 uniform float pattern_relief = 0.85;
+// Fibre sheen on grazing angles (per fabric, set by ClothMaterial; 0 = off). The engine's
+// own rim is shaped by roughness, and ours is pinned at 1.0 for the matte look, which
+// would turn RIM into a flat brightening — so the falloff is shaped here instead.
+uniform float rim_strength = 0.0;
+uniform float rim_power = 3.0;
+// 0 = white sheen, 1 = tinted by the cloth colour (dark cloths then barely show it).
+uniform float rim_tint = 0.4;
 
 void fragment() {
 	vec2 uv = UV * uv_scale;
@@ -42,4 +49,7 @@ void fragment() {
 	ROUGHNESS = 1.0;  // matte
 	METALLIC = 0.0;
 	SPECULAR = 0.0;  // no specular highlight / reflections
+	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	RIM = rim_strength * pow(1.0 - facing, rim_power);
+	RIM_TINT = rim_tint;
 }

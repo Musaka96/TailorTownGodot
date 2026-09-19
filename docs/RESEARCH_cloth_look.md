@@ -177,6 +177,17 @@ col *= 1.0 + (macro_noise(uv / uv_scale * 0.35) - 0.5) * macro_strength;
 Purpose: a suit at distance stops being a perfectly flat tint once mipmaps eat the
 weave. Keep it subtle enough to be invisible in the close-up view.
 
+**Status (2026-09-19):** A and B1 shipped. Deviation from the B1 snippet above: the
+engine's rim is `pow(1 - N·V, (1 - roughness) * 16)`, and with our `ROUGHNESS = 1.0` that
+exponent is 0 — a flat brightening, no rim. So the shaders shape it themselves:
+`RIM = rim_strength * pow(1 - dot(NORMAL, VIEW), rim_power)` (the engine term is then 1),
+with global `rim_power` 3.0 and `rim_tint` 0.4 on the base .tres (0.7 tinted dark cloth
+nearly to nothing: navy's linear albedo ~0.03). Roughness stays 1.0, so matte diffuse and
+the rim-off regression guard hold. The FABRIC_RIM starting values are subtle at the
+gameplay cam — the top-down view mostly sees faces head-on — so tune with the owner.
+Lab extras: `rim_tint`/`rim_power` dials, and key=value command-line args for automated
+shots (see the header of `scenes/dev/cloth_lab.gd`).
+
 **Recommended order:** A → B1 (playtest with owner) → B2 → B3 → B4 (playtest again,
 tune everything via the lab's Copy-tuning button, commit the tuned tables).
 

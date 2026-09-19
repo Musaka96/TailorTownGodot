@@ -82,6 +82,19 @@ const PATTERN_INTENSITY := [
 	0.60,  # tattersall
 	1.0,  # end-on-end
 ]
+# Fibre sheen: how much grazing light the fabric catches (the shader's rim_strength).
+# Mohair is sold on it; flannel is dead-matte. Indexed by Enums.Fabric. Tune in the
+# Cloth Lab (scenes/dev/cloth_lab.tscn) at the gameplay-cam preset, then Copy tuning.
+const FABRIC_RIM := [
+	0.08,  # worsted wool
+	0.0,  # flannel
+	0.05,  # tweed
+	0.35,  # mohair blend
+	0.12,  # linen
+	0.05,  # cotton
+	0.08,  # poplin
+	0.05,  # oxford cloth
+]
 
 static var _base: ShaderMaterial
 static var _base_tri: ShaderMaterial
@@ -140,6 +153,7 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 	sm.set_shader_parameter("pattern_tex", texture("patterns", pattern_tex_name(mat.pattern)))
 	sm.set_shader_parameter("pattern_scale", pattern_scale(mat.pattern))
 	sm.set_shader_parameter("pattern_intensity", pattern_intensity(mat.pattern))
+	sm.set_shader_parameter("rim_strength", fabric_rim(mat.fabric))
 
 
 static func fabric_tex_name(f: int) -> String:
@@ -156,6 +170,10 @@ static func pattern_scale(p: int) -> float:
 
 static func pattern_intensity(p: int) -> float:
 	return PATTERN_INTENSITY[p] if p >= 0 and p < PATTERN_INTENSITY.size() else 1.0
+
+
+static func fabric_rim(f: int) -> float:
+	return FABRIC_RIM[f] if f >= 0 and f < FABRIC_RIM.size() else 0.0
 
 
 static func _base_material(path: String) -> ShaderMaterial:

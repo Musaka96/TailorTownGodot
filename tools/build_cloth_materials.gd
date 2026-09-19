@@ -27,6 +27,10 @@ func _write(path: String, shader_path: String, scale_param: String, scale: float
 	mat.set_shader_parameter("fabric_strength", 0.5)
 	mat.set_shader_parameter("pattern_strength", 0.85)
 	mat.set_shader_parameter("pattern_relief", 0.85)
+	# Rim sheen falloff (higher = thinner rim) and tint (0 = white sheen, 1 = cloth-coloured);
+	# the strength is per fabric (ClothMaterial.FABRIC_RIM).
+	mat.set_shader_parameter("rim_power", 3.0)
+	mat.set_shader_parameter("rim_tint", 0.4)
 	mat.set_shader_parameter(scale_param, scale)
 	var err := ResourceSaver.save(mat, path)
 	print("build_cloth_materials: %s -> %s" % [path, "ok" if err == OK else "FAIL %d" % err])
