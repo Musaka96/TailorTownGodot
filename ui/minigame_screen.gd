@@ -90,22 +90,17 @@ func _load_assets() -> void:
 ## Title top-left (§5 keeps the top-right for the skin's tape), slips beside it as a
 ## word plus a row of pins — the count never rides on colour alone (§2).
 func _build_head(screen_title: String) -> Control:
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", Style.S2)
-	head.add_child(Style.title_label(screen_title, Style.ACC_WORK))
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(spacer)
+	var head := TitleBlock.make(screen_title, "The bench", Style.ACC_WORK)
 	_slips_lbl = Label.new()
-	_slips_lbl.add_theme_font_override("font", Style.bold_font())
-	_slips_lbl.add_theme_font_size_override("font_size", 15)
+	_slips_lbl.add_theme_font_override("font", Style.font_bold())
+	_slips_lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_slips_lbl.add_theme_color_override("font_color", Style.INK_SOFT)
 	_slips_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(_slips_lbl)
+	head.right.add_child(_slips_lbl)
 	_pips_box = HBoxContainer.new()
 	_pips_box.add_theme_constant_override("separation", Style.S1 + 2)
 	_pips_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(_pips_box)
+	head.right.add_child(_pips_box)
 	return head
 
 

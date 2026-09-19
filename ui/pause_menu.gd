@@ -6,7 +6,7 @@ extends Control
 ## the tree is paused (PROCESS_MODE_ALWAYS) so its buttons stay live.
 
 var _box: VBoxContainer
-var _title: Label
+var _head: TitleBlock
 var _panel: PanelContainer
 var _sub := false  # true while a Save/Load slot list is showing (Esc goes back)
 
@@ -44,9 +44,8 @@ func _build() -> void:
 	outer.add_theme_constant_override("separation", Style.S3)
 	margin.add_child(outer)
 
-	_title = Style.title_label("Paused", Style.WALNUT)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	outer.add_child(_title)
+	_head = TitleBlock.make("Paused", "TailorTown", Style.BRASS)
+	outer.add_child(_head)
 
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", Style.S2)
@@ -77,7 +76,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _show_main() -> void:
 	_sub = false
 	_clear()
-	_title.text = "Paused"
+	_head.title.text = "Paused"
+	_refresh_meta()
 	_box.add_child(MenuKit.button("Resume", _resume))
 	_box.add_child(MenuKit.button("Save Game", func() -> void: _show_slots(true)))
 	_box.add_child(MenuKit.button("Load Game", func() -> void: _show_slots(false)))
@@ -90,7 +90,8 @@ func _show_main() -> void:
 func _show_settings() -> void:
 	_sub = true
 	_clear()
-	_title.text = "Settings"
+	_clear_meta()
+	_head.title.text = "Settings"
 	SettingsUI.build(_box)
 	_box.add_child(MenuKit.button("Back", _show_main))
 	_focus_first()
@@ -99,7 +100,8 @@ func _show_settings() -> void:
 func _show_slots(saving: bool) -> void:
 	_sub = true
 	_clear()
-	_title.text = "Save to a slot" if saving else "Load a save"
+	_clear_meta()
+	_head.title.text = "Save to a slot" if saving else "Load a save"
 	for info: Dictionary in SaveManager.slot_infos():
 		var slot: Variant = info["slot"]
 		if saving:
@@ -137,6 +139,21 @@ func _to_menu() -> void:
 
 func _resume() -> void:
 	GameState.is_paused = false
+
+
+## Day / money strip under the title — only on the main pause page.
+func _refresh_meta() -> void:
+	_clear_meta()
+	_head.meta.add_child(TitleBlock.meta_label("Day %d" % Shift.day))
+	_head.meta.add_child(TitleBlock.meta_label("$%d" % GameState.money, true))
+	_head.meta.visible = true
+
+
+func _clear_meta() -> void:
+	for child in _head.meta.get_children():
+		_head.meta.remove_child(child)
+		child.queue_free()
+	_head.meta.visible = false
 
 
 func _clear() -> void:

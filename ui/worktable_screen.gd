@@ -5,6 +5,7 @@ extends Control
 
 enum Row { TYPE, SIZE, STYLE }
 const ROW_NAME := {Row.TYPE: "Type", Row.SIZE: "Size", Row.STYLE: "Style"}
+const KICKER := "The bench"
 
 var _worktable = null
 var _actor = null
@@ -20,6 +21,7 @@ var _cloth_label: Label
 var _minigame: MinigameScreen
 var _minigame_variant := -1
 var _decor_built := false
+var _head: TitleBlock
 
 @onready var _config: Control = $Config
 @onready var _panel: PanelContainer = $Config/Center/Panel
@@ -81,9 +83,8 @@ func _style() -> void:
 	_panel.custom_minimum_size = Vector2(700, 0)
 	Style.apply_skin(_panel, Style.MenuSkin.WORK)
 	_preview.add_theme_constant_override("separation", Style.S3)
-	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.ACC_WORK)
+	if _head == null:
+		_head = TitleBlock.adopt(_title, KICKER, Style.ACC_WORK)
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_sub_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
@@ -128,7 +129,7 @@ func _value_text(row: int) -> String:
 
 
 func _refresh() -> void:
-	_title.text = "Worktable  ·  Make a Part"
+	_title.text = "Make a part"
 	if _piece != null and _piece.material != null:
 		_swatch.setup(_piece.material, _piece.material.roll_length_m)
 		_name_label.text = _piece.material.display_name

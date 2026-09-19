@@ -9,6 +9,7 @@ extends Control
 ## The book's fixed size — the ONLY fixed element. Everything inside stacks and
 ## scrolls within it (index on the left, preview + article on the right).
 const BOOK_SIZE := Vector2(780, 600)
+const KICKER := "Handbook"
 
 var _actor = null
 var _chapters: Array = []
@@ -17,6 +18,7 @@ var _topic := 0
 var _decor_built := false
 var _index_scroll: ScrollContainer
 var _was_paused := false
+var _head: TitleBlock
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -56,9 +58,8 @@ func _style() -> void:
 	# no tab can resize it and empty space is never reserved.
 	_panel.custom_minimum_size = BOOK_SIZE
 	Style.apply_skin(_panel, Style.MenuSkin.BOOK)
-	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.ACC_BOOK)
+	if _head == null:
+		_head = TitleBlock.adopt(_title, KICKER, Style.ACC_BOOK)
 	_tabs.add_theme_constant_override("separation", Style.S1)
 	_index.add_theme_constant_override("separation", Style.S1)
 	# The body grows with its text (fit_content) and wraps to the page width; the
@@ -124,7 +125,7 @@ func _build_decor_once() -> void:
 
 
 func _refresh() -> void:
-	_title.text = "Tailor's Handbook"
+	_title.text = _chapters[_chapter]["name"]
 	for child in _tabs.get_children():
 		child.queue_free()
 	for i in _chapters.size():

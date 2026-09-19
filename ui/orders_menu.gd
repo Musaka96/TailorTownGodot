@@ -11,11 +11,14 @@ const CHIP := {
 	Enums.GarmentType.SHIRT: "S",
 	Enums.GarmentType.PANTS: "P",
 }
+const KICKER := "Orders board"
 
 var _actor = null
 var _sel := 0
 var _tick := 0.0
 var _decor_built := false
+var _head: TitleBlock
+var _count_meta: Label
 
 var _calendar: HBoxContainer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -68,9 +71,10 @@ func _process(delta: float) -> void:
 func _style() -> void:
 	_panel.custom_minimum_size = Style.FRAME_WIDE
 	Style.apply_skin(_panel, Style.MenuSkin.ORDERS)
-	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", Style.ACC_ORDERS)
+	if _head == null:
+		_head = TitleBlock.adopt(_title, KICKER, Style.ACC_ORDERS)
+		_count_meta = TitleBlock.meta_label("", true)
+		_head.meta.add_child(_count_meta)
 	_list.add_theme_constant_override("separation", Style.S1)
 	_detail.add_theme_constant_override("separation", Style.S2)
 	_build_decor_once()
@@ -97,9 +101,9 @@ func _build_decor_once() -> void:
 	_calendar = HBoxContainer.new()
 	_calendar.add_theme_constant_override("separation", Style.S2)
 	_calendar.alignment = BoxContainer.ALIGNMENT_CENTER
-	var box := _title.get_parent()
+	var box := _head.get_parent()
 	box.add_child(_calendar)
-	box.move_child(_calendar, _title.get_index() + 1)
+	box.move_child(_calendar, _head.get_index() + 1)
 	_hint.get_parent().add_child(Style.hint_bar([["W/S", "Select"], ["Esc", "Close"]]))
 
 
@@ -139,7 +143,8 @@ func _refresh_calendar() -> void:
 func _refresh() -> void:
 	_refresh_calendar()
 	var orders: Array = Orders.active
-	_title.text = "Orders  (%d)" % orders.size()
+	_title.text = "Orders"
+	_count_meta.text = "%d open" % orders.size()
 	_sel = clampi(_sel, 0, maxi(orders.size() - 1, 0))
 
 	for child in _list.get_children():
@@ -201,8 +206,7 @@ func _fill_detail(order) -> void:
 	_detail.add_child(_status_line(order))
 	_detail.add_child(_line("Agreed price: $%d" % order.price, 16, Style.LEAF))
 
-	var sep := HSeparator.new()
-	_detail.add_child(sep)
+	_detail.add_child(StitchRule.make(Style.ACC_ORDERS, false, 2.0))
 
 	for t in order.required_types():
 		_detail.add_child(_piece_row(order, t))

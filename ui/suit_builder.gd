@@ -5,6 +5,7 @@ extends Control
 ## it; "Overview" frames the whole customer. E confirms the design.
 
 enum Row { PART, FABRIC, COLOR, PATTERN, STYLE }
+const KICKER := "Fitting room"
 const ROW_NAME := {
 	Row.PART: "Part",
 	Row.FABRIC: "Fabric",
@@ -57,6 +58,7 @@ var _stock_badge: HBoxContainer
 var _stock_dot: Panel
 var _stock_label: Label
 var _decor_built := false
+var _head: TitleBlock
 var _badges: ClientBadges
 var _height := DEFAULT_BODY_HEIGHT  # customer's measured height, cached on open
 
@@ -153,9 +155,6 @@ func _style() -> void:
 	_panel.custom_minimum_size = Vector2(440, 560)
 	Style.apply_skin(_panel, Style.MenuSkin.MIRROR)
 	_preview.add_theme_constant_override("separation", Style.S3)
-	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 24)
-	_title.add_theme_color_override("font_color", Style.ACC_MIRROR.darkened(0.2))
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_sub_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
@@ -171,14 +170,16 @@ func _build_decor_once() -> void:
 	_decor_built = true
 	_hint.visible = false
 	var box := _hint.get_parent()
+	_head = TitleBlock.adopt(_title, KICKER, Style.ACC_MIRROR)
 	_badges = ClientBadges.make(null)
-	box.add_child(_badges)
-	box.move_child(_badges, _title.get_index() + 1)
+	_head.meta.add_child(_badges)
 	_brief_label = Label.new()
-	_brief_label.add_theme_font_size_override("font_size", 14)
+	_brief_label.add_theme_font_override("font", Style.font_body())
+	_brief_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_brief_label.add_theme_color_override("font_color", Style.INK)
 	_brief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_brief_label)
+	box.move_child(_brief_label, _head.get_index() + 1)
 	_hint_bar = HBoxContainer.new()
 	box.add_child(_hint_bar)
 
@@ -400,7 +401,7 @@ func _body_height() -> float:
 
 
 func _refresh() -> void:
-	_title.text = ("Fitting: %s" % _pref.display_name) if _pref != null else "Suit Builder"
+	_title.text = _pref.display_name if _pref != null else "Suit Builder"
 	_badges.show_for(_pref)
 	var mat := _material()
 	_swatch.setup(mat, mat.roll_length_m)

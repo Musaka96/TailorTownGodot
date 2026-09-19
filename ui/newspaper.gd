@@ -11,7 +11,6 @@ extends Control
 ## Built entirely in code from a bare Control (ui.gd._build_newspaper), so no scene
 ## has to be regenerated to add it.
 
-const FONT := preload("res://assets/fonts/Fredoka.ttf")
 const GRAIN_SHADER := preload("res://assets/shaders/paper_grain.gdshader")
 const PAPER_W := 600.0
 const SIDE_W := 216.0
@@ -58,10 +57,21 @@ func _on_newspaper_ready(_day: int) -> void:
 # --- Fonts -----------------------------------------------------------------
 
 
+## Every non-masthead face on the sheet: the real bold cut in place of the old fake
+## embolden, or plain body when none was asked for. A FontVariation's own weight axis
+## doesn't carry through a second FontVariation wrapped around it as `base_font` (it
+## renders at the base instance instead), so each caller gets its own duplicate of
+## the real Style face with just the glyph spacing changed, rather than a wrapper.
 func _font(embolden: float, glyph: int) -> FontVariation:
-	var fv := FontVariation.new()
-	fv.base_font = FONT
-	fv.variation_embolden = embolden
+	var base := Style.font_bold() if embolden > 0.0 else Style.font_body()
+	var fv: FontVariation = base.duplicate()
+	fv.spacing_glyph = glyph
+	return fv
+
+
+## THE TAILOR'S GAZETTE lockup — the one place on the sheet that gets the display face.
+func _masthead_font(glyph: int) -> FontVariation:
+	var fv: FontVariation = Style.font_display().duplicate()
 	fv.spacing_glyph = glyph
 	return fv
 
@@ -161,7 +171,7 @@ func _build_masthead(body: VBoxContainer) -> void:
 	title.text = "THE TAILOR'S GAZETTE"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_override("font", _font(0.4, 1))
+	title.add_theme_font_override("font", _masthead_font(1))
 	title.add_theme_font_size_override("font_size", 30)
 	title.add_theme_color_override("font_color", Style.INK)
 	row.add_child(title)

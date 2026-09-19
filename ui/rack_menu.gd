@@ -8,13 +8,16 @@ extends Control
 ## apart onto separate hooks (the menu stays open). Built in code by ui.gd, so no scene
 ## file is needed.
 
+const KICKER := "Fitting room"
+
 var _rack = null
 var _actor = null
 var _index := 0
 var _cards: Array = []
 
 var _panel: PanelContainer
-var _title: Label
+var _head: TitleBlock
+var _hung_meta: Label
 var _list: VBoxContainer
 var _scroll: ScrollContainer
 var _hints: Control
@@ -63,8 +66,10 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", Style.S2)
 	_panel.add_child(box)
 
-	_title = Style.title_label("Wardrobe", Style.ACC_MIRROR)
-	box.add_child(_title)
+	_head = TitleBlock.make("Wardrobe", KICKER, Style.ACC_MIRROR)
+	box.add_child(_head)
+	_hung_meta = TitleBlock.meta_label("", true)
+	_head.meta.add_child(_hung_meta)
 
 	_scroll = ScrollContainer.new()
 	_scroll.custom_minimum_size = Vector2(0, 400)
@@ -121,7 +126,7 @@ func _rebuild_list() -> void:
 		var card := _make_card(items[i], i)
 		_list.add_child(card)
 		_cards.append(card)
-	_title.text = "Wardrobe  ·  %d hung" % items.size()
+	_hung_meta.text = "%d hung" % items.size()
 	_refresh_hints()
 
 

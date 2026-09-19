@@ -6,13 +6,15 @@ extends Control
 ## the reason, so the list doubles as a "what cloth do I need" reminder. WORK skin, like
 ## the benches. Built in code by ui.gd.
 
+const KICKER := "Apprentice"
+
 var _bench = null
 var _index := 0
 var _cards: Array = []
 var _jobs: Array = []
 
 var _panel: PanelContainer
-var _title: Label
+var _head: TitleBlock
 var _skill: Label
 var _now: Label
 var _list: VBoxContainer
@@ -57,10 +59,10 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", Style.S2)
 	_panel.add_child(box)
 
-	_title = Style.title_label("Percy · your apprentice", Style.ACC_WORK)
-	box.add_child(_title)
-	_skill = _line(box, 15, Style.INK_SOFT)
-	_now = _line(box, 16, Style.INK)
+	_head = TitleBlock.make("Percy", KICKER, Style.ACC_WORK)
+	box.add_child(_head)
+	_skill = _line(box, Style.T_CAPTION, Style.INK_SOFT)
+	_now = _line(box, Style.T_BODY, Style.INK)
 
 	_scroll = ScrollContainer.new()
 	_scroll.custom_minimum_size = Vector2(0, 330)

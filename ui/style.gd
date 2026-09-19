@@ -174,6 +174,7 @@ static func apply_skin(panel_node: PanelContainer, skin: int) -> AtelierFrame:
 	var shp := AtelierFrame.Shape.NONE
 	var radii := Vector4i(20, 20, 20, 20)  # top-left, top-right, bottom-right, bottom-left
 	var pad_left := S3
+	var pad_top := S3
 	match skin:
 		MenuSkin.ORDER:
 			accent = BRASS
@@ -196,6 +197,8 @@ static func apply_skin(panel_node: PanelContainer, skin: int) -> AtelierFrame:
 			paper = PAPER_MIRROR
 			accent = BRASS
 			radii = Vector4i(44, 44, 12, 12)
+			pad_left = S4  # clear of the arch, where the title block starts
+			pad_top = S4
 		MenuSkin.WORK:
 			paper = MAT
 			accent = WALNUT
@@ -219,7 +222,7 @@ static func apply_skin(panel_node: PanelContainer, skin: int) -> AtelierFrame:
 	sb.border_color = accent
 	sb.content_margin_left = pad_left
 	sb.content_margin_right = S3
-	sb.content_margin_top = S3
+	sb.content_margin_top = pad_top
 	sb.content_margin_bottom = S3
 	sb.shadow_color = SHADOW
 	sb.shadow_size = 8

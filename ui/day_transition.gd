@@ -38,9 +38,9 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	sign.add_child(box)
 
-	_title = _make_label(46, Style.WALNUT)
+	_title = _make_label(Style.T_HERO, Style.WALNUT, Style.font_display())
 	box.add_child(_title)
-	_subtitle = _make_label(22, Style.FOREST)
+	_subtitle = _make_label(Style.T_NAME, Style.FOREST, Style.font_medium())
 	box.add_child(_subtitle)
 
 
@@ -73,10 +73,10 @@ func _finish() -> void:
 		_on_done.call()
 
 
-func _make_label(font_size: int, color: Color) -> Label:
+func _make_label(font_size: int, color: Color, font: Font) -> Label:
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", Style.bold_font())
+	label.add_theme_font_override("font", font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	return label

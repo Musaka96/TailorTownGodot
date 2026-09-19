@@ -8,6 +8,7 @@ extends Control
 
 const CUT_STEP := 0.1
 const CUT_START := 2.0
+const KICKER := "Bolt shelf"
 
 var _shelf = null
 var _actor = null
@@ -18,6 +19,9 @@ var _scroll: ScrollContainer
 var _cards: Array = []  # one card per stored roll, built once per open
 var _tape: TapeMeasure
 var _fits_label: Label
+var _head: TitleBlock
+var _rolls_meta: Label
+var _cut_meta: Label
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _title: Label = $Center/Panel/Margin/Box/Title
@@ -46,9 +50,8 @@ func close() -> void:
 func _style() -> void:
 	_panel.custom_minimum_size = Style.FRAME_TALL
 	Style.apply_skin(_panel, Style.MenuSkin.SHELF)
-	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_color_override("font_color", Style.ACC_SHELF)
-	_title.add_theme_font_size_override("font_size", 26)
+	if _head == null:
+		_head = TitleBlock.adopt(_title, KICKER, Style.ACC_SHELF)
 	_list.add_theme_constant_override("separation", Style.S2)
 	_build_decor_once()
 
@@ -79,16 +82,21 @@ func _build_decor_once() -> void:
 		["Esc", "Close"],
 	]
 	box.add_child(Style.hint_bar(pairs))
+	# Roll count + current cut length: the one sanctioned home is the title's meta row.
+	_rolls_meta = TitleBlock.meta_label("", true)
+	_head.meta.add_child(_rolls_meta)
+	_cut_meta = TitleBlock.meta_label("", true)
+	_head.meta.add_child(_cut_meta)
 	# Measuring guide under the title: what each part takes, and what this cut covers.
-	var title_pos := _title.get_index()
+	var head_pos := _head.get_index()
 	_tape = TapeMeasure.new()
 	box.add_child(_tape)
-	box.move_child(_tape, title_pos + 1)
+	box.move_child(_tape, head_pos + 1)
 	_fits_label = Label.new()
-	_fits_label.add_theme_font_override("font", Style.bold_font())
-	_fits_label.add_theme_font_size_override("font_size", 15)
+	_fits_label.add_theme_font_override("font", Style.font_bold())
+	_fits_label.add_theme_font_size_override("font_size", Style.T_BODY)
 	box.add_child(_fits_label)
-	box.move_child(_fits_label, title_pos + 2)
+	box.move_child(_fits_label, head_pos + 2)
 
 
 ## Build the whole card list once (on open). The roll set doesn't change while
@@ -116,7 +124,11 @@ func _rebuild_list() -> void:
 
 
 func _update_title() -> void:
-	_title.text = "Shelf  ·  %d rolls  ·  cutting %.1f m" % [_shelf.stored.size(), _cut_length]
+	_title.text = "Shelf"
+	_rolls_meta.text = (
+		"%d roll%s" % [_shelf.stored.size(), "" if _shelf.stored.size() == 1 else "s"]
+	)
+	_cut_meta.text = "cutting %.1f m" % _cut_length
 	_update_measure()
 
 

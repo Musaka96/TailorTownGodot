@@ -27,8 +27,14 @@ static func make(text: String, kicker_text := "", accent := Style.BRASS) -> Titl
 
 
 ## Wrap a Title label that already lives in a scene: the block takes the label's place
-## in its parent and the label moves inside it.
+## in its parent and the label moves inside it. Safe to call again (a menu that restyles
+## on every open gets the block it already has).
 static func adopt(label: Label, kicker_text := "", accent := Style.BRASS) -> TitleBlock:
+	var node := label.get_parent()
+	while node != null:
+		if node is TitleBlock:
+			return node
+		node = node.get_parent()
 	var host := label.get_parent()
 	var at := label.get_index()
 	host.remove_child(label)
