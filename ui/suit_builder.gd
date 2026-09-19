@@ -54,6 +54,7 @@ var _name_label: Label
 var _sub_label: Label
 var _brief_label: Label
 var _hint_bar: HBoxContainer
+var _total_slot: VBoxContainer
 var _stock_badge: HBoxContainer
 var _stock_dot: Panel
 var _stock_label: Label
@@ -172,6 +173,7 @@ func _build_decor_once() -> void:
 	var box := _hint.get_parent()
 	_head = TitleBlock.adopt(_title, KICKER, Style.ACC_MIRROR)
 	_badges = ClientBadges.make(null)
+	_badges.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_head.meta.add_child(_badges)
 	_brief_label = Label.new()
 	_brief_label.add_theme_font_override("font", Style.font_body())
@@ -180,6 +182,10 @@ func _build_decor_once() -> void:
 	_brief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_brief_label)
 	box.move_child(_brief_label, _head.get_index() + 1)
+	# Rows take the slack so the quote and the key prompts stay pinned to the bottom.
+	_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_total_slot = VBoxContainer.new()
+	box.add_child(_total_slot)
 	_hint_bar = HBoxContainer.new()
 	box.add_child(_hint_bar)
 
@@ -416,25 +422,18 @@ func _refresh() -> void:
 	if _pref != null:
 		# Live price readout: cloth + craft = quote, against the customer's budget.
 		var q := Pricing.quote_breakdown(_design)
-		var over := "  (OVER BUDGET)" if int(q["total"]) > _pref.budget else ""
+		var over: bool = int(q["total"]) > _pref.budget
 		var rush := ""
 		if _pref.rush:
 			rush = "  + rush $%d" % _rush_extra(int(q["total"]))
 		_brief_label.text = (
-			"For: %s   ·   Budget $%d\nCloth $%d + Craft $%d = Quote $%d%s%s%s"
-			% [
-				_pref.describe(),
-				_pref.budget,
-				q["cloth"],
-				q["craft"],
-				q["total"],
-				rush,
-				over,
-				_status,
-			]
+			"For: %s   ·   Budget $%d%s" % [_pref.describe(), _pref.budget, _status]
 		)
+		var working := "Cloth $%d + Craft $%d%s" % [q["cloth"], q["craft"], rush]
+		_show_total(working, int(q["total"]), over)
 	else:
 		_brief_label.text = _status.strip_edges()
+		_clear_total()
 	_update_stock()
 	_rebuild_hint_bar()
 
@@ -447,6 +446,19 @@ func _refresh() -> void:
 
 
 ## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
+func _clear_total() -> void:
+	for child in _total_slot.get_children():
+		child.queue_free()
+
+
+## The live quote as the panel's footer: working on the left, the total large and bold.
+func _show_total(working: String, total: int, over: bool) -> void:
+	_clear_total()
+	var col := Style.CLAY if over else Style.INK
+	var note := "Over budget" if over else ""
+	_total_slot.add_child(Style.total_bar(working, "Quote", total, col, note))
+
+
 func _rebuild_hint_bar() -> void:
 	for child in _hint_bar.get_children():
 		_hint_bar.remove_child(child)  # gone now, so the tutorial finds only the live keys
@@ -464,24 +476,13 @@ func _make_row(row: int, selected: bool) -> Control:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
-	var name_label := Label.new()
-	name_label.text = ROW_NAME[row]
-	name_label.custom_minimum_size = Vector2(96, 0)
-	name_label.add_theme_color_override("font_color", Style.INK_SOFT)
-	name_label.add_theme_font_size_override("font_size", 17)
-	hbox.add_child(name_label)
-	var value := Label.new()
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.text = ("‹ %s ›" % _value_text(row)) if selected else _value_text(row)
-	value.add_theme_color_override("font_color", Style.INK)
-	value.add_theme_font_size_override("font_size", 18)
-	hbox.add_child(value)
+	Style.field_row(hbox, ROW_NAME[row], _value_text(row), selected)
 	if _row_on_target(row):
 		# The tutorial's "that's right": a tick on every row already set to the recipe.
 		var tick := Label.new()
 		tick.text = "✓"
 		tick.add_theme_color_override("font_color", Style.FOREST)
-		tick.add_theme_font_size_override("font_size", 20)
+		tick.add_theme_font_size_override("font_size", Style.T_VALUE)
 		hbox.add_child(tick)
 	return card
 

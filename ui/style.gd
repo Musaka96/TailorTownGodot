@@ -81,6 +81,8 @@ const FRAME_SMALL := Vector2(560, 360)
 const FRAME_WIDE := Vector2(820, 520)
 const FRAME_TALL := Vector2(640, 560)
 
+const FIELD_W := 96  # the name column of a config row (Style.field_row)
+
 static var _faces: Dictionary = {}
 static var _theme: Theme
 
@@ -313,6 +315,81 @@ static func header(text: String, accent: Color = BRASS) -> Label:
 ## accents are darkened; the dark ones (forest, burgundy, walnut) pass through.
 static func text_accent(accent: Color) -> Color:
 	return accent.darkened(0.3) if accent.get_luminance() > 0.35 else accent
+
+
+# --- Rows, money, totals ----------------------------------------------------
+
+
+## The two labels of a config row ("Fabric   ‹ Worsted Wool ›"), added to `row`: a soft
+## caption-sized name in a fixed-width column, then the value — medium weight, bold with
+## arrows when the row is selected. Returns the value label.
+static func field_row(row: BoxContainer, field: String, value: String, selected := false) -> Label:
+	var name_lbl := Label.new()
+	name_lbl.text = field
+	name_lbl.custom_minimum_size = Vector2(FIELD_W, 0)
+	name_lbl.add_theme_font_override("font", font_body())
+	name_lbl.add_theme_font_size_override("font_size", T_BODY)
+	name_lbl.add_theme_color_override("font_color", INK_SOFT)
+	row.add_child(name_lbl)
+	var value_lbl := Label.new()
+	value_lbl.text = ("‹ %s ›" % value) if selected else value
+	value_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_lbl.add_theme_font_override("font", font_bold() if selected else font_medium())
+	value_lbl.add_theme_font_size_override("font_size", T_VALUE)
+	value_lbl.add_theme_color_override("font_color", INK)
+	row.add_child(value_lbl)
+	return value_lbl
+
+
+## Money is always bold: "$276". `col` — INK for a price, FOREST for income, CLAY when
+## it can't be afforded.
+static func money(amount: int, size: int = T_VALUE, col: Color = INK) -> Label:
+	var lbl := Label.new()
+	lbl.text = "$%d" % amount
+	lbl.add_theme_font_override("font", font_bold())
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", col)
+	return lbl
+
+
+## A price summary as a footer block: a stitched rule, the working on the left in soft
+## caption text ("Cloth $96 + Craft $180"), and the total large and bold on the right
+## ("Quote" "$276"). `note` (e.g. "OVER BUDGET") sits under the working in `total_col`.
+static func total_bar(
+	working: String, total_name: String, total: int, total_col: Color = INK, note := ""
+) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", S1)
+	box.add_child(StitchRule.make(INK_SOFT, false, 2.0))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", S2)
+	box.add_child(row)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 0)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(left)
+	left.add_child(_caption(working, INK_SOFT, false))
+	if note != "":
+		left.add_child(_caption(note, total_col, true))
+	var name_lbl := _caption(total_name.to_upper(), INK_SOFT, false)
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_lbl.add_theme_font_override("font", font_caps())
+	name_lbl.add_theme_font_size_override("font_size", T_MICRO)
+	name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(name_lbl)
+	row.add_child(money(total, T_NAME, total_col))
+	return box
+
+
+static func _caption(text: String, col: Color, strong: bool) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_override("font", font_bold() if strong else font_body())
+	lbl.add_theme_font_size_override("font_size", T_CAPTION)
+	lbl.add_theme_color_override("font_color", col)
+	return lbl
 
 
 # --- Prompts & readability -------------------------------------------------
