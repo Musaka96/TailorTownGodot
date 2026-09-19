@@ -182,6 +182,15 @@ func next_arrival() -> Dictionary:
 	return {} if kind == "" else {"kind": kind}
 
 
+## A passer-by was talked into coming in (StreetPitch): that uses up one of today's
+## planned walk-ins, so pitching brings custom forward rather than adding to it.
+func claim_walk_in() -> void:
+	if _plan_day != _today():
+		plan_day()
+	if not _plan.is_empty():
+		_plan.remove_at(0)
+
+
 ## Walk-ins are held while the sign is up, a fitting is on screen, just after a handover,
 ## or while the shop is swamped.
 func _walk_ins_allowed(now: float) -> bool:

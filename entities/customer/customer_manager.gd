@@ -103,6 +103,7 @@ func _stroll_tick() -> void:
 	var far_end := _street_east if from_west else _street_west
 	var walker := _spawn(start, false)
 	walker.walk([far_end], walker.despawn)
+	StreetPitch.attach(walker, far_end)  # the player can try to talk them inside
 
 
 func _spawns_allowed() -> bool:
@@ -194,6 +195,27 @@ func _poof_at(pos: Vector3) -> void:
 	p.global_position = pos + Vector3(0, 0.9, 0)  # centre on the body
 	p.emitting = true
 	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
+
+
+## Reserve the shop's one service slot for a passer-by who is being talked inside, so
+## nobody else walks in while they make up their mind. False if it's already taken.
+func hold_for(cust: Customer) -> bool:
+	if busy():
+		return false
+	_served = cust
+	return true
+
+
+## A passer-by agreed to come in (StreetPitch): give them a brief like any walk-in and
+## bring them to the counter to be greeted.
+func invite_in(cust: Customer) -> void:
+	cust.preference = CustomerPreference.random_pref(_rng, "")
+	_apply_event_bias(cust.preference)
+	FrontDesk.season_brief(cust.preference)
+	cust.preference.arrival = "pitch"
+	FrontDesk.claim_walk_in()
+	_served = cust
+	cust.walk([_door_out, _door_in, _greet], func() -> void: _on_shopper_waiting(cust))
 
 
 func _send_shopper(start: Vector3, arrival := {}) -> void:

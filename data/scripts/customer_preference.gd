@@ -91,6 +91,8 @@ func tags() -> PackedStringArray:
 		out.append("Here for the fitting you booked.")
 	elif arrival == "referral":
 		out.append("Sent over by %s." % FrontDesk.RIVAL_NAME)
+	elif arrival == "pitch":
+		out.append("Won over by your pitch on the street.")
 	if rush:
 		out.append(
 			"Needs it tomorrow and pays %d%% extra for it." % roundi(FrontDesk.RUSH_BONUS * 100.0)

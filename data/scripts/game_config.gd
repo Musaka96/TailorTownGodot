@@ -69,6 +69,11 @@ extends Resource
 @export var coffee_rep: int = 2
 @export var coffee_patience_drain: float = 0.5
 @export var coffee_goodwill: float = 0.25
+## Pitching the shop to passers-by (StreetPitch): the chance one turns for the door, how
+## much each reputation tier adds, and the pause before the player can pitch again.
+@export var pitch_base_chance: float = 0.3
+@export var pitch_tier_bonus: float = 0.06
+@export var pitch_cooldown_s: float = 4.0
 ## "Best suit spotted": a suit worn to a city event makes the paper only when both its
 ## craft quality and its match to the brief reach these, AND it follows the trend.
 ## Otherwise the rival shop gets the story.

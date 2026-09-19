@@ -2,7 +2,8 @@ extends SceneTree
 
 ## Visual check for the shop-life features by the door: the OPEN / CLOSED sign, and (with
 ## `wait`) a collector kept waiting with his patience bar. NOT headless.
-##   godot --path . --script res://tools/shot_shop_life.gd -- [out.png] [sign|wait]
+## or (with `pitch`) the player pitching the shop to a passer-by on the street.
+##   godot --path . --script res://tools/shot_shop_life.gd -- [out.png] [sign|wait|pitch]
 
 var _out := "res://.dev/shop_life.png"
 var _what := "sign"
@@ -33,9 +34,30 @@ func _run() -> void:
 		_keep_someone_waiting()
 		var spot := main.find_child("CollectSpot", true, false) as Node3D
 		player.global_position = spot.global_position + Vector3(-1.6, 0, 0.6)
+	elif _what == "pitch":
+		await _pitch_someone(player)
 	elif sign != null:
 		player.global_position = sign.global_position + Vector3(-1.1, 0, -0.4)
 	process_frame.connect(_on_frame)
+
+
+## Stand a passer-by in front of the shop and pitch to them; shoot as they answer.
+func _pitch_someone(player: Node3D) -> void:
+	var manager: Node = get_first_node_in_group("customer_manager")
+	manager.shopper_chance = 1.0
+	manager.call("_stroll_tick")
+	var walker: Node3D = null
+	for cust in get_nodes_in_group("customer"):
+		if cust.takeover != null:
+			walker = cust
+	if walker == null:
+		return
+	walker.global_position = Vector3(1.6, 0.0, 12.0)
+	player.global_position = Vector3(-0.2, 0.0, 11.6)
+	await create_timer(0.6).timeout
+	walker.interact(player)
+	await create_timer(1.75).timeout
+	_count = 119  # shoot now, with both bubbles up
 
 
 ## An unfinished order whose customer calls now.
