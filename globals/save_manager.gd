@@ -34,6 +34,7 @@ var _pending: Dictionary = {}
 ## Where in the saved day to resume the clock (0..1); set while applying a load.
 var _resume_progress := 0.0
 var _resume_day_money := 0
+var _resume_morning := false
 ## Covers the screen from the scene swap until the fresh shop has settled.
 var _curtain: LoadingCurtain
 ## True from the moment the curtain starts falling until the game scene is swapped in, so a
@@ -128,7 +129,10 @@ func notify_game_ready() -> void:
 	match mode:
 		"load":
 			await _apply_pending()
-			DayNight.start_shift(_resume_progress)  # resume the day where it was saved
+			if _resume_morning:
+				Shift.begin_morning()  # saved before the sign was flipped
+			else:
+				DayNight.start_shift(_resume_progress)  # resume the day where it was saved
 			if Shift != null:
 				Shift.set_day_baseline(_resume_day_money)
 			get_tree().paused = false
@@ -231,7 +235,7 @@ func _starter_roll(fabric: int, color: int, length: float) -> Node:
 ## answered so the newspaper never pops before the player has chosen).
 func _begin_new_day() -> void:
 	get_tree().paused = false
-	DayNight.start_shift()
+	Shift.begin_morning()  # the shop opens when the player flips the door sign
 
 
 # --- Capture ---------------------------------------------------------------
@@ -253,6 +257,7 @@ func capture(save_name := "") -> Dictionary:
 		"reputation": Reputation.points if Reputation != null else 0,
 		"upgrades": Upgrades.save_state() if Upgrades != null else {},
 		"clock": DayNight.progress() if DayNight != null else 0.0,
+		"morning": Shift != null and Shift.phase == Shift.Phase.MORNING,
 		"day_start_money": Shift.day_start_money() if Shift != null else GameState.money,
 		"news_seen": News.seen_snapshot() if News != null else {},
 		"news_spotted": News.spotted_snapshot() if News != null else {},
@@ -305,7 +310,8 @@ func _apply_pending() -> void:
 		Clientele.restore(d.get("clientele", {}))
 	if FrontDesk != null:
 		FrontDesk.restore(d.get("front_desk", {}))
-	Shift.day = int(d.get("day", 1))
+	Shift.reset_to(int(d.get("day", 1)))
+	_resume_morning = bool(d.get("morning", false))
 	Reputation.points = int(d.get("reputation", 0))
 	if Upgrades != null:
 		Upgrades.restore(d.get("upgrades", {}))
@@ -375,7 +381,7 @@ func _reset_autoloads() -> void:
 	if Upgrades != null:
 		Upgrades.reset()
 	Orders.clear()
-	Shift.day = 1
+	Shift.reset_to(1)
 	if News != null:
 		News.restore_seen({})
 		News.restore_spotted({})

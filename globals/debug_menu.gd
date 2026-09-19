@@ -321,9 +321,12 @@ func _end_shift() -> void:
 
 
 func _new_day() -> void:
-	if not Shift.is_open():
+	if Shift.is_after_hours():
 		Shift.close_shop()
 		_note("starting next day")
+	elif not Shift.is_open():
+		Shift.open_shop()
+		_note("shop opened")
 
 
 # --- Build -----------------------------------------------------------------

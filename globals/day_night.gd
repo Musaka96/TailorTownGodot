@@ -71,6 +71,15 @@ func start_shift(at_progress := 0.0) -> void:
 	EventBus.shift_started.emit(hour)
 
 
+## Stop the clock at the opening hour: the morning, before the shop opens.
+func hold_morning() -> void:
+	_elapsed = 0.0
+	hour = start_hour()
+	running = false
+	_locate()
+	_drive()
+
+
 ## 0..1 across the whole shift.
 func progress() -> float:
 	return clampf(_elapsed / _shift_seconds(), 0.0, 1.0)

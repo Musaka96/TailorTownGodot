@@ -62,7 +62,10 @@ signal order_fulfilled(order: Resource, payout: int)
 signal order_expired(order: Resource)
 
 # --- Day / night shift ---
-## A new work shift began at `start_hour` (midday).
+## A new day dawned (the morning, before the sign is flipped): the paper lands, the pot is
+## refilled. Always fires before that day's shift_started.
+signal day_began(day: int)
+## The shop opened for the day at `start_hour` — the player flipped the door sign.
 signal shift_started(start_hour: float)
 ## The shift reached its end hour (night); the closing bell rings.
 signal shift_ended

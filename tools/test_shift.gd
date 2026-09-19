@@ -18,35 +18,51 @@ func _run() -> void:
 	await process_frame
 
 	var shift: Node = root.get_node("Shift")
-	_check(shift.is_open(), "shop starts open")
+	var day_night: Node = root.get_node("DayNight")
+	var sign: Node = current_scene.find_child("DoorSign", true, false)
+	_check(shift.is_open(), "a direct boot starts open")
 	_check(shift.day == 1, "starts on day 1")
-	_check(_find_door() == null, "no door prompt while open")
+	_check(sign != null, "the door sign stands in the shop")
+	if sign == null:
+		_finish()
+		return
+	_check(
+		"close early" in sign.get_interaction_prompt(null), "open: the sign offers closing early"
+	)
 
 	# Ring the closing bell.
 	root.get_node("EventBus").shift_ended.emit()
 	await process_frame
-	_check(not shift.is_open(), "shop closes when the shift ends")
-	_check(_find_door() != null, "door 'lock up' prompt spawns at close")
+	_check(not shift.is_open() and shift.is_after_hours(), "shop closes when the shift ends")
+	_check("finish day 1" in sign.get_interaction_prompt(null), "after hours: the sign locks up")
 
-	# Lock up at the door; the transition then rolls into the next day.
-	shift.close_shop()
+	# Flip the sign; the transition then dawns the next morning — shut until it's flipped.
+	sign.interact(null)
 	await create_timer(4.0).timeout
 	_check(shift.day == 2, "locking up advances to day 2")
-	_check(shift.is_open(), "the new day opens the shop again")
-	_check(_find_door() == null, "door prompt cleared for the new day")
-	_check(not root.get_node("GameState").input_locked, "input unlocked after the transition")
+	_check(shift.phase == 0 and not shift.is_open(), "the new day dawns closed (morning)")
+	_check(not day_night.running, "the clock waits for the sign")
+	var paper: Control = root.get_node("UI").newspaper
+	_check(paper.visible, "the morning paper lands once the night card lifts")
+	paper.close()
+	_check(not root.get_node("GameState").input_locked, "input unlocked once it's folded away")
+	_check("open the shop" in sign.get_interaction_prompt(null), "morning: the sign opens the shop")
+
+	sign.interact(null)
+	await process_frame
+	_check(shift.is_open() and day_night.running, "flipping the sign opens the shop")
+
+	# Closing early asks first, then finishes the day on the second flip.
+	sign.interact(null)
+	await process_frame
+	_check(shift.is_open() and shift.day == 2, "the first flip only asks")
+	_check("Flip again" in sign.get_interaction_prompt(null), "and the prompt says to confirm")
+	sign.interact(null)
+	await create_timer(4.0).timeout
+	paper.close()
+	_check(shift.day == 3 and shift.phase == 0, "the second flip closes early: day 3 dawns")
 
 	_finish()
-
-
-func _find_door() -> Node:
-	if current_scene == null:
-		return null
-	var shift: Node = root.get_node("Shift")
-	for n in current_scene.find_children("*", "Interactable", true, false):
-		if n.target == shift:
-			return n
-	return null
 
 
 func _check(condition: bool, label: String) -> void:

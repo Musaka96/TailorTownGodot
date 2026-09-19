@@ -1,21 +1,31 @@
 extends Node
 
 ## Autoloaded as "Shift". Owns the working-day lifecycle on top of DayNight's clock:
-## which day it is, whether the shop is OPEN (you can work and shoppers arrive), and
-## the end-of-day ritual. When the closing bell rings (EventBus.shift_ended) the shop
-## closes — no new shoppers, and the work stations refuse ("labour laws") — and a
-## "Lock up shop" prompt appears at the door. Interacting there plays the UI
-## day-transition and starts the next day (DayNight.start_shift) back at midday.
+## which day it is, what part of it (Phase), and the opening and closing rituals — both
+## done by flipping the sign by the door (scenes/world/door_sign.gd).
 ##
-## The door prompt is a code-spawned Interactable whose target is this manager, so no
-## scene needs editing. Systems ask is_open() to gate work/spawns.
+##   MORNING      the day has dawned (EventBus.day_began: the paper lands) but the sign
+##                says CLOSED. The clock waits at the opening hour; the benches work, so
+##                it's prep time. Flip the sign -> open_shop().
+##   OPEN         the clock runs, shoppers and collectors arrive. Flipping the sign now
+##                closes early and finishes the day (close_shop(true)).
+##   AFTER_HOURS  the closing bell has rung: no new shoppers, the work stations refuse
+##                ("labour laws"). Flip the sign to lock up -> close_shop().
+##
+## Finishing the day plays the UI day-transition and dawns the next morning. Systems ask
+## is_open() to gate work/spawns.
+
+enum Phase { MORNING, OPEN, AFTER_HOURS }
+
+const MORNING_HINT_DAYS := 3  # how many mornings remind the player about the sign
 
 var day := 1
 var open := true
+var phase: int = Phase.OPEN
 
 var _transitioning := false
 var _day_start_money := 0
-var _door: Interactable
+var _dawned_day := 0  # the last day day_began fired for
 
 
 func _ready() -> void:
@@ -28,6 +38,11 @@ func is_open() -> bool:
 	return open
 
 
+## True once the closing bell has rung (the benches refuse until tomorrow).
+func is_after_hours() -> bool:
+	return phase == Phase.AFTER_HOURS
+
+
 ## The wallet balance at the start of today, for the end-of-day "earned" tally.
 func day_start_money() -> int:
 	return _day_start_money
@@ -38,34 +53,66 @@ func set_day_baseline(amount: int) -> void:
 	_day_start_money = amount
 
 
-# --- Interactable target (the door) ----------------------------------------
-
-
-func get_interaction_prompt(_actor) -> String:
-	return "Lock up shop — finish day %d" % day
-
-
-func interact(_actor) -> void:
-	close_shop()
+## Jump to `to_day` with a clean slate (a new game, or a save being applied): the next
+## morning or shift dawns afresh.
+func reset_to(to_day: int) -> void:
+	day = to_day
+	phase = Phase.OPEN
+	open = true
+	_dawned_day = 0
+	_transitioning = false
 
 
 # --- Day lifecycle ---------------------------------------------------------
 
 
-## Player locked up at the door: play the transition, then roll into the next day.
-func close_shop() -> void:
-	if open or _transitioning:
+## Dawn: the shop is shut, the clock waits, and the day's news arrives.
+func begin_morning() -> void:
+	phase = Phase.MORNING
+	open = false
+	_day_start_money = GameState.money
+	DayNight.hold_morning()
+	_dawn()
+	if day <= MORNING_HINT_DAYS and UI != null:
+		UI.toast("Take your time — flip the sign by the door when you're ready to open.")
+
+
+## The sign was flipped to OPEN: start the clock (shift_started does the rest).
+func open_shop() -> void:
+	if phase != Phase.MORNING or _transitioning:
 		return
+	DayNight.start_shift()
+
+
+## Orders whose customer is still due to call today — closing early sends them home
+## until tomorrow (they arrive first thing).
+func callers_still_due() -> int:
+	var n := 0
+	for order: SuitOrder in Orders.active:
+		if not order.due_fired and order.due_day <= day:
+			n += 1
+	return n
+
+
+## Finish the day: play the transition, then dawn the next morning. After hours this is
+## locking up; with `early` it is allowed while the shop is still open.
+func close_shop(early := false) -> void:
+	if _transitioning or phase == Phase.MORNING:
+		return
+	if phase == Phase.OPEN:
+		if not early:
+			return
+		DayNight.running = false
+		EventBus.shift_ended.emit()  # the usual end-of-shift bookkeeping (autosave, music)
 	_transitioning = true
 	GameState.input_locked = true
-	_remove_door()
 	var earned := GameState.money - _day_start_money
 	UI.play_day_transition(day, day + 1, earned, _begin_next_day, _end_transition)
 
 
 func _begin_next_day() -> void:
 	day += 1
-	DayNight.start_shift()  # emits shift_started, which reopens the shop
+	begin_morning()
 
 
 func _end_transition() -> void:
@@ -73,46 +120,25 @@ func _end_transition() -> void:
 	GameState.input_locked = false
 
 
+func _dawn() -> void:
+	if _dawned_day == day:
+		return
+	_dawned_day = day
+	EventBus.day_began.emit(day)
+
+
 func _on_shift_started(_hour: float) -> void:
+	# A load or a direct boot starts the clock without a morning — it still dawns first.
+	if phase != Phase.MORNING:
+		_day_start_money = GameState.money
+	_dawn()
+	phase = Phase.OPEN
 	open = true
-	_day_start_money = GameState.money
 	if Pricing.is_market_day(day) and UI != null:
 		var off := roundi(Pricing.market_discount() * 100.0)
 		UI.toast("Market day! Every supplier's cloth is %d%% off today." % off)
 
 
 func _on_shift_ended() -> void:
+	phase = Phase.AFTER_HOURS
 	open = false
-	_spawn_door()
-
-
-# --- Door prompt -----------------------------------------------------------
-
-
-func _spawn_door() -> void:
-	if _door != null and is_instance_valid(_door):
-		return
-	var scene := get_tree().current_scene
-	if scene == null:
-		return
-	var door := Interactable.new()
-	door.collision_layer = 4  # the interactable layer the player's Interactor scans
-	door.collision_mask = 0
-	door.monitorable = true
-	door.target = self
-	var shape := CollisionShape3D.new()
-	var sphere := SphereShape3D.new()
-	sphere.radius = 1.8
-	shape.shape = sphere
-	door.add_child(shape)
-	scene.add_child(door)
-	var marker := scene.find_child("DoorInside", true, false)
-	var pos := (marker as Node3D).global_position if marker is Node3D else Vector3(0, 0, 7.2)
-	door.global_position = pos + Vector3(0.0, 0.6, 0.0)
-	_door = door
-
-
-func _remove_door() -> void:
-	if _door != null and is_instance_valid(_door):
-		_door.queue_free()
-	_door = null

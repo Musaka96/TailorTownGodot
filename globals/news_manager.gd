@@ -3,7 +3,7 @@ extends Node
 ## The daily paper — autoloaded as "News".
 ##
 ## Loads every NewsEvent from res://data/news at boot (like Catalog loads
-## materials). Each morning (EventBus.shift_started) it compiles the day's edition:
+## materials). Each morning (EventBus.day_began) it compiles the day's edition:
 ## the articles whose day/reputation gates are met and that haven't run yet (unless
 ## repeatable), ordered so the highest-priority story leads. A FASHION article in
 ## the edition becomes the running trend (followed orders earn bonus reputation); a
@@ -38,7 +38,7 @@ var _spotted: Dictionary = {}
 func _ready() -> void:
 	_rng.randomize()
 	_load()
-	EventBus.shift_started.connect(_on_shift_started)
+	EventBus.day_began.connect(_on_day_began)
 	EventBus.order_fulfilled.connect(_on_order_fulfilled)
 
 
@@ -140,8 +140,8 @@ func restore_spotted(saved: Dictionary) -> void:
 	_spotted = saved.duplicate(true)
 
 
-## Restore which articles have already run (from a save). Call before the day's
-## shift_started so already-seen, non-repeatable stories don't reappear; the next
+## Restore which articles have already run (from a save). Call before the day
+## begins so already-seen, non-repeatable stories don't reappear; the next
 ## _compile then rebuilds today's edition and trend honouring this history.
 func restore_seen(seen: Dictionary) -> void:
 	_seen = seen.duplicate()
@@ -169,7 +169,7 @@ func _load() -> void:
 			_all.append(ev)
 
 
-func _on_shift_started(_start_hour: float) -> void:
+func _on_day_began(_day: int) -> void:
 	ensure_edition()
 	EventBus.newspaper_ready.emit(_edition_day)
 

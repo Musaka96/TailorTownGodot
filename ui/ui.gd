@@ -315,9 +315,10 @@ func _shop_closed() -> bool:
 	# Tutorial exception: the day hasn't started yet, but stations must work during it.
 	if Tutorial != null and Tutorial.is_active():
 		return false
-	if Shift != null and not Shift.is_open():
+	# Only after the closing bell: the morning before the sign is flipped is prep time.
+	if Shift != null and Shift.is_after_hours():
 		Sfx.play("error")
-		toast("The shop's closed — lock up at the door")
+		toast("The shop's closed — flip the sign by the door to finish the day")
 		return true
 	return false
 

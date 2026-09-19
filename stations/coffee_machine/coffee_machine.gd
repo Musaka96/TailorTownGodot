@@ -27,7 +27,7 @@ func _init() -> void:
 func _ready() -> void:
 	super()
 	_cups = _cups_per_day()
-	EventBus.shift_started.connect(func(_h: float) -> void: _cups = _cups_per_day())
+	EventBus.day_began.connect(func(_day: int) -> void: _cups = _cups_per_day())
 
 
 func get_interaction_prompt(_actor) -> String:
