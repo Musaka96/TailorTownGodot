@@ -24,6 +24,7 @@ const SPOT_PATIENCE := 0.25  # seconds a tag spot must stay covered before the t
 
 ## The tutorial customer's fixed, premade brief — the archetypal business suit, so a
 ## first-timer is walked through a real, sensible combination.
+const TUT_NAME := "Mr. Pemberton"
 const TUT_OCCASION := Enums.Occasion.BUSINESS
 const TUT_STYLE := Enums.Style.CLASSIC
 const TUT_BUDGET := 1000
@@ -795,6 +796,7 @@ func _on_mentor_done(choice: int, done: Callable) -> void:
 ## poofs the fitting customer in, so the brief matches the recipe we teach).
 func tutorial_pref() -> CustomerPreference:
 	var p := CustomerPreference.new()
+	p.display_name = TUT_NAME
 	p.occasion = TUT_OCCASION
 	p.style = TUT_STYLE
 	p.budget = TUT_BUDGET

@@ -64,14 +64,19 @@ func budget_mult(nm: String) -> float:
 	return 1.0 + minf(loyalty(nm) * step, top)
 
 
-## A regular who could walk in now (has completed an order and has none open), or "".
+## A regular who could walk in now (has completed an order, has none open, and didn't
+## collect a suit earlier today — nobody's back for another the same day), or "".
 func pick_regular() -> String:
 	var busy := {}
 	for order in Orders.active:
 		busy[order.customer_name] = true
+	var today: int = Shift.day if Shift != null else 1
 	var pool: Array[String] = []
 	for nm: String in _people:
-		if int(_people[nm].get("visits", 0)) > 0 and not busy.has(nm):
+		var entry: Dictionary = _people[nm]
+		if int(entry.get("last_day", -1)) >= today:
+			continue
+		if int(entry.get("visits", 0)) > 0 and not busy.has(nm):
 			pool.append(nm)
 	return pool[_rng.randi() % pool.size()] if not pool.is_empty() else ""
 
@@ -87,6 +92,7 @@ func _on_fulfilled(order: SuitOrder, _payout: int) -> void:
 	var entry: Dictionary = _people.get(order.customer_name, {"loyalty": 0, "visits": 0})
 	entry["visits"] = int(entry.get("visits", 0)) + 1
 	entry["loyalty"] = mini(int(entry.get("loyalty", 0)) + 1, MAX_LOYALTY)
+	entry["last_day"] = Shift.day if Shift != null else 1
 	_people[order.customer_name] = entry
 
 
