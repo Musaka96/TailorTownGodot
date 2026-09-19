@@ -17,12 +17,11 @@ const OUTLINE_COLOR := Color(0.06, 0.05, 0.07)
 const BASE_PATH := "res://materials/cloth.tres"
 const BASE_TRIPLANAR_PATH := "res://materials/cloth_triplanar.tres"
 
-# Indexed by Enums.Fabric / Enums.Pattern (mirrors the UI swatch mapping). The
-# shirting fabrics/patterns reuse the closest existing weave texture (greybox) — see
-# fabric_tex_name / pattern_tex_name for the bounds-safe lookup. Cotton and poplin use the
-# fine worsted weave (smooth shirtings); only oxford keeps the coarser linen basketweave.
+# Indexed by Enums.Fabric / Enums.Pattern (the UI swatch reads these too — see
+# fabric_tex_name / pattern_tex_name for the bounds-safe lookup). Poplin and oxford
+# have their own weaves now (weft rib / 2x2 basket); cotton shares the fine worsted.
 const FABRIC_TEX := [
-	"worsted", "flannel", "tweed", "mohair", "linen", "worsted", "worsted", "linen"
+	"worsted", "flannel", "tweed", "mohair", "linen", "worsted", "poplin", "oxford"
 ]
 const PATTERN_TEX := [
 	"solid",
@@ -100,6 +99,26 @@ const FABRIC_RIM := [
 # baked <name>_n.png thread-relief normal map.
 const WOVEN_PATTERNS := ["houndstooth", "herringbone", "sharkskin"]
 
+# Shot cloth: how much the fabric shifts towards the accent colour at grazing
+# angles. End-on-end IS warp and weft in two colours; sharkskin gets a lesser
+# version of the same shimmer. Indexed by Enums.Pattern.
+const PATTERN_SHOT := [
+	0.0,  # solid
+	0.0,  # pinstripe
+	0.0,  # herringbone
+	0.0,  # houndstooth
+	0.0,  # windowpane
+	0.0,  # glen check
+	0.0,  # birdseye
+	0.12,  # sharkskin
+	0.0,  # nailhead
+	0.0,  # bengal stripe
+	0.0,  # university stripe
+	0.0,  # gingham
+	0.0,  # tattersall
+	0.2,  # end-on-end — the definitional shot cloth
+]
+
 static var _base: ShaderMaterial
 static var _base_tri: ShaderMaterial
 static var _outline: ShaderMaterial
@@ -158,6 +177,10 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 	sm.set_shader_parameter("pattern_scale", pattern_scale(mat.pattern))
 	sm.set_shader_parameter("pattern_intensity", pattern_intensity(mat.pattern))
 	sm.set_shader_parameter("rim_strength", fabric_rim(mat.fabric))
+	sm.set_shader_parameter(
+		"pattern_color2", MaterialFactory.derive_pattern_color2(mat.cloth_color, mat.pattern_color)
+	)
+	sm.set_shader_parameter("shot_strength", pattern_shot(mat.pattern))
 	sm.set_shader_parameter("fabric_normal", texture("fabrics", fabric_tex_name(mat.fabric) + "_n"))
 	# Only the woven patterns carry thread relief; printed ones keep the ground weave's.
 	var woven := pattern_tex_name(mat.pattern) in WOVEN_PATTERNS
@@ -186,6 +209,10 @@ static func pattern_intensity(p: int) -> float:
 
 static func fabric_rim(f: int) -> float:
 	return FABRIC_RIM[f] if f >= 0 and f < FABRIC_RIM.size() else 0.0
+
+
+static func pattern_shot(p: int) -> float:
+	return PATTERN_SHOT[p] if p >= 0 and p < PATTERN_SHOT.size() else 0.0
 
 
 static func _base_material(path: String) -> ShaderMaterial:

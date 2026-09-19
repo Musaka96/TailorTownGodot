@@ -100,6 +100,20 @@ static func pattern_color_for(cloth: Color, accent_index: int) -> Color:
 	return cloth.lerp(Color(0.95, 0.95, 0.92), 0.6)
 
 
+## The overcheck colour for two-colour patterns (glen check / tattersall — the
+## pattern texture's B channel). Derived from the accent, classic Prince-of-Wales
+## style: a quieter, hue-shifted cousin (blue accent -> rust overcheck and back),
+## so it needs no extra customer choice and nothing new in the save.
+static func derive_pattern_color2(_cloth: Color, accent: Color) -> Color:
+	var c := accent
+	c.h = fposmod(c.h + 0.45, 1.0)
+	# Dark, near-neutral accents (ink, auto-contrast) still yield a clearly coloured
+	# overcheck — a rust on grey is the classic — so force some saturation and body.
+	c.s = clampf(maxf(c.s, 0.5) * 0.9, 0.0, 1.0)
+	c.v = clampf(c.v + 0.25, 0.0, 0.85)
+	return c
+
+
 static func make(
 	fabric: Enums.Fabric,
 	pattern: Enums.Pattern,

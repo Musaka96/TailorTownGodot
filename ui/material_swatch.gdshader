@@ -5,6 +5,8 @@ shader_type canvas_item;
 
 uniform vec4 cloth_color : source_color = vec4(0.5, 0.5, 0.5, 1.0);
 uniform vec4 pattern_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
+// Second accent for the B-channel overcheck — kept identical to cloth.gdshader.
+uniform vec4 pattern_color2 : source_color = vec4(0.9, 0.9, 0.9, 1.0);
 // Mipmapped: the swatch draws a 256px pattern into ~84px, which aliases into
 // moire with plain linear filtering.
 uniform sampler2D fabric_tex : filter_linear_mipmap;
@@ -18,16 +20,18 @@ uniform vec2 rect_size = vec2(84.0, 84.0);
 uniform float corner_radius = 16.0;
 
 void fragment() {
-	// Fabric weave modulates the base colour (grayscale texture, ~0.5 neutral).
-	float weave = texture(fabric_tex, UV).r;
-	float grain = mix(1.0, weave * 1.75, fabric_strength);
+	// Fabric weave modulates the base colour (RGB so tweed's coloured neps show).
+	vec3 grain = mix(vec3(1.0), texture(fabric_tex, UV).rgb * 1.75, fabric_strength);
 
-	// Pattern: R = accent coverage, G = thread relief. Kept identical to
-	// cloth.gdshader so the swatch shows the cloth the garment will be made of.
+	// Pattern: R = accent coverage, G = thread relief, B = overcheck coverage.
+	// Kept identical to cloth.gdshader so the swatch shows the garment's cloth.
 	vec3 pat = texture(pattern_tex, UV * pattern_scale).rgb;
 	float cover = clamp(pat.r * pattern_strength * pattern_intensity, 0.0, 1.0);
+	float cover2 = clamp(pat.b * pattern_strength * pattern_intensity, 0.0, 1.0);
 
-	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover) * grain;
+	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover);
+	col = mix(col, pattern_color2.rgb, cover2);
+	col *= grain;
 	col *= mix(1.0, pat.g * 2.0, pattern_relief);
 
 	// Rounded-rectangle mask (signed distance) with 1px anti-aliasing.

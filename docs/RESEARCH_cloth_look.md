@@ -191,10 +191,13 @@ shots (see the header of `scenes/dev/cloth_lab.gd`).
 **Recommended order:** A → B1 (playtest with owner) → B2 → B3 → B4 (playtest again,
 tune everything via the lab's Copy-tuning button, commit the tuned tables).
 
-## Workstream C — Tier 2 (separate pass, after Tier 1 has been playtested)
+## Workstream C — Tier 2 (SHIPPED 2026-09-19, owner asked to keep going)
 
-Specced so the Tier 1 work doesn't paint over it; do NOT start these in the same
-session unless Tier 1 is signed off.
+All three landed: C1 (glen check / tattersall overcheck in the pattern texture's B
+channel, `pattern_color2` auto-derived by `MaterialFactory.derive_pattern_color2` —
+nothing new in the save), C2 (`shot_strength` per pattern: end-on-end 0.2, sharkskin
+0.12), C3 (real poplin weft-rib and oxford basket weaves). The swatch shader gained
+the same two-colour + RGB-grain path. Original spec below for reference.
 
 - **C1 — second accent channel.** Pattern textures' **B** channel (currently constant
   0.5) becomes overcheck coverage. `build_textures.gd`: glen check writes its overpane

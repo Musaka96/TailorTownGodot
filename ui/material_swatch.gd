@@ -98,6 +98,9 @@ func setup(mat: MaterialType, remaining: float) -> void:
 	var pat := int(mat.pattern)
 	_shader_mat.set_shader_parameter("cloth_color", mat.cloth_color)
 	_shader_mat.set_shader_parameter("pattern_color", mat.pattern_color)
+	_shader_mat.set_shader_parameter(
+		"pattern_color2", MaterialFactory.derive_pattern_color2(mat.cloth_color, mat.pattern_color)
+	)
 	var fabric_name := ClothMaterial.fabric_tex_name(int(mat.fabric))
 	_shader_mat.set_shader_parameter("fabric_tex", ClothMaterial.texture("fabrics", fabric_name))
 	var pattern_name := ClothMaterial.pattern_tex_name(pat)

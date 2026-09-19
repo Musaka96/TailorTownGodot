@@ -31,7 +31,7 @@ var _base_live: ShaderMaterial
 var _shots: Array[Image] = []
 var _setup := 0
 var _rim_on := false
-var _closeup := false
+var _phase := 0  # 0 = stacked lineup pairs, 1 = Tier 1 close-up, 2 = Tier 2 close-up
 var _frames := 0
 
 
@@ -163,16 +163,21 @@ func _on_frame() -> void:
 	_frames += 1
 	if _frames == 2:
 		_hide_overlays()  # again: some autoload UI spawns deferred
-		if not _closeup:
+		if _phase == 0:
 			_apply_setup()  # window size is settled now — fixes the label unprojection
 	if _frames < 8:
 		return
 	_frames = 0
 	var shot := get_root().get_texture().get_image()
 	shot.convert(Image.FORMAT_RGBA8)
-	if _closeup:
+	if _phase == 1:
 		shot.save_png("res://.dev/cloth_rim_closeup.png")
 		print("Saved res://.dev/cloth_rim_closeup.png")
+		_build_closeup2()
+		return
+	if _phase == 2:
+		shot.save_png("res://.dev/cloth_tier2_closeup.png")
+		print("Saved res://.dev/cloth_tier2_closeup.png")
 		print("shot_cloth_compare: done.")
 		quit(0)
 		return
@@ -194,7 +199,7 @@ func _on_frame() -> void:
 ## Final sheet: worsted and mohair with rim off / ON side by side in ONE frame —
 ## identical lighting, adjacent, torso-height camera. The one to judge sheen by.
 func _build_closeup() -> void:
-	_closeup = true
+	_phase = 1
 	for fig in _figs:
 		fig.queue_free()
 	_figs.clear()
@@ -218,6 +223,38 @@ func _build_closeup() -> void:
 	_sun.rotation_degrees = Vector3(-12, -70, 0)
 	_cam.fov = 45
 	_cam.look_at_from_position(Vector3(0, 1.35, 4.6), Vector3(0, 1.25, 0), Vector3.UP)
+	for i in cols.size():
+		var head := _close_pos(i) + Vector3(0, 2.0, 0)
+		_col_labels[i].position = _cam.unproject_position(head) - Vector2(80, 0)
+
+
+## Tier 2 sheet: the two-colour glen check next to its one-colour self, and shot
+## end-on-end next to flat — same camera and raking light as the Tier 1 close-up.
+func _build_closeup2() -> void:
+	_phase = 2
+	for fig in _figs:
+		fig.queue_free()
+	_figs.clear()
+	var meshes := _garment_meshes()
+	var names: Array = ["Glen 1-colour", "Glen 2-colour", "End-on-end flat", "End-on-end shot"]
+	var cols: Array = [[5, false], [5, true], [13, false], [13, true]]
+	for i in cols.size():
+		var mat_type := MaterialType.new()
+		mat_type.pattern = cols[i][0]
+		var glen: bool = cols[i][0] == 5
+		mat_type.fabric = 0 if glen else 6  # worsted glen check; poplin end-on-end
+		mat_type.cloth_color = Color(0.72, 0.7, 0.66) if glen else Color(0.4, 0.5, 0.66)
+		mat_type.pattern_color = Color(0.13, 0.13, 0.16) if glen else Color(0.9, 0.92, 0.95)
+		var cloth := ClothMaterial.build(mat_type, 6.0, true)
+		if not cols[i][1]:
+			# The "old" side: overcheck in the same colour / no shot shimmer.
+			if glen:
+				cloth.set_shader_parameter("pattern_color2", mat_type.pattern_color)
+			else:
+				cloth.set_shader_parameter("shot_strength", 0.0)
+		_figs.append(_figure(meshes, cloth, _close_pos(i)))
+		_col_labels[i].text = names[i]
+	_row_label.text = "Tier 2  —  two-colour glen check + shot end-on-end"
 	for i in cols.size():
 		var head := _close_pos(i) + Vector3(0, 2.0, 0)
 		_col_labels[i].position = _cam.unproject_position(head) - Vector2(80, 0)

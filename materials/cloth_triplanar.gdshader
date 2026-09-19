@@ -8,6 +8,9 @@ render_mode diffuse_burley;
 
 uniform vec4 cloth_color : source_color = vec4(0.5, 0.5, 0.5, 1.0);
 uniform vec4 pattern_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
+// Second accent (B-channel overcheck) + shot cloth — see cloth.gdshader.
+uniform vec4 pattern_color2 : source_color = vec4(0.9, 0.9, 0.9, 1.0);
+uniform float shot_strength = 0.0;
 // Anisotropic mipmapping — see cloth.gdshader.
 uniform sampler2D fabric_tex : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D pattern_tex : filter_linear_mipmap_anisotropic, repeat_enable;
@@ -79,13 +82,17 @@ void fragment() {
 	vec3 pp = p * pattern_scale;
 	vec3 pat = _tri_sample(pattern_tex, pp, w);
 	float cover = clamp(pat.r * pattern_strength * pattern_intensity, 0.0, 1.0);
+	float cover2 = clamp(pat.b * pattern_strength * pattern_intensity, 0.0, 1.0);
 
 	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover);
+	col = mix(col, pattern_color2.rgb, cover2);
 	col *= grain;
 	col *= mix(1.0, pat.g * 2.0, pattern_relief);
 	vec2 mp = tri_pos.xz + vec2(tri_pos.y, -tri_pos.y);
 	float macro = _vnoise(mp * macro_scale) * 0.7 + _vnoise(mp * macro_scale * 3.1) * 0.3;
 	col *= 1.0 + (macro - 0.5) * macro_strength;
+	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	col = mix(col, pattern_color.rgb, pow(1.0 - facing, 2.0) * shot_strength);
 
 	vec3 fab_n = _tri_sample(fabric_normal, p, w) * 2.0 - 1.0;
 	vec3 pat_n = _tri_sample(pattern_normal, pp, w) * 2.0 - 1.0;
@@ -97,7 +104,6 @@ void fragment() {
 	ROUGHNESS = 1.0;  // matte
 	METALLIC = 0.0;
 	SPECULAR = 0.0;  // no specular highlight / reflections
-	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	RIM = rim_strength * pow(1.0 - facing, rim_power);
 	RIM_TINT = rim_tint;
 }

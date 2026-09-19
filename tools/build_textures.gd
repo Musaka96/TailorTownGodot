@@ -7,13 +7,15 @@ extends SceneTree
 ##
 ## Fabrics are grayscale (the shader multiplies the cloth colour by them).
 ##
-## A pattern texture packs two channels (alpha is unused, so nothing depends on the
+## A pattern texture packs three channels (alpha is unused, so nothing depends on the
 ## importer's alpha handling):
 ##   R = accent coverage — how much of this pixel is the pattern's contrast thread
 ##   G = thread relief   — 0.5 neutral, brighter along a thread's crown and darker
 ##                         where it dives under the crossing one, so the cloth shader
 ##                         can light the pattern as woven threads instead of tinting a
 ##                         flat decal over the fabric
+##   B = second-accent coverage — the overcheck of a two-colour pattern (glen check,
+##                         tattersall); 0 everywhere on one-colour patterns
 ##
 ## Two rules that are easy to break and obvious on screen:
 ##   * every period here must divide PAT_SIZE exactly, or the tile seam shows up as a
@@ -74,6 +76,8 @@ func _initialize() -> void:
 	_fabric("tweed", tweed["h"], 14.0, tweed["tint"])
 	_fabric("mohair", _fab_mohair(), 3.5)
 	_fabric("linen", _fab_linen(), 14.0)
+	_fabric("poplin", _fab_poplin(), 5.0)
+	_fabric("oxford", _fab_oxford(), 8.0)
 
 	# --- Patterns: woven on the loom ---
 	for name in WEAVES:
@@ -83,7 +87,7 @@ func _initialize() -> void:
 	_flat("solid", _grid())
 	_flat("pinstripe", _pinstripe())
 	_flat("windowpane", _windowpane())
-	_flat("glen_check", _glen_check())
+	_glen()
 	_flat("birdseye", _birdseye())
 	_flat("nailhead", _nailhead())
 
@@ -205,6 +209,32 @@ func _fab_linen() -> PackedFloat32Array:
 	return h
 
 
+func _fab_poplin() -> PackedFloat32Array:
+	# Shirting poplin: a fine weft rib — crisp horizontal ridges every other row.
+	var h := _heights(FAB_SIZE)
+	for y in FAB_SIZE:
+		for x in FAB_SIZE:
+			var v := 0.5 + cos(float(y) * PI) * 0.05
+			v += (_hash(x, y) - 0.5) * 0.03
+			h[y * FAB_SIZE + x] = v
+	return h
+
+
+func _fab_oxford() -> PackedFloat32Array:
+	# Oxford shirting: a 2x2 basket weave — checkerboard of paired threads, the
+	# raised pair alternating between horizontal and vertical.
+	var h := _heights(FAB_SIZE)
+	for y in FAB_SIZE:
+		for x in FAB_SIZE:
+			var over_h := (x / 2 + y / 2) % 2 == 0
+			var within := float(y % 2) if over_h else float(x % 2)
+			var v := 0.5 + (0.055 if over_h else -0.055)
+			v += (within - 0.5) * 0.05
+			v += (_hash(x, y) - 0.5) * 0.05
+			h[y * FAB_SIZE + x] = v
+	return h
+
+
 # --- Patterns -------------------------------------------------------------
 
 
@@ -296,15 +326,18 @@ func _windowpane() -> PackedFloat32Array:
 	return cov
 
 
-func _glen_check() -> PackedFloat32Array:
-	# Fine thread check with a wider overcheck on top — lines, not filled cells.
-	var cov := _grid()
+func _glen() -> void:
+	# Fine thread check (R, first accent) with a wider overcheck on top in its OWN
+	# channel (B, second accent) — a real glen check is two-colour, and tattersall
+	# reuses this texture so it splits the same way.
+	var fine := _grid()
+	var over := _grid()
 	for y in PAT_SIZE:
 		for x in PAT_SIZE:
-			var fine: float = maxf(_band(x, 16.0, 1.6), _band(y, 16.0, 1.6)) * 0.45
-			var over: float = maxf(_band(x, 128.0, 3.4), _band(y, 128.0, 3.4))
-			cov[y * PAT_SIZE + x] = maxf(fine, over)
-	return cov
+			var i := y * PAT_SIZE + x
+			fine[i] = maxf(_band(x, 16.0, 1.6), _band(y, 16.0, 1.6)) * 0.45
+			over[i] = maxf(_band(x, 128.0, 3.4), _band(y, 128.0, 3.4))
+	_write("glen_check", fine, PackedFloat32Array(), over)
 
 
 func _birdseye() -> PackedFloat32Array:
@@ -328,10 +361,16 @@ func _nailhead() -> PackedFloat32Array:
 # --- Pattern output -------------------------------------------------------
 
 
-## Packs coverage into R and relief into G (an empty relief writes neutral 0.5), and
-## reports mean coverage — how far the pattern shifts the garment towards the accent
-## once it's too small on screen to resolve. ClothMaterial.PATTERN_INTENSITY scales it.
-func _write(name: String, cover: PackedFloat32Array, relief: PackedFloat32Array) -> void:
+## Packs coverage into R, relief into G (an empty relief writes neutral 0.5) and the
+## second-accent overcheck coverage into B (empty writes 0 — most patterns are
+## one-colour), and reports mean coverage — how far the pattern shifts the garment
+## towards the accent once it's too small on screen to resolve.
+func _write(
+	name: String,
+	cover: PackedFloat32Array,
+	relief: PackedFloat32Array,
+	cover2 := PackedFloat32Array()
+) -> void:
 	var has_relief := relief.size() == cover.size()
 	var relief_mean := 0.0
 	if has_relief:
@@ -339,6 +378,7 @@ func _write(name: String, cover: PackedFloat32Array, relief: PackedFloat32Array)
 			relief_mean += relief[i]
 		relief_mean /= float(relief.size())
 
+	var has2 := cover2.size() == cover.size()
 	var img := Image.create(PAT_SIZE, PAT_SIZE, false, Image.FORMAT_RGBA8)
 	var total := 0.0
 	for y in PAT_SIZE:
@@ -349,7 +389,8 @@ func _write(name: String, cover: PackedFloat32Array, relief: PackedFloat32Array)
 			var g := 0.5
 			if has_relief:
 				g = clampf(0.5 + (relief[i] - relief_mean) * RELIEF_AMP, 0.0, 1.0)
-			img.set_pixel(x, y, Color(c, g, 0.5, 1.0))
+			var b: float = clampf(cover2[i], 0.0, 1.0) if has2 else 0.0
+			img.set_pixel(x, y, Color(c, g, b, 1.0))
 	_save(img, "%s/%s.png" % [PAT_DIR, name])
 	print(
 		(

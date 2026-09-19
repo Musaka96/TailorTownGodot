@@ -6,10 +6,17 @@ render_mode diffuse_burley;
 // The pattern is not an overlay: its accent takes the fabric's grain exactly like the
 // ground colour does, and a woven pattern's own thread relief (G channel) shades the
 // whole surface. Tint one on top instead and it reads as paint on cloth, not cloth.
-// Pattern channels: R = accent coverage, G = thread relief (0.5 neutral).
+// Pattern channels: R = accent coverage, G = thread relief (0.5 neutral),
+// B = second-accent (overcheck) coverage — glen check / tattersall are two-colour.
 
 uniform vec4 cloth_color : source_color = vec4(0.5, 0.5, 0.5, 1.0);
 uniform vec4 pattern_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
+// Second accent for the B-channel overcheck (set by ClothMaterial, derived from the
+// first accent — a glen check's overpane runs in its own colour).
+uniform vec4 pattern_color2 : source_color = vec4(0.9, 0.9, 0.9, 1.0);
+// Shot cloth: warp and weft read as different colours, so the cloth shifts towards
+// the accent at grazing angles. Per pattern (end-on-end, sharkskin); 0 = off.
+uniform float shot_strength = 0.0;
 // Anisotropic mipmapping: the patterns are fine and high-contrast, so a garment
 // seen at an angle turns to moire without it (the .png.import files must keep
 // mipmaps/generate=true).
@@ -69,11 +76,16 @@ void fragment() {
 
 	vec3 pat = texture(pattern_tex, uv * pattern_scale).rgb;
 	float cover = clamp(pat.r * pattern_strength * pattern_intensity, 0.0, 1.0);
+	float cover2 = clamp(pat.b * pattern_strength * pattern_intensity, 0.0, 1.0);
 
-	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover) * grain;
+	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover);
+	col = mix(col, pattern_color2.rgb, cover2);
+	col *= grain;
 	col *= mix(1.0, pat.g * 2.0, pattern_relief);
 	float macro = _vnoise(UV * macro_scale) * 0.7 + _vnoise(UV * macro_scale * 3.1) * 0.3;
 	col *= 1.0 + (macro - 0.5) * macro_strength;
+	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	col = mix(col, pattern_color.rgb, pow(1.0 - facing, 2.0) * shot_strength);
 
 	vec3 fab_n = texture(fabric_normal, uv).rgb * 2.0 - 1.0;
 	vec3 pat_n = texture(pattern_normal, uv * pattern_scale).rgb * 2.0 - 1.0;
@@ -85,7 +97,6 @@ void fragment() {
 	ROUGHNESS = 1.0;  // matte
 	METALLIC = 0.0;
 	SPECULAR = 0.0;  // no specular highlight / reflections
-	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	RIM = rim_strength * pow(1.0 - facing, rim_power);
 	RIM_TINT = rim_tint;
 }
