@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="ShopLook" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_albedo.png" id="1_ns4yg"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_normal.png" id="2_1lewq"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_rough.png" id="3_nxmwp"]
+[ext_resource type="Script" path="res://data/scripts/shop_look_slot.gd" id="4_54s2e"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_albedo.png" id="5_ki656"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_normal.png" id="6_4re2i"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_rough.png" id="7_sjss2"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_albedo.png" id="8_wwdhs"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_normal.png" id="9_kiyo7"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_rough.png" id="10_dpexn"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_round_albedo.png" id="11_u403r"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_round_normal.png" id="12_d3mlq"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_round_rough.png" id="13_m6lym"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_runner_albedo.png" id="14_s1x1q"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_runner_normal.png" id="15_03eh0"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_runner_rough.png" id="16_ipi5x"]
+[ext_resource type="Script" path="res://data/scripts/shop_look.gd" id="17_pavi7"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_albedo.png" id="18_3a5ew"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_normal.png" id="19_ti00h"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_rough.png" id="20_e4lpa"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_floral_albedo.png" id="21_2mkbb"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_floral_normal.png" id="22_bvqsa"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_floral_rough.png" id="23_7dnc6"]
+
+[sub_resource type="Resource" id="Resource_5o1dx"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("1_ns4yg")
+normal_texture = ExtResource("2_1lewq")
+roughness_texture = ExtResource("3_nxmwp")
+tint = Color(0.30980393, 0.48235294, 0.35686275, 1)
+
+[sub_resource type="Resource" id="Resource_6mk4a"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("5_ki656")
+normal_texture = ExtResource("6_4re2i")
+roughness_texture = ExtResource("7_sjss2")
+
+[sub_resource type="Resource" id="Resource_7scyu"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("8_wwdhs")
+normal_texture = ExtResource("9_kiyo7")
+roughness_texture = ExtResource("10_dpexn")
+
+[sub_resource type="Resource" id="Resource_bpdw0"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("11_u403r")
+normal_texture = ExtResource("12_d3mlq")
+roughness_texture = ExtResource("13_m6lym")
+
+[sub_resource type="Resource" id="Resource_d7pda"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("14_s1x1q")
+normal_texture = ExtResource("15_03eh0")
+roughness_texture = ExtResource("16_ipi5x")
+
+[sub_resource type="Resource" id="Resource_0l5a4"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("18_3a5ew")
+normal_texture = ExtResource("19_ti00h")
+roughness_texture = ExtResource("20_e4lpa")
+tint = Color(0.43137255, 0.54509807, 0.41568628, 1)
+
+[sub_resource type="Resource" id="Resource_e83vf"]
+script = ExtResource("4_54s2e")
+albedo_texture = ExtResource("21_2mkbb")
+normal_texture = ExtResource("22_bvqsa")
+roughness_texture = ExtResource("23_7dnc6")
+tint = Color(0.7372549, 0.8039216, 0.6627451, 1)
+uv_scale = 2.0
+
+[resource]
+script = ExtResource("17_pavi7")
+id = &"sage_blossom"
+display_name = "Sage Blossom"
+description = "Little flowers on sage wallpaper over soft green panelling."
+price = 240
+reputation_required = 40
+wall = SubResource("Resource_e83vf")
+wainscot = SubResource("Resource_0l5a4")
+floor = SubResource("Resource_6mk4a")
+rug = SubResource("Resource_7scyu")
+rug_round = SubResource("Resource_bpdw0")
+rug_runner = SubResource("Resource_d7pda")
+drape = SubResource("Resource_5o1dx")

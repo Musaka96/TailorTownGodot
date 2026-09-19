@@ -103,7 +103,13 @@ premade variant from the catalog instead of building from scratch.
 **Idea:** customize the shop's appearance (furniture, walls, floor, carpets).
 Asset-heavy (owner supplies models).
 
+**Plan for the surfaces (walls, wainscot, floor, rugs, curtains): `docs/SHOP_CUSTOMIZATION.md`**
+(owner decisions 2026-09-19: mix and match plus sets, live preview from a sky overview,
+dust-and-sound refit moment, small reputation bonus, per-room later).
+
 **Supports it now:**
+- **Shop looks** (`docs/SHOP_LOOKS.md`): the v7 shop exposes seven material slots and
+  `ShopLookApplier` recolours them from data-driven presets, saved with the game.
 - The rig already proves runtime mesh/material swapping (`character_rig` wardrobe),
   and materials are data-driven `.tres` — the same approach fits furnishings.
 

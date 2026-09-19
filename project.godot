@@ -177,7 +177,7 @@ rendering_device/driver.windows="d3d12"
 
 ac_brightness={
 "type": "float",
-"value": 0.95
+"value": 0.705
 }
 ac_saturation={
 "type": "float",
@@ -197,7 +197,7 @@ ac_shadow_tint={
 }
 ac_highlight_strength={
 "type": "float",
-"value": 0.06
+"value": 0.56
 }
 ac_highlight_tint={
 "type": "color",
@@ -205,9 +205,9 @@ ac_highlight_tint={
 }
 ac_color_variation={
 "type": "float",
-"value": 0.025
+"value": 0.0
 }
 ac_shadow_lift={
 "type": "float",
-"value": 0.075
+"value": 1.005
 }

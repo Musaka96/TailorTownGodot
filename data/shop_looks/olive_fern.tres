@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="ShopLook" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_albedo.png" id="1_2spyu"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_normal.png" id="2_mm2q8"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_rough.png" id="3_4vaxj"]
+[ext_resource type="Script" path="res://data/scripts/shop_look_slot.gd" id="4_n1pdg"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/parquet_albedo.png" id="5_cx3nj"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/parquet_normal.png" id="6_6gkgq"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/parquet_rough.png" id="7_ldkem"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_albedo.png" id="8_wd7nd"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_normal.png" id="9_s5x2y"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_rough.png" id="10_bpob6"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_round_albedo.png" id="11_41d11"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_round_normal.png" id="12_10fru"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_round_rough.png" id="13_3gofc"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_runner_albedo.png" id="14_66sf2"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_runner_normal.png" id="15_d640q"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_olive_runner_rough.png" id="16_ndowh"]
+[ext_resource type="Script" path="res://data/scripts/shop_look.gd" id="17_xnyyx"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_albedo.png" id="18_bwe6q"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_normal.png" id="19_pashp"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_rough.png" id="20_trk6p"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_fern_albedo.png" id="21_q3kvr"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_fern_normal.png" id="22_wtnoe"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_fern_rough.png" id="23_yrjw2"]
+
+[sub_resource type="Resource" id="Resource_k0nft"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("1_2spyu")
+normal_texture = ExtResource("2_mm2q8")
+roughness_texture = ExtResource("3_4vaxj")
+tint = Color(0.41960785, 0.43529412, 0.20784314, 1)
+
+[sub_resource type="Resource" id="Resource_hcr78"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("5_cx3nj")
+normal_texture = ExtResource("6_6gkgq")
+roughness_texture = ExtResource("7_ldkem")
+
+[sub_resource type="Resource" id="Resource_i4mim"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("8_wd7nd")
+normal_texture = ExtResource("9_s5x2y")
+roughness_texture = ExtResource("10_bpob6")
+
+[sub_resource type="Resource" id="Resource_piswv"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("11_41d11")
+normal_texture = ExtResource("12_10fru")
+roughness_texture = ExtResource("13_3gofc")
+
+[sub_resource type="Resource" id="Resource_bfy0d"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("14_66sf2")
+normal_texture = ExtResource("15_d640q")
+roughness_texture = ExtResource("16_ndowh")
+
+[sub_resource type="Resource" id="Resource_i2abw"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("18_bwe6q")
+normal_texture = ExtResource("19_pashp")
+roughness_texture = ExtResource("20_trk6p")
+tint = Color(0.36078432, 0.3764706, 0.1882353, 1)
+
+[sub_resource type="Resource" id="Resource_jm67q"]
+script = ExtResource("4_n1pdg")
+albedo_texture = ExtResource("21_q3kvr")
+normal_texture = ExtResource("22_wtnoe")
+roughness_texture = ExtResource("23_yrjw2")
+tint = Color(0.7607843, 0.7764706, 0.54901963, 1)
+uv_scale = 2.0
+
+[resource]
+script = ExtResource("17_xnyyx")
+id = &"olive_fern"
+display_name = "Olive Fern"
+description = "Botanical wallpaper in soft olive over moss panelling."
+price = 340
+reputation_required = 120
+wall = SubResource("Resource_jm67q")
+wainscot = SubResource("Resource_i2abw")
+floor = SubResource("Resource_hcr78")
+rug = SubResource("Resource_i4mim")
+rug_round = SubResource("Resource_piswv")
+rug_runner = SubResource("Resource_bfy0d")
+drape = SubResource("Resource_k0nft")

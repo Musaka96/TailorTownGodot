@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="ShopLook" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_albedo.png" id="1_drgdg"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_normal.png" id="2_vdf8c"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_rough.png" id="3_gda37"]
+[ext_resource type="Script" path="res://data/scripts/shop_look_slot.gd" id="4_vwks0"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_albedo.png" id="5_nljs7"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_normal.png" id="6_p0war"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_rough.png" id="7_ihaus"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_albedo.png" id="8_huno1"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_normal.png" id="9_r5mrk"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_rough.png" id="10_f7tsv"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_round_albedo.png" id="11_gi5dt"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_round_normal.png" id="12_drkma"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_round_rough.png" id="13_a70j7"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_runner_albedo.png" id="14_rv722"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_runner_normal.png" id="15_6jfas"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_camel_runner_rough.png" id="16_au1h3"]
+[ext_resource type="Script" path="res://data/scripts/shop_look.gd" id="17_hops3"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_albedo.png" id="18_yn86e"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_normal.png" id="19_xd700"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_rough.png" id="20_3lgnj"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/plaster_albedo.png" id="21_ili07"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/plaster_normal.png" id="22_ajrr8"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/plaster_rough.png" id="23_7xr5c"]
+
+[sub_resource type="Resource" id="Resource_cd2nc"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("1_drgdg")
+normal_texture = ExtResource("2_vdf8c")
+roughness_texture = ExtResource("3_gda37")
+tint = Color(0.7647059, 0.6039216, 0.40784314, 1)
+
+[sub_resource type="Resource" id="Resource_s15e3"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("5_nljs7")
+normal_texture = ExtResource("6_p0war")
+roughness_texture = ExtResource("7_ihaus")
+
+[sub_resource type="Resource" id="Resource_0rewk"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("8_huno1")
+normal_texture = ExtResource("9_r5mrk")
+roughness_texture = ExtResource("10_f7tsv")
+
+[sub_resource type="Resource" id="Resource_1w8n4"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("11_gi5dt")
+normal_texture = ExtResource("12_drkma")
+roughness_texture = ExtResource("13_a70j7")
+
+[sub_resource type="Resource" id="Resource_eq2o0"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("14_rv722")
+normal_texture = ExtResource("15_6jfas")
+roughness_texture = ExtResource("16_au1h3")
+
+[sub_resource type="Resource" id="Resource_p6qaf"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("18_yn86e")
+normal_texture = ExtResource("19_xd700")
+roughness_texture = ExtResource("20_3lgnj")
+tint = Color(0.47843137, 0.32156864, 0.21960784, 1)
+
+[sub_resource type="Resource" id="Resource_0cueg"]
+script = ExtResource("4_vwks0")
+albedo_texture = ExtResource("21_ili07")
+normal_texture = ExtResource("22_ajrr8")
+roughness_texture = ExtResource("23_7xr5c")
+tint = Color(0.94509804, 0.90588236, 0.8235294, 1)
+
+[resource]
+script = ExtResource("17_hops3")
+id = &"cream_walnut"
+display_name = "Cream & Walnut"
+description = "Pale plastered walls over warm walnut wainscot."
+price = 260
+reputation_required = 40
+wall = SubResource("Resource_0cueg")
+wainscot = SubResource("Resource_p6qaf")
+floor = SubResource("Resource_s15e3")
+rug = SubResource("Resource_0rewk")
+rug_round = SubResource("Resource_1w8n4")
+rug_runner = SubResource("Resource_eq2o0")
+drape = SubResource("Resource_cd2nc")

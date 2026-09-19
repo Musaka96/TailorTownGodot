@@ -1,0 +1,80 @@
+[gd_resource type="Resource" script_class="ShopLook" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_albedo.png" id="1_wdpbc"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_normal.png" id="2_o0gsq"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_rough.png" id="3_wruqv"]
+[ext_resource type="Script" path="res://data/scripts/shop_look_slot.gd" id="4_dtjy1"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_albedo.png" id="5_c43c6"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_normal.png" id="6_kvblj"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_rough.png" id="7_leuyc"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_albedo.png" id="8_65q25"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_normal.png" id="9_uopif"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_rough.png" id="10_xhwu4"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_round_albedo.png" id="11_t37o0"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_round_normal.png" id="12_65lg8"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_round_rough.png" id="13_i6rdb"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_runner_albedo.png" id="14_oemgm"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_runner_normal.png" id="15_n6x20"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_green_runner_rough.png" id="16_ga4fq"]
+[ext_resource type="Script" path="res://data/scripts/shop_look.gd" id="17_bwl4d"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_albedo.png" id="18_0j0dl"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_normal.png" id="19_8ynww"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_rough.png" id="20_rtpl6"]
+
+[sub_resource type="Resource" id="Resource_bman8"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("1_wdpbc")
+normal_texture = ExtResource("2_o0gsq")
+roughness_texture = ExtResource("3_wruqv")
+tint = Color(0.18431373, 0.3529412, 0.24313726, 1)
+
+[sub_resource type="Resource" id="Resource_3jgcl"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("5_c43c6")
+normal_texture = ExtResource("6_kvblj")
+roughness_texture = ExtResource("7_leuyc")
+
+[sub_resource type="Resource" id="Resource_p14vx"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("8_65q25")
+normal_texture = ExtResource("9_uopif")
+roughness_texture = ExtResource("10_xhwu4")
+
+[sub_resource type="Resource" id="Resource_r448v"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("11_t37o0")
+normal_texture = ExtResource("12_65lg8")
+roughness_texture = ExtResource("13_i6rdb")
+
+[sub_resource type="Resource" id="Resource_mp8bh"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("14_oemgm")
+normal_texture = ExtResource("15_n6x20")
+roughness_texture = ExtResource("16_ga4fq")
+
+[sub_resource type="Resource" id="Resource_qebx8"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("18_0j0dl")
+normal_texture = ExtResource("19_8ynww")
+roughness_texture = ExtResource("20_rtpl6")
+tint = Color(0.22745098, 0.32156864, 0.21176471, 1)
+
+[sub_resource type="Resource" id="Resource_6wsfd"]
+script = ExtResource("4_dtjy1")
+albedo_texture = ExtResource("18_0j0dl")
+normal_texture = ExtResource("19_8ynww")
+roughness_texture = ExtResource("20_rtpl6")
+tint = Color(0.24705882, 0.3529412, 0.22745098, 1)
+
+[resource]
+script = ExtResource("17_bwl4d")
+id = &"forest_green"
+display_name = "Forest Green"
+description = "Full-height green board panelling, dark and cosy."
+wall = SubResource("Resource_6wsfd")
+wainscot = SubResource("Resource_qebx8")
+floor = SubResource("Resource_3jgcl")
+rug = SubResource("Resource_p14vx")
+rug_round = SubResource("Resource_r448v")
+rug_runner = SubResource("Resource_mp8bh")
+drape = SubResource("Resource_bman8")

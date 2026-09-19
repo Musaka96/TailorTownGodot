@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="ShopLook" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_albedo.png" id="1_7a7fx"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_normal.png" id="2_m5bm8"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_rough.png" id="3_nam8k"]
+[ext_resource type="Script" path="res://data/scripts/shop_look_slot.gd" id="4_t8xwy"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_albedo.png" id="5_exum1"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_normal.png" id="6_o4vpw"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/floor_planks_rough.png" id="7_p6biu"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_albedo.png" id="8_hnr3t"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_normal.png" id="9_i82u0"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_rough.png" id="10_csas4"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_round_albedo.png" id="11_jj6da"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_round_normal.png" id="12_0gemf"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_round_rough.png" id="13_tj1uu"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_runner_albedo.png" id="14_uokg3"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_runner_normal.png" id="15_wqeck"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_mint_runner_rough.png" id="16_beine"]
+[ext_resource type="Script" path="res://data/scripts/shop_look.gd" id="17_xfdxa"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_albedo.png" id="18_x1nro"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_normal.png" id="19_qfa7t"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_rough.png" id="20_c0c28"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_trellis_albedo.png" id="21_hrokl"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_trellis_normal.png" id="22_vjb5d"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_trellis_rough.png" id="23_tw4bq"]
+
+[sub_resource type="Resource" id="Resource_lrcj4"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("1_7a7fx")
+normal_texture = ExtResource("2_m5bm8")
+roughness_texture = ExtResource("3_nam8k")
+tint = Color(0.43529412, 0.63529414, 0.5294118, 1)
+
+[sub_resource type="Resource" id="Resource_se5x7"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("5_exum1")
+normal_texture = ExtResource("6_o4vpw")
+roughness_texture = ExtResource("7_p6biu")
+
+[sub_resource type="Resource" id="Resource_7gtut"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("8_hnr3t")
+normal_texture = ExtResource("9_i82u0")
+roughness_texture = ExtResource("10_csas4")
+
+[sub_resource type="Resource" id="Resource_qo0up"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("11_jj6da")
+normal_texture = ExtResource("12_0gemf")
+roughness_texture = ExtResource("13_tj1uu")
+
+[sub_resource type="Resource" id="Resource_y807e"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("14_uokg3")
+normal_texture = ExtResource("15_wqeck")
+roughness_texture = ExtResource("16_beine")
+
+[sub_resource type="Resource" id="Resource_wkhq4"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("18_x1nro")
+normal_texture = ExtResource("19_qfa7t")
+roughness_texture = ExtResource("20_c0c28")
+tint = Color(0.9372549, 0.9098039, 0.8392157, 1)
+
+[sub_resource type="Resource" id="Resource_8tjnp"]
+script = ExtResource("4_t8xwy")
+albedo_texture = ExtResource("21_hrokl")
+normal_texture = ExtResource("22_vjb5d")
+roughness_texture = ExtResource("23_tw4bq")
+tint = Color(0.7490196, 0.8784314, 0.78431374, 1)
+uv_scale = 2.0
+
+[resource]
+script = ExtResource("17_xfdxa")
+id = &"mint_trellis"
+display_name = "Mint Trellis"
+description = "Fresh mint trellis wallpaper with painted cream panelling."
+price = 300
+reputation_required = 80
+wall = SubResource("Resource_8tjnp")
+wainscot = SubResource("Resource_wkhq4")
+floor = SubResource("Resource_se5x7")
+rug = SubResource("Resource_7gtut")
+rug_round = SubResource("Resource_qo0up")
+rug_runner = SubResource("Resource_y807e")
+drape = SubResource("Resource_lrcj4")

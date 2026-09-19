@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="ShopLook" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_albedo.png" id="1_mn6r1"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_normal.png" id="2_au1sr"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/velvet_rough.png" id="3_tdqe6"]
+[ext_resource type="Script" path="res://data/scripts/shop_look_slot.gd" id="4_olo5m"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/parquet_albedo.png" id="5_i175y"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/parquet_normal.png" id="6_kbhgk"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/parquet_rough.png" id="7_2vlbt"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_albedo.png" id="8_4v7jo"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_normal.png" id="9_xicr6"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_rough.png" id="10_f1mkm"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_round_albedo.png" id="11_ojwbw"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_round_normal.png" id="12_wjoar"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_round_rough.png" id="13_i568m"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_runner_albedo.png" id="14_xlfc5"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_runner_normal.png" id="15_wiypb"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/rug_plum_runner_rough.png" id="16_blaun"]
+[ext_resource type="Script" path="res://data/scripts/shop_look.gd" id="17_t5g80"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_albedo.png" id="18_2edc2"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_normal.png" id="19_fhpat"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wood_panel_rough.png" id="20_eufn1"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_damask_albedo.png" id="21_eoys4"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_damask_normal.png" id="22_5urel"]
+[ext_resource type="Texture2D" path="res://assets/textures/shop_looks/wallpaper_damask_rough.png" id="23_r2jg0"]
+
+[sub_resource type="Resource" id="Resource_estpi"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("1_mn6r1")
+normal_texture = ExtResource("2_au1sr")
+roughness_texture = ExtResource("3_tdqe6")
+tint = Color(0.3529412, 0.18431373, 0.32156864, 1)
+
+[sub_resource type="Resource" id="Resource_oh2ld"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("5_i175y")
+normal_texture = ExtResource("6_kbhgk")
+roughness_texture = ExtResource("7_2vlbt")
+
+[sub_resource type="Resource" id="Resource_p46ux"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("8_4v7jo")
+normal_texture = ExtResource("9_xicr6")
+roughness_texture = ExtResource("10_f1mkm")
+
+[sub_resource type="Resource" id="Resource_1d2vm"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("11_ojwbw")
+normal_texture = ExtResource("12_wjoar")
+roughness_texture = ExtResource("13_i568m")
+
+[sub_resource type="Resource" id="Resource_1e2yp"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("14_xlfc5")
+normal_texture = ExtResource("15_wiypb")
+roughness_texture = ExtResource("16_blaun")
+
+[sub_resource type="Resource" id="Resource_oqbqq"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("18_2edc2")
+normal_texture = ExtResource("19_fhpat")
+roughness_texture = ExtResource("20_eufn1")
+tint = Color(0.2901961, 0.18039216, 0.27058825, 1)
+
+[sub_resource type="Resource" id="Resource_jptit"]
+script = ExtResource("4_olo5m")
+albedo_texture = ExtResource("21_eoys4")
+normal_texture = ExtResource("22_5urel")
+roughness_texture = ExtResource("23_r2jg0")
+tint = Color(0.7490196, 0.6392157, 0.72156864, 1)
+uv_scale = 2.0
+
+[resource]
+script = ExtResource("17_t5g80")
+id = &"plum_damask"
+display_name = "Plum Damask"
+description = "Damask wallpaper over deep plum panelling."
+price = 480
+reputation_required = 260
+wall = SubResource("Resource_jptit")
+wainscot = SubResource("Resource_oqbqq")
+floor = SubResource("Resource_oh2ld")
+rug = SubResource("Resource_p46ux")
+rug_round = SubResource("Resource_1d2vm")
+rug_runner = SubResource("Resource_1e2yp")
+drape = SubResource("Resource_estpi")

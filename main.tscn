@@ -16,22 +16,39 @@ script = ExtResource("1_7mycd")
 [node name="WorldEnvironment" parent="ShopRoom" index="0" unique_id=563568563]
 compositor = SubResource("Compositor_der6t")
 
+[node name="Shelf" parent="ShopRoom" index="4" unique_id=2137070260]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.60319, -4.7683716e-07, -4.96311)
+
 [node name="Phone" parent="ShopRoom" index="6" unique_id=244267950]
-transform = Transform3D(0.89149976, 0, 0.45302138, 0, 1, 0, -0.45302138, 0, 0.89149976, -1.6477284, 0.0065555573, 1.4496336)
+transform = Transform3D(0.99998826, 0, 0.0048405584, 0, 1, 0, -0.0048405584, 0, 0.99998826, 0.0, 0.006554842, 0.37704)
+
+[node name="Worktable" parent="ShopRoom" index="7" unique_id=2080952600]
+transform = Transform3D(0.99999726, 0, 0.0023554862, 0, 1, 0, -0.0023554862, 0, 0.99999726, -2.94681, 0, -2.01311)
 
 [node name="SewingMachine" parent="ShopRoom" index="8" unique_id=1098430318]
-transform = Transform3D(0.9999785, 0, 0.0065644975, 0, 1, 0, -0.0065644975, 0, 0.9999785, 2.6124086, 0.072193146, 1.7883277)
+transform = Transform3D(0.9999785, 0, 0.0065644975, 0, 1, 0, -0.0065644975, 0, 0.9999785, -3.34681, -0.02315092, -4.96311)
 
-[node name="Mirror" parent="ShopRoom" index="12" unique_id=270766224]
-transform = Transform3D(0.99992734, 0, 0.012056653, 0, 1, 0, -0.012056653, 0, 0.99992734, 5.4987683, 0, 0.3293171)
+[node name="Bookshelf" parent="ShopRoom" index="9" unique_id=765844317]
+transform = Transform3D(0.9999349, 0, 0.011412373, 0, 1, 0, -0.011412373, 0, 0.9999349, -5.40681, 0.043023825, -5.13311)
 
-[node name="NewHouseBase" parent="ShopRoom" index="28" unique_id=239109748]
-transform = Transform3D(2.17, 0, 0, 0, 2.17, 0, 0, 0, 2.17, 3.8211222, 0.0081784725, 6.3219213)
+[node name="ClothingRack" parent="ShopRoom" index="10" unique_id=1799385403]
+transform = Transform3D(-0.9999998, 0, 0.0007600794, 0, 1, 0, -0.0007600794, 0, -0.9999998, 4.63319, 0, 5.03689)
+
+[node name="TrashCan" parent="ShopRoom" index="29" unique_id=200102761]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.39681, -7.1525574e-07, -5.01311)
+
+[node name="RoofManager" parent="ShopRoom" index="30" unique_id=200102760]
+roof_path = NodePath("../TailorShop/tailor_shop_v7/tailor_shop_v7_Roof")
+
+[node name="FloraPatch3" parent="ShopRoom" index="31" unique_id=500448687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.0168657, 0.032339334, 9.116631)
+patch_size = Vector2(5.525, 2.73)
 
 [node name="Player" parent="." unique_id=1939422080 instance=ExtResource("3_5vw27")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.97494555, 0.1, 4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95319, 0.1, 3.33689)
 
 [node name="CameraRig" parent="." unique_id=1061975554 instance=ExtResource("5_4c57u")]
 target_path = NodePath("../Player")
 
 [editable path="ShopRoom"]
+[editable path="ShopRoom/NewHouseBase2"]

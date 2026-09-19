@@ -1,6 +1,13 @@
-[gd_resource type="Resource" script_class="OutlineProfile" format=3]
+[gd_resource type="Resource" script_class="OutlineProfile" format=3 uid="uid://bae6rlbqa7krn"]
 
-[ext_resource type="Script" path="res://data/scripts/outline_profile.gd" id="1_hgnyj"]
+[ext_resource type="Script" uid="uid://d18m1lkrlrfx5" path="res://data/scripts/outline_profile.gd" id="1_hgnyj"]
 
 [resource]
 script = ExtResource("1_hgnyj")
+thickness = 0.5
+opacity = 0.48
+edge_softness = 2.0
+grazing_guard = 0.0
+crease_threshold = 0.19
+fade_start = 48.0
+fade_end = 140.5

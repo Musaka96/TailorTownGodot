@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://66ifi0say2ek"]
+
+[ext_resource type="PackedScene" uid="uid://duwp0m155oraj" path="res://IMPORT/town_kit/export/town_block_v2.glb" id="1_512j4"]
+[ext_resource type="Material" uid="uid://dculmsx0b62rc" path="res://materials/grass.tres" id="2_akduc"]
+
+[node name="town_block_v22" unique_id=1006644401 instance=ExtResource("1_512j4")]
+
+[node name="v2_props_clothes_rack_001" parent="town_block_v2/v2_props" parent_id_path=PackedInt32Array(2077736044) index="39" unique_id=1349674572]
+visible = false
+
+[node name="v2_props_ground_v2_001" parent="town_block_v2/v2_props" parent_id_path=PackedInt32Array(2077736044) index="78" unique_id=1776278524]
+material_override = ExtResource("2_akduc")
+
+[node name="v2_tailor_shop" parent="town_block_v2" parent_id_path=PackedInt32Array(892956885) index="14" unique_id=848382313]
+visible = false
