@@ -25,6 +25,7 @@ const HUB_OPTIONS := [
 	{"title": "Shop Sign", "desc": ""},  # text filled live (see _hub_card_text)
 ]
 const HUB_SIGN := 2
+const KICKER := "Order pad"
 const OROW_NAME := {
 	ORow.FABRIC: "Fabric",
 	ORow.COLOR: "Colour",
@@ -56,6 +57,7 @@ var _list_scroll: ScrollContainer
 var _list_pad: MarginContainer
 var _selected_row: Control = null
 var _placed := false
+var _head: TitleBlock
 var _swatch: MaterialSwatch
 var _contacts: VBoxContainer
 var _name_label: Label
@@ -205,10 +207,10 @@ func _style() -> void:
 	_panel.custom_minimum_size = Vector2(PANEL_W, 0)
 	Style.apply_skin(_panel, Style.MenuSkin.ORDER)
 	_preview.add_theme_constant_override("separation", Style.S3)
-	_title.add_theme_font_override("font", Style.bold_font())
-	_title.add_theme_font_size_override("font_size", 24)
-	_title.add_theme_color_override("font_color", Style.ACC_ORDER.darkened(0.2))
-	_money.add_theme_font_size_override("font_size", 17)
+	_head = TitleBlock.adopt(_title, KICKER, Style.ACC_ORDER)
+	_money.reparent(_head.meta)
+	_money.add_theme_font_override("font", Style.font_bold())
+	_money.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	_name_label.add_theme_color_override("font_color", Style.INK)
 	_summary_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_rows.add_theme_constant_override("separation", Style.S1)
@@ -227,7 +229,7 @@ func _set_hint(pairs: Array) -> void:
 
 
 func _refresh() -> void:
-	_money.text = "Budget:  $ %d" % GameState.money
+	_money.text = "Budget  $%d" % GameState.money
 	_money.add_theme_color_override("font_color", Style.INK)
 	for child in _rows.get_children():
 		_rows.remove_child(child)
@@ -246,6 +248,7 @@ func _refresh() -> void:
 
 
 func _refresh_hub() -> void:
+	_head.set_kicker(KICKER)
 	_title.text = "Phone"
 	_preview.visible = false
 	_row = clampi(_row, 0, HUB_OPTIONS.size() - 1)
@@ -259,6 +262,7 @@ func _refresh_hub() -> void:
 
 ## The supplier phonebook: browse every mill (locked ones too) and read what they stock.
 func _refresh_suppliers() -> void:
+	_head.set_kicker(KICKER)
 	_title.text = "Suppliers"
 	_preview.visible = true
 	_contacts.visible = true
@@ -273,7 +277,8 @@ func _refresh_order() -> void:
 	_preview.visible = true
 	_contacts.visible = false
 	_swatch.visible = true
-	_title.text = "Order · %s" % str(Upgrades.VENDORS[_vendor]["name"])
+	_head.set_kicker("Ordering from")
+	_title.text = str(Upgrades.VENDORS[_vendor]["name"])
 	var rows := _order_rows()
 	_row = clampi(_row, 0, rows.size() - 1)
 	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length, _pattern_dye)
@@ -310,6 +315,7 @@ func _refresh_upgrades() -> void:
 	_preview.visible = true
 	_contacts.visible = false
 	_swatch.visible = false
+	_head.set_kicker(KICKER)
 	_title.text = "Shop Upgrades"
 	_row = clampi(_row, 0, _upg_ids.size() - 1)
 	_show_upgrade_preview(_upg_ids[_row])
