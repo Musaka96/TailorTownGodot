@@ -161,17 +161,15 @@ static func make_crt_green() -> PostFxProfile:
 	return p
 
 
-## Animal-Crossing-style diorama: strong tilt-shift, warm saturated pastel, soft
-## glow and vignette — the world reads like a cosy handheld miniature.
+## Animal-Crossing-style diorama: warm saturated pastel, soft glow and vignette —
+## the world reads like a cosy handheld miniature. (No tilt-shift blur: owner
+## disliked it.)
 static func make_cozy_diorama() -> PostFxProfile:
 	var p := PostFxProfile.new()
 	p.temperature = 0.10
 	p.brightness = 0.02
 	p.contrast = 1.05
 	p.saturation = 1.25
-	p.tilt_shift = 0.7
-	p.tilt_focus = 0.55
-	p.tilt_focus_size = 0.16
 	p.bloom_strength = 0.20
 	p.vignette_strength = 0.22
 	return p
