@@ -98,8 +98,16 @@ func _on_press_mention(_headline: String, reputation: int) -> void:
 		UI.pop_above_player("+%d reputation" % reputation, "You made the papers!")
 
 
-func _on_order_expired(_order: SuitOrder) -> void:
-	points -= Config.data.expired_rep_loss if Config.data != null else 12
+## A lost order costs standing: less if the player apologised in person, more if the
+## customer was left standing until they walked out.
+func _on_order_expired(order: SuitOrder) -> void:
+	var cfg := Config.data
+	var loss: int = cfg.expired_rep_loss if cfg != null else 12
+	if order != null and order.apologised:
+		loss = cfg.apologised_rep_loss if cfg != null else 6
+	elif order != null and order.ignored:
+		loss += cfg.ignored_rep_loss if cfg != null else 6
+	points -= loss
 
 
 func _on_order_late(_order: SuitOrder) -> void:

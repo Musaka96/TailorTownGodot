@@ -172,15 +172,60 @@ func collect(order: SuitOrder) -> int:
 ## The customer came on the due day but the suit wasn't ready. The first time they
 ## kindly come back tomorrow (the order will pay less); returns false if the grace day
 ## was already used (the caller should expire() it).
-func grant_grace(order: SuitOrder) -> bool:
-	if not active.has(order) or order.late:
+## `penalise` false skips the standing it normally costs (a regular lets it pass).
+func grant_grace(order: SuitOrder, penalise := true) -> bool:
+	if not can_reschedule(order):
 		return false
 	order.late = true
 	order.due_day = _today() + 1
 	order.arrive_at = _rng.randf_range(ARRIVE_MIN, ARRIVE_MAX)
 	order.due_fired = false
-	EventBus.order_late.emit(order)
+	if penalise:
+		EventBus.order_late.emit(order)
 	return true
+
+
+## Could this order's customer call again tomorrow instead? Not twice, and never when
+## tomorrow is past the city event the suit is for.
+func can_reschedule(order: SuitOrder) -> bool:
+	if not active.has(order) or order.late:
+		return false
+	if order.event_id != "" and News != null:
+		var held: int = News.event_day(order.event_id)
+		if held > 0 and _today() + 1 > held:
+			return false
+	return true
+
+
+## The player apologises to a customer whose suit isn't ready. Returns what came of it:
+##   "regular"  a regular — tomorrow, and no hard feelings (no standing lost)
+##   "moved"    agreed to call again tomorrow (the usual late penalty)
+##   "event"    it was for an event that can't wait — the order is lost (softened)
+##   "lost"     won't come back — the order is lost (softened)
+## `goodwill` is added to the stranger's chance (a coffee in their hand helps).
+func apologise(order: SuitOrder, goodwill := 0.0) -> String:
+	if order == null or not active.has(order):
+		return "lost"
+	if can_reschedule(order):
+		if Clientele != null and Clientele.loyalty(order.customer_name) > 0:
+			grant_grace(order, false)
+			return "regular"
+		var chance: float = Config.data.reschedule_chance if Config.data != null else 0.6
+		if _rng.randf() < chance + goodwill:
+			grant_grace(order)
+			return "moved"
+	var for_event := order.event_id != "" and not order.late
+	order.apologised = true
+	expire(order)
+	return "event" if for_event else "lost"
+
+
+## The customer was left standing until they walked out: the order is lost, and it stings.
+func walk_out(order: SuitOrder) -> void:
+	if order == null:
+		return
+	order.ignored = true
+	expire(order)
 
 
 ## The deadline (and grace day) passed with the order unfinished: it is lost, no payment.

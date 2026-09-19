@@ -43,14 +43,23 @@ func _keep_someone_waiting() -> void:
 	var orders: Node = root.get_node("Orders")
 	var suit := {"fabric": 0, "pattern": 1, "color": 0, "style_idx": 0}
 	var order: Resource = orders.create_order("Mr. Ashdown", {2: suit}, 300, Color.WHITE)
-	var manager: Node = root.get_first_node_in_group("customer_manager")
+	var manager: Node = get_first_node_in_group("customer_manager")
 	if manager != null and manager.has_method("debug_send_collector"):
 		manager.debug_send_collector(order)
 
 
+func _someone_waiting() -> bool:
+	for cust in get_nodes_in_group("customer"):
+		if int(cust.get("_mode")) == 4:  # Customer.Mode.WAITING
+			return true
+	return false
+
+
 func _on_frame() -> void:
+	if _what == "wait" and not _someone_waiting():
+		return  # still walking in
 	_count += 1
-	if _count < (900 if _what == "wait" else 120):
+	if _count < 120:
 		return
 	var image := get_root().get_texture().get_image()
 	image.save_png(_out)

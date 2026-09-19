@@ -111,6 +111,12 @@ func event_for(occasion: int, day: int) -> NewsEvent:
 
 
 ## An event's name for running text: "the Autumn Charity Gala".
+## The day the city event `id` is held (0 if unknown).
+func event_day(id: String) -> int:
+	var ev := _event(id)
+	return ev.event_day if ev != null else 0
+
+
 func event_title(id: String) -> String:
 	var ev := _event(id)
 	if ev == null:

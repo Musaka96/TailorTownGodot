@@ -50,6 +50,10 @@ var state: int = State.OPEN
 var filled: Dictionary = {}
 ## Set once the deadline fires so the manager only sends the customer back once.
 var due_fired := false
+## How a lost order was lost, for the standing it costs: the player apologised in person
+## (softer), or left the customer standing until they walked out (harsher). Not saved.
+var apologised := false
+var ignored := false
 
 
 ## The garment types this order needs, in a stable display order.

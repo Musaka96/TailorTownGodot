@@ -254,16 +254,11 @@ func _on_collector_arrived(cust: Customer) -> void:
 	var order: SuitOrder = cust.collect_order
 	if order != null and Orders.is_ready(order):
 		cust.offer_collection(order)
+	elif order != null:
+		# Not ready: they wait at the counter to be spoken to (Customer.wait_for_order) —
+		# apologise and they may call again tomorrow; ignore them and they walk out.
+		cust.wait_for_order(order)
 	else:
-		# Not ready. The first time they kindly return tomorrow (for less); after the grace
-		# day they give up and leave empty-handed.
-		if order != null:
-			if Orders.grant_grace(order):
-				UI.toast('%s: "Not ready yet? I\'ll come back tomorrow."' % order.customer_name)
-			else:
-				UI.toast('%s: "Still not ready… never mind."' % order.customer_name)
-				Orders.expire(order)
-		cust.collect_order = null
 		dismiss(cust)
 
 

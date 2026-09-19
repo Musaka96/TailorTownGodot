@@ -50,6 +50,17 @@ extends Resource
 @export var late_pay: float = 0.75
 @export var late_rep_loss: int = 6
 @export var expired_rep_loss: int = 12
+## A customer who calls for a suit that isn't ready waits this long (seconds) to be
+## spoken to before walking out; regulars are more patient.
+@export var collector_patience_s: float = 45.0
+@export var regular_patience_mult: float = 1.5
+## Apologise and a stranger agrees to call again tomorrow this often (a regular always
+## does, and holds no grudge). Never past a city event's day, and only once per order.
+@export var reschedule_chance: float = 0.6
+## Standing lost when the order is lost all the same — after an apology, or (on top of
+## expired_rep_loss) when the customer was left standing until they walked out.
+@export var apologised_rep_loss: int = 6
+@export var ignored_rep_loss: int = 6
 ## "Best suit spotted": a suit worn to a city event makes the paper only when both its
 ## craft quality and its match to the brief reach these, AND it follows the trend.
 ## Otherwise the rival shop gets the story.
