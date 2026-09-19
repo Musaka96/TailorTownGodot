@@ -96,6 +96,10 @@ const FABRIC_RIM := [
 	0.05,  # oxford cloth
 ]
 
+# Pattern textures that are woven (tools/build_textures.gd WEAVES) and so ship a
+# baked <name>_n.png thread-relief normal map.
+const WOVEN_PATTERNS := ["houndstooth", "herringbone", "sharkskin"]
+
 static var _base: ShaderMaterial
 static var _base_tri: ShaderMaterial
 static var _outline: ShaderMaterial
@@ -154,6 +158,14 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 	sm.set_shader_parameter("pattern_scale", pattern_scale(mat.pattern))
 	sm.set_shader_parameter("pattern_intensity", pattern_intensity(mat.pattern))
 	sm.set_shader_parameter("rim_strength", fabric_rim(mat.fabric))
+	sm.set_shader_parameter("fabric_normal", texture("fabrics", fabric_tex_name(mat.fabric) + "_n"))
+	# Only the woven patterns carry thread relief; printed ones keep the ground weave's.
+	var woven := pattern_tex_name(mat.pattern) in WOVEN_PATTERNS
+	sm.set_shader_parameter("pattern_has_relief", 1.0 if woven else 0.0)
+	if woven:
+		sm.set_shader_parameter(
+			"pattern_normal", texture("patterns", pattern_tex_name(mat.pattern) + "_n")
+		)
 
 
 static func fabric_tex_name(f: int) -> String:

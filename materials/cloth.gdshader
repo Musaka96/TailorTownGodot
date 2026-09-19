@@ -33,17 +33,53 @@ uniform float rim_strength = 0.0;
 uniform float rim_power = 3.0;
 // 0 = white sheen, 1 = tinted by the cloth colour (dark cloths then barely show it).
 uniform float rim_tint = 0.4;
+// Baked weave normal maps (tools/build_textures.gd <name>_n.png): the thread relief
+// shades with the actual light instead of only the baked albedo multiply.
+// pattern_has_relief = 1 only for the woven patterns, whose thread normal is blended
+// over the ground weave's (UDN); depth 0 = flat (the regression guard).
+uniform sampler2D fabric_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D pattern_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float normal_depth = 0.0;
+uniform float pattern_has_relief = 0.0;
+// Very-low-frequency brightness breakup (repeats per metre of cloth), so a suit at
+// distance isn't a perfectly flat tint once mipmaps eat the weave.
+uniform float macro_strength = 0.0;
+uniform float macro_scale = 0.35;
+
+float _hashf(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float _vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(
+		mix(_hashf(i), _hashf(i + vec2(1.0, 0.0)), u.x),
+		mix(_hashf(i + vec2(0.0, 1.0)), _hashf(i + vec2(1.0, 1.0)), u.x),
+		u.y
+	);
+}
 
 void fragment() {
 	vec2 uv = UV * uv_scale;
-	float weave = texture(fabric_tex, uv).r;
-	float grain = mix(1.0, weave * 1.75, fabric_strength);
+	// RGB, not a scalar: grayscale fabrics multiply as before, tweed's coloured
+	// neps re-tint the cloth (they multiply the dye, so they stay harmonious).
+	vec3 grain = mix(vec3(1.0), texture(fabric_tex, uv).rgb * 1.75, fabric_strength);
 
 	vec3 pat = texture(pattern_tex, uv * pattern_scale).rgb;
 	float cover = clamp(pat.r * pattern_strength * pattern_intensity, 0.0, 1.0);
 
 	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover) * grain;
 	col *= mix(1.0, pat.g * 2.0, pattern_relief);
+	float macro = _vnoise(UV * macro_scale) * 0.7 + _vnoise(UV * macro_scale * 3.1) * 0.3;
+	col *= 1.0 + (macro - 0.5) * macro_strength;
+
+	vec3 fab_n = texture(fabric_normal, uv).rgb * 2.0 - 1.0;
+	vec3 pat_n = texture(pattern_normal, uv * pattern_scale).rgb * 2.0 - 1.0;
+	vec3 nrm = mix(fab_n, normalize(vec3(fab_n.xy + pat_n.xy, fab_n.z)), pattern_has_relief);
+	NORMAL_MAP = nrm * 0.5 + 0.5;
+	NORMAL_MAP_DEPTH = normal_depth;
 
 	ALBEDO = col;
 	ROUGHNESS = 1.0;  // matte

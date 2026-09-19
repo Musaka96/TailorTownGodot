@@ -151,10 +151,9 @@ func _apply_setup() -> void:
 	_sun.rotation_degrees = s[1]
 	_cam.fov = s[4]
 	_cam.look_at_from_position(s[2], s[3], Vector3.UP)
-	_row_label.text = "%s  —  rim %s" % [s[0], "ON" if _rim_on else "OFF"]
+	_row_label.text = "%s  —  Tier 1 %s" % [s[0], "ON" if _rim_on else "OFF"]
 	for i in _cloth.size():
-		var rim := ClothMaterial.fabric_rim(FABRICS[i]) if _rim_on else 0.0
-		_cloth[i].set_shader_parameter("rim_strength", rim)
+		_set_tier1(_cloth[i], FABRICS[i], _rim_on)
 		var head := Vector3((i - 2.0) * SPACING, 2.0, 0)
 		_col_labels[i].position = _cam.unproject_position(head) - Vector2(45, 0)
 
@@ -198,16 +197,17 @@ func _build_closeup() -> void:
 	_figs.clear()
 	_cloth.clear()
 	var meshes := _garment_meshes()
-	var cols: Array = [[0, false], [0, true], [3, false], [3, true]]
-	var names: Array = ["Worsted  off", "Worsted  ON", "Mohair  off", "Mohair  ON"]
+	# Tweed shows the neps + weave normals, mohair the sheen; a lighter cloth than
+	# navy so the normal-map shading actually has room to read.
+	var cols: Array = [[2, false], [2, true], [3, false], [3, true]]
+	var names: Array = ["Tweed  off", "Tweed  ON", "Mohair  off", "Mohair  ON"]
 	for i in cols.size():
 		var mat_type := MaterialType.new()
 		mat_type.fabric = cols[i][0]
 		mat_type.pattern = 0
-		mat_type.cloth_color = NAVY
+		mat_type.cloth_color = Color(0.52, 0.47, 0.4) if cols[i][0] == 2 else NAVY
 		var cloth := ClothMaterial.build(mat_type, 6.0, true)
-		if not cols[i][1]:
-			cloth.set_shader_parameter("rim_strength", 0.0)
+		_set_tier1(cloth, cols[i][0], cols[i][1])
 		_figs.append(_figure(meshes, cloth, _close_pos(i)))
 		_col_labels[i].text = names[i]
 	_col_labels[4].visible = false
@@ -224,6 +224,15 @@ func _build_closeup() -> void:
 ## intersect at this tight spacing.
 func _close_pos(i: int) -> Vector3:
 	return Vector3((i - 1.5) * 1.6, 0, -0.35 if i % 2 == 1 else 0.0)
+
+
+## The whole Tier 1 bundle on or off: rim sheen (B1), weave normals (B2) and macro
+## breakup (B4). Tweed's coloured neps (B3) are baked into the albedo texture and
+## show on both sides. ON values match tools/build_cloth_materials.gd.
+func _set_tier1(cloth: ShaderMaterial, fabric: int, on: bool) -> void:
+	cloth.set_shader_parameter("rim_strength", ClothMaterial.fabric_rim(fabric) if on else 0.0)
+	cloth.set_shader_parameter("normal_depth", 1.0 if on else 0.0)
+	cloth.set_shader_parameter("macro_strength", 0.07 if on else 0.0)
 
 
 ## Stack the OFF shot above the ON shot into one comparison sheet.

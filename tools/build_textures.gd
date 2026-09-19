@@ -44,6 +44,16 @@ const WEAVE_SS := 3  # supersamples per axis when rasterising threads
 ##   chevron warp threads between twill reversals (0 = a straight twill)
 ## Houndstooth really is a 2/2 twill with a 4-and-4 colour order both ways, and
 ## sharkskin the same weave with a 1-and-1 order — so these are the actual cloths.
+# Tweed neps: how many coloured flecks per tile and their albedo tints (multipliers
+# around 1.0, so a nep re-tints the cloth colour instead of painting over it).
+const NEP_COUNT := 110
+const NEP_COLORS := [
+	Color(1.5, 0.9, 0.65),  # rust
+	Color(1.45, 1.25, 0.7),  # gold
+	Color(0.95, 1.3, 0.85),  # moss
+	Color(1.4, 0.75, 0.75),  # burgundy
+]
+
 const WEAVES := {
 	"houndstooth": {"pitch": 8, "twill": 2, "warp": 4, "weft": 4, "chevron": 0},
 	"herringbone": {"pitch": 4, "twill": 2, "warp": 0, "weft": -1, "chevron": 8},
@@ -55,12 +65,15 @@ func _initialize() -> void:
 	_ensure(FAB_DIR)
 	_ensure(PAT_DIR)
 
-	# --- Fabrics (grayscale weave) ---
-	_save(_fab_worsted(), FAB_DIR + "/worsted.png")
-	_save(_fab_flannel(), FAB_DIR + "/flannel.png")
-	_save(_fab_tweed(), FAB_DIR + "/tweed.png")
-	_save(_fab_mohair(), FAB_DIR + "/mohair.png")
-	_save(_fab_linen(), FAB_DIR + "/linen.png")
+	# --- Fabrics: a heightfield each, written as the grayscale weave (albedo
+	# multiplier, unchanged look) plus a baked <name>_n.png normal map so the weave
+	# shades with the room's light. Tweed also carries coloured neps in its albedo.
+	_fabric("worsted", _fab_worsted(), 5.0)
+	_fabric("flannel", _fab_flannel(), 3.0)
+	var tweed := _fab_tweed()
+	_fabric("tweed", tweed["h"], 8.0, tweed["tint"])
+	_fabric("mohair", _fab_mohair(), 2.0)
+	_fabric("linen", _fab_linen(), 8.0)
 
 	# --- Patterns: woven on the loom ---
 	for name in WEAVES:
@@ -81,9 +94,34 @@ func _initialize() -> void:
 # --- Fabrics ---------------------------------------------------------------
 
 
-func _fab_worsted() -> Image:
+## Writes a fabric's grayscale weave PNG from its heightfield (same pixels as the
+## old direct drawing), an optional per-pixel albedo tint (tweed's neps), and a
+## baked <name>_n.png normal map (Sobel over the tiled height, `amp` = strength).
+func _fabric(
+	name: String, height: PackedFloat32Array, amp: float, tint := PackedColorArray()
+) -> void:
+	var img := Image.create(FAB_SIZE, FAB_SIZE, false, Image.FORMAT_RGBA8)
+	var has_tint := tint.size() == height.size()
+	for y in FAB_SIZE:
+		for x in FAB_SIZE:
+			var i := y * FAB_SIZE + x
+			var v := clampf(height[i], 0.0, 1.0)
+			var c := _g(v)
+			if has_tint:
+				c = Color(
+					clampf(v * tint[i].r, 0.0, 1.0),
+					clampf(v * tint[i].g, 0.0, 1.0),
+					clampf(v * tint[i].b, 0.0, 1.0),
+					1.0
+				)
+			img.set_pixel(x, y, c)
+	_save(img, FAB_DIR + "/%s.png" % name)
+	_bake_normal(height, FAB_SIZE, amp, FAB_DIR + "/%s_n.png" % name)
+
+
+func _fab_worsted() -> PackedFloat32Array:
 	# Fine tight twill: subtle diagonal weave.
-	var img := _gray(0.5)
+	var h := _heights(FAB_SIZE)
 	for y in FAB_SIZE:
 		for x in FAB_SIZE:
 			var v := 0.5
@@ -92,56 +130,79 @@ func _fab_worsted() -> Image:
 			if (x - y) % 4 == 0:
 				v -= 0.04
 			v += (_hash(x, y) - 0.5) * 0.04
-			img.set_pixel(x, y, _g(v))
-	return img
+			h[y * FAB_SIZE + x] = v
+	return h
 
 
-func _fab_flannel() -> Image:
+func _fab_flannel() -> PackedFloat32Array:
 	# Soft brushed cloud: low-frequency noise.
-	var img := _gray(0.5)
+	var h := _heights(FAB_SIZE)
 	for y in FAB_SIZE:
 		for x in FAB_SIZE:
 			var n := _value_noise(x * 0.06, y * 0.06)
-			var v := 0.5 + (n - 0.5) * 0.18
-			img.set_pixel(x, y, _g(v))
-	return img
+			h[y * FAB_SIZE + x] = 0.5 + (n - 0.5) * 0.18
+	return h
 
 
-func _fab_tweed() -> Image:
-	# Coarse speckle / flecks.
-	var img := _gray(0.5)
+## Coarse speckle plus sparse coloured neps — the flecks that make tweed tweed.
+## The albedo multiplies the cloth colour, so the fleck tints stay harmonious on
+## any dye; each nep is also a small bump in the height so the light catches it.
+func _fab_tweed() -> Dictionary:
+	var h := _heights(FAB_SIZE)
+	var tint := PackedColorArray()
+	tint.resize(FAB_SIZE * FAB_SIZE)
+	tint.fill(Color(1, 1, 1))
 	for y in FAB_SIZE:
 		for x in FAB_SIZE:
-			var h := _hash(x, y)
-			var v := 0.5 + (h - 0.5) * 0.34
-			var n := _value_noise(x * 0.12, y * 0.12)
-			v += (n - 0.5) * 0.12
-			img.set_pixel(x, y, _g(v))
-	return img
+			var v := 0.5 + (_hash(x, y) - 0.5) * 0.34
+			v += (_value_noise(x * 0.12, y * 0.12) - 0.5) * 0.12
+			h[y * FAB_SIZE + x] = v
+	for k in NEP_COUNT:
+		var cx := _hash(k * 3 + 1, 17) * FAB_SIZE
+		var cy := _hash(k * 7 + 5, 91) * FAB_SIZE
+		var r := 1.0 + _hash(k, 57) * 1.4
+		var col: Color = NEP_COLORS[int(_hash(k, 33) * NEP_COLORS.size()) % NEP_COLORS.size()]
+		_stamp_nep(h, tint, cx, cy, r, col)
+	return {"h": h, "tint": tint}
 
 
-func _fab_mohair() -> Image:
+func _stamp_nep(
+	h: PackedFloat32Array, tint: PackedColorArray, cx: float, cy: float, r: float, col: Color
+) -> void:
+	var reach := int(ceil(r)) + 1
+	for oy in range(-reach, reach + 1):
+		for ox in range(-reach, reach + 1):
+			var fall := clampf(r - Vector2(ox, oy).length() + 0.5, 0.0, 1.0)
+			if fall <= 0.0:
+				continue
+			var x := posmod(int(cx) + ox, FAB_SIZE)
+			var y := posmod(int(cy) + oy, FAB_SIZE)
+			var i := y * FAB_SIZE + x
+			h[i] += fall * 0.12
+			tint[i] = tint[i].lerp(col, fall * 0.85)
+
+
+func _fab_mohair() -> PackedFloat32Array:
 	# Smooth with a faint vertical sheen.
-	var img := _gray(0.5)
+	var h := _heights(FAB_SIZE)
 	for y in FAB_SIZE:
 		for x in FAB_SIZE:
 			var sheen: float = sin(float(x) / FAB_SIZE * PI) * 0.08
-			var v := 0.5 + sheen + (_hash(x, y) - 0.5) * 0.03
-			img.set_pixel(x, y, _g(v))
-	return img
+			h[y * FAB_SIZE + x] = 0.5 + sheen + (_hash(x, y) - 0.5) * 0.03
+	return h
 
 
-func _fab_linen() -> Image:
+func _fab_linen() -> PackedFloat32Array:
 	# Open weave: irregular horizontal + vertical slubs.
-	var img := _gray(0.5)
+	var h := _heights(FAB_SIZE)
 	for y in FAB_SIZE:
 		for x in FAB_SIZE:
 			var v := 0.5
 			v += sin(float(x) * 0.9) * 0.05
 			v += sin(float(y) * 0.9) * 0.05
 			v += (_hash(x, y) - 0.5) * 0.08
-			img.set_pixel(x, y, _g(v))
-	return img
+			h[y * FAB_SIZE + x] = v
+	return h
 
 
 # --- Patterns -------------------------------------------------------------
@@ -169,6 +230,9 @@ func _woven(name: String) -> void:
 			cover[y * PAT_SIZE + x] = c / samples
 			relief[y * PAT_SIZE + x] = r / samples
 	_write(name, cover, relief)
+	# The same thread relief, baked as a normal map so a woven pattern's threads
+	# catch the light (flat printed patterns carry no relief and get none).
+	_bake_normal(relief, PAT_SIZE, 2.0, PAT_DIR + "/%s_n.png" % name)
 
 
 ## One point of woven cloth: whether the thread showing here is an accent thread, and
@@ -317,6 +381,30 @@ func _grid() -> PackedFloat32Array:
 
 
 # --- Helpers ---------------------------------------------------------------
+
+
+func _heights(size: int) -> PackedFloat32Array:
+	var h := PackedFloat32Array()
+	h.resize(size * size)
+	return h
+
+
+## Bakes an OpenGL-style tangent-space normal map from a tiled heightfield via a
+## wrapped central difference; `amp` scales the slopes (the shader's normal_depth
+## scales again on top, so these are just sane per-texture baselines).
+func _bake_normal(height: PackedFloat32Array, size: int, amp: float, path: String) -> void:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	for y in size:
+		for x in size:
+			var dx := (
+				height[y * size + posmod(x + 1, size)] - height[y * size + posmod(x - 1, size)]
+			)
+			var dy := (
+				height[posmod(y + 1, size) * size + x] - height[posmod(y - 1, size) * size + x]
+			)
+			var n := Vector3(-dx * amp, dy * amp, 1.0).normalized()
+			img.set_pixel(x, y, Color(n.x * 0.5 + 0.5, n.y * 0.5 + 0.5, n.z * 0.5 + 0.5, 1.0))
+	_save(img, path)
 
 
 func _gray(v: float) -> Image:

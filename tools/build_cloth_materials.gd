@@ -31,6 +31,11 @@ func _write(path: String, shader_path: String, scale_param: String, scale: float
 	# the strength is per fabric (ClothMaterial.FABRIC_RIM).
 	mat.set_shader_parameter("rim_power", 3.0)
 	mat.set_shader_parameter("rim_tint", 0.4)
+	# B2/B4 live values (the shader defaults are 0 = off, the regression guard):
+	# weave normal-map depth, and the macro brightness breakup per metre of cloth.
+	mat.set_shader_parameter("normal_depth", 1.0)
+	mat.set_shader_parameter("macro_strength", 0.07)
+	mat.set_shader_parameter("macro_scale", 0.35)
 	mat.set_shader_parameter(scale_param, scale)
 	var err := ResourceSaver.save(mat, path)
 	print("build_cloth_materials: %s -> %s" % [path, "ok" if err == OK else "FAIL %d" % err])
