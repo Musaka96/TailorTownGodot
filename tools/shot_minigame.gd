@@ -24,6 +24,12 @@ const CUT_VARIANTS := {
 	"cut3": "res://ui/cut_strokes_minigame.gd",
 	"sew2": "res://ui/sew_pedal_minigame.gd",
 }
+## The comfort games: "press" (ironing board), "pour" (coffee) and "espresso".
+const COMFORT := {
+	"press": "res://ui/press_minigame.gd",
+	"pour": "res://ui/coffee_pour_minigame.gd",
+	"espresso": "res://ui/espresso_minigame.gd",
+}
 const PRESS_AT := 20
 const GARMENT_JACKET := 2  # Enums.GarmentType.JACKET
 const CLOTH := Color("7a3b3b")  # a burgundy bolt, to show the cloth tinting
@@ -56,11 +62,17 @@ func _initialize() -> void:
 	host.add_child(back)
 
 	var path: String = CUT_VARIANTS.get(which, SEW_SCRIPT if which == "sew" else CUT_SCRIPT)
+	path = COMFORT.get(which, path)
 	var game: Control = load(path).new()
 	host.add_child(game)
-	if CUT_VARIANTS.has(which):
-		var factory: GDScript = load("res://data/scripts/material_factory.gd")
-		game.start(garment, "Piece · M", factory.make(1, 1, 0, 3.0))
+	if which == "press":
+		game.start_piece(garment, "Jacket · M", _factory().make(1, 1, 0, 3.0))
+		_hold = true
+	elif COMFORT.has(which):
+		game.start_cup("A cup of coffee")
+		_hold = true
+	elif CUT_VARIANTS.has(which):
+		game.start(garment, "Piece · M", _factory().make(1, 1, 0, 3.0))
 		_hold = true
 	elif which == "sew":
 		game.start("Jacket · M", CLOTH)
@@ -69,6 +81,10 @@ func _initialize() -> void:
 
 	print("Rendering %s minigame → %s ..." % [which, _out])
 	process_frame.connect(_on_frame)
+
+
+func _factory() -> GDScript:
+	return load("res://data/scripts/material_factory.gd")
 
 
 func _on_frame() -> void:

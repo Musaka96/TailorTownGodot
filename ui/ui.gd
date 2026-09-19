@@ -15,6 +15,7 @@ var day_transition: Control
 var pause_menu: Control
 var rack_menu: Control
 var apprentice_menu: Control
+var bench_game: Control
 
 var _toast: Label
 
@@ -60,6 +61,7 @@ func _ready() -> void:
 	pause_menu = _build_pause_menu(theme)
 	rack_menu = _build_rack_menu(theme)
 	apprentice_menu = _build_code_menu(theme, "ApprenticeMenu", "res://ui/apprentice_menu.gd")
+	bench_game = _build_code_menu(theme, "BenchGameScreen", "res://ui/bench_game_screen.gd")
 	_wire_pop_ins()
 
 
@@ -76,6 +78,7 @@ func close_all_menus() -> void:
 		orders_menu,
 		rack_menu,
 		apprentice_menu,
+		bench_game,
 		newspaper,
 	]:
 		if menu != null and menu.visible:
@@ -98,6 +101,7 @@ func any_menu_open() -> bool:
 		orders_menu,
 		rack_menu,
 		apprentice_menu,
+		bench_game,
 		newspaper,
 	]:
 		if menu != null and menu.visible:
@@ -119,6 +123,7 @@ func _wire_pop_ins() -> void:
 		orders_menu,
 		rack_menu,
 		apprentice_menu,
+		bench_game,
 	]:
 		if menu == null:
 			continue
@@ -173,6 +178,30 @@ func open_sewing(machine, actor, piece) -> void:
 		return
 	Sfx.play("sew_machine", -3.0)
 	sewing_screen.open(machine, actor, piece)
+
+
+## Pressing at the ironing board. Like the coffee below it is a comfort, not shop work, so
+## it is not shut with the shop.
+func open_pressing(board, piece) -> void:
+	Sfx.play("cloth_rustle")
+	var game := PressMinigame.new()
+	var title := (
+		"%s · %s" % [Enums.garment_type_name(piece.garment_type), Enums.size_name(piece.size)]
+	)
+	bench_game.open(
+		game,
+		game.start_piece.bind(int(piece.garment_type), title, piece.material),
+		board.finish_press
+	)
+
+
+## A cup at the coffee machine: instant coffee, or the three-beat espresso once owned.
+func open_coffee(machine) -> void:
+	Sfx.play("menu_open")
+	var espresso: bool = Upgrades.has("shop_espresso")
+	var game: CoffeeBench = EspressoMinigame.new() if espresso else CoffeePourMinigame.new()
+	var title := "An espresso" if espresso else "A cup of coffee"
+	bench_game.open(game, game.start_cup.bind(title), machine.finish_coffee)
 
 
 func open_suit_builder(mirror, actor) -> void:

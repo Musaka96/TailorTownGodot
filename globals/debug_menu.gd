@@ -171,6 +171,23 @@ func _try_sew(variant: int) -> void:
 		game.call("start_piece", garment, title, cloth)
 
 
+## The pressing game, on a piece of random cloth (the sewing section's piece picker).
+func _try_press() -> void:
+	var garment := _pick_garment(_sew_type)
+	var cloth := _random_cloth(garment)
+	var game := PressMinigame.new()
+	if _open_trial(game, "Pressing", cloth):
+		game.start_piece(garment, "%s · M" % Enums.garment_type_name(garment), cloth)
+
+
+## A cup from the coffee machine: the one-button pour, or the three-beat espresso.
+func _try_coffee(espresso: bool) -> void:
+	var game: CoffeeBench = EspressoMinigame.new() if espresso else CoffeePourMinigame.new()
+	var label := "Espresso" if espresso else "Coffee"
+	if _open_trial(game, label, null):
+		game.start_cup("An espresso" if espresso else "A cup of coffee")
+
+
 func _pick_garment(picker: OptionButton) -> int:
 	var garment := picker.selected - 1
 	return garment if garment >= 0 else randi() % 3
@@ -187,7 +204,8 @@ func _open_trial(game: Control, label: String, cloth: MaterialType) -> bool:
 	_trial.layer = 240  # over the HUD and the post-process filter, under this panel
 	add_child(_trial)
 	_trial.add_child(game)
-	game.connect("finished", _on_trial_finished.bind(label, cloth.display_name))
+	var on := cloth.display_name if cloth != null else "the counter"
+	game.connect("finished", _on_trial_finished.bind(label, on))
 	return true
 
 
@@ -418,6 +436,12 @@ func _build() -> void:
 	sew_pick.selected = SewVariants.current()
 	sew_pick.item_selected.connect(_set_sew_variant)
 	sew_use.add_child(sew_pick)
+
+	var comfort := _row(sew)
+	comfort.add_child(_make_label("Also", 13, LABEL))
+	_button(comfort, "Press", _try_press)
+	_button(comfort, "Coffee", _try_coffee.bind(false))
+	_button(comfort, "Espresso", _try_coffee.bind(true))
 
 	var upg := _section(box, "Upgrades & deliveries")
 	var urow := _row(upg)

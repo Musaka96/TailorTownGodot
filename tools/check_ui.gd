@@ -29,12 +29,22 @@ const MIGRATED := [
 	"cut_strokes_minigame.gd",
 	"sew_pedal_minigame.gd",
 	"apprentice_menu.gd",
+	"press_minigame.gd",
+	"coffee_bench.gd",
+	"coffee_pour_minigame.gd",
+	"espresso_minigame.gd",
 ]
 const PENDING: Array[String] = []
-# Not standard panel-menus: sewing_screen only hosts the sewing minigame;
+# Not standard panel-menus: sewing_screen only hosts the sewing minigame, and
+# bench_game_screen the pressing and coffee games;
 # orders_panel is the always-on HUD ticket strip; customer_request is a small
 # speech-bubble dialog (ui/speech_tail.gd), not an atelier panel.
-const EXEMPT := ["sewing_screen.gd", "orders_panel.gd", "customer_request.gd"]
+const EXEMPT := [
+	"sewing_screen.gd",
+	"bench_game_screen.gd",
+	"orders_panel.gd",
+	"customer_request.gd",
+]
 ## Menus whose panel is built by a shared base class: the structural rules (skin,
 ## fixed frame, key-cap hints) are satisfied by the base, so they are checked
 ## against it — the per-line rules (no Color() literals, no raw hint text) still
@@ -46,6 +56,10 @@ const CHROME_BASE := {
 	"cut_allowance_minigame.gd": "minigame_screen.gd",
 	"cut_strokes_minigame.gd": "minigame_screen.gd",
 	"sew_pedal_minigame.gd": "minigame_screen.gd",
+	"press_minigame.gd": "minigame_screen.gd",
+	"coffee_bench.gd": "minigame_screen.gd",
+	"coffee_pour_minigame.gd": "minigame_screen.gd",
+	"espresso_minigame.gd": "minigame_screen.gd",
 }
 
 

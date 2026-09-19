@@ -69,11 +69,17 @@ extends Resource
 @export var courier_hours: float = 0.25
 
 @export_group("Workshop")
-## Pressing Iron: quality a piece gains from one press (never past 100%).
-@export var press_bonus: float = 0.05
-## Coffee Machine: cups the pot makes a day, and bench games of focus per cup.
+## Pressing Iron: quality a piece gains from a clean press (half of it with one scorch,
+## none with two — never past 100%), and what a press scorched three times costs it.
+@export var press_bonus_best: float = 0.08
+@export var press_scorch_penalty: float = 0.05
+## Coffee Machine: cups the pot makes a day, and bench games of focus from a well-made cup
+## (a perfect one gives coffee_jobs_perfect more, a weak one only coffee_weak_share of
+## them). The Espresso Machine adds to cups and jobs through its upgrade effects.
 @export var coffee_cups: int = 2
 @export var coffee_jobs: int = 3
+@export var coffee_jobs_perfect: int = 1
+@export var coffee_weak_share: float = 0.6
 ## While focused: the bench games' bands are this much wider and cloth drift halves.
 @export var focus_band: float = 1.2
 

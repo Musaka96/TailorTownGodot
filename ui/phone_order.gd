@@ -371,6 +371,9 @@ func _show_upgrade_preview(id: String) -> void:
 	elif not Upgrades.tier_met(id):
 		_price_label.text = "Locked — %s%s" % [_tier_name(int(d.get("tier", 0))), _status]
 		_price_label.add_theme_color_override("font_color", Style.CLAY)
+	elif _needs(id) != "":
+		_price_label.text = "Needs the %s first%s" % [_needs(id), _status]
+		_price_label.add_theme_color_override("font_color", Style.CLAY)
 	else:
 		var cost := int(d.get("cost", 0))
 		_price_label.text = "Buy:  $ %d%s" % [cost, _status]
@@ -494,7 +497,7 @@ func _upgrade_status(id: String, d: Dictionary) -> Label:
 	if Upgrades.has(id):
 		status.text = "Owned ✓"
 		status.add_theme_color_override("font_color", Style.FOREST)
-	elif not Upgrades.tier_met(id):
+	elif not Upgrades.tier_met(id) or _needs(id) != "":
 		status.text = "🔒"
 		status.add_theme_color_override("font_color", Style.CLAY)
 	else:
@@ -729,12 +732,22 @@ func _buy_upgrade() -> void:
 		_status = "  (already owned)"
 	elif not Upgrades.tier_met(id):
 		_status = "  (need more reputation)"
+	elif _needs(id) != "":
+		_status = "  (buy the %s first)" % _needs(id)
 	elif not GameState.can_afford(int(Upgrades.data(id).get("cost", 0))):
 		_status = "  (not enough money)"
 	elif Upgrades.buy(id):
 		Sfx.play("coins")
 		_status = "  — purchased!"
 	_refresh()
+
+
+## The name of the upgrade this one builds on, while that one is still unbought ("" if none).
+func _needs(id: String) -> String:
+	var base := str(Upgrades.data(id).get("needs", ""))
+	if base == "" or Upgrades.has(base):
+		return ""
+	return str(Upgrades.data(base).get("name", base))
 
 
 # --- Tutorial hooks ----------------------------------------------------------

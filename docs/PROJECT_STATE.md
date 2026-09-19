@@ -119,7 +119,9 @@ pause_menu, rack_menu, day_transition). The **3D main menu**
 
 Theme = a single **Style** kit (`ui/style.gd`, six `MenuSkin`s), helper classes
 `MenuKit`/`AtelierFrame`/`MaterialSwatch`, enforced by `tools/check_ui.gd`. See
-`docs/UI_STYLE_GUIDE.md`. Minigames: `ui/cutting_minigame.gd`, `ui/sew_minigame.gd`.
+`docs/UI_STYLE_GUIDE.md`. Minigames: `ui/cutting_minigame.gd`, `ui/sew_minigame.gd` (+ the v2/v3 variants), and the
+pressing / coffee games (`ui/press_minigame.gd`, `ui/coffee_bench.gd`) hosted by
+`ui/bench_game_screen.gd` for the `IroningBoard` and `CoffeeMachine` upgrade stations.
 
 ### Data layer (`data/`)
 

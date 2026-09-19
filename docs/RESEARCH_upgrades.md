@@ -154,8 +154,9 @@ All in `Upgrades.UPGRADES` (phone → Shop Upgrades), each grantable from the F3
 | sew_roller | Roller Foot | T2 / 1600 | aim assist: the cloth follows curves by itself |
 | sew_autolock | Auto-Lock Button | T3 / 2200 | both ends backstitched for you |
 | shop_lamp | Workbench Lamp | T1 / 400 | perfect band ×1.15 on every bench game |
-| shop_coffee | Coffee Machine | T1 / 350 | station: 2 cups/day, each = focus for 3 bench jobs |
-| shop_iron | Pressing Iron | T2 / 1000 | station: press a piece once for +5% |
+| shop_coffee | Coffee Machine | T1 / 350 | station: 2 cups/day; a one-button pour — perfect 4 / good 3 / weak 2 focused bench jobs, a spill wastes the cup |
+| shop_espresso | Espresso Machine | T2 / 1400 | needs the Coffee Machine: grind · tamp · pour; 3 cups/day, perfect 6 / good 5 / weak 3 jobs |
+| shop_iron | Pressing Iron | T2 / 1000 | station: press a piece once — "smooth the wrinkles": clean +8%, one scorch +4%, two 0, scorched through −5% |
 | courier | Courier Account | T2 / 1200 | cloth arrives in 15 min instead of 2 h |
 
 Not built yet: Industrial Machine and Overlocker (T3 sewing), Tall Shelving, Bolt
@@ -166,6 +167,22 @@ morning if that's past closing; tutorial bolts stay instant. Pending bolts save 
 phone. The coffee machine and ironing board are `UpgradeStation`s — hidden until owned —
 at `stations/coffee_machine/` and `stations/ironing_board/`; they still need a spot in the
 shop map (F3 → Spawn coffee / Spawn iron drops one beside you for testing).
+
+**Pressing and coffee are small games (built 2026-09-19).** Both run on the shared bench
+chrome through one throw-away host, `ui/bench_game_screen.gd` (`UI.open_pressing` /
+`UI.open_coffee`); F3 → Sewing → "Also: Press / Coffee / Espresso" tries them anywhere.
+- *Pressing* (`ui/press_minigame.gd`): A/D slides the iron, hold E/Space to press; a
+  wrinkle under the plate steams flat in ~0.65 s, cloth under a pressed iron heats (glow +
+  gauge under the cloth) and scorches after ~1.25 s still = a slip; 3 = scorched through.
+  It does not spend coffee focus. Knobs: consts at the top of the game, and
+  `GameConfig.press_bonus_best` / `press_scorch_penalty`.
+- *Coffee* (`ui/coffee_bench.gd` + `coffee_pour_minigame.gd` / `espresso_minigame.gd`):
+  one-button beats — GRIND (stop the needle in the band), TAMP and POUR (hold, let go at
+  the mark; the gauge speeds up as it climbs). Instant coffee is POUR alone; the Espresso
+  Machine (an upgrade *to* the coffee machine — the `needs` key, honoured by
+  `Upgrades.can_buy` and shown on the phone) plays all three and adds `coffee_jobs` /
+  `coffee_cups` effects. Over the rim = spilt, cup wasted.
+Test: `tools/test_comfort_games.gd` (run with `--fixed-fps 60`; bots play each game).
 
 **Apprentice (built):** one shop-wide hire, `apprentice` (Staff, T3 / $2800). Percy
 works at his own bench (`stations/apprentice_bench/`, an UpgradeStation — still needs a

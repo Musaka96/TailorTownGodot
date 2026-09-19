@@ -57,6 +57,12 @@ const LIB := {
 	# workshop furniture (synthesised, build_shop_audio.gd)
 	"steam_hiss": "steam_hiss.wav",
 	"coffee_pour": "coffee_pour.wav",
+	# the pressing and coffee minigames (synthesised, build_comfort_audio.gd)
+	"iron_glide": "iron_glide_loop.wav",
+	"scorch": "scorch.wav",
+	"grinder": "grinder_loop.wav",
+	"tamp": "tamp.wav",
+	"pour": "pour_loop.wav",
 	"stitch": "stitch.wav",
 	"sew_machine": "sew_machine.wav",
 	"sew_machine_loop": "sew_machine_loop.wav",

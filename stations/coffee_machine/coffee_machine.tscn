@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" uid="uid://dd2yyf3x2kync" path="res://stations/coffee_machine/coffee_machine.gd" id="9_root"]
 [ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="1_aguy1"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_qkhm8"]
@@ -81,6 +82,7 @@ height = 0.07
 size = Vector3(0.9, 1.3, 0.9)
 
 [node name="CoffeeMachine" type="Node3D" unique_id=1309588511]
+script = ExtResource("9_root")
 
 [node name="Body" type="StaticBody3D" parent="." unique_id=1207702587]
 
@@ -124,3 +126,17 @@ script = ExtResource("1_aguy1")
 [node name="InteractCol" type="CollisionShape3D" parent="Interactable" unique_id=1929917320]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0.1)
 shape = SubResource("BoxShape3D_6mfd7")
+
+[node name="Espresso" type="Node3D" parent="." unique_id=1720455101]
+
+[node name="Grinder" type="MeshInstance3D" parent="Espresso" unique_id=1720455102]
+transform = Transform3D(0.5, 0, 0, 0, 1.6, 0, 0, 0, 0.5, 0.185, 0.896, -0.04)
+mesh = SubResource("CylinderMesh_aqttf")
+
+[node name="Hopper" type="MeshInstance3D" parent="Espresso" unique_id=1720455103]
+transform = Transform3D(0.7, 0, 0, 0, 0.5, 0, 0, 0, 0.7, 0.185, 1.02, -0.04)
+mesh = SubResource("CylinderMesh_s4itw")
+
+[node name="Portafilter" type="MeshInstance3D" parent="Espresso" unique_id=1720455104]
+transform = Transform3D(0.8, 0, 0, 0, 0.5, 0, 0, 0, 2.2, 0, 0.9, 0.2)
+mesh = SubResource("BoxMesh_esp2d")

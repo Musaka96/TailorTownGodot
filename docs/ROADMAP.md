@@ -17,6 +17,11 @@ tweed flecks, macro breakup) and a specced Tier 2. Full implementation plan in
 
 ## A. Coffee station — sit, drink, timed "caffeinated" buff (better suit quality)
 
+> **Shipped differently (2026-09-18/19).** The Coffee Machine upgrade station gives
+> `GameState.focus` — a count of focused bench jobs, not a timer — earned through a small
+> pour minigame, with an Espresso Machine upgrade on top. See `docs/RESEARCH_upgrades.md`
+> ("Pressing and coffee are small games"). The notes below are the original idea.
+
 **Idea:** a coffee spot in the shop; sit and drink to gain a timed focus buff that
 raises the quality of pieces you craft while it's active.
 

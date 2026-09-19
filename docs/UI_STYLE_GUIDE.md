@@ -147,7 +147,9 @@ prompts. What differs is the *surface they paint* — a cutting mat with a pinne
 pattern, versus a machine bed with a strip of cloth under the needle — and the frame,
 because a garment shape needs height (`FRAME_TALL`) where a seam needs width
 (`FRAME_WIDE`). A new minigame extends `MinigameScreen` rather than rebuilding chrome;
-`check_ui.gd` knows about that base (`CHROME_BASE`) and still checks the rest.
+`check_ui.gd` knows about that base (`CHROME_BASE`) and still checks the rest. The
+ironing board's pressing game and the coffee machine's two (`press_minigame.gd`,
+`coffee_bench.gd`) are the same bench again, on the default `FRAME_WIDE`.
 
 **Dialogs are not panels.** A character *speaking* to the player (e.g. the greeting
 brief) uses a small **speech bubble** — a compact cream rounded panel with a

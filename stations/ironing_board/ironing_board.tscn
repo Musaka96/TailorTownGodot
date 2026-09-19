@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" uid="uid://cdkgwp76e2eo6" path="res://stations/ironing_board/ironing_board.gd" id="9_root"]
 [ext_resource type="Script" path="res://entities/scripts/interactable.gd" id="1_2wylq"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ty121"]
@@ -86,6 +87,7 @@ height = 0.07
 size = Vector3(1.5, 1.2, 1)
 
 [node name="IroningBoard" type="Node3D" unique_id=555322733]
+script = ExtResource("9_root")
 
 [node name="Body" type="StaticBody3D" parent="." unique_id=1255601881]
 
