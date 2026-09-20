@@ -1,16 +1,15 @@
 class_name WallCutaway
 extends Node3D
 
-## The dollhouse cutaway, done in the material instead of the saw. While the player is
-## inside, the walls of the group at `walls_path` sink to `cut_height` along a torn,
-## plaster-filled edge; when they step out, the walls grow back to full height.
+## The dollhouse cutaway, eased out instead of sawn off. While the player is inside, the
+## walls of the group at `walls_path` thin away to nothing above `cut_height` over
+## `fade_band` metres; when they step out, the walls come back solid.
 ##
-## Why not the flat cut we have: today the upper halves are split off in Blender
-## (build_v8_grandpa.py, CUT = 1.1) and alpha-faded by RoofManager. That gives a
-## ruler-straight saw line with a dark cap on it, ghosts the wall for half a second on
-## the way out, and can never move, because the cut is baked into the mesh. Here the cut
-## is a number the shader reads, so it can animate, dip around the player, and be torn
-## rather than sawn. See materials/wall_cutaway.gdshader.
+## Why: the street fronts are cut at 1.1 m in Blender (build_v8_grandpa.py, CUT = 1.1)
+## and RoofManager hides the upper half while you are inside. What is left ends in a hard
+## horizontal line with a dark cap on it, and from inside the shop it reads as a wall
+## somebody sawed in half rather than as a wall the camera is seeing past. The fade turns
+## that edge into an effect. See materials/wall_cutaway.gdshader.
 ##
 ## Pieces named in `skip_prefixes` are not walls (the roof itself, gables, the sign, and
 ## the caps that sit on the old flat cut) — they keep the plain "gone while you're
@@ -24,6 +23,9 @@ const SHADER := preload("res://materials/wall_cutaway.gdshader")
 ## Pieces whose name contains one of these are hidden outright rather than cut — the
 ## roof proper, and the caps that only existed to dress the old flat cut.
 @export var skip_prefixes := PackedStringArray(["roof_", "gable_", "ShopSign", "wall_cap"])
+## Which pieces of `walls_path` to fade — everything when left empty. Naming the cut
+## walls (e.g. "_lo") keeps the fade off the interior walls that were never cut.
+@export var only_prefixes: PackedStringArray = []
 ## More groups holding the same walls (the lower halves of an already-split wall, and
 ## the caps sitting on the old flat cut). `skip_prefixes` applies here too, so the caps
 ## are hidden while the wall is down and the halves become one continuous surface.
@@ -34,18 +36,22 @@ const SHADER := preload("res://materials/wall_cutaway.gdshader")
 @export_node_path("Node3D") var player_path: NodePath
 ## Half-size of the interior box, centred on this node — same test as RoofManager.
 @export var interior_extents := Vector3(9.4, 1.8, 5.1)
-## World Y the wall is cut down to while the player is inside.
+## World Y the wall has faded away to nothing by while the player is inside.
 @export var cut_height := 1.35
 ## World Y that counts as "whole" — above the ridge, so nothing is cut.
 @export var up_height := 99.0
 ## Seconds the wall takes to sink or grow back.
 @export var fade_time := 0.45
-## Metres of wall eaten away along the tear, from first nibble to all gone.
-@export var tear_band := 0.35
-## Tears per metre. Higher = finer and papery, lower = big torn chunks.
-@export var tear_scale := 2.6
-## How much lower the cut dips right where the player stands (0 = a level cut).
-@export var dip := 0.25
+## Metres below `cut_height` where the wall starts thinning. Bigger = softer melt.
+@export var fade_band := 0.55
+## 0 = a level fade line; higher lets it wander so it does not look ruled.
+@export var wobble := 0.25
+## Wobbles per metre along the wall.
+@export var wobble_scale := 0.9
+## How much the thinning wall pales out on its way to nothing.
+@export var haze := 0.35
+## How much sooner the wall gives out right where the player stands (0 = level).
+@export var dip := 0.0
 @export var dip_radius := 1.8
 ## Invert: cut only while the player is inside the box (the street fronts), or only
 ## while they are NOT (a divider you want gone when you stand behind it).
@@ -67,7 +73,7 @@ func _ready() -> void:
 		push_warning("WallCutaway: walls_path is not set to a valid node.")
 		set_process(false)
 		return
-	_convert(_walls, skip_prefixes, PackedStringArray())
+	_convert(_walls, skip_prefixes, only_prefixes)
 	for path in shared_paths:
 		var extra := get_node_or_null(path) as Node3D
 		if extra != null:
@@ -146,22 +152,25 @@ func _material_for(src: StandardMaterial3D) -> ShaderMaterial:
 	mat.set_shader_parameter("uv1_scale", src.uv1_scale)
 	mat.set_shader_parameter("uv1_offset", src.uv1_offset)
 	mat.set_shader_parameter("cut_height", up_height)
-	mat.set_shader_parameter("band", tear_band)
-	mat.set_shader_parameter("tear_scale", tear_scale)
-	mat.set_shader_parameter("dip", dip)
-	mat.set_shader_parameter("dip_radius", dip_radius)
+	_push(mat)
 	_cut_mats.append(mat)
 	_by_src[src] = mat
 	return mat
 
 
-## Push the tear dials into the live materials after changing them at runtime.
+## Push the fade dials into the live materials after changing them at runtime.
 func retune() -> void:
 	for mat in _cut_mats:
-		mat.set_shader_parameter("band", tear_band)
-		mat.set_shader_parameter("tear_scale", tear_scale)
-		mat.set_shader_parameter("dip", dip)
-		mat.set_shader_parameter("dip_radius", dip_radius)
+		_push(mat)
+
+
+func _push(mat: ShaderMaterial) -> void:
+	mat.set_shader_parameter("fade_band", fade_band)
+	mat.set_shader_parameter("wobble", wobble)
+	mat.set_shader_parameter("wobble_scale", wobble_scale)
+	mat.set_shader_parameter("haze", haze)
+	mat.set_shader_parameter("dip", dip)
+	mat.set_shader_parameter("dip_radius", dip_radius)
 
 
 func _resolve_player() -> Node3D:
