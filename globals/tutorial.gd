@@ -33,8 +33,9 @@ const TUT_BUDGET := 1000
 
 ## The player has come to HIM: they mean to reopen their grandfather's shop and can't sew.
 const M_PROMPT := (
-	"So you're his grandchild! I'm [b]Mr. Hemming[/b] — I learned this trade at your "
-	+ "grandfather's bench, forty years ago. You mean to open his old shop again? Then let me "
+	"So you're old [b]Pops Thimble's[/b] grandchild! I'm [b]Mr. Hemming[/b] — I learned this "
+	+ "trade at your grandfather's bench, forty years ago. You mean to open his shop again? "
+	+ "Then let me "
 	+ "show you how a tailor's shop runs, here in mine."
 )
 const M_ORDER := (
@@ -135,7 +136,7 @@ const M_BYE := (
 const M_SEND_OFF := (
 	"Your grandfather's shop has stood shut a good while, so don't expect mine: pull off the "
 	+ "[b]dust sheets[/b], clear what you can [b]by hand[/b], and ring the [b]builders[/b] on the "
-	+ "telephone for the rest. A room at a time. Off you go — make the old man proud!"
+	+ "telephone for the rest. A room at a time. Off you go — make Barnaby proud!"
 )
 
 ## The parts the mentor runs up for the tutorial order are sewn to its design at this
