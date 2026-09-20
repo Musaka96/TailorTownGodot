@@ -299,7 +299,79 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
   world; saves carry `location`; old saves (no key) still open in `main.tscn`.
   Tools: `tools/build_grandpa_greybox.gd` (shell), `tools/make_grandpa_room.py` (one-time
   room converter), `tools/shot_grandpa.gd`, `tools/test_locations.gd`.
-- Next: M2 `Renovation` autoload on the greybox.
+- **M2 (2026-09-20)**: the renovation loop, on the greybox.
+  - `Renovation` autoload (`globals/renovation.gd`, modelled on `Upgrades`, saved with the
+    game): 17 projects over 5 rooms. **Cleanup** is done by hand, spot by spot, for free;
+    **build** work is ordered, paid for, gated by reputation tier and finished by the builders
+    overnight (`EventBus.day_began`). A locked room goes shut -> entered (boards off) ->
+    cleared (mess out) -> done (rebuilt, stations in). **All costs and nights are
+    provisional** - they order the projects by size but are not balanced in days of profit.
+  - `RenovationDirector` (`scenes/world/grandpa/renovation_director.gd`) is the scene side:
+    boards, a mess pile per cleanup spot, dust sheets over three stations (which sleep until
+    uncovered), the builders' clutter, floor and label by room state. Stations of later
+    rooms sit in the scene from the first day, hidden and switched off, so **save paths
+    never change**; when a room is done they appear, and the worktable and sewing machine
+    move from the front room into the workroom.
+  - Coffee machine, ironing board and apprentice bench wait for their room as well as their
+    upgrade (`UpgradeStation.room`), and can't be bought before the room exists
+    (`Upgrades.ROOM_OF`; only in grandpa's shop, so Hemming's and old saves are unchanged).
+  - Tests: `test_renovation` (gating, money, nights, scene effects, save round trip),
+    `test_shop_clearance` (below), `test_locations`. GIF of the whole procedure:
+    `docs/media/renovation_greybox.gif` (`tools/shot_renovation_gif.gd` +
+    `tools/make_renovation_gif.py`).
+- Next: the phone's Builders card and the F3 renovation panel, then the look (Blender v8).
+
+## 6.8 Names the Blender-built shop must keep
+
+`RenovationDirector` finds everything by name under the shop shell (`shell_path`, today
+`GrandpaShell`). v8 can look like anything as long as these exist:
+
+| Node (under the shell) | What it is | Driven by |
+|---|---|---|
+| `Blockers/Blocker_<room>` | boards across a doorway: a body with a collider + its mesh. Rooms: `workroom`, `cloth`, `nook`, `nextdoor` (the party wall) | hidden + collision off once the room is entered |
+| `Spots/<cleanup project>/Spot<i>` | one mess pile per spot; children are the visuals. Projects: `front_sweep`, `workroom_clear`, `cloth_clear`, `nook_clear`, `next_clear` (spot counts in `Renovation.PROJECTS`) | hidden one by one as they are cleared |
+| `Wip_<room>` | the builders' clutter (trestle, tarp, pots) | shown while a build job of that room is under way |
+| `Body/Floor_<room>` | the room's floor mesh (`front`, `workroom`, `cloth`, `nook`, `nextdoor`) | greybox: recoloured by state. v8: replace `_paint_floor` with the wear shader's `damage` value |
+| `Label_<room>` | greybox floor label | drop it in v8 |
+| `Roof` | roof + the upper part of every cut-away wall | `RoofManager` fades it while the player is inside |
+
+Dust sheets are made by the director over the stations named in `SHEETED`; v8 should
+supply real sheet meshes (draped silhouettes) and the director should use those instead.
+
+## 6.9 What the clearance test found
+
+`tools/test_shop_clearance.gd` flood-fills the floor with a player-sized body against the
+real colliders, at seven renovation stages. It checks: every station that is there can be
+walked up to from its front; shut rooms are really shut; the street door is reachable;
+nothing is cut off with customers standing at the counter and the mirror; **every station
+is reachable along corridors at least 0.9 m wide**; and the customer's route keeps a
+**1.2 m aisle** from the door to the counter and to the mirror. Run it with `-- verbose`
+for an ASCII map of each stage. It caught three things no screenshot had shown:
+
+- **Three stations have no solid body of their own**: the worktable, the reception desk
+  (the Phone station) and the mirror can be walked through. At Mr. Hemming's the kit's
+  partition happens to stand where the desk is. In grandpa's shop the director gives them
+  a body (`SOLID`, sizes measured from the models). *Owner's call*: giving `worktable.tscn`,
+  `phone.tscn` and `mirror.tscn` a body of their own would fix Hemming's shop too - those
+  scenes are hand-owned, so it was left alone.
+- **The tri-fold mirror is 2.46 m wide.** Set diagonally it walled off a third of the front
+  room together with the desk; it now stands flat on the east wall. The day-1 basic mirror
+  (a v8 asset) is the real answer.
+- The **window mannequin** stood 0.7 m from the glass; moved back so one can walk round it.
+- The desk is not centred on the Phone station's origin (it runs x -0.35..1.65 from it).
+
+## 6.10 Open questions for the owner
+
+1. **The nook is the corridor to next door.** The party wall only touches the nook and the
+   cloth store, so the knock-through opens off the nook: front room -> nook -> next door.
+   It passes the 0.9 m rule with the coffee machine and ironing board in, but the comfort
+   corner becomes a passage. Alternatives: knock through from the cloth store instead
+   (work side to work side), or swap nook and cloth store. Left as drawn for now.
+2. **Next door is nearly empty** (one bench, one rack, one mannequin in ~50 m2). What else
+   belongs there - a second cutting table, a fitting corner, a bigger display?
+3. **Give the three body-less stations a body in their own scenes?** (6.9)
+4. **Reputation tiers gate rooms** (workroom tier 1 ... next door tier 4) and costs are
+   placeholders - both need a balance pass against `docs/ECONOMY.md`.
 
 ## 7. Build order
 

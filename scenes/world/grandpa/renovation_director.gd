@@ -61,6 +61,10 @@ const SOLID := {
 	"Mirror": [Vector3(0.11, 1.0, -0.325), Vector3(2.46, 2.0, 0.59)],
 }
 
+## What the greybox floor label says under the room's name, by Renovation.RoomState
+## (a finished room has no label). Next door isn't the player's until it is bought.
+const LABEL_NOTE: Array[String] = ["(locked)", "(needs clearing)", "(needs the builders)"]
+
 ## Floor colour by Renovation.RoomState (SHUT, ENTERED, CLEARED, DONE), until the real
 ## shop swaps this for its wear shader.
 const FLOOR_LOOK: Array[Color] = [
@@ -110,7 +114,7 @@ func _apply() -> void:
 			continue
 		var state := Renovation.room_state(room)
 		_set_solid(_blocker(room), state < Renovation.RoomState.ENTERED)
-		_show(_shell.get_node_or_null("Label_" + room), state < Renovation.RoomState.DONE)
+		_write_label(room, state)
 		_show(_shell.get_node_or_null("Wip_" + room), _room_under_way(room))
 		_paint_floor(room, state)
 	for project: String in MESS_PROJECTS:
@@ -315,6 +319,19 @@ func _tier_name(tier: int) -> String:
 	if Reputation == null or tier >= Reputation.TIERS.size():
 		return "tier %d" % tier
 	return str(Reputation.TIERS[tier].get("name", "tier %d" % tier))
+
+
+func _write_label(room: String, state: int) -> void:
+	var label := _shell.get_node_or_null("Label_" + room) as Label3D
+	if label == null:
+		return
+	label.visible = state < Renovation.RoomState.DONE
+	if not label.visible:
+		return
+	var note: String = LABEL_NOTE[state]
+	if room == "nextdoor" and not Renovation.is_done("next_buy"):
+		note = "(not yours)"
+	label.text = "%s\n%s" % [str(Renovation.ROOMS[room]["name"]), note]
 
 
 func _paint_floor(room: String, state: int) -> void:
