@@ -92,32 +92,64 @@ func _shell() -> void:
 	_blocker("nextdoor", Vector3(X1, 0, _mid(DOOR_NEXT)), Vector3(T, H, _len(DOOR_NEXT)))
 
 
-## Placeholder mess in the rooms that are still shut, so they read as "not yet".
+## What a renovation clears or puts up, found by name by RenovationDirector:
+##   Spots/<cleanup project>/Spot<i>  one mess pile per spot to clear by hand
+##   Wip_<room>                       the builders' clutter while work is under way
+##   Label_<room>                     the greybox "(locked)" floor label
 func _dressing() -> void:
-	var piles := {
-		"workroom": [Vector3(-2.6, 0, -1.2), Vector3(0.4, 0, -2.4), Vector3(1.5, 0, 0.2)],
-		"cloth": [Vector3(4.2, 0, -2.0), Vector3(4.8, 0, 0.3)],
-		"nook": [Vector3(4.0, 0, 2.6), Vector3(4.9, 0, 5.8)],
+	var spots := {
+		"front_sweep": [Vector3(-2.6, 0, 3.6), Vector3(0.3, 0, 3.9), Vector3(-0.2, 0, 6.3)],
+		"workroom_clear":
+		[
+			Vector3(-2.8, 0, -1.4),
+			Vector3(-0.6, 0, -2.4),
+			Vector3(1.2, 0, -0.6),
+			Vector3(-2.2, 0, 0.5),
+		],
+		"cloth_clear": [Vector3(4.0, 0, -2.4), Vector3(4.9, 0, -0.6), Vector3(3.8, 0, 0.6)],
+		"nook_clear": [Vector3(4.0, 0, 2.5), Vector3(4.9, 0, 4.4), Vector3(3.9, 0, 6.0)],
+		"next_clear":
+		[
+			Vector3(7.2, 0, -2.2),
+			Vector3(9.4, 0, -0.4),
+			Vector3(7.6, 0, 2.6),
+			Vector3(9.2, 0, 5.6),
+		],
 	}
-	for room: String in piles:
-		var holder := Node3D.new()
-		holder.name = "Mess_" + room
-		_add(_root, holder)
+	var holder := _group("Spots")
+	for project: String in spots:
+		var group := Node3D.new()
+		group.name = project
+		_add(holder, group)
 		var i := 0
-		for at: Vector3 in piles[room]:
-			var s := 0.5 + 0.2 * float(i % 3)
-			_slab(
-				"Rubble%d" % i,
-				holder,
-				at + Vector3(0, s * 0.3, 0),
-				Vector3(s * 1.6, s * 0.6, s),
-				"rubble"
-			)
+		for at: Vector3 in spots[project]:
+			var spot := Node3D.new()
+			spot.name = "Spot%d" % i
+			spot.position = at
+			_add(group, spot)
+			var s := 0.45 + 0.15 * float(i % 3)
+			var low := project == "front_sweep"  # dust and leaves, not rubble
+			var size := Vector3(s * 1.7, 0.08 if low else s * 0.65, s * 1.2)
+			_slab("Pile", spot, Vector3(0, size.y / 2, 0), size, "dust" if low else "rubble")
 			i += 1
-	_label("Workroom\n(locked)", Vector3((X0 + XM) / 2, 0.06, (ZB + ZM) / 2))
-	_label("Cloth store\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZB + ZM) / 2))
-	_label("Nook\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZM + ZF) / 2))
-	_label("Next door\n(not yours)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZF) / 2))
+	var rooms := {
+		"workroom": Vector3(-0.8, 0, -1.0),
+		"cloth": Vector3(4.15, 0, -1.0),
+		"nook": Vector3(4.15, 0, 4.2),
+		"nextdoor": Vector3(8.15, 0, 1.7),
+	}
+	for room: String in rooms:
+		var wip := Node3D.new()
+		wip.name = "Wip_" + room
+		wip.position = rooms[room]
+		_add(_root, wip)
+		_slab("Trestle", wip, Vector3(0, 0.45, 0), Vector3(1.6, 0.9, 0.5), "boards")
+		_slab("Tarp", wip, Vector3(0.9, 0.04, 0.9), Vector3(1.6, 0.06, 1.4), "tarp")
+		_slab("Pots", wip, Vector3(-0.9, 0.18, 0.7), Vector3(0.5, 0.36, 0.5), "roof")
+	_label("workroom", "Workroom\n(locked)", Vector3((X0 + XM) / 2, 0.06, (ZB + ZM) / 2))
+	_label("cloth", "Cloth store\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZB + ZM) / 2))
+	_label("nook", "Nook\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZM + ZF) / 2))
+	_label("nextdoor", "Next door\n(not yours)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZF) / 2))
 
 
 # --- pieces ------------------------------------------------------------------
@@ -261,9 +293,9 @@ func _collide(nm: String, at: Vector3, size: Vector3) -> void:
 	_add(_walls, shape)
 
 
-func _label(text: String, at: Vector3) -> void:
+func _label(room: String, text: String, at: Vector3) -> void:
 	var label := Label3D.new()
-	label.name = "Label_" + text.get_slice("\n", 0).replace(" ", "")
+	label.name = "Label_" + room
 	label.text = text
 	label.font_size = 96
 	label.pixel_size = 0.006
@@ -284,6 +316,8 @@ func _mat(id: String) -> StandardMaterial3D:
 		"roof": Color(0.45, 0.33, 0.30),
 		"boards": Color(0.47, 0.33, 0.20),
 		"rubble": Color(0.50, 0.47, 0.44),
+		"dust": Color(0.55, 0.50, 0.42),
+		"tarp": Color(0.30, 0.42, 0.55),
 	}
 	var m := StandardMaterial3D.new()
 	m.resource_name = "greybox_" + id

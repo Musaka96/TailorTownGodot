@@ -262,6 +262,9 @@ const VENDORS := [
 
 const ROLL_LENGTH_BASE := 24.0
 const ROLL_LENGTH_BULK := 48.0
+## In grandpa's shop these upgrades are furniture standing in a room that has to be
+## renovated first (Renovation rooms); the phone lists them as waiting for that room.
+const ROOM_OF := {"shop_coffee": "nook", "shop_iron": "nook", "apprentice": "nextdoor"}
 
 var _owned := {}
 
@@ -292,7 +295,17 @@ func can_buy(id: String) -> bool:
 	var needs := str(UPGRADES[id].get("needs", ""))  # an upgrade to another upgrade
 	if needs != "" and not has(needs):
 		return false
+	if not _room_ready(id):
+		return false
 	return GameState.can_afford(int(UPGRADES[id]["cost"]))
+
+
+## The room this upgrade's furniture stands in is there (always so outside grandpa's shop).
+func _room_ready(id: String) -> bool:
+	var room := str(ROOM_OF.get(id, ""))
+	if room == "" or Locations.current != Locations.GRANDPA:
+		return true
+	return Renovation.room_state(room) == Renovation.RoomState.DONE
 
 
 ## Debug: grant or take away an upgrade for free (the F3 panel's Upgrades list).

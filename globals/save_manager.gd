@@ -254,7 +254,8 @@ func _give_starter_cloth(scene: Node) -> void:
 	var shelf: Shelf = null
 	for node in scene.find_children("*", "Shelf", true, false):
 		var s := node as Shelf
-		if s != null and s.capacity() - s.stored.size() >= 2:
+		# Shelves of rooms not yet renovated are in the scene, but hidden.
+		if s != null and s.is_visible_in_tree() and s.capacity() - s.stored.size() >= 2:
 			shelf = s
 			break
 	if shelf == null:
@@ -300,6 +301,7 @@ func capture(save_name := "") -> Dictionary:
 		"day": Shift.day if Shift != null else 1,
 		"reputation": Reputation.points if Reputation != null else 0,
 		"upgrades": Upgrades.save_state() if Upgrades != null else {},
+		"renovation": Renovation.save_state() if Renovation != null else {},
 		"clock": DayNight.progress() if DayNight != null else 0.0,
 		"morning": Shift != null and Shift.phase == Shift.Phase.MORNING,
 		"day_start_money": Shift.day_start_money() if Shift != null else GameState.money,
@@ -359,6 +361,8 @@ func _apply_pending() -> void:
 	Reputation.points = int(d.get("reputation", 0))
 	if Upgrades != null:
 		Upgrades.restore(d.get("upgrades", {}))
+	if Renovation != null:
+		Renovation.restore(d.get("renovation", {}))
 	_resume_progress = float(d.get("clock", 0.0))
 	_resume_day_money = int(d.get("day_start_money", GameState.money))
 	if News != null:
@@ -424,6 +428,8 @@ func _reset_autoloads() -> void:
 	Reputation.points = 0
 	if Upgrades != null:
 		Upgrades.reset()
+	if Renovation != null:
+		Renovation.reset()
 	Orders.clear()
 	Shift.reset_to(1)
 	if News != null:

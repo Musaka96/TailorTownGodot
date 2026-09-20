@@ -7,12 +7,16 @@ extends Node3D
 ## panel grants it). Subclasses set `upgrade_id` and implement the station itself.
 
 @export var upgrade_id := ""
+## In grandpa's shop: the Renovation room this station stands in. It only appears once
+## that room is done as well ("" = no room to wait for, as at Mr. Hemming's).
+@export var room := ""
 
 var _owned := false
 
 
 func _ready() -> void:
 	Upgrades.changed.connect(_refresh)
+	Renovation.changed.connect(_refresh)
 	_refresh()
 
 
@@ -22,6 +26,8 @@ func is_owned() -> bool:
 
 func _refresh() -> void:
 	_owned = upgrade_id == "" or Upgrades.has(upgrade_id)
+	if room != "" and Renovation.room_state(room) != Renovation.RoomState.DONE:
+		_owned = false
 	visible = _owned
 	for body in find_children("*", "CollisionObject3D", true, false):
 		var co := body as CollisionObject3D

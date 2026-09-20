@@ -146,10 +146,18 @@ func _test_new_game_flow() -> void:
 			grandpa.find_child(expect, true, false) != null,
 			"at grandpa's: %s station exists" % expect
 		)
-	for absent: String in ["ApprenticeBench", "CoffeeMachine", "IroningBoard", "Mannequin"]:
+	# Later stations sit in the scene from the start (so save paths never change) but are
+	# not there for the player until their room is renovated: unseen, nothing to interact with.
+	for later: String in ["ApprenticeBench", "CoffeeMachine", "IroningBoard", "Mannequin"]:
+		var station := grandpa.find_child(later, true, false) as Node3D
+		var live := 0
+		if station != null:
+			for area in station.find_children("*", "Area3D", true, false):
+				if area.is_in_group("interactable") and (area as Area3D).monitorable:
+					live += 1
 		_check(
-			grandpa.find_child(absent, true, false) == null,
-			"at grandpa's: %s does not exist (that's Hemming's)" % absent
+			station != null and not station.visible and live == 0,
+			"at grandpa's on day 1: %s is not there yet (hidden, not usable)" % later
 		)
 
 
