@@ -31,12 +31,14 @@ const BOARDS := {
 const MESS_PROJECTS := ["front_sweep", "workroom_clear", "cloth_clear", "nook_clear", "next_clear"]
 ## The dust-sheet project and the stations sleeping under a sheet.
 const SHEETS_PROJECT := "front_sheets"
-const SHEETED := ["Worktable", "SewingMachine", "Mirror"]
+## (Not the tri-fold mirror: it is 2.5 m tall, and under a sheet it was a white wall
+## across the view from the street.)
+const SHEETED := ["Worktable", "SewingMachine", "ClothingRack"]
 ## The sheet over each: [centre, size] in the station's own space, from its model's bounds.
 const SHEET_BOX := {
 	"Worktable": [Vector3(0.03, 0.63, 0.315), Vector3(1.62, 1.26, 0.99)],
 	"SewingMachine": [Vector3(0.065, 0.71, 0.305), Vector3(1.55, 1.42, 0.93)],
-	"Mirror": [Vector3(0.11, 1.35, -0.325), Vector3(2.58, 2.7, 0.71)],
+	"ClothingRack": [Vector3(0.0, 0.82, 0.0), Vector3(1.72, 1.64, 0.62)],
 }
 const SHEET_NODE := "DustSheet"
 ## Stations that move when a room opens: room -> {station: [basis, origin]}.
@@ -72,6 +74,27 @@ const SOLID := {
 ## (a finished room has no label). Next door isn't the player's until it is bought.
 const LABEL_NOTE: Array[String] = ["(locked)", "(needs clearing)", "(needs the builders)"]
 
+## WEAR: how run-down a room looks, 1 = as found .. 0 = renovated, by Renovation.RoomState.
+## The front room is lived in from the first day: it starts shabby rather than ruined and
+## each of its own jobs takes some of that away.
+const WEAR_BY_STATE: Array[float] = [1.0, 1.0, 0.6, 0.0]
+const FRONT_WEAR := 0.75
+const FRONT_JOBS := ["front_sheets", "front_sweep", "front_window", "front_lights"]
+## Damp runs down a wall that stands full height (the cut-away ones would only show its
+## faint foot): room -> [which wall, how many streaks]. A puddle lies where the roof leaks.
+const DAMP_WALLS := {
+	"front": ["west", 2], "workroom": ["back", 3], "cloth": ["back", 2], "nextdoor": ["back", 2]
+}
+const PUDDLES := {
+	"workroom": Vector2(0.62, 0.45), "cloth": Vector2(0.4, 0.5), "nextdoor": Vector2(0.3, 0.35)
+}
+const WEAR_LAYER := 2  # render layer of the shop's shell: wear never lands on people
+const WEAR_FADE := 0.9  # seconds a room takes to come clean
+const GRIME := preload("res://assets/textures/renovation/grime.png")
+const DAMP := preload("res://assets/textures/renovation/damp.png")
+const PUDDLE := preload("res://assets/textures/renovation/puddle.png")
+const PUDDLE_ORM := preload("res://assets/textures/renovation/puddle_orm.png")
+
 ## Floor colour by Renovation.RoomState (SHUT, ENTERED, CLEARED, DONE), until the real
 ## shop swaps this for its wear shader.
 const FLOOR_LOOK: Array[Color] = [
@@ -82,12 +105,15 @@ const FLOOR_LOOK: Array[Color] = [
 ]
 
 @export_node_path("Node3D") var shell_path: NodePath = ^"../GrandpaShell"
+## The Blender-built shop (the look). Wear decals are limited to it.
+@export_node_path("Node3D") var shop_path: NodePath = ^"../GrandpaShop"
 
 var _shell: Node3D
 var _room: Node
 var _home := {}  # station name -> its day-1 Transform3D
 var _sheets := {}  # station name -> the sheet node over it
 var _floor_mats := {}  # room -> its own StandardMaterial3D
+var _wear := {}  # room -> its Decals
 var _sheets_released := false  # the sheeted stations have been handed back for good
 
 
@@ -107,6 +133,7 @@ func _ready() -> void:
 	_build_boards()
 	_build_spots()
 	_build_sheets()
+	_build_wear()
 	Renovation.changed.connect(_apply)
 	Renovation.project_finished.connect(_on_project_finished)
 	_apply()
@@ -130,6 +157,7 @@ func _apply() -> void:
 		_apply_spots(project)
 	_apply_sheets()
 	_apply_stations()
+	_apply_wear()
 
 
 func _apply_spots(project: String) -> void:
@@ -299,7 +327,7 @@ func _build_spots() -> void:
 
 func _build_sheets() -> void:
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.90, 0.88, 0.82)
+	mat.albedo_color = Color(0.74, 0.70, 0.62)  # old linen; white blew out in the shop's light
 	mat.roughness = 1.0
 	for station: String in SHEETED:
 		var node := _station(station)
@@ -339,6 +367,104 @@ func _add_work(host: Node3D, project: String, verb: String, size: Vector3) -> vo
 	shape.shape = box
 	area.add_child(shape)
 	host.add_child(area)
+
+
+# --- Wear ------------------------------------------------------------------------
+
+
+## 1 = as grandpa left it .. 0 = renovated.
+func wear_of(room: String) -> float:
+	if room != "front":
+		return WEAR_BY_STATE[Renovation.room_state(room)]
+	var left := FRONT_WEAR
+	for job: String in FRONT_JOBS:
+		if Renovation.is_done(job):
+			left -= FRONT_WEAR / FRONT_JOBS.size()
+	return maxf(left, 0.0)
+
+
+func _build_wear() -> void:
+	var shop := get_node_or_null(shop_path)
+	if shop != null:  # the shell of the shop takes the wear; people and furniture don't
+		for node in shop.find_children("*", "VisualInstance3D", true, false):
+			(node as VisualInstance3D).layers |= WEAR_LAYER
+	for room: String in Renovation.ROOMS:
+		var floor_mesh := _shell.get_node_or_null("Body/Floor_" + room) as MeshInstance3D
+		if floor_mesh == null:
+			continue
+		var box := floor_mesh.global_transform * floor_mesh.get_aabb()
+		var lo := Vector2(box.position.x, box.position.z)
+		var span := Vector2(box.size.x, box.size.z)
+		var decals: Array[Decal] = []
+		var mid := Vector3(lo.x + span.x / 2.0, 0.05, lo.y + span.y / 2.0)
+		decals.append(_decal("grime", room, GRIME, mid, Vector3(span.x, 0.5, span.y), Vector3.ZERO))
+		if DAMP_WALLS.has(room):
+			decals.append_array(_damp(room, lo, span))
+		if PUDDLES.has(room):
+			var at: Vector2 = lo + span * (PUDDLES[room] as Vector2)
+			var wet := _decal(
+				"puddle",
+				room,
+				PUDDLE,
+				Vector3(at.x, 0.05, at.y),
+				Vector3(2.2, 0.5, 1.8),
+				Vector3.ZERO
+			)
+			wet.texture_orm = PUDDLE_ORM
+			decals.append(wet)
+		_wear[room] = decals
+
+
+## Streaks of damp down one wall of `room`: the back wall (low z) or the west wall (low x).
+func _damp(room: String, lo: Vector2, span: Vector2) -> Array[Decal]:
+	var out: Array[Decal] = []
+	var wall := str(DAMP_WALLS[room][0])
+	var count := int(DAMP_WALLS[room][1])
+	var along := span.x if wall == "back" else span.y
+	for i in count:
+		var t := (float(i) + 0.5) / float(count)
+		var at := Vector3(lo.x + along * t, 1.5, lo.y + 0.2)
+		var turn := Vector3(90, 0, 0)  # the decal looks at the back wall (-Z)
+		if wall == "west":
+			at = Vector3(lo.x + 0.2, 1.5, lo.y + along * t)
+			turn = Vector3(90, 90, 0)  # ...or at the west wall (-X)
+		out.append(_decal("damp%d" % i, room, DAMP, at, Vector3(2.4, 0.8, 3.0), turn))
+	return out
+
+
+func _decal(
+	kind: String, room: String, tex: Texture2D, at: Vector3, size: Vector3, turn: Vector3
+) -> Decal:
+	var decal := Decal.new()
+	decal.name = "Wear_%s_%s" % [room, kind]
+	decal.texture_albedo = tex
+	decal.size = size
+	decal.upper_fade = 0.0
+	decal.lower_fade = 0.0
+	decal.normal_fade = 0.3
+	if get_node_or_null(shop_path) != null:
+		decal.cull_mask = WEAR_LAYER
+	add_child(decal)
+	decal.global_position = at
+	decal.rotation_degrees = turn
+	decal.albedo_mix = 0.0
+	decal.visible = false
+	return decal
+
+
+## Bring every room's wear to where the renovation stands; a room comes clean over a moment.
+func _apply_wear() -> void:
+	for room: String in _wear:
+		var target := wear_of(room)
+		for decal: Decal in _wear[room]:
+			if is_equal_approx(float(decal.get_meta("wear", -1.0)), target):
+				continue
+			decal.set_meta("wear", target)
+			decal.visible = true
+			var fade := create_tween()
+			fade.tween_property(decal, "albedo_mix", target, WEAR_FADE)
+			if target <= 0.0:
+				fade.tween_callback(decal.hide)
 
 
 # --- Helpers -------------------------------------------------------------------

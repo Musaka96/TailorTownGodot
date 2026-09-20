@@ -44,6 +44,7 @@ var _roof: Node3D
 var _walls: StaticBody3D
 var _blockers: Node3D
 var _mats := {}
+var _chunks := 0  # so every chunk gets a name of its own
 
 
 func _init() -> void:
@@ -134,10 +135,12 @@ func _dressing() -> void:
 			spot.name = "Spot%d" % i
 			spot.position = at
 			_add(group, spot)
-			var s := 0.45 + 0.15 * float(i % 3)
-			var low := project == "front_sweep"  # dust and leaves, not rubble
-			var size := Vector3(s * 1.7, 0.08 if low else s * 0.65, s * 1.2)
-			_slab("Pile", spot, Vector3(0, size.y / 2, 0), size, "dust" if low else "rubble")
+			var dice := RandomNumberGenerator.new()
+			dice.seed = hash("%s/%d" % [project, i])  # the same heap every build
+			if project == "front_sweep":
+				_dust_heap(spot, dice)
+			else:
+				_rubble_heap(spot, dice)
 			i += 1
 	var rooms := {
 		"workroom": Vector3(-0.4, 0, 0.6),
@@ -150,9 +153,7 @@ func _dressing() -> void:
 		wip.name = "Wip_" + room
 		wip.position = rooms[room]
 		_add(_root, wip)
-		_slab("Trestle", wip, Vector3(0, 0.45, 0), Vector3(1.6, 0.9, 0.5), "boards")
-		_slab("Tarp", wip, Vector3(0.9, 0.04, 0.9), Vector3(1.6, 0.06, 1.4), "tarp")
-		_slab("Pots", wip, Vector3(-0.9, 0.18, 0.7), Vector3(0.5, 0.36, 0.5), "roof")
+		_builders_kit(wip)
 	_label("workroom", "Workroom\n(locked)", Vector3((X0 + XM) / 2, 0.06, (ZB + ZM) / 2))
 	_label("cloth", "Cloth store\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZB + ZM) / 2))
 	_label("nook", "Nook\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZM + ZF) / 2))
@@ -247,22 +248,162 @@ func _blocker(id: String, foot: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.name = "Blocker_" + id
 	_add(_blockers, body)
-	body.position = foot + Vector3(0, LOW / 2, 0)
-	var low := Vector3(size.x, LOW, size.z)
-	var mesh := MeshInstance3D.new()
-	mesh.name = "Boards"
-	var box := BoxMesh.new()
-	box.size = low + Vector3(0.06, 0, 0.06)
-	box.material = _mat("boards")
-	mesh.mesh = box
-	_add(body, mesh)
+	body.position = foot
+	var looks := Node3D.new()
+	looks.name = "Boards"
+	_add(body, looks)
+	var along_x := size.x > size.z
+	var width := maxf(size.x, size.z)
+	if id == "nextdoor":
+		_brick_infill(looks, width, along_x)
+	else:
+		_nailed_planks(looks, width, along_x, hash(id))
 	var shape := CollisionShape3D.new()
 	shape.name = "Col"
 	var bs := BoxShape3D.new()
 	bs.size = Vector3(size.x, H, size.z)
 	shape.shape = bs
-	shape.position = Vector3(0, (H - LOW) / 2, 0)
+	shape.position = Vector3(0, H / 2, 0)
 	_add(body, shape)
+
+
+## Planks nailed across a doorway, every one below the cut so none hangs in the air when the
+## wall above it fades: two across, one on the slant.
+func _nailed_planks(parent: Node3D, width: float, along_x: bool, salt: int) -> void:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = salt
+	# both doorways in the north-south wall are reached from the west: the planks face that way
+	var turn := 0.0 if along_x else -90.0
+	var rows := [[0.32, 0.0], [0.78, 0.0], [0.56, 24.0]]
+	for i in rows.size():
+		var y: float = rows[i][0] + dice.randf_range(-0.03, 0.03)
+		var lean: float = rows[i][1] + dice.randf_range(-4.0, 4.0)
+		var length := width + (0.5 if lean > 1.0 else 0.28)
+		var plank := _chunk(
+			parent,
+			Vector3(0, y, 0),
+			Vector3(length, 0.17, 0.05),
+			Vector3(0, turn, lean),
+			"plank_a" if i % 2 == 0 else "plank_b"
+		)
+		plank.position += plank.basis.z * (0.16 + 0.055 * i)  # proud of the wall, one on another
+
+
+## The party wall before it is knocked through: a low run of brick across the arch.
+func _brick_infill(parent: Node3D, width: float, along_x: bool) -> void:
+	var turn := 0.0 if along_x else 90.0
+	var courses := 5
+	var per := 4
+	var bw := width / per
+	for row in courses:
+		for col in per + (row % 2):
+			var x := -width / 2 + bw * (col + 0.5) - (bw / 2 if row % 2 == 1 else 0.0)
+			x = clampf(x, -width / 2 + bw * 0.25, width / 2 - bw * 0.25)
+			var brick := _chunk(
+				parent,
+				Vector3.ZERO,
+				Vector3(bw - 0.03, LOW / courses - 0.03, 0.3),
+				Vector3(0, turn, 0),
+				"brick" if (row + col) % 3 != 0 else "brick_b"
+			)
+			brick.position = brick.basis.x * x + Vector3(0, LOW / courses * (row + 0.5), 0)
+
+
+## A heap of what came down: brick, plaster and slate, and a broken plank or two.
+func _rubble_heap(parent: Node3D, dice: RandomNumberGenerator) -> void:
+	var kinds := ["brick", "plaster", "slate", "brick_b", "plaster"]
+	var count := dice.randi_range(8, 11)
+	for i in count:
+		var far := dice.randf_range(0.0, 0.55) * (0.4 if i < 3 else 1.0)  # the heart of the heap
+		var angle := dice.randf_range(0.0, TAU)
+		var edge := dice.randf_range(0.14, 0.34) * (1.25 if i < 3 else 1.0)
+		var size := Vector3(edge * dice.randf_range(1.0, 1.7), edge * 0.62, edge)
+		var high := size.y / 2 + (0.16 if i < 3 else 0.0) * dice.randf_range(0.4, 1.0)
+		var at := Vector3(cos(angle) * far, high, sin(angle) * far)
+		var spin := Vector3(
+			dice.randf_range(-24, 24), dice.randf_range(0, 360), dice.randf_range(-24, 24)
+		)
+		_chunk(parent, at, size, spin, kinds[i % kinds.size()])
+	for i in dice.randi_range(1, 2):
+		var lie := Vector3(dice.randf_range(-0.3, 0.3), 0.2, dice.randf_range(-0.3, 0.3))
+		var spin := Vector3(
+			dice.randf_range(8, 22), dice.randf_range(0, 360), dice.randf_range(-6, 6)
+		)
+		_chunk(parent, lie, Vector3(dice.randf_range(0.8, 1.2), 0.045, 0.15), spin, "plank_b")
+
+
+## What a broom leaves: a couple of low mounds of dust and a few dead leaves.
+func _dust_heap(parent: Node3D, dice: RandomNumberGenerator) -> void:
+	for i in 3:
+		var mound := MeshInstance3D.new()
+		mound.name = "Mound%d" % i
+		var ball := SphereMesh.new()
+		ball.radius = dice.randf_range(0.2, 0.34)
+		ball.height = ball.radius * 2.0
+		ball.radial_segments = 12
+		ball.rings = 6
+		ball.material = _mat("dust")
+		mound.mesh = ball
+		mound.scale = Vector3(1.0, 0.2, 1.0)
+		mound.position = Vector3(dice.randf_range(-0.28, 0.28), 0.0, dice.randf_range(-0.22, 0.22))
+		_add(parent, mound)
+	for i in dice.randi_range(3, 5):
+		var at := Vector3(dice.randf_range(-0.5, 0.5), 0.045, dice.randf_range(-0.4, 0.4))
+		var spin := Vector3(dice.randf_range(-12, 12), dice.randf_range(0, 360), 0)
+		_chunk(parent, at, Vector3(0.13, 0.012, 0.08), spin, "leaf_a" if i % 2 == 0 else "leaf_b")
+
+
+## The builders are in: a trestle, a ladder against it, a tarp on the floor, pots of paint.
+func _builders_kit(parent: Node3D) -> void:
+	_chunk(parent, Vector3(0, 0.78, 0), Vector3(1.7, 0.06, 0.5), Vector3.ZERO, "plank_a")
+	for sx: float in [-0.7, 0.7]:
+		for sz: float in [-0.18, 0.18]:
+			var lean := Vector3(12.0 if sz > 0 else -12.0, 0, 0)
+			_chunk(parent, Vector3(sx, 0.39, sz), Vector3(0.06, 0.8, 0.06), lean, "plank_b")
+	for side: float in [-0.19, 0.19]:
+		_chunk(
+			parent,
+			Vector3(1.25 + side, 0.85, 0.35),
+			Vector3(0.05, 1.75, 0.05),
+			Vector3(-16, 0, 0),
+			"plank_b"
+		)
+	for rung in 5:
+		var up := 0.3 + 0.3 * rung
+		_chunk(
+			parent,
+			Vector3(1.25, up, 0.58 - up * 0.287),
+			Vector3(0.4, 0.04, 0.04),
+			Vector3.ZERO,
+			"plank_a"
+		)
+	_chunk(parent, Vector3(-0.2, 0.012, 1.0), Vector3(2.0, 0.02, 1.5), Vector3(0, 8, 0), "tarp")
+	for i in 3:
+		var pot := MeshInstance3D.new()
+		pot.name = "Pot%d" % i
+		var can := CylinderMesh.new()
+		can.top_radius = 0.11
+		can.bottom_radius = 0.11
+		can.height = 0.22
+		can.radial_segments = 12
+		can.material = _mat(["paint_a", "paint_b", "plaster"][i])
+		pot.mesh = can
+		pot.position = Vector3(-0.9 + 0.27 * i, 0.135, 1.0 + 0.12 * (i % 2))
+		_add(parent, pot)
+
+
+func _chunk(parent: Node, at: Vector3, size: Vector3, spin: Vector3, mat: String) -> MeshInstance3D:
+	var mesh := MeshInstance3D.new()
+	_chunks += 1
+	mesh.name = "Chunk%d" % _chunks
+	var box := BoxMesh.new()
+	box.size = size
+	box.material = _mat(mat)
+	mesh.mesh = box
+	mesh.position = at
+	mesh.rotation_degrees = spin
+	_add(parent, mesh)
+	return mesh
 
 
 func _segments(a: float, b: float, gaps: Array) -> Array:
@@ -329,7 +470,17 @@ func _mat(id: String) -> StandardMaterial3D:
 		"roof": Color(0.45, 0.33, 0.30),
 		"boards": Color(0.47, 0.33, 0.20),
 		"rubble": Color(0.50, 0.47, 0.44),
-		"dust": Color(0.55, 0.50, 0.42),
+		"dust": Color(0.58, 0.54, 0.47),
+		"brick": Color(0.62, 0.33, 0.25),
+		"brick_b": Color(0.52, 0.27, 0.21),
+		"plaster": Color(0.80, 0.77, 0.71),
+		"slate": Color(0.34, 0.36, 0.40),
+		"plank_a": Color(0.55, 0.40, 0.25),
+		"plank_b": Color(0.44, 0.31, 0.19),
+		"leaf_a": Color(0.70, 0.42, 0.16),
+		"leaf_b": Color(0.56, 0.47, 0.18),
+		"paint_a": Color(0.30, 0.47, 0.40),
+		"paint_b": Color(0.72, 0.60, 0.36),
 		"tarp": Color(0.30, 0.42, 0.55),
 	}
 	var m := StandardMaterial3D.new()

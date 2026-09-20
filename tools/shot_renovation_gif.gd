@@ -87,9 +87,10 @@ func _run() -> void:
 	quit()
 
 
-## Let the change reach the screen, then keep the frame with its caption and hold time.
+## Let the change reach the screen - a room takes most of a second to come clean (the wear
+## fades, RenovationDirector.WEAR_FADE) - then keep the frame with its caption and hold time.
 func _shoot(caption: String, ms: int) -> void:
-	for _i in 4:
+	for _i in 62:
 		_camera.current = true
 		await process_frame
 	var file := "frame_%03d.png" % _frames.size()
