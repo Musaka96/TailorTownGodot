@@ -5,6 +5,9 @@ extends Node3D
 ## and style, cut from a material with a quality score from the cutting minigame.
 ## Next stop is the sewing machine (later phase). Carryable like the other items.
 
+## Child node names inside the model, NOT display text: _apply_visual() shows the one
+## whose node name matches. The player-facing word is Enums.garment_type_name(), which
+## says "Trousers"; renaming this would need the node in garment_piece.tscn renamed too.
 const MODEL_NAME := {
 	Enums.GarmentType.SHIRT: "Shirt",
 	Enums.GarmentType.PANTS: "Pants",

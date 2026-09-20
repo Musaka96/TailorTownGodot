@@ -650,7 +650,7 @@ func _build() -> void:
 	var cut_row := _row(cut)
 	cut_row.add_child(_make_label("Piece", 13, LABEL))
 	_cut_type = OptionButton.new()
-	for item in ["Random", "Shirt", "Pants", "Jacket"]:
+	for item in ["Random", "Shirt", "Trousers", "Jacket"]:
 		_cut_type.add_item(item)
 	cut_row.add_child(_cut_type)
 	var try_row := _row(cut)
@@ -670,7 +670,7 @@ func _build() -> void:
 	var sew_row := _row(sew)
 	sew_row.add_child(_make_label("Piece", 13, LABEL))
 	_sew_type = OptionButton.new()
-	for item in ["Random", "Shirt", "Pants", "Jacket"]:
+	for item in ["Random", "Shirt", "Trousers", "Jacket"]:
 		_sew_type.add_item(item)
 	sew_row.add_child(_sew_type)
 	var sew_try := _row(sew)

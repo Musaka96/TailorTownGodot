@@ -64,7 +64,7 @@ func _run() -> void:
 	mannequin.interact(_player)
 	_give(_make(JACKET, SEWN, 0.7))
 	mannequin.interact(_player)
-	_check(_player.carry.is_empty(), "pants + jacket go on")
+	_check(_player.carry.is_empty(), "trousers + jacket go on")
 
 	# --- Package the suit ---
 	mannequin.interact(_player)

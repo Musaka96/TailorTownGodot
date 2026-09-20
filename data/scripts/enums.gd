@@ -114,7 +114,7 @@ static func garment_type_name(t: GarmentType) -> String:
 		GarmentType.SHIRT:
 			return "Shirt"
 		GarmentType.PANTS:
-			return "Pants"
+			return "Trousers"
 		GarmentType.JACKET:
 			return "Jacket"
 	return "?"

@@ -55,7 +55,7 @@ func _gathering(rack: Node) -> void:
 		"a second part joins it on one hook"
 	)
 	_check(gathered.missing() == [PANTS], "the set knows the pants are still to come")
-	_check("pants left" in (gathered.get("_ticket") as Label3D).text, "the ticket says so")
+	_check("trousers left" in (gathered.get("_ticket") as Label3D).text, "the ticket says so")
 	_check(order.state == 0, "the order isn't ready yet")
 	_hang(rack, _part(PANTS, order))
 	_check(rack.stored.size() == 1 and _is(rack.stored[0], "Suit"), "the last part makes the suit")

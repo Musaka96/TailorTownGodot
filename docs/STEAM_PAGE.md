@@ -4,7 +4,7 @@ Draft store text plus the shot list it's built around. Screenshots are rendered 
 `tools/shot_promo.gd` (see §4) into `.dev/promo/` at 1920×1080.
 
 Positioning note: the near neighbours are *Dressmaker* (cosy, dresses, Sept 2026) and
-*Tailor Simulator* (fashion business, first person). Our ground is **men's bespoke
+*Tailor Simulator* (fashion business, first person). Our ground is **bespoke suit
 tailoring with dress-code rules** — the client's occasion decides what is correct, and
 the Handbook is how you learn it. Every line below leans on that.
 
@@ -39,7 +39,7 @@ bracketed lines are asset slots, not text to paste.
 [GIF 1 — the mirror: A/D through fabrics and colours, the suit changing on the client in
 real time. 4 s loop, no cut.]
 
-Some men need a suit for a wedding. Some need one for a funeral. Every one of them walks
+Somebody needs a suit for a wedding. Somebody else needs one for a funeral. Every one of them walks
 through your door with an occasion, a style and a budget. Only you know what is
 actually correct.
 
@@ -85,7 +85,7 @@ Every slip at the bench comes off the price.
 
 [Screenshot — the Tailor's Handbook, Dress Codes chapter.]
 
-Black for a funeral. Nothing that upstages the groom. A board meeting is not a party. The Tailor's Handbook holds the real rules, written the way a tailor
+Black for a funeral. Nothing that upstages the couple. A board meeting is not a party. The Tailor's Handbook holds the real rules, written the way a tailor
 would tell you: which colours and which patterns each occasion will take, named
 outright. Read it, and you'll know what to
 put in front of a client before they ask.
@@ -266,7 +266,7 @@ Capsules may carry the logo and art only — no review quotes, awards or other c
 ```
 [img]{GIF_1}[/img]
 
-Some men need a suit for a wedding. Some need one for a funeral. Every one of them walks through your door with an occasion, a style and a budget. Only you know what is actually correct.
+Somebody needs a suit for a wedding. Somebody else needs one for a funeral. Every one of them walks through your door with an occasion, a style and a budget. Only you know what is actually correct.
 
 TailorTown is a shop sim about bespoke tailoring, from the bolt of cloth to the handover. You walk the floor, you carry one thing at a time, and everything that leaves the shop was cut and stitched by your own hand.
 
@@ -286,7 +286,7 @@ Cut it badly and the client pays you less for it.
 
 [h2]Dress for the occasion[/h2]
 [img]{SHOT_HANDBOOK}[/img]
-Black for a funeral. Nothing that upstages the groom. A board meeting is not a party. The Tailor's Handbook holds the real rules, written the way a tailor would tell you: which colours and which patterns each occasion will take, named outright. Read it, and you'll know what to put in front of a client before they ask.
+Black for a funeral. Nothing that upstages the couple. A board meeting is not a party. The Tailor's Handbook holds the real rules, written the way a tailor would tell you: which colours and which patterns each occasion will take, named outright. Read it, and you'll know what to put in front of a client before they ask.
 
 [h2]Make your name on the Row[/h2]
 [img]{SHOT_NEWSPAPER}[/img]

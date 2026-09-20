@@ -784,7 +784,7 @@ func _design_checks() -> Array:
 	return [
 		["Jacket: " + _part_desc(jt), "design:%d" % jt, "A/D", "Change the value"],
 		["Shirt: " + _part_desc(st), "design:%d" % st, "A/D", "Change the value"],
-		["Pants: " + _part_desc(pt), "design:%d" % pt, "A/D", "Change the value"],
+		["Trousers: " + _part_desc(pt), "design:%d" % pt, "A/D", "Change the value"],
 		["Confirm with E", "", "E", "Ask and confirm"],
 	]
 

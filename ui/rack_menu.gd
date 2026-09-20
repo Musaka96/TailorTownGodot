@@ -295,7 +295,7 @@ func _detail_of(item) -> String:
 	return ""
 
 
-## "Jacket + Shirt  ·  Pants still to come".
+## "Jacket + Shirt  ·  Trousers still to come".
 func _set_detail(item) -> String:
 	var have: Array[String] = []
 	for piece: Node in item.pieces:

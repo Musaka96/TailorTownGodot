@@ -13,7 +13,7 @@ class_name Handbook
 ## as examples: "Very dark colours; black or charcoal." The tone teaches the principle,
 ## the names stop it being ambiguous. It used to hint only ("keep to dark, sombre
 ## colours"), which was vaguer AND wordier, and for a while it listed every allowed
-## colour, which read as a lookup table instead of a man's notes.
+## colour, which read as a lookup table instead of a person's notes.
 
 # [title, body]  (body supports a little BBCode: [b]…[/b])
 const FABRICS := [
@@ -106,7 +106,7 @@ const PATTERNS := [
 		"Birdseye",
 		"Tiny dots, each one a speck of the colour underneath showing through.\n\n"
 		+ "From across a room it passes for plain, and up close it does not. Good for "
-		+ "business, and good for the customer who tells you he dislikes pattern.",
+		+ "business, and good for the customer who tells you they dislike pattern.",
 	],
 	[
 		"Sharkskin",

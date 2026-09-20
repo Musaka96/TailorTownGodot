@@ -28,7 +28,7 @@ func get_interaction_prompt(actor) -> String:
 		return "Package the suit!"
 	if _order.size() > 0:
 		return "Take last piece  (need %s)" % _missing_text()
-	return "Mannequin — needs shirt, pants, jacket"
+	return "Mannequin — needs shirt, trousers, jacket"
 
 
 func interact(actor) -> void:
