@@ -35,8 +35,8 @@ group_uniforms Cutaway;
 uniform float cut_height = 99.0;
 // Metres below `cut_height` where the wall starts thinning. Bigger = softer, longer melt.
 uniform float fade_band : hint_range(0.05, 3.0) = 0.55;
-// 0 = a level fade line. Higher lets the line wander so it does not look ruled.
-uniform float wobble : hint_range(0.0, 1.0) = 0.25;
+// How far the fade line wanders up and down, in METRES. 0 = a ruled, level line.
+uniform float wobble : hint_range(0.0, 1.5) = 0.18;
 // Wobbles per metre along the wall.
 uniform float wobble_scale : hint_range(0.1, 6.0) = 0.9;
 // What is left of the wall dims a touch as it thins, so the fade has some body to it
@@ -84,7 +84,7 @@ void fragment() {
 	// crawl as the camera eases after the player.
 	float reach = length((world_pos - player_pos).xz);
 	float h = cut_height - dip * (1.0 - smoothstep(0.0, dip_radius, reach));
-	h -= wobble * fade_band * (vnoise(world_pos.xz * wobble_scale) - 0.5);
+	h += wobble * 2.0 * (vnoise(world_pos.xz * wobble_scale) - 0.5);
 	// 0 where the wall is still solid, 1 where it has gone.
 	float t = clamp((world_pos.y - (h - fade_band)) / max(fade_band, 0.001), 0.0, 1.0);
 	float a = 1.0 - smoothstep(0.0, 1.0, t);

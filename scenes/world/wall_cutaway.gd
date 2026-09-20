@@ -44,8 +44,8 @@ const SHADER := preload("res://materials/wall_cutaway.gdshader")
 @export var fade_time := 0.45
 ## Metres below `cut_height` where the wall starts thinning. Bigger = softer melt.
 @export var fade_band := 0.55
-## 0 = a level fade line; higher lets it wander so it does not look ruled.
-@export var wobble := 0.25
+## How far the fade line wanders up and down, in metres (0 = a ruled, level line).
+@export var wobble := 0.18
 ## Wobbles per metre along the wall.
 @export var wobble_scale := 0.9
 ## How much the thinning wall pales out on its way to nothing.
@@ -62,6 +62,7 @@ var _player: Node3D
 var _cut_mats: Array[ShaderMaterial] = []
 var _by_src := {}
 var _plain: Array[GeometryInstance3D] = []
+var _faded: Array[MeshInstance3D] = []
 var _inside := false
 var _established := false
 var _tween: Tween
@@ -78,6 +79,29 @@ func _ready() -> void:
 		var extra := get_node_or_null(path) as Node3D
 		if extra != null:
 			_convert(extra, skip_prefixes, shared_prefixes)
+	_check_reach()
+
+
+## The fade only shows if it lands inside the walls it was pointed at. Cost me two
+## rounds of "why is nothing happening": the street front tops out at 0.96 m, so a cut
+## at 1.25 left every pixel at full alpha and the effect looked broken rather than
+## mis-set. Say so instead.
+func _check_reach() -> void:
+	if _cut_mats.is_empty():
+		push_warning("WallCutaway: no wall surfaces converted under %s." % walls_path)
+		return
+	var top := -1e9
+	var bottom := 1e9
+	for gi in _faded:
+		var box: AABB = gi.global_transform * gi.get_aabb()
+		top = maxf(top, box.end.y)
+		bottom = minf(bottom, box.position.y)
+	if cut_height >= top:
+		var hi := "cut_height %.2f is at or above the top (%.2f)" % [cut_height, top]
+		push_warning("WallCutaway: %s — nothing will fade." % hi)
+	elif cut_height - fade_band <= bottom:
+		var lo := "the fade starts at or below the foot (%.2f)" % bottom
+		push_warning("WallCutaway: %s — these walls will vanish entirely." % lo)
 
 
 func _process(_delta: float) -> void:
@@ -116,10 +140,12 @@ func _convert(root: Node, skip: PackedStringArray, only: PackedStringArray) -> v
 		if mi.mesh == null or (not only.is_empty() and not _matches(mi.name, only)):
 			continue
 		for s in mi.mesh.get_surface_count():
-			var src := mi.get_active_material(s) as StandardMaterial3D
+			var src := mi.get_active_material(s) as BaseMaterial3D
 			if src == null or src.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
 				continue  # glass and the like stay exactly as imported
 			mi.set_surface_override_material(s, _material_for(src))
+			if not _faded.has(mi):
+				_faded.append(mi)
 
 
 func _matches(piece: String, prefixes: PackedStringArray) -> bool:
@@ -132,21 +158,31 @@ func _matches(piece: String, prefixes: PackedStringArray) -> bool:
 ## One cutaway material per imported material, cached per node — so this wall group's
 ## pieces all move on one tween, while a second WallCutaway elsewhere in the shop (the
 ## divider, say) keeps its own cut height even though it draws the same plaster.
-func _material_for(src: StandardMaterial3D) -> ShaderMaterial:
+func _material_for(src: BaseMaterial3D) -> ShaderMaterial:
 	if _by_src.has(src):
 		return _by_src[src]
 	var mat := ShaderMaterial.new()
 	mat.shader = SHADER
+	# Read through get_texture, not the typed properties: a glTF with a
+	# metallicRoughness map imports as ORMMaterial3D, which is a SIBLING of
+	# StandardMaterial3D, not a subclass — casting to the latter silently skipped every
+	# wall in the shop and the fade looked like it did nothing.
 	mat.set_shader_parameter("albedo", src.albedo_color)
-	if src.albedo_texture != null:
-		mat.set_shader_parameter("albedo_tex", src.albedo_texture)
-	mat.set_shader_parameter("normal_on", src.normal_enabled and src.normal_texture != null)
-	if src.normal_texture != null:
-		mat.set_shader_parameter("normal_tex", src.normal_texture)
+	var tex_albedo := src.get_texture(BaseMaterial3D.TEXTURE_ALBEDO)
+	if tex_albedo != null:
+		mat.set_shader_parameter("albedo_tex", tex_albedo)
+	var tex_normal := src.get_texture(BaseMaterial3D.TEXTURE_NORMAL)
+	mat.set_shader_parameter("normal_on", src.normal_enabled and tex_normal != null)
+	if tex_normal != null:
+		mat.set_shader_parameter("normal_tex", tex_normal)
 	mat.set_shader_parameter("normal_strength", src.normal_scale)
-	mat.set_shader_parameter("rough_tex_on", src.roughness_texture != null)
-	if src.roughness_texture != null:
-		mat.set_shader_parameter("rough_tex", src.roughness_texture)
+	# Roughness lives in G either way: ORM's packed map, or a plain roughness map.
+	var tex_rough := src.get_texture(BaseMaterial3D.TEXTURE_ORM)
+	if tex_rough == null:
+		tex_rough = src.get_texture(BaseMaterial3D.TEXTURE_ROUGHNESS)
+	mat.set_shader_parameter("rough_tex_on", tex_rough != null)
+	if tex_rough != null:
+		mat.set_shader_parameter("rough_tex", tex_rough)
 	mat.set_shader_parameter("roughness", src.roughness)
 	mat.set_shader_parameter("metallic", src.metallic)
 	mat.set_shader_parameter("uv1_scale", src.uv1_scale)
