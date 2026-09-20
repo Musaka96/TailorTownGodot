@@ -361,8 +361,12 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
 - **Checked as a shop**: a customer called in grandpa's walks in from the street through
   the new door (which swings open) to the counter.
 - **Still placeholder**: dust sheets are linen-coloured boxes (want draped meshes); the
-  day-1 mirror is still Mr. Hemming's tri-fold (want grandpa's plain cheval glass); the
-  cornice band came out navy, not terracotta; next door wears the same wallpaper as
+  day-1 mirror is still Mr. Hemming's tri-fold (want grandpa's plain cheval glass); **the
+  facade looks well kept** - from the street the shop is a charming little shop, not an
+  abandoned one: the tired facade of section 5 (faded sign, flaking paint, a boarded window,
+  weeds) and its renovation jobs are not built, and `Renovation.PROJECTS` has no facade jobs
+  (the navy band under the eaves is the kit's fixed `trim` colour, the same on every house in
+  town, not a mistake); next door wears the same wallpaper as
   grandpa's (interior slots are global, not per building or room); the plot is still Mr.
   Hemming's (stage D) with its props hidden where they fall inside the building; a blossom
   tree overhangs next door's corner. All costs, nights and appeal thresholds are provisional.
