@@ -146,6 +146,19 @@ extends Resource
 ## Real seconds for the whole shift (open → close) to play out.
 @export var shift_real_seconds: float = 420.0
 
+@export_group("Shop walls")
+## How the cut-away shop front melts away at the top instead of stopping in a flat line
+## (scenes/world/wall_cutaway.gd). WHERE each wall is cut is set on its node in the
+## scene; these are the look of the fade, shared by every cut wall in the game.
+## Metres below the cut the wall takes to thin from solid to gone. Bigger = softer.
+@export var wall_fade_band: float = 0.30
+## How much the thinning wall pales out on the way (0 = plain see-through).
+@export var wall_fade_haze: float = 0.35
+## How far the fade line wanders up and down, in metres (0 = a ruled, level line).
+@export var wall_fade_wobble: float = 0.18
+## Wobbles per metre along the wall.
+@export var wall_fade_wobble_scale: float = 0.9
+
 @export_group("Cutting minigame")
 @export var cut_lead_seconds: float = 1.6  ## "get ready" pause before cutting starts
 @export var cut_seconds: float = 15.0  ## time to cut the whole shape when aligned

@@ -42,14 +42,6 @@ const SHADER := preload("res://materials/wall_cutaway.gdshader")
 @export var up_height := 99.0
 ## Seconds the wall takes to sink or grow back.
 @export var fade_time := 0.45
-## Metres below `cut_height` where the wall starts thinning. Bigger = softer melt.
-@export var fade_band := 0.55
-## How far the fade line wanders up and down, in metres (0 = a ruled, level line).
-@export var wobble := 0.18
-## Wobbles per metre along the wall.
-@export var wobble_scale := 0.9
-## How much the thinning wall pales out on its way to nothing.
-@export var haze := 0.35
 ## How much sooner the wall gives out right where the player stands (0 = level).
 @export var dip := 0.0
 @export var dip_radius := 1.8
@@ -99,7 +91,7 @@ func _check_reach() -> void:
 	if cut_height >= top:
 		var hi := "cut_height %.2f is at or above the top (%.2f)" % [cut_height, top]
 		push_warning("WallCutaway: %s — nothing will fade." % hi)
-	elif cut_height - fade_band <= bottom:
+	elif cut_height - fade_band() <= bottom:
 		var lo := "the fade starts at or below the foot (%.2f)" % bottom
 		push_warning("WallCutaway: %s — these walls will vanish entirely." % lo)
 
@@ -201,12 +193,23 @@ func retune() -> void:
 
 
 func _push(mat: ShaderMaterial) -> void:
-	mat.set_shader_parameter("fade_band", fade_band)
-	mat.set_shader_parameter("wobble", wobble)
-	mat.set_shader_parameter("wobble_scale", wobble_scale)
-	mat.set_shader_parameter("haze", haze)
+	mat.set_shader_parameter("fade_band", fade_band())
+	mat.set_shader_parameter("wobble", _cfg("wall_fade_wobble", 0.18))
+	mat.set_shader_parameter("wobble_scale", _cfg("wall_fade_wobble_scale", 0.9))
+	mat.set_shader_parameter("haze", _cfg("wall_fade_haze", 0.35))
 	mat.set_shader_parameter("dip", dip)
 	mat.set_shader_parameter("dip_radius", dip_radius)
+
+
+## How the fade looks is one global setting (GameConfig, "Shop walls") rather than a
+## copy per wall, so it can be tuned in one place for every cut wall in the game.
+func fade_band() -> float:
+	return _cfg("wall_fade_band", 0.3)
+
+
+func _cfg(field: String, fallback: float) -> float:
+	var data: GameConfig = Config.data if Config != null else null
+	return float(data.get(field)) if data != null else fallback
 
 
 func _resolve_player() -> Node3D:
