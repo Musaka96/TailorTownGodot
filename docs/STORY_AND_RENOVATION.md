@@ -230,6 +230,48 @@ single-world. Needed:
 inspect text + memory shelf, regulars' memory lines in `Clientele`, a few `News` items.
 All small and independent; can land in any order after 6.1–6.2.
 
+## 6.5 Station plan per room (owner-approved 2026-09-20, layout A)
+
+Room sizes to greybox with: front room 6x5 m, nook 3x5, workroom 6x5, cloth store 3x5,
+neighbouring unit 5x10. Yard behind stays free (keeps a later garden room possible).
+
+| Stage | Stations |
+|---|---|
+| **Day 1, front room only** | counter (phone + grandpa's notebook on it), **basic mirror**, one small cloth shelf, cutting table, grandpa's treadle sewing machine, one clothing rack, bin. The full loop works; only capacity and comfort are missing |
+| **Workroom** | cutting table + sewing machine move here (full-size table), second rack, bin. Front room becomes reception: bookshelf, memory shelf |
+| **Cloth store** | two long shelf walls, delivery door (Bulk Orders, premium suppliers) |
+| **Nook** | coffee machine, ironing board (`Upgrades` entries gain `requires_room`) |
+| **Fitting corner** | see below |
+| **Next door** | apprentice bench (+ the apprentice's own machine), rack, street-window mannequins |
+
+### The mirror is its own upgrade line
+
+1. **Basic mirror** (day 1): grandpa's spotted old cheval glass leaning in the front room.
+   Does the whole measure/design job, nothing more.
+2. **Better mirror** (phone upgrade): proper tri-fold. Effect to be designed with the
+   suit-builder (ideas: design catalog presets from ROADMAP C live here, a small
+   measuring-accuracy or customer-satisfaction bonus).
+3. **Fitting corner** (renovation project): a dedicated corner carved out for fittings —
+   platform, tri-fold mirror, stool, rug, drape. Counts toward shop appeal; natural home
+   for the design catalog. Placement: on the front room's left wall or the front of the
+   neighbouring unit, decided in greybox. Keep it a *corner with a low/open side*, not a
+   walled booth (camera rule, and the owner rejected a curtained booth in v3).
+
+### Circulation rule (owner requirement)
+
+Cramped must never mean stuck. Player capsule radius is 0.34 m, customers similar.
+
+- The customer route **door -> counter -> mirror -> door** keeps a clear aisle of
+  **>= 1.2 m** (player and customer can pass each other).
+- Every other station keeps **>= 0.9 m** of free floor on its working side.
+- A customer standing at the counter or the mirror must not block the player's way to
+  any station (no single-file dead ends behind a waiting customer).
+- Checked at every stage, not just day 1: a greybox test (`tools/test_shop_clearance.gd`)
+  parks a customer at each waiting spot and path-tests the player to every station, for
+  each renovation state. Re-run whenever furniture footprints or room sizes change.
+- If the 6x5 front room cannot meet this with all seven day-1 stations, **grow the room**
+  (6.5x5.5) before dropping a station.
+
 ## 7. Build order
 
 | # | Milestone | Proves |
@@ -266,9 +308,8 @@ change.
    effect of a shabby shop is **humbler customers** (appeal → customer tier ceiling). This
    overrides §3 "Does damage affect gameplay?": no closing at dusk, no bucket chore, no
    puddle slowdown. The bucket, drips and puddles stay as set dressing.
-5. **Expansion direction: open.** Three layouts were shown (A knock through sideways,
-   B into the yard, C sideways first then a glazed garden room). Recommendation: **A now,
-   shaped so C stays possible** (keep the yard free behind the workroom).
+5. **Expansion: layout A** (knock through sideways into the neighbouring unit), yard kept
+   free so a garden room stays possible. Station plan approved, see §6.5. ✔
 6. **Names: cute.** Proposal, awaiting a yes: grandpa **Barnaby "Pops" Thimble**; the shop
    **The Little Thimble** (faded on the old sign; the player may rename it at the sign
    repaint); the town **Buttonbrook**; Hemming's street stays **the Row**. Alternatives:
