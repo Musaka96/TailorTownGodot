@@ -232,12 +232,14 @@ All small and independent; can land in any order after 6.1–6.2.
 
 ## 6.5 Station plan per room (owner-approved 2026-09-20, layout A)
 
-Room sizes (greybox, 2026-09-20): **front room 7x5.5 m**, nook 3x5.5, workroom 7x5, cloth
-store 3x5, neighbouring unit 5x10.5. The first sketch said 6x5, but the real station
-footprints are bigger than drawn (the phone *is* the 2.0x0.7 reception desk; worktable
-1.4x1.7, sewing 1.7x1.5, rack 1.8x1.2, tri-fold mirror 2.0x1.4 including standing room), so
-the room grew per the circulation rule below. Yard behind stays free (keeps a later garden
-room possible). The footprint lives in one place: `tools/build_grandpa_greybox.gd`.
+Room sizes (on the town kit's 2 m grid since 2026-09-20, see 6.11): **front room 8x6 m**,
+nook 4x6, workroom 8x4, cloth store 4x4, neighbouring unit 6x10. Two earlier footprints
+came first: the sketch's 6x5 front room was too small once the real station footprints
+were measured (the phone *is* the 2 m reception desk, and its origin sits at the desk's
+left end; the tri-fold mirror is 2.46 m wide), so it grew to 7x5.5; then the kit's grid
+made it 8x6. Yard behind stays free (keeps a later garden room possible). The footprint
+lives in one place: `tools/build_grandpa_greybox.gd`; station positions in
+`tools/make_grandpa_room.py` and `RenovationDirector.MOVES`.
 
 | Stage | Stations |
 |---|---|
@@ -319,7 +321,23 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
     `test_shop_clearance` (below), `test_locations`. GIF of the whole procedure:
     `docs/media/renovation_greybox.gif` (`tools/shot_renovation_gif.gd` +
     `tools/make_renovation_gif.py`).
-- Next: the phone's Builders card and the F3 renovation panel, then the look (Blender v8).
+- **Playable loop (2026-09-20)**: the phone's **Builders** card (grandpa's shop only) orders
+  building work, so the renovation can be played through without debug tools; the **F3
+  panel** has a Renovation section (finish next job, builders finish tonight, renovate
+  everything, open a room with everything it depends on, a per-project checklist, reset);
+  a finished job is announced with a toast. **A shabby shop draws humbler customers**:
+  the budget band follows the lower of the reputation tier and the tier the shop is fit
+  to receive (`Pricing.shop_tier_ceiling`, `GameConfig.appeal_for_budget_tier`,
+  provisional; tier 0 is always welcome, so day 1 is unchanged). Mr. Hemming's welcome and
+  send-off now fit the story (that he was grandpa's apprentice is still to be confirmed by
+  the owner). The front room must be tidied before any other room is begun.
+- **Stage A of 6.11 done**: the greybox stands on the kit's 2 m grid; every station
+  re-placed; `test_shop_clearance` passes 270 checks over seven stages.
+- **Not in git**: the town, the plot and Mr. Hemming's shop are referenced from
+  `IMPORT/town_kit/export/v7/`, and `/IMPORT/` is ignored, so a fresh clone has none of
+  them. Grandpa's room scene depends on the same files; the v8 shop will follow the same
+  convention.
+- Next: stage B, the look (Blender v8).
 
 ## 6.8 Names the Blender-built shop must keep
 
