@@ -95,6 +95,7 @@ func _apologies() -> void:
 	_cfg.reschedule_chance = 1.0
 	order = _order("Lady Gala")
 	order.event_id = "event_autumn_gala"
+	root.get_node("News").restore_season({"start": 1, "suits": 3})  # the gala is on
 	root.get_node("Shift").day = root.get_node("News").event_day(order.event_id)
 	_check(not _wait.can_reschedule(order), "an event suit can't move past the event")
 	_check(_wait.apologise(order) == "event", "event: the order is lost")

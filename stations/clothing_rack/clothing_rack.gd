@@ -11,6 +11,13 @@ extends Node3D
 ## order ready for its customer. Each rack keeps its own — parts on different racks never
 ## gather together. A set can be taken apart from the menu; its parts then stay apart on
 ## this rack until they're taken off it.
+##
+## Nothing hangs here dead. When an order leaves the books unfinished its parts become
+## spares (no order number), and a spare is offered to the next order it suits: on its own
+## when a new order is a close fit, or whenever the player hangs it up again.
+
+## How well a spare must suit a new order for the rack to offer it unasked.
+const SPARE_FIT := 0.75
 
 var stored: Array[Node] = []
 var _slots: Array[Node3D] = []
@@ -32,6 +39,8 @@ func _ready() -> void:
 	_apply_extra_hooks()
 	if Upgrades != null:
 		Upgrades.changed.connect(_apply_extra_hooks)
+	EventBus.order_expired.connect(_on_order_expired)
+	EventBus.order_created.connect(_on_order_created)
 
 
 ## The Extra Hooks upgrade adds slots by extending the rail's spacing past the last hook.
@@ -65,6 +74,7 @@ func get_interaction_prompt(actor) -> String:
 func interact(actor) -> void:
 	var held: Node = actor.carry.get_held()
 	if held is GarmentPiece or held is Suit:
+		_claim(held)
 		if can_hang(held):
 			hang(actor.carry.release())
 	elif held != null:
@@ -82,6 +92,7 @@ func can_hang(item: Node) -> bool:
 ## order — gathering onto one hook — and the last part to join turns the set into the
 ## finished suit. Returns false (and takes nothing) when there's no room.
 func hang(item: Node) -> bool:
+	_claim(item)
 	var group := _group_for(item)
 	if group == null and stored.size() >= _slots.size():
 		return false
@@ -147,6 +158,50 @@ func can_take_apart(index: int) -> bool:
 	if index < 0 or index >= stored.size() or not (stored[index] is GarmentSet):
 		return false
 	return stored[index].pieces.size() - 1 <= _slots.size() - stored.size()
+
+
+# --- Spares ------------------------------------------------------------------------
+
+
+## A sewn part made for no order (or whose order has gone) is checked off the first open
+## order it suits at least `fit` well. True when one took it.
+func _claim(item: Node, fit := Orders.PIECE_MIN) -> bool:
+	if not (item is GarmentPiece) or item.stage != Enums.Stage.SEWN or int(item.order_id) > 0:
+		return false
+	return Orders.register_piece(item, fit) != null
+
+
+## The order is lost: its parts stay, as spares. A set comes apart if there are hooks for
+## it, and otherwise hangs on as one bundle of spares until the player takes it apart.
+func _on_order_expired(order: Resource) -> void:
+	for i in range(stored.size() - 1, -1, -1):
+		var hung: Node = stored[i]
+		if hung is GarmentSet and hung.order_id == int(order.id):
+			for part in hung.pieces:
+				part.order_id = 0
+			hung.order_id = 0
+			if can_take_apart(i):
+				take_apart(i)
+				for k in stored.size():
+					if int(stored[k].get("order_id")) == 0:
+						_loose.erase(stored[k])
+			else:
+				hung.refresh()
+		elif hung is GarmentPiece and int(hung.order_id) == int(order.id):
+			hung.order_id = 0
+
+
+## A new order on the books: offer it any spare that is a close fit.
+func _on_order_created(_order: Resource) -> void:
+	for hung in stored.duplicate():
+		if _loose.has(hung) or not _claim(hung, SPARE_FIT):
+			continue
+		stored.erase(hung)
+		_reflow()
+		hang(hung)
+		if UI != null:
+			var what := Enums.garment_type_name(hung.garment_type).to_lower()
+			UI.toast("The spare %s on the rack suits order #%d" % [what, int(hung.order_id)])
 
 
 # --- Gathering -----------------------------------------------------------------

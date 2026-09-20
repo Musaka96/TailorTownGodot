@@ -29,6 +29,8 @@ const WINDOWS := [Vector2(0.05, 0.3), Vector2(0.4, 0.55), Vector2(0.62, 0.86)]
 const OPENING_BELL := Vector2(0.01, 0.05)
 ## Load above which nobody new walks in (appointments still come).
 const SWAMPED := 1.0
+## Load below which a city event sends one more customer than usual.
+const EVENT_ROOM := 0.5
 ## Wallet below which, with no open orders, a customer is guaranteed soon.
 const BROKE := 150
 ## Chance a walk-in is a rush / picky client, by stage (opening, growing, established).
@@ -126,7 +128,7 @@ func plan_day() -> void:
 		if t > now:
 			_plan.append(t)
 	_ring_the_bell(now)
-	if event_rush_today() and UI != null:
+	if _event_extra(load_factor()) and UI != null:
 		UI.toast("The paper's buzzing about an event — expect extra customers today!")
 	changed.emit()
 
@@ -148,11 +150,17 @@ func planned_walk_ins() -> int:
 			count = 1 + (1 if lf < 0.4 else 0)
 		2:
 			count = 2 + (1 if lf < 0.5 else 0)
-	if event_rush_today():
+	if _event_extra(lf):
 		count += 1
 	if lf >= SWAMPED:
 		count = 0
 	return count
+
+
+## The event brings one more through the door, but only to a shop with room for them:
+## a busy bench gets the event's customers in place of the usual ones, not on top.
+func _event_extra(lf: float) -> bool:
+	return lf < EVENT_ROOM and event_rush_today()
 
 
 ## A newspaper EVENT is on (its bias window covers today).
@@ -161,7 +169,7 @@ func event_rush_today() -> bool:
 		return false
 	var day := _today()
 	for ev in News.upcoming_events(day):
-		if day >= ev.event_day - ev.bias_days and day <= ev.event_day:
+		if News.in_run_up(ev, day):
 			return true
 	return false
 

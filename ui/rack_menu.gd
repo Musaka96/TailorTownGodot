@@ -269,6 +269,8 @@ func _color_chip(color: Color, chip_size: int) -> Control:
 
 
 func _name_of(item) -> String:
+	if item is GarmentSet and item.order_id <= 0:
+		return "Spare parts"
 	if item is GarmentSet:
 		var who: String = item.customer_name()
 		return "Order #%d" % item.order_id + ("  ·  %s" % who if who != "" else "")

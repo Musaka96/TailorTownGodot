@@ -39,6 +39,7 @@ func _run() -> void:
 	_separate_racks(rack)
 	_full_rack(rack)
 	_save_and_load(rack)
+	_spares(rack)
 	_finish()
 
 
@@ -133,6 +134,28 @@ func _save_and_load(rack: Node) -> void:
 	_check(copy.is_loose(1) and copy.is_loose(2), "and taken-apart parts stay apart")
 	_clear(rack)
 	copy.queue_free()
+
+
+## A lost order's parts become spares, and the next order they suit takes them.
+func _spares(rack: Node) -> void:
+	_orders.active.clear()
+	var lost: Resource = _order("Mr. Gone")
+	_hang(rack, _part(JACKET, lost))
+	_hang(rack, _part(PANTS, lost))
+	_check(_is(rack.stored[0], "GarmentSet"), "(setup) two parts gathered for the order")
+	_orders.expire(lost)
+	_check(rack.stored.size() == 2, "the order is lost: its set comes apart")
+	_check(int(rack.stored[0].order_id) == 0, "and the parts are spares, no order number")
+	_check(not rack.is_loose(0), "free to gather again")
+	var next: Resource = _order("Mrs. Next")
+	_check(next.is_part_done(JACKET) and next.is_part_done(PANTS), "a new order takes them")
+	_check(
+		rack.stored.size() == 1 and int(rack.stored[0].order_id) == int(next.id),
+		"and they gather under its number"
+	)
+	_hang(rack, _part(SHIRT, next))
+	_check(_is(rack.stored[0], "Suit"), "one shirt later it is a suit")
+	_clear(rack)
 
 
 func _order(customer: String) -> Resource:

@@ -34,6 +34,10 @@ enum Kind { STORY, FASHION, EVENT }
 ## Higher priority runs as the lead story; weight is a random tiebreak.
 @export var priority: int = 0
 @export var weight: int = 1
+## Its days (exact/min/max and event_day) count from the morning the social season
+## opens (News.season_open), not from day 1 — so city events wait until the shop is on
+## its feet. Day 1 of the season is the day it opens.
+@export var seasonal: bool = false
 
 @export_group("Fashion trend")
 ## Enums.Pattern that is "in" (-1 = none).
@@ -56,6 +60,9 @@ enum Kind { STORY, FASHION, EVENT }
 ## Reputation for the shop when its suit is judged best at the event (the paper's
 ## "best suit spotted" story the morning after). See News.judge / _report_spotted.
 @export var spotted_bonus: int = 20
+## Reputation for merely being seen there: a suit of ours was worn to the event but
+## didn't make the cut for "best suit". 0 = no mention, the rival gets the whole story.
+@export var mention_bonus: int = 0
 
 
 ## True when this article may run on `day` at `reputation` (and hasn't been shown,

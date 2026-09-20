@@ -15,11 +15,21 @@ extends Node
 ## for it (Orders._tag_event). Each one collected in time is judged (judge()); the
 ## morning after the event the paper leads with the best one that made the cut, and
 ## the shop gains standing (EventBus.press_mention). If none did, the rival shop gets
-## the story instead.
+## the story instead. An event with a mention_bonus is kinder: any suit of ours worn
+## there earns a short society note, and only the great one gets the lead.
+##
+## The social season: `seasonal` articles (the city events and their follow-ups) count
+## their days from the morning the season opens, which is the first morning the shop has
+## found its feet (Config season_min_reputation / season_min_suits). Until then there
+## are no events, no biased briefs and nothing on the calendar. Ask day_of(), never
+## ev.event_day, for the real day an event is held.
+
+signal season_opened(day: int)
 
 const DIR := "res://data/news"
 const SPOTTED_KICKER := "SOCIETY · SPOTTED"
 const RIVAL_KICKER := "SOCIETY"
+const MENTION_KICKER := "SOCIETY · SEEN"
 const FILLER_PREFIX := "filler_"  # quiet-day pieces: one a day (see _compile)
 
 var current_edition: Array[NewsEvent] = []
@@ -33,6 +43,9 @@ var _rng := RandomNumberGenerator.new()
 ## Per event id, how the shop's suits fared there so far:
 ## { entered: int, best: {name, suit, score} (empty until one makes the cut), why: String }.
 var _spotted: Dictionary = {}
+## The day the social season opened (0 = not yet), and the suits handed over so far.
+var _season_start := 0
+var _suits_delivered := 0
 
 
 func _ready() -> void:
@@ -70,14 +83,33 @@ func fashion_matches(design: Dictionary) -> bool:
 	return false
 
 
-## Every EVENT still to come (event_day on or after `from_day`), soonest first —
-## for the paper's social calendar.
+func season_open() -> bool:
+	return _season_start > 0
+
+
+## The real in-game day the city event `ev` is held (0 = not on the calendar yet).
+func day_of(ev: NewsEvent) -> int:
+	if ev == null or ev.event_day <= 0:
+		return 0
+	if not ev.seasonal:
+		return ev.event_day
+	return _season_start + ev.event_day - 1 if _season_start > 0 else 0
+
+
+## `day` falls in `ev`'s run-up: its bias window, up to and including the event day.
+func in_run_up(ev: NewsEvent, day: int) -> bool:
+	var held := day_of(ev)
+	return held > 0 and day >= held - ev.bias_days and day <= held
+
+
+## Every EVENT still to come (held on or after `from_day`), soonest first — for the
+## paper's social calendar. Empty until the season opens.
 func upcoming_events(from_day: int) -> Array[NewsEvent]:
 	var out: Array[NewsEvent] = []
 	for ev in _all:
-		if ev.kind == NewsEvent.Kind.EVENT and ev.event_day >= from_day:
+		if ev.kind == NewsEvent.Kind.EVENT and day_of(ev) >= maxi(from_day, 1):
 			out.append(ev)
-	out.sort_custom(func(a: NewsEvent, b: NewsEvent) -> bool: return a.event_day < b.event_day)
+	out.sort_custom(func(a: NewsEvent, b: NewsEvent) -> bool: return day_of(a) < day_of(b))
 	return out
 
 
@@ -85,9 +117,7 @@ func upcoming_events(from_day: int) -> Array[NewsEvent]:
 ## EVENT's window covers `day` and the roll passes, else {} (leave the brief random).
 func event_bias(day: int, rng: RandomNumberGenerator) -> Dictionary:
 	for ev in _all:
-		if ev.kind != NewsEvent.Kind.EVENT or ev.event_day <= 0:
-			continue
-		if day < ev.event_day - ev.bias_days or day > ev.event_day:
+		if ev.kind != NewsEvent.Kind.EVENT or not in_run_up(ev, day):
 			continue
 		if rng.randf() >= ev.bias_chance:
 			continue
@@ -101,22 +131,19 @@ func event_bias(day: int, rng: RandomNumberGenerator) -> Dictionary:
 ## The EVENT whose run-up (bias window) covers `day` and wants `occasion`, or null.
 func event_for(occasion: int, day: int) -> NewsEvent:
 	for ev in _all:
-		if ev.kind != NewsEvent.Kind.EVENT or ev.event_day <= 0:
+		if ev.kind != NewsEvent.Kind.EVENT or ev.event_occasion != occasion:
 			continue
-		if ev.event_occasion != occasion:
-			continue
-		if day >= ev.event_day - ev.bias_days and day <= ev.event_day:
+		if in_run_up(ev, day):
 			return ev
 	return null
 
 
-## An event's name for running text: "the Autumn Charity Gala".
-## The day the city event `id` is held (0 if unknown).
+## The day the city event `id` is held (0 if unknown, or not on the calendar yet).
 func event_day(id: String) -> int:
-	var ev := _event(id)
-	return ev.event_day if ev != null else 0
+	return day_of(_event(id))
 
 
+## An event's name for running text: "the Autumn Charity Gala".
 func event_title(id: String) -> String:
 	var ev := _event(id)
 	if ev == null:
@@ -144,6 +171,16 @@ func spotted_snapshot() -> Dictionary:
 
 func restore_spotted(saved: Dictionary) -> void:
 	_spotted = saved.duplicate(true)
+
+
+## The social season's clock for the save file.
+func season_snapshot() -> Dictionary:
+	return {"start": _season_start, "suits": _suits_delivered}
+
+
+func restore_season(saved: Dictionary) -> void:
+	_season_start = int(saved.get("start", 0))
+	_suits_delivered = int(saved.get("suits", 0))
 
 
 ## Restore which articles have already run (from a save). Call before the day
@@ -189,12 +226,33 @@ func ensure_edition() -> void:
 		return
 	var rep: int = Reputation.points if Reputation != null else 0
 	_edition_day = day
+	_open_season(day, rep)
 	current_edition = _compile(day, rep)
 	for ev in current_edition:
 		_seen[ev.id] = day
 		if ev.kind == NewsEvent.Kind.FASHION:
 			current_fashion = ev
 	_report_spotted(day)
+
+
+## The season opens the first morning the shop is on its feet: known on the street, with
+## a few suits out of the door. Never at Mr. Hemming's, where nothing counts.
+func _open_season(day: int, rep: int) -> void:
+	if _season_start > 0 or (Tutorial != null and Tutorial.is_active()):
+		return
+	var need_rep: int = Config.data.season_min_reputation if Config.data != null else 40
+	var need_suits: int = Config.data.season_min_suits if Config.data != null else 3
+	if rep < need_rep or _suits_delivered < need_suits:
+		return
+	_season_start = day
+	season_opened.emit(day)
+
+
+## `day` as `ev` counts it: the plain day, or the day of the season (0 = not open yet).
+func _clock(ev: NewsEvent, day: int) -> int:
+	if not ev.seasonal:
+		return day
+	return day - _season_start + 1 if _season_start > 0 else 0
 
 
 ## True when `id` already ran on an earlier day (today's own stories may run again, so
@@ -221,34 +279,42 @@ func _event(id: String) -> NewsEvent:
 ## A tagged suit was collected: if it's in time for its event, judge it and keep the
 ## best entry that made the cut. The client's parting word hints how it will go.
 func _on_order_fulfilled(order: SuitOrder, _payout: int) -> void:
-	if order == null or order.event_id == "":
+	if order == null:
+		return
+	_suits_delivered += 1
+	if order.event_id == "":
 		return
 	var ev := _event(order.event_id)
 	if ev == null:
 		return
 	var at := event_title(ev.id)
 	var today: int = Shift.day if Shift != null else 1
-	if today > ev.event_day:
+	if today > day_of(ev):
 		_toast_later("%s's suit came too late for %s" % [order.customer_name, at])
 		return
 	var entry: Dictionary = _spotted.get(ev.id, {"entered": 0, "best": {}, "why": ""})
 	entry["entered"] = int(entry.get("entered", 0)) + 1
+	var score := order.average_quality() * order.average_match()
+	var worn := {"name": order.customer_name, "suit": _suit_words(order), "score": score}
+	var seen: Dictionary = entry.get("seen", {})
+	if seen.is_empty() or score > float(seen.get("score", 0.0)):
+		entry["seen"] = worn
 	var verdict := judge(order)
+	var who := order.customer_name
 	if bool(verdict["ok"]):
-		var score := order.average_quality() * order.average_match()
 		var best: Dictionary = entry.get("best", {})
 		if best.is_empty() or score > float(best.get("score", 0.0)):
-			entry["best"] = {
-				"name": order.customer_name, "suit": _suit_words(order), "score": score
-			}
-		_toast_later("%s wears it to %s. The papers will be watching!" % [order.customer_name, at])
+			entry["best"] = worn
+		_toast_later("%s wears it to %s. The papers will be watching!" % [who, at])
 	else:
 		entry["why"] = verdict["why"]
 		var short := (
 			"not quite fine enough" if verdict["why"] == "craft" else "not quite in fashion"
 		)
-		var who := order.customer_name
-		_toast_later("%s wears it to %s: handsome, but %s for the papers" % [who, at, short])
+		if ev.mention_bonus > 0:
+			_toast_later("%s wears it to %s. Good for a line in the paper" % [who, at])
+		else:
+			_toast_later("%s wears it to %s: handsome, but %s for the papers" % [who, at, short])
 	_spotted[ev.id] = entry
 
 
@@ -256,7 +322,7 @@ func _on_order_fulfilled(order: SuitOrder, _payout: int) -> void:
 ## the shop's (and its standing rises), or the rival's if nothing of ours made the cut.
 func _report_spotted(day: int) -> void:
 	for ev in _all:
-		if ev.kind != NewsEvent.Kind.EVENT or ev.event_day != day - 1:
+		if ev.kind != NewsEvent.Kind.EVENT or day_of(ev) <= 0 or day_of(ev) != day - 1:
 			continue
 		var key := "spotted_" + ev.id
 		if _seen.has(key):
@@ -265,12 +331,22 @@ func _report_spotted(day: int) -> void:
 		var entry: Dictionary = _spotted.get(ev.id, {})
 		_spotted.erase(ev.id)
 		var won := not (entry.get("best", {}) as Dictionary).is_empty()
-		var story := _spotted_story(ev, entry) if won else _rival_story(ev, entry)
+		var seen := not (entry.get("seen", {}) as Dictionary).is_empty()
+		var story: NewsEvent
+		var bonus := 0
+		if won:
+			story = _spotted_story(ev, entry)
+			bonus = ev.spotted_bonus
+		elif seen and ev.mention_bonus > 0:
+			story = _mention_story(ev, entry)
+			bonus = ev.mention_bonus
+		else:
+			story = _rival_story(ev, entry)
 		story.id = key
 		story.priority = 100
 		current_edition.push_front(story)
-		if won:
-			EventBus.press_mention.emit(story.headline, ev.spotted_bonus)
+		if bonus > 0:
+			EventBus.press_mention.emit(story.headline, bonus)
 
 
 func _spotted_story(ev: NewsEvent, entry: Dictionary) -> NewsEvent:
@@ -285,6 +361,28 @@ func _spotted_story(ev: NewsEvent, entry: Dictionary) -> NewsEvent:
 			+ "the guests were asking for the tailor's card."
 		)
 		% [best.get("name", "a guest"), best.get("suit", "suit")]
+	)
+	return story
+
+
+## Seen, not crowned: the rival takes the honours, and our suit gets its paragraph.
+func _mention_story(ev: NewsEvent, entry: Dictionary) -> NewsEvent:
+	var rival: String = FrontDesk.RIVAL_NAME if FrontDesk != null else "Pinch & Pleat"
+	var seen: Dictionary = entry["seen"]
+	var fault := (
+		"The seams want another season's practice"
+		if entry.get("why", "") == "craft"
+		else "The cut was a season behind the fashion"
+	)
+	var story := NewsEvent.new()
+	story.kicker = MENTION_KICKER
+	story.headline = "A New Name Is Seen at %s" % event_title(ev.id)
+	story.body = (
+		(
+			"The honours went to %s, as they generally do. Our correspondent also noted "
+			+ "%s's %s, from the newer shop on the Row. %s. Two guests asked who made it."
+		)
+		% [rival, seen.get("name", "a guest"), seen.get("suit", "suit"), fault]
 	)
 	return story
 
@@ -340,7 +438,8 @@ func _compile(day: int, rep: int) -> Array[NewsEvent]:
 	var out: Array[NewsEvent] = []
 	var fillers: Array[NewsEvent] = []
 	for ev in _all:
-		if not ev.eligible(day, rep, _ran_before(ev.id, day)):
+		var clock := _clock(ev, day)
+		if clock <= 0 or not ev.eligible(clock, rep, _ran_before(ev.id, day)):
 			continue
 		if ev.id.begins_with(FILLER_PREFIX):
 			fillers.append(ev)

@@ -92,20 +92,21 @@ func _tag_event(order: SuitOrder, occasion: int) -> void:
 	if occasion < 0 or News == null:
 		return
 	var ev: NewsEvent = News.event_for(occasion, _today())
-	if ev == null or ev.event_day <= _today():
+	if ev == null or News.day_of(ev) <= _today():
 		return
 	order.event_id = ev.id
-	order.due_day = mini(order.due_day, ev.event_day)
+	order.due_day = mini(order.due_day, News.day_of(ev))
 
 
 ## Check a freshly-sewn piece off the first open order that still needs a matching
 ## piece, stamping the piece with that order's number. Returns the order it filled (or
-## null if the piece fits no open order — a spare/speculative piece).
-func register_piece(piece: Node) -> SuitOrder:
+## null if the piece fits no open order — a spare/speculative piece). `min_match` raises
+## the bar: a rack offering up a spare on its own only does so for a close fit.
+func register_piece(piece: Node, min_match := PIECE_MIN) -> SuitOrder:
 	if piece == null:
 		return null
 	var part := {"material": piece.get("material"), "quality": float(piece.quality)}
-	var order := _first_open_for(int(piece.garment_type), part)
+	var order := _first_open_for(int(piece.garment_type), part, min_match)
 	if order == null:
 		return null
 	piece.set("order_id", order.id)
@@ -362,11 +363,11 @@ func _fill(order: SuitOrder, garment_type: int, part: Dictionary) -> void:
 
 
 ## First open order (FIFO) that still needs this garment type and is matched well.
-func _first_open_for(garment_type: int, part: Dictionary) -> SuitOrder:
+func _first_open_for(garment_type: int, part: Dictionary, min_match := PIECE_MIN) -> SuitOrder:
 	for order in active:
 		if order.state != SuitOrder.State.OPEN:
 			continue
-		if order.needs_part(garment_type) and order.part_match(garment_type, part) >= PIECE_MIN:
+		if order.needs_part(garment_type) and order.part_match(garment_type, part) >= min_match:
 			return order
 	return null
 

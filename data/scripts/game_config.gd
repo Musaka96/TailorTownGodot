@@ -86,6 +86,10 @@ extends Resource
 ## Otherwise the rival shop gets the story.
 @export var spotted_quality: float = 0.85
 @export var spotted_match: float = 0.85
+## The social season (the paper's city events) opens the first morning the shop has this
+## much reputation AND has handed over this many suits. Until then the calendar is clear.
+@export var season_min_reputation: int = 40
+@export var season_min_suits: int = 3
 
 @export_subgroup("Cloth ordering")
 @export var roll_min_m: float = 2.0

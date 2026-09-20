@@ -308,6 +308,7 @@ func capture(save_name := "") -> Dictionary:
 		"day_start_money": Shift.day_start_money() if Shift != null else GameState.money,
 		"news_seen": News.seen_snapshot() if News != null else {},
 		"news_spotted": News.spotted_snapshot() if News != null else {},
+		"news_season": News.season_snapshot() if News != null else {},
 		"orders": Orders.save_state(),
 		"stations": _capture_stations(scene) if scene != null else {},
 		"loose": _capture_loose(scene) if scene != null else [],
@@ -371,6 +372,7 @@ func _apply_pending() -> void:
 	if News != null:
 		News.restore_seen(d.get("news_seen", {}))
 		News.restore_spotted(d.get("news_spotted", {}))
+		News.restore_season(d.get("news_season", {}))
 	Orders.restore(d.get("orders", []))
 	# One frame so the freshly swapped-in scene's stations have run _ready.
 	await get_tree().process_frame
@@ -440,6 +442,7 @@ func _reset_autoloads() -> void:
 	if News != null:
 		News.restore_seen({})
 		News.restore_spotted({})
+		News.restore_season({})
 		News.current_fashion = null
 		News.current_edition.clear()
 

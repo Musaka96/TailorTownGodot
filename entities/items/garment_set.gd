@@ -126,7 +126,9 @@ func refresh() -> void:
 	var names: Array[String] = []
 	for t in left:
 		names.append(Enums.garment_type_name(t).to_lower())
-	if _order() == null:
+	if order_id <= 0:
+		_ticket.text = "spares"
+	elif _order() == null:
 		_ticket.text = "#%d" % order_id
 	elif names.is_empty():
 		_ticket.text = "#%d  ·  complete" % order_id
