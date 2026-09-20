@@ -143,7 +143,12 @@ const GRIME := preload("res://assets/textures/renovation/grime.png")
 const DAMP := preload("res://assets/textures/renovation/damp.png")
 const PUDDLE := preload("res://assets/textures/renovation/puddle.png")
 const PUDDLE_ORM := preload("res://assets/textures/renovation/puddle_orm.png")
-const PLASTER := preload("res://assets/textures/renovation/plaster.png")
+## Two lengths of bare wall (tools/make_wear_textures.py), laid turn and turn about.
+const PLASTER: Array[Texture2D] = [
+	preload("res://assets/textures/renovation/plaster.png"),
+	preload("res://assets/textures/renovation/plaster_b.png"),
+]
+const PLASTER_LENGTH := 2.0  # metres of wall one length is drawn for — never stretched far
 ## Bare plaster and damp belong on wall, not on glass: the shop kit builds each wall run
 ## out of named panels, and only these two have nothing cut out of them. Everything else
 ## — a window, a door, a shopfront, an archway — is left alone, so no patch of brick ever
@@ -726,24 +731,27 @@ func _build_wear() -> void:
 ## (high z), 2 west (low x), 3 east (high x).
 func _bare_wall(room: String, side: int, lo: Vector2, span: Vector2) -> Array[Decal]:
 	var out: Array[Decal] = []
-	var runs := _solid_spans(side, lo, span)
-	for i in runs.size():
-		var run: Vector2 = runs[i]
-		var mid := (run.x + run.y) / 2.0
-		var size := Vector3(run.y - run.x, WALL_DEPTH, WALL_H)
-		var at := Vector3(mid, WALL_MID, lo.y + WALL_OFF)
-		var turn := Vector3(90, 0, 0)
-		match side:
-			1:
-				at.z = lo.y + span.y - WALL_OFF
-				turn = Vector3(90, 180, 0)
-			2:
-				at = Vector3(lo.x + WALL_OFF, WALL_MID, mid)
-				turn = Vector3(90, 90, 0)
-			3:
-				at = Vector3(lo.x + span.x - WALL_OFF, WALL_MID, mid)
-				turn = Vector3(90, -90, 0)
-		out.append(_decal("bare%d_%d" % [side, i], room, PLASTER, at, size, turn))
+	for run: Vector2 in _solid_spans(side, lo, span):
+		# a long stretch takes several lengths side by side, so the bricks keep their size
+		var lengths := maxi(1, roundi((run.y - run.x) / PLASTER_LENGTH))
+		var each := (run.y - run.x) / lengths
+		for n in lengths:
+			var mid := run.x + each * (n + 0.5)
+			var at := Vector3(mid, WALL_MID, lo.y + WALL_OFF)
+			var turn := Vector3(90, 0, 0)
+			match side:
+				1:
+					at.z = lo.y + span.y - WALL_OFF
+					turn = Vector3(90, 180, 0)
+				2:
+					at = Vector3(lo.x + WALL_OFF, WALL_MID, mid)
+					turn = Vector3(90, 90, 0)
+				3:
+					at = Vector3(lo.x + span.x - WALL_OFF, WALL_MID, mid)
+					turn = Vector3(90, -90, 0)
+			var tex := PLASTER[(out.size() + side) % PLASTER.size()]
+			var size := Vector3(each, WALL_DEPTH, WALL_H)
+			out.append(_decal("bare%d_%d" % [side, out.size()], room, tex, at, size, turn))
 	return out
 
 

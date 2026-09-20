@@ -7,10 +7,12 @@ extends Control
 const PAPER_W := 560.0
 const N_TITLE := 22
 const N_BODY := 15
+const N_NOTE := 13  # the player's own aside, set apart from the letter itself
 const OPEN_GUARD := 0.35  # so the press that opened it can't close it again
 
 var _title: Label
 var _body: RichTextLabel
+var _note: Label
 var _hint: Label
 var _panel: PanelContainer
 var _opened_at := 0.0
@@ -24,9 +26,13 @@ func _ready() -> void:
 	_build()
 
 
-## Show `body` under `title`. `on_closed` runs once it is folded away.
-func open(title: String, body: String, on_closed := Callable()) -> void:
+## Show `body` under `title`. `on_closed` runs once it is folded away. `note` is the
+## reader's own aside (where the letter turned up, say): it sits above the rule in a
+## quieter hand, so everything below the rule is the letter and only the letter.
+func open(title: String, body: String, on_closed := Callable(), note := "") -> void:
 	_title.text = title
+	_note.text = note
+	_note.visible = note != ""
 	_body.text = body
 	_on_closed = on_closed
 	_opened_at = Time.get_ticks_msec() / 1000.0
@@ -99,6 +105,14 @@ func _build() -> void:
 	_title.add_theme_color_override("font_color", Style.INK)
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_title)
+
+	_note = Label.new()
+	_note.add_theme_font_override("font", Style.font_body())
+	_note.add_theme_font_size_override("font_size", N_NOTE)
+	_note.add_theme_color_override("font_color", Style.tint(Style.INK, 0.6))
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_note.visible = false
+	box.add_child(_note)
 
 	var rule := ColorRect.new()
 	rule.color = Style.INK

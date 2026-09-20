@@ -16,7 +16,7 @@ extends Node
 signal changed
 signal letter_ready(id: String)
 
-const GRANDPA := "Barnaby \"Pops\" Thimble"
+const GRANDPA := 'Barnaby "Pops" Thimble'
 ## What each job turns up: project id -> what it is, and what the player makes of it.
 ## `prop` picks the little shape that stands on the shelf (RenovationDirector.KEEPSAKE_PROPS).
 const KEEPSAKES := {
@@ -24,7 +24,8 @@ const KEEPSAKES := {
 	{
 		"name": "Pops's shears",
 		"prop": "shears",
-		"text": (
+		"text":
+		(
 			"Under the sheet on the cutting bench, laid square to the edge the way he always "
 			+ "left them. The handles are worn to the shape of a hand that is not yours yet. "
 			+ "Somebody oiled these before they locked the door for the last time."
@@ -34,7 +35,8 @@ const KEEPSAKES := {
 	{
 		"name": "A brass thimble",
 		"prop": "thimble",
-		"text": (
+		"text":
+		(
 			"It came out from under the counter with the dust and a farthing. Too small for "
 			+ "him — this was your grandmother's. He kept it where he could reach it."
 		),
@@ -43,7 +45,8 @@ const KEEPSAKES := {
 	{
 		"name": "A photograph in the frame",
 		"prop": "photo",
-		"text": (
+		"text":
+		(
 			"Wedged behind the boards, face to the glass so the sun could not get at it: the "
 			+ "shop on its opening day, awning out, the whole street squinting into the "
 			+ "camera. He is the young one holding the shears like a trophy."
@@ -53,7 +56,8 @@ const KEEPSAKES := {
 	{
 		"name": "Measurements on the wall",
 		"prop": "pencil",
-		"text": (
+		"text":
+		(
 			"The old paper came off and there they were, pencilled straight onto the plaster: "
 			+ "forty years of shoulders and inside legs, name and date beside each one. Some "
 			+ "of the names have three sets, boy to man. The decorators have papered over "
@@ -64,7 +68,8 @@ const KEEPSAKES := {
 	{
 		"name": "A tin of photographs",
 		"prop": "tin",
-		"text": (
+		"text":
+		(
 			"Under a floorboard that gave when you shifted the rubble: a toffee tin, rusted "
 			+ "shut, full of photographs. Him at this bench. Him and a boy of about fifteen "
 			+ "at this bench — and that boy has Mr. Hemming's ears."
@@ -74,7 +79,8 @@ const KEEPSAKES := {
 	{
 		"name": "The order ledger",
 		"prop": "ledger",
-		"text": (
+		"text":
+		(
 			"Damp has got the covers but the pages held. Every order he ever took, ruled and "
 			+ "totted up in the same small hand. The last entry is a winter coat, finished, "
 			+ "collected, paid — and then half a page of nothing."
@@ -84,7 +90,8 @@ const KEEPSAKES := {
 	{
 		"name": "The day's paper",
 		"prop": "paper",
-		"text": (
+		"text":
+		(
 			"Folded into a crate to stop it rocking, yellow as weak tea. The date is the day "
 			+ "he opened. Three lines at the bottom of page five: a new tailor on the lane, "
 			+ "the neighbours wish him well."
@@ -93,15 +100,20 @@ const KEEPSAKES := {
 }
 
 ## What he writes, and what sets him off. `after` = the job whose finish earns it;
-## `arrival` = the first morning in his shop.
+## `arrival` = the first morning in his shop. `body` is his hand and nothing else; anything
+## the player thinks about the letter goes in `note`, which is shown apart from the paper.
 const LETTERS := {
 	"arrival":
 	{
 		"title": "A letter, arrived before you did",
-		"body": (
+		"note":
+		(
 			"It was on the mat when you turned the key, so he must have posted it the day you "
-			+ "wrote to him.\n\n"
-			+ "My dear one — so you are going to open it up again. I will not pretend I am not "
+			+ "wrote to him."
+		),
+		"body":
+		(
+			"My dear one — so you are going to open it up again. I will not pretend I am not "
 			+ "pleased, but I will not pretend it is a kindness either: that shop is damp, the "
 			+ "roof went in the year I left, and the workroom is nailed shut for a reason.\n\n"
 			+ "Go and see Hemming on the Row before you touch anything. He learned at my bench "
@@ -114,7 +126,8 @@ const LETTERS := {
 	{
 		"after": "workroom_build",
 		"title": "A letter from the coast",
-		"body": (
+		"body":
+		(
 			"Hemming writes that the workroom is dry. I read it twice.\n\n"
 			+ "That roof beat me. I put buckets under it for two winters and told myself I "
 			+ "would see to it in the spring, and then there were no more springs in that "
@@ -128,7 +141,8 @@ const LETTERS := {
 	{
 		"after": "cloth_build",
 		"title": "A letter about cloth",
-		"body": (
+		"body":
+		(
 			"A proper cloth store, he says. Shelved and dry.\n\n"
 			+ "Then here is the only advice worth the stamp: buy the best cloth you can carry "
 			+ "the cost of, and never let a customer talk you down to something that will look "
@@ -141,7 +155,8 @@ const LETTERS := {
 	{
 		"after": "facade_paint",
 		"title": "A letter about the sign",
-		"body": (
+		"body":
+		(
 			"The name is back over the door.\n\n"
 			+ "I will tell you what I never told anybody. When I put that sign up I was sick "
 			+ "with it — my name, where the whole lane could read it, and me twenty-three and "
@@ -155,7 +170,8 @@ const LETTERS := {
 	{
 		"after": "next_build",
 		"title": "A letter, and a question",
-		"body": (
+		"body":
+		(
 			"Two shops knocked into one. The lane will talk of nothing else for a month.\n\n"
 			+ "I am too old to be much use to you now, but I am not too old for the train, and "
 			+ "your grandmother always said I should have had a suit made by somebody who was "

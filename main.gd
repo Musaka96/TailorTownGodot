@@ -63,5 +63,6 @@ func _on_letter_ready(_id: String) -> void:
 	UI.story_note.open(
 		str(note.get("title", "A letter")),
 		str(note.get("body", "")),
-		func() -> void: Story.mark_read(waiting)
+		func() -> void: Story.mark_read(waiting),
+		str(note.get("note", ""))
 	)

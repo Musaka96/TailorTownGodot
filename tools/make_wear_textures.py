@@ -108,50 +108,66 @@ damp()
 puddle()
 
 
-def plaster(w=512, h=384):
-    """Bare wall where the paper has gone: mottled plaster, patches of brick showing through
-    where it has fallen away, and a few hairline cracks. Alpha is near solid, so at full
-    strength the decal replaces the wallpaper outright."""
-    base = 0.72 + 0.16 * fbm((w, h), (3, 7, 15))
-    rgb = np.dstack([base * 0.86, base * 0.83, base * 0.78])
-
-    # brick courses: 8 high, offset every other row
-    bh = h / 9.0
-    bw = w / 7.0
+def plaster(name, w=768, h=1152, wide_m=2.0, high_m=3.0):
+    """Bare wall where the old paper has gone, as one 2 m x 3 m length of wall (the decal is
+    laid in lengths, never stretched, so the bricks keep their size). Pale plaster, a few
+    chunky patches of brick where that has fallen away too, hairline cracks — and a TORN
+    outline: the alpha is cut by noise, so what is left of the old paper hangs on in ragged
+    strips at the edges and the decal never shows as a box. Edges are crisp, not feathered:
+    feathering is what read as a blurry sticker."""
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    u, v = xx / w, yy / h
+    base = 0.74 + 0.12 * fbm((w, h), (3, 7, 15))
+    rgb = np.dstack([base * 0.90, base * 0.87, base * 0.80])
+
+    # chunky bricks, each its own shade: 6 to the length, 12 courses up the wall
+    bw, bh = w / 6.0, h / 12.0
     row = np.floor(yy / bh)
     shift = (row % 2) * (bw / 2.0)
-    u = ((xx + shift) % bw) / bw
-    v = (yy % bh) / bh
-    mortar = (smooth(u, 0.0, 0.06) * smooth(1.0 - u, 0.0, 0.06)
-              * smooth(v, 0.0, 0.10) * smooth(1.0 - v, 0.0, 0.10))
-    clay = 0.8 + 0.4 * value_noise((w, h), 40)
-    brick = np.dstack([0.52 * clay, 0.29 * clay, 0.23 * clay])
-    mortar_col = np.dstack([base * 0.7, base * 0.68, base * 0.65])
-    brickwork = mortar_col + (brick - mortar_col) * mortar[..., None]
+    col = np.floor((xx + shift) / bw)
+    bu = ((xx + shift) % bw) / bw
+    bv = (yy % bh) / bh
+    face = (smooth(bu, 0.03, 0.07) * smooth(1.0 - bu, 0.03, 0.07)
+            * smooth(bv, 0.05, 0.11) * smooth(1.0 - bv, 0.05, 0.11))
+    shades = RNG.uniform(0.82, 1.12, (16, 16)).astype(np.float32)
+    tone = shades[row.astype(int) % 16, col.astype(int) % 16]
+    brick = np.dstack([0.62 * tone, 0.33 * tone, 0.25 * tone])
+    mortar_col = np.dstack([base * 0.78, base * 0.75, base * 0.70])
+    brickwork = mortar_col + (brick - mortar_col) * face[..., None]
 
-    # where the plaster has come off
-    fallen = smooth(fbm((w, h), (2, 4, 9)), 0.52, 0.66)
+    # where the plaster has come off too: few, big, hard-edged
+    field = fbm((w, h), (2, 3, 6))
+    fallen = smooth(field, 0.585, 0.595)
+    lip = smooth(field, 0.572, 0.585) * (1.0 - fallen)      # shadow under the plaster's edge
+    rgb = rgb * (1.0 - 0.22 * lip[..., None])
     rgb = rgb + (brickwork - rgb) * fallen[..., None]
-    # a lip of shadow around each bare patch, so it reads as a hole in the plaster
-    lip = np.clip(fallen * (1.0 - fallen) * 4.0, 0.0, 1.0)
-    rgb *= 1.0 - 0.35 * lip[..., None]
 
     cracks = np.zeros((h, w), np.float32)
-    for _ in range(5):                          # short and few: hairlines, not creepers
-        x = RNG.uniform(0.08, 0.92) * w
-        y0 = int(RNG.uniform(0.0, 0.7) * h)
+    for _ in range(4):
+        x = RNG.uniform(0.15, 0.85) * w
+        y0 = int(RNG.uniform(0.05, 0.6) * h)
         drift = RNG.uniform(-0.3, 0.3)
-        for y in range(y0, min(h, y0 + int(RNG.uniform(0.15, 0.35) * h))):
+        for y in range(y0, min(h, y0 + int(RNG.uniform(0.12, 0.3) * h))):
             x += drift + RNG.uniform(-0.9, 0.9)
-            xi = int(np.clip(x, 1, w - 2))
-            if RNG.random() < 0.75:
-                cracks[y, xi] = 1.0
-    cracks *= 1.0 - fallen                      # no cracks where the plaster is already gone
-    rgb *= 1.0 - 0.4 * cracks[..., None]
+            xi = int(np.clip(x, 2, w - 3))
+            cracks[y, xi - 1:xi + 1] = 1.0
+    cracks *= 1.0 - fallen
+    rgb *= 1.0 - 0.35 * cracks[..., None]
 
-    alpha = (0.94 - 0.1 * fbm((w, h), (5, 11))) * edge_fade(w, h, 0.05)
-    save_rgba("plaster.png", np.clip(rgb, 0, 1), alpha)
+    # the torn outline, in metres from the nearest edge (top and bottom tear half as deep)
+    dx = np.minimum(u, 1.0 - u) * wide_m
+    dy = np.minimum(v, 1.0 - v) * high_m * 2.0
+    tear = 0.03 + 0.32 * fbm((w, h), (4, 9, 18))
+    inside = np.minimum(dx, dy) - tear
+    # ...and a ragged strip or two of paper still hanging on in the middle
+    strips = smooth(fbm((w, h), (5, 10)), 0.66, 0.70)
+    inside = np.minimum(inside, 0.05 - strips)
+    alpha = smooth(inside, 0.0, 0.012)
+    # the paper stands proud of the plaster: a thin shadow just inside the tear
+    shadow = (1.0 - smooth(inside, 0.0, 0.05)) * alpha
+    rgb *= 1.0 - 0.28 * shadow[..., None]
+    save_rgba(name, np.clip(rgb, 0, 1), alpha)
 
 
-plaster()
+plaster("plaster.png")
+plaster("plaster_b.png")
