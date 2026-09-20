@@ -50,7 +50,10 @@ const OPTIONAL_SLOT_ALIASES := {
 @export var looks: Array[ShopLook] = []
 ## Explicit path to the shop node; leave empty to auto-find it (see _resolve_shop).
 @export var shop_path: NodePath
-@export var current: int = 0
+## Which look the shop opens with. Only Mr. Hemming's shop uses this system (grandpa's is
+## the v8 kit build, which carries its own materials), so this is HIS taste: oxblood
+## panelling, a master tailor's room, and nothing like the fern green of grandpa's.
+@export var current: int = 3
 
 var _owned: Dictionary = {}  # StringName -> true
 var _material_cache: Dictionary = {}  # "<look id>:<slot>" -> StandardMaterial3D

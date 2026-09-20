@@ -352,7 +352,10 @@ func appeal() -> float:
 		total += pts
 		if is_done(id):
 			have += pts
-	return float(have) / float(total) if total > 0 else 1.0
+	var share := float(have) / float(total) if total > 0 else 1.0
+	# a few upgrades are things a customer sees (the fitting mirror); they count too
+	var bought := Upgrades.bonus("appeal") if Upgrades != null else 0.0
+	return clampf(share + bought, 0.0, 1.0)
 
 
 # --- Doing the work ------------------------------------------------------------

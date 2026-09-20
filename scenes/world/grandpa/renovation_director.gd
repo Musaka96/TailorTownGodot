@@ -107,8 +107,16 @@ const DARK_FADE := 0.7
 ## The wall between the front room and the nook: fitting out the nook takes it away, so the
 ## nook becomes part of the shop with no doorway between them.
 const NOOK_WALL := "NookWall"
+## Until the player buys the tri-fold, the fitting mirror is grandpa's own cheval glass:
+## one plain pane on a stand, about a third the width of Mr. Hemming's.
+const TRIFOLD_UPGRADE := "mirror_trifold"
+const CHEVAL_NODE := "ChevalGlass"
+const CHEVAL_SOLID := Vector3(1.0, 1.4, 0.55)
 ## The front of the shop: grimy and weedy until it is repainted.
 const FACADE_JOB := "facade_paint"
+## How far out from the front wall the shop's own forecourt reaches. Anything small of the
+## plot's standing in there is the shop's dressing, not the street's.
+const FORECOURT_DEPTH := 2.3
 ## The front room keeps its bare walls until the shop is papered.
 const PAPER_JOB := "front_paper"
 const WEAR_LAYER := 2  # render layer of the shop's shell: wear never lands on people
@@ -140,6 +148,7 @@ var _floor_mats := {}  # room -> its own StandardMaterial3D
 var _wear := {}  # room -> its Decals
 var _dark := {}  # room -> the box of shadow in it
 var _facade: Array[Decal] = []  # dirt over the street front
+var _forecourt: Array[MeshInstance3D] = []  # the plot's dressing outside the shop door
 var _sheets_released := false  # the sheeted stations have been handed back for good
 
 
@@ -159,9 +168,11 @@ func _ready() -> void:
 	_build_boards()
 	_build_spots()
 	_build_sheets()
+	_build_cheval()
 	_build_wear()
 	_build_dark()
 	_build_facade()
+	Upgrades.changed.connect(_apply)
 	Renovation.changed.connect(_apply)
 	Renovation.project_finished.connect(_on_project_finished)
 	_apply()
@@ -189,6 +200,7 @@ func _apply() -> void:
 	_apply_dark()
 	_apply_facade()
 	_apply_nook_wall()
+	_apply_mirror()
 
 
 func _apply_spots(project: String) -> void:
@@ -299,6 +311,14 @@ func _clear_plot_inside() -> void:
 		var box := floor_mesh.global_transform * floor_mesh.get_aabb()
 		var rect := Rect2(box.position.x, box.position.z, box.size.x, box.size.z)
 		outline = rect if outline.size == Vector2.ZERO else outline.merge(rect)
+	for prop: MeshInstance3D in _plot_props(outline):
+		prop.visible = false
+
+
+## The plot's small standing things whose centre falls inside `where` (world x/z). Lawns,
+## paving and the garden walls are too big to count, and stay where they are.
+func _plot_props(where: Rect2) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
 	for holder_name: String in ["TailorPlot", "LawnEdging"]:
 		var holder := _room.get_node_or_null(holder_name)
 		if holder == null:
@@ -308,8 +328,9 @@ func _clear_plot_inside() -> void:
 			var box := prop.global_transform * prop.get_aabb()
 			var centre := box.get_center()
 			var small := maxf(box.size.x, box.size.z) < 6.0 and box.size.y < 3.0
-			if small and outline.has_point(Vector2(centre.x, centre.z)):
-				prop.visible = false
+			if small and where.has_point(Vector2(centre.x, centre.z)):
+				found.append(prop)
+	return found
 
 
 func _build_solids() -> void:
@@ -336,6 +357,115 @@ func _is_solid(node: Node3D) -> bool:
 			if shape != null and shape.shape != null and not shape.disabled:
 				return true
 	return false
+
+
+## Grandpa's cheval glass, built here rather than in the kit so it always stands exactly
+## where the mirror station does: two posts on splayed feet, a pane tilted back a little.
+func _build_cheval() -> void:
+	var station := _station("Mirror")
+	if station == null:
+		return
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.30, 0.20, 0.13)
+	wood.roughness = 0.75
+	var brass := StandardMaterial3D.new()
+	brass.albedo_color = Color(0.72, 0.56, 0.24)
+	brass.roughness = 0.35
+	brass.metallic = 0.8
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.78, 0.84, 0.86)
+	glass.roughness = 0.08
+	glass.metallic = 0.65
+	var stand := Node3D.new()
+	stand.name = CHEVAL_NODE
+	station.add_child(stand)
+	stand.position = Vector3.ZERO
+	var which := 0
+	for side: float in [-0.42, 0.42]:
+		which += 1
+		_part(
+			stand,
+			"Post%d" % which,
+			Vector3(side, 0.74, 0),
+			Vector3(0.07, 1.48, 0.07),
+			Vector3.ZERO,
+			wood
+		)
+		_part(
+			stand,
+			"Foot%d" % which,
+			Vector3(side, 0.04, 0),
+			Vector3(0.11, 0.08, 0.62),
+			Vector3.ZERO,
+			wood
+		)
+		var knob := _part(
+			stand,
+			"Finial%d" % which,
+			Vector3(side, 1.5, 0),
+			Vector3(0.1, 0.1, 0.1),
+			Vector3.ZERO,
+			brass
+		)
+		knob.mesh = SphereMesh.new()
+		(knob.mesh as SphereMesh).radius = 0.05
+		(knob.mesh as SphereMesh).height = 0.1
+		knob.mesh.surface_set_material(0, brass)
+	var pane := Node3D.new()
+	pane.name = "Pane"
+	stand.add_child(pane)
+	pane.position = Vector3(0, 0.8, 0.04)
+	pane.rotation_degrees = Vector3(-7, 0, 0)  # tilted to catch the customer
+	var rail := 0
+	for bar: Array in [
+		[Vector3(0, 0.52, 0), Vector3(0.82, 0.07, 0.05)],
+		[Vector3(0, -0.52, 0), Vector3(0.82, 0.07, 0.05)],
+		[Vector3(-0.375, 0, 0), Vector3(0.07, 1.11, 0.05)],
+		[Vector3(0.375, 0, 0), Vector3(0.07, 1.11, 0.05)],
+	]:
+		rail += 1
+		_part(pane, "Frame%d" % rail, bar[0], bar[1], Vector3.ZERO, wood)
+	_part(pane, "Glass", Vector3(0, 0, 0.01), Vector3(0.7, 1.0, 0.02), Vector3.ZERO, glass)
+
+
+func _part(
+	parent: Node3D, nm: String, at: Vector3, size: Vector3, turn: Vector3, mat: Material
+) -> MeshInstance3D:
+	var mesh := MeshInstance3D.new()
+	mesh.name = nm
+	var box := BoxMesh.new()
+	box.size = size
+	box.material = mat
+	mesh.mesh = box
+	mesh.position = at
+	mesh.rotation_degrees = turn
+	parent.add_child(mesh)
+	return mesh
+
+
+## One mirror or the other, never both — and the space it takes up follows it.
+func _apply_mirror() -> void:
+	var station := _station("Mirror")
+	if station == null:
+		return
+	var stand := station.get_node_or_null(CHEVAL_NODE) as Node3D
+	if stand == null:
+		return
+	var bought := Upgrades.has(TRIFOLD_UPGRADE)
+	stand.visible = not bought
+	for node in station.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		if not stand.is_ancestor_of(mesh):
+			mesh.visible = bought  # the kit's tri-fold
+	var body := station.get_node_or_null("GrandpaBody")
+	if body == null:
+		return
+	for child in body.get_children():
+		var shape := child as CollisionShape3D
+		if shape == null or not shape.shape is BoxShape3D:
+			continue
+		(shape.shape as BoxShape3D).size = SOLID["Mirror"][1] if bought else CHEVAL_SOLID
+		shape.position = SOLID["Mirror"][0] if bought else Vector3(0.11, 0.7, -0.1)
 
 
 func _build_boards() -> void:
@@ -549,14 +679,18 @@ func _build_facade() -> void:
 		)
 		dirt.normal_fade = 0.0  # the frontage is one flat face, nothing to fade against
 		_facade.append(dirt)
+	var out_front := Rect2(box.position.x, box.position.z + box.size.z, box.size.x, FORECOURT_DEPTH)
+	_forecourt = _plot_props(out_front)
 
 
-## Grime lifts and the weeds go with the repaint.
+## Grime lifts, the weeds go, and the flowers come back out, all with the repaint.
 func _apply_facade() -> void:
 	var done := Renovation.is_done(FACADE_JOB)
 	var weeds := _shell.get_node_or_null("Facade")
 	if weeds is Node3D:
 		(weeds as Node3D).visible = not done
+	for prop: MeshInstance3D in _forecourt:
+		prop.visible = done
 	for dirt: Decal in _facade:
 		var target := 0.0 if done else 1.0
 		if is_equal_approx(float(dirt.get_meta("wear", -1.0)), target):

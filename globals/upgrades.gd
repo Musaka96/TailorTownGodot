@@ -167,6 +167,19 @@ const UPGRADES := {
 		"desc": "Good light on the benches — the chalk line is easier to hit.",
 		"effects": {"bench_band": 1.15},
 	},
+	"mirror_trifold":
+	{
+		"name": "Tri-fold Fitting Mirror",
+		"category": "Shop",
+		"cost": 600,
+		"tier": 1,
+		"desc":
+		(
+			"Grandpa's cheval glass shows a customer one angle. Three panels show them every "
+			+ "angle — and a customer who can see the back of a jacket trusts the shop with more."
+		),
+		"effects": {"appeal": 0.06},
+	},
 	"shop_coffee":
 	{
 		"name": "Coffee Machine",
