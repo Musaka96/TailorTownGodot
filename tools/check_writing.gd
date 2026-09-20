@@ -46,6 +46,7 @@ const IN_WORLD := [
 	"res://globals/shift_manager.gd",
 	"res://data/scripts/handbook.gd",
 	"res://data/scripts/customer_preference.gd",
+	"res://data/scripts/dress_code.gd",
 	"res://tools/build_news.gd",
 	"res://ui/newspaper.gd",
 	"res://entities/customer/street_pitch.gd",

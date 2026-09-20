@@ -29,7 +29,7 @@ Six voices, and nothing may drift between them:
 |---|---|---|
 | **Mr. Hemming** | `globals/tutorial.gd` | A master tailor mid-job. Imperatives, trade nouns, exclamations. "Mind the length!" "Loud checks at a board meeting? Never." Slightly impatient with you, because that is what teaching sounds like. |
 | **Pops (Barnaby Thimble)** | `globals/story.gd` | Handwriting. Short paragraphs, no headings, digressions, a flat instruction where a moral belongs. Never sentimental on purpose; the feeling arrives sideways, in a detail. |
-| **The narrator of found things** | `globals/story.gd` keepsakes | Camera, not commentary. States what is there and one fact too many. "The handles are worn to the shape of a hand that is not yours yet." |
+| **The narrator of found things** | `globals/story.gd` keepsakes | Camera, not commentary. States what is there and one fact too many. "The handles are worn to the shape of his hand." |
 | **The Tailor's Gazette** | `data/news/*.tres`, `ui/newspaper.gd` | A period local paper with column inches to fill. Understated, faintly arch, occasionally about nothing. |
 | **Customers** | `entities/customer/`, `ui/customer_request.gd` | Fragments. Each one wants something specific and slightly unreasonable. Not all of them are nice. |
 | **The shop itself** (UI, prompts, minigame feedback) | `ui/`, `stations/` | Verb first, no personality, no jokes. "Follow the chalk." The UI is the only voice allowed to be plain. |
@@ -66,7 +66,7 @@ ends because they've stopped.
 > quality of the piece is what the client pays for."
 >
 > **GOOD**
-> "Cut it badly and the client pays you less for it."
+> "Every slip at the bench comes off the price."
 
 ### 2.3 One idea per line **[JUDGE]**
 
@@ -160,14 +160,6 @@ descriptions hinge on a dash or colon, against 62% of the upgrade descriptions (
 the flattest sentence-length spread in the game, 0.31). "Mouldy crates out, walls scrubbed
 down." Two short declaratives, a full stop between them. Write to that.
 
-> **BAD** — `docs/STEAM_PAGE.md`
-> "Smooth the wrinkles out on the pressing board — linger and you scorch it — and hang it
-> on the rack — the jacket, shirt and trousers of one order find each other there…"
->
-> **GOOD**
-> "Press the wrinkles out; linger and you scorch it. Then hang it on the rack. The jacket,
-> shirt and trousers of one order find each other there."
-
 ### 2.7 Replace mood words with facts **[CHECK]**
 
 `cosy`, `warm`, `charming`, `quaint`, `whimsical`, `timeless`, `vibrant`, `bustling` are
@@ -231,7 +223,26 @@ Fix by **varying the shape, not the words**. Across any chapter:
 Give an entry a job beyond flavour — a number, a rule the player can act on — and it stops
 drifting into mush.
 
+**The Dress Codes chapter names the family, then the colours.** "Very dark colours;
+black or charcoal." The family is what the player is meant to remember; the names are
+what stop it being ambiguous. Hinting alone ("keep to dark, sombre colours") was vaguer
+*and* wordier, and listing every allowed colour read as a lookup table rather than a
+man's notes. `_rule_summary()` generates it, so the checker never sees that text — it
+uses a colon per line for that reason, because an em dash per style would put two dozen
+into one chapter unseen.
+
+**The prose above the table must not contradict the table.** The rulebook is the law.
+If Pops disagrees with what the younger houses now accept, he says so as an opinion
+("I am only telling you what I would have done") rather than stating a rule the game
+will not enforce.
+
 ### 3.4 The mentor — `globals/tutorial.gd` **[JUDGE]**
+
+**Who he is.** Hemming had Pops's bench for six years and owes him nothing, which is
+exactly why he teaches properly. Pops wrote the character in one clause in his first
+letter; the tutorial has to carry it. He is not a kindly uncle and he is not a tooltip.
+The grudge has to appear in the middle of the lesson and not only at the two ends, or
+it reads as a device rather than a man.
 
 - **Start with the verb.** No framing sentence before the instruction. "Now, the heart of
   the trade" is a throat-clear; cut it and open on "Every customer has an occasion."

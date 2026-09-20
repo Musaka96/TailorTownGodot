@@ -27,7 +27,7 @@ const KEEPSAKES := {
 		"text":
 		(
 			"Under the sheet on the cutting bench, laid square to the edge the way he always "
-			+ "left them. The handles are worn to the shape of a hand. Somebody oiled these "
+			+ "left them. The handles are worn to the shape of his hand. Somebody oiled these "
 			+ "before they locked the door."
 		),
 	},
@@ -132,10 +132,9 @@ const LETTERS := {
 			+ "That roof beat me. I put buckets under it for two winters and told myself I "
 			+ "would see to it in the spring, and then there were no more springs in that "
 			+ "shop. You have done in a week what I put off for two years.\n\n"
-			+ "He will have told you my benches were in the wrong place. He has been saying it "
-			+ "for forty years and he is still wrong.\n\n"
-			+ "The benches go back where the light falls, not where there is room. You will "
-			+ "see what I mean the first time you cut a dark cloth at four in the afternoon.\n\n"
+			+ "The benches go back where the light falls, not where there is room. Hemming "
+			+ "never understood that, and he has had forty years to. You will see what I mean "
+			+ "the first time you cut a dark cloth at four in the afternoon.\n\n"
 			+ "— Pops"
 		),
 	},

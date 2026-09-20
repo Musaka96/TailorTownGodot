@@ -21,6 +21,10 @@ var _topic := 0
 var _decor_built := false
 var _index_scroll: ScrollContainer
 var _was_paused := false
+## The handbook can be opened over another screen (the fitting mirror does it), so it puts
+## the input lock back the way it found it rather than clearing it outright — otherwise
+## closing the book would hand the player back their legs with the mirror still up.
+var _was_locked := false
 var _head: TitleBlock
 
 @onready var _panel: PanelContainer = $Center/Panel
@@ -39,6 +43,7 @@ func _ready() -> void:
 func open(actor) -> void:
 	_actor = actor
 	_was_paused = get_tree().paused
+	_was_locked = GameState.input_locked
 	get_tree().paused = true
 	_chapters = Handbook.chapters()
 	_chapter = 0
@@ -51,7 +56,7 @@ func open(actor) -> void:
 
 func close() -> void:
 	visible = false
-	GameState.input_locked = false
+	GameState.input_locked = _was_locked
 	get_tree().paused = _was_paused
 	_actor = null
 	closed.emit()

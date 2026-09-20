@@ -175,8 +175,8 @@ const UPGRADES := {
 		"tier": 1,
 		"desc":
 		(
-			"Grandpa's cheval glass shows a customer one angle. Three panels show him every "
-			+ "angle. A man who can see the back of a jacket trusts the shop with more."
+			"Grandpa's cheval glass shows a customer one angle. Three panels show them every "
+			+ "angle. Anybody who can see the back of a jacket trusts the shop with more."
 		),
 		"effects": {"appeal": 0.06},
 	},

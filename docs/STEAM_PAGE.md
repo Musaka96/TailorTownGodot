@@ -53,7 +53,7 @@ the shop was cut and stitched by your own hand.
 budget; the player takes the fitting.]
 
 A client states the occasion, the look they're after and what they can spend. Take the
-fitting, book them for a later day, or politely decline — a full bench is a good reason
+fitting, book them for a later day, or politely decline. A full bench is a good reason
 to say no. Sit them at the mirror and design the suit part by part: jacket, shirt,
 trousers, each with its own cloth, colour, pattern and cut. Agree the price, and the
 order goes on the board with a deadline.
@@ -73,13 +73,13 @@ to you as your name grows.
 [GIF 3 — the cutting minigame followed by the sewing minigame, back to back.]
 
 Take the bolt from the shelf to the cutting table and steer the shears along the
-chalk. They glide down the straights. The curves are yours, and drift into the piece
-and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the
+chalk. They glide down the straights. The curves are yours. Drift into the piece and
+you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the
 machine: pull the pins, ease off at the corners, backstitch both ends. Press the wrinkles out; linger and you
 scorch it. Hang it on the rack. The jacket, shirt and trousers of one order find each
 other there and come together into the finished suit.
 
-Cut it badly and the client pays you less for it.
+Every slip at the bench comes off the price.
 
 ### Dress for the occasion
 
@@ -110,9 +110,9 @@ the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights t
 the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the
 straights for you; a speed dial, a walking foot, clips instead of pins, a button that
 backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine
-to steady your hands, which you pour yourself and later grind, tamp and pull as a
-proper espresso. And Percy the apprentice, who takes a whole part of an order to his
-own bench and gets better with every job.
+to steady your hands. Later, an espresso machine you grind, tamp and pull yourself. And
+Percy the apprentice, who takes a whole part of an order to his own bench and gets
+better with every job.
 
 ### Make the shop yours
 
@@ -280,7 +280,7 @@ Worsted wool, flannel, tweed, mohair, linen, poplin. Pinstripe, herringbone, hou
 
 [h2]Cut it, stitch it, finish it[/h2]
 [img]{GIF_3}[/img]
-Take the bolt from the shelf to the cutting table and steer the shears along the chalk. They glide down the straights. The curves are yours, and drift into the piece and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the machine: pull the pins, ease off at the corners, backstitch both ends. Press the wrinkles out; linger and you scorch it. Hang it on the rack. The jacket, shirt and trousers of one order find each other there and come together into the finished suit.
+Take the bolt from the shelf to the cutting table and steer the shears along the chalk. They glide down the straights. The curves are yours. Drift into the piece and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the machine: pull the pins, ease off at the corners, backstitch both ends. Press the wrinkles out; linger and you scorch it. Hang it on the rack. The jacket, shirt and trousers of one order find each other there and come together into the finished suit.
 
 Cut it badly and the client pays you less for it.
 
@@ -294,7 +294,7 @@ The Tailor's Gazette lands each morning with the fashion of the day and the town
 
 [h2]Build up the workshop[/h2]
 [img]{SHOT_UPGRADES}[/img]
-Everything you earn can go back into the shop, ordered from the phone as your name opens the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the straights for you; a speed dial, a walking foot, clips instead of pins, a button that backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine to steady your hands, which you pour yourself and later grind, tamp and pull as a proper espresso. And Percy the apprentice, who takes a whole part of an order to his own bench and gets better with every job.
+Everything you earn can go back into the shop, ordered from the phone as your name opens the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the straights for you; a speed dial, a walking foot, clips instead of pins, a button that backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine to steady your hands. Later, an espresso machine you grind, tamp and pull yourself. And Percy the apprentice, who takes a whole part of an order to his own bench and gets better with every job.
 
 [h2]Make the shop yours[/h2]
 [img]{GIF_4}[/img]

@@ -569,10 +569,20 @@ func _rebuild_hint_bar() -> void:
 		child.queue_free()
 	var pairs := [["W/S", "Select"], ["A/D", "Change"]]
 	pairs.append(["E", "Ask / confirm"] if _pref != null else ["E", "Confirm"])
+	pairs.append([_key_name("handbook"), "Handbook"])
 	if OS.is_debug_build():
 		pairs.append(["F2", "Auto-fit"])
 	pairs.append(["Esc", "Close"])
 	_hint_bar.add_child(Style.hint_bar(pairs))
+
+
+## The key the Handbook is bound to, for the hint bar — the player may have rebound it.
+func _key_name(action: String) -> String:
+	if InputMap.has_action(action):
+		for ev in InputMap.action_get_events(action):
+			if ev is InputEventKey:
+				return (ev as InputEventKey).as_text_physical_keycode()
+	return action.to_upper()
 
 
 func _make_row(row: int, selected: bool) -> Control:
@@ -619,6 +629,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_adjust(-1)
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_confirm()
+	elif event.is_action_pressed("handbook"):
+		# Look the dress code up without losing the fitting: the book opens over the
+		# mirror, pauses the shop, and puts the input lock back as it found it.
+		UI.open_handbook(_actor)
 	elif OS.is_debug_build() and event.is_action_pressed("debug"):
 		_debug_autocomplete()
 	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
