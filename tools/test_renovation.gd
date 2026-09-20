@@ -91,7 +91,9 @@ func _gating() -> void:
 	_check(not _reno.available("workroom_boards"), "workroom boards wait for reputation")
 	_check(not _reno.tier_met("workroom_boards"), "…because the tier isn't met")
 	_rep.points = int(_rep.TIERS[1]["at"])
-	_check(_reno.available("workroom_boards"), "at tier 1 the boards can come off")
+	_check(_reno.tier_met("workroom_boards"), "at tier 1 the name is good enough for the workroom")
+	_check(not _reno.needs_met("workroom_boards"), "…but the front room is tidied first")
+	_check(not _reno.available("workroom_boards"), "…so the boards stay on for now")
 	_check(not _reno.available("cloth_boards"), "the cloth store waits for the workroom")
 	_check(not _reno.available("no_such_project"), "an unknown project is never available")
 	_check(not _reno.clear_spot("front_window"), "building work can't be done by hand")
@@ -119,8 +121,11 @@ func _by_hand() -> void:
 	for pile: Node3D in piles:
 		hidden += 0 if pile.visible else 1
 	_check(piles.size() == 3 and hidden == 1, "one of three dust piles has gone")
+	_check(not _reno.available("workroom_boards"), "half swept: the workroom still waits")
 	_reno.clear_spot("front_sweep")
 	_reno.clear_spot("front_sweep")
+	_check(_reno.available("workroom_boards"), "front room swept: now the boards can come off")
+	_check(not _reno.available("nook_boards"), "the nook also waits for a better name (tier 3)")
 	_sections_ended += 1
 
 

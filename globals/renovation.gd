@@ -78,6 +78,7 @@ const PROJECTS := {
 		"room": "workroom",
 		"kind": Kind.CLEANUP,
 		"spots": 1,
+		"needs": ["front_sweep"],  # the front room is tidied before any other room is begun
 		"enters": "workroom",
 		"desc": "Nailed shut after the roof went. Time to look inside.",
 		"appeal": 0,
@@ -143,6 +144,7 @@ const PROJECTS := {
 		"room": "nook",
 		"kind": Kind.CLEANUP,
 		"spots": 1,
+		"needs": ["front_sweep"],
 		"enters": "nook",
 		"desc": "Somebody stacked the doorway full of crates.",
 		"appeal": 0,
