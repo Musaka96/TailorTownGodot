@@ -43,8 +43,8 @@ const SHEET_NODE := "DustSheet"
 const MOVES := {
 	"workroom":
 	{
-		"Worktable": [FACE_Z, Vector3(-1.8, 0, -2.5)],
-		"SewingMachine": [FACE_Z, Vector3(0.9, 0, -2.6)],
+		"Worktable": [FACE_Z, Vector3(-2.6, 0, -1.45)],
+		"SewingMachine": [FACE_Z, Vector3(0.4, 0, -1.45)],
 	},
 }
 ## Stations that only exist once a room is done: station -> room.
@@ -102,6 +102,7 @@ func _ready() -> void:
 			var node := _station(station)
 			if node != null:
 				_home[station] = node.transform
+	_clear_plot_inside()
 	_build_solids()
 	_build_boards()
 	_build_spots()
@@ -187,7 +188,7 @@ func _on_project_finished(id: String) -> void:
 	var d := Renovation.data(id)
 	var opened := str(d.get("opens", ""))
 	if opened != "":
-		UI.toast("The %s is ready" % str(Renovation.ROOMS[opened]["name"]).to_lower())
+		UI.toast(str(Renovation.ROOMS[opened].get("ready", "A room is ready")))
 	elif int(d.get("kind", Renovation.Kind.BUILD)) == Renovation.Kind.BUILD:
 		UI.toast("The builders have finished: %s" % str(d.get("name", id)).to_lower())
 	else:
@@ -224,6 +225,32 @@ func do_work(project: String) -> void:
 
 
 # --- Building the hands-on bits ---------------------------------------------------
+
+
+## TEMPORARY, until the plot is rebuilt for this footprint (docs 6.11, stage D): the plot
+## and its edging were laid out around Mr. Hemming's shop, whose wings stand further back, so
+## garden beds and props now fall inside grandpa's rooms. Hide the small things whose centre
+## lies inside the building (its outline = the shell's own floors); lawns and paving stay.
+func _clear_plot_inside() -> void:
+	var outline := Rect2()
+	for mesh in _shell.get_node("Body").get_children():
+		var floor_mesh := mesh as MeshInstance3D
+		if floor_mesh == null or not str(floor_mesh.name).begins_with("Floor_"):
+			continue
+		var box := floor_mesh.global_transform * floor_mesh.get_aabb()
+		var rect := Rect2(box.position.x, box.position.z, box.size.x, box.size.z)
+		outline = rect if outline.size == Vector2.ZERO else outline.merge(rect)
+	for holder_name: String in ["TailorPlot", "LawnEdging"]:
+		var holder := _room.get_node_or_null(holder_name)
+		if holder == null:
+			continue
+		for node in holder.find_children("*", "MeshInstance3D", true, false):
+			var prop := node as MeshInstance3D
+			var box := prop.global_transform * prop.get_aabb()
+			var centre := box.get_center()
+			var small := maxf(box.size.x, box.size.z) < 6.0 and box.size.y < 3.0
+			if small and outline.has_point(Vector2(centre.x, centre.z)):
+				prop.visible = false
 
 
 func _build_solids() -> void:

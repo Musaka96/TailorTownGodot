@@ -10,7 +10,7 @@ extends Node
 ##
 ## A locked room goes SHUT -> ENTERED (boards off the door) -> CLEARED (mess gone) -> DONE
 ## (rebuilt; its stations move in). This autoload only holds the data and the state; the
-## scene side (blockers, mess, stations) is RenovationZone, which listens to `changed`.
+## scene side (blockers, mess, stations) is RenovationDirector, which listens to `changed`.
 ## Modelled on Upgrades: same gating, same save_state/restore/reset habits.
 
 signal changed
@@ -21,11 +21,12 @@ enum RoomState { SHUT, ENTERED, CLEARED, DONE }
 
 ## Rooms in story order. "front" is open from the first morning.
 const ROOMS := {
-	"front": {"name": "Front room", "tier": 0},
-	"workroom": {"name": "Workroom", "tier": 1},
-	"cloth": {"name": "Cloth store", "tier": 2},
-	"nook": {"name": "Nook", "tier": 3},
-	"nextdoor": {"name": "Next door", "tier": 4},
+	"front": {"name": "Front room", "tier": 0, "ready": "The front room is ready"},
+	"workroom":
+	{"name": "Workroom", "tier": 1, "ready": "The workroom is ready: the benches move in"},
+	"cloth": {"name": "Cloth store", "tier": 2, "ready": "The cloth store is ready"},
+	"nook": {"name": "Nook", "tier": 3, "ready": "The nook is ready"},
+	"nextdoor": {"name": "Next door", "tier": 4, "ready": "Next door is fitted out"},
 }
 
 ## PROVISIONAL costs and nights: they put the projects in the right order of size, but have

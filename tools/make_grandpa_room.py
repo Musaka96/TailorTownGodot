@@ -19,31 +19,31 @@ I = "1, 0, 0, 0, 1, 0, 0, 0, 1"                      # faces +Z (the street / ca
 FACE_PX = "-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08"   # faces +X (on a west wall)
 FACE_NX = "-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08"  # faces -X (on an east wall)
 ROT_M45 = "0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677"
-MOVE = {  # docs/STORY_AND_RENOVATION.md 6.5: everything the loop needs, in the front room
-    "Shelf": (I, (-3.55, 0, 1.95)),
-    "Worktable": (I, (-1.6, 0, 2.5)),
-    "SewingMachine": (I, (1.6, 0, 2.4)),
-    "ClothingRack": (FACE_PX, (-3.6, 0, 4.4)),
-    # the desk runs x -0.35..1.65 from the Phone's origin: this centres it on x = -1.1
-    "Phone": (I, (-1.75, 0, 4.6)),
-    # The tri-fold is 2.46 m wide: flat on the east wall it costs 0.6 m of depth, set
-    # diagonally it walled off a third of the room (tools/test_shop_clearance.gd map).
-    "Mirror": (FACE_NX, (1.9, 0, 5.6)),
-    "TrashCan": (I, (-3.85, 0, 6.45)),
+MOVE = {  # docs/STORY_AND_RENOVATION.md 6.5 + 6.11: on the kit's 2 m grid
+    # Day 1: everything the loop needs, in the 8 x 6 front room (x -4.35..3.65, z 2.34..8.34).
+    "Shelf": (I, (-3.55, 0, 2.75)),
+    "Worktable": (I, (0.6, 0, 2.5)),           # model runs x -0.72..0.78, z -0.12..0.75 from here
+    "SewingMachine": (I, (2.6, 0, 2.5)),       # model runs x -0.65..0.78, z -0.10..0.71
+    "ClothingRack": (FACE_PX, (-3.6, 0, 4.5)),
+    # The tri-fold is 2.46 m wide: flat on the WEST wall (the east wall carries the nook door).
+    "Mirror": (FACE_PX, (-3.6, 0, 6.95)),
+    # the desk runs x -0.35..1.65 from the Phone's origin: this puts it in front of the door
+    "Phone": (I, (-0.35, 0, 5.0)),
+    "TrashCan": (I, (3.2, 0, 7.8)),
     # Not there on day 1: RenovationDirector / UpgradeStation keep these hidden and
     # switched off until their room is done. They sit in the scene all along so that
     # their save paths never change.
-    "Bookshelf": (I, (1.75, 0, 1.95)),
-    "Shelf2": (I, (4.15, 0, -3.1)),
-    "CoffeeMachine": (I, (4.2, 0, 1.95)),
-    "IroningBoard": (I, (4.4, 0, 5.6)),
-    "ApprenticeBench": (I, (8.1, 0, -2.7)),
-    "Mannequin": (I, (8.2, 0, 5.4)),  # a step back from the glass: room to walk round it
-    "Waypoints/GreetSpot": (I, (-1.55, 0, 5.9)),
-    "Waypoints/CollectSpot": (I, (-0.65, 0, 5.9)),
-    "Waypoints/DoorInside": (I, (-0.85, 0, 6.4)),
-    "Waypoints/DoorOutside": (I, (-0.85, 0, 8.3)),
-    "Waypoints/MirrorSpot": (FACE_NX, (1.0, 0, 5.6)),
+    "Bookshelf": (I, (0.6, 0, 2.7)),           # where the worktable stood
+    "Shelf2": (I, (5.65, 0, -1.25)),
+    "CoffeeMachine": (I, (5.0, 0, 2.75)),
+    "IroningBoard": (I, (6.2, 0, 7.4)),        # the street end: z 4.64..6.04 is the way through
+    "ApprenticeBench": (I, (10.6, 0, -1.2)),
+    "Mannequin": (I, (10.6, 0, 6.8)),
+    "Waypoints/GreetSpot": (I, (0.1, 0, 6.5)),
+    "Waypoints/CollectSpot": (I, (1.0, 0, 6.5)),
+    "Waypoints/DoorInside": (I, (0.65, 0, 7.7)),
+    "Waypoints/DoorOutside": (I, (0.65, 0, 9.6)),
+    "Waypoints/MirrorSpot": (FACE_PX, (-2.7, 0, 6.95)),
 }
 
 # UpgradeStations that also wait for a room (stations/upgrade_station.gd `room`).
@@ -51,10 +51,10 @@ UPGRADE_ROOMS = {"CoffeeMachine": "nook", "IroningBoard": "nook",
                  "ApprenticeBench": "nextdoor"}
 # More of a station the source scene already has: (name, ext_resource id, basis, origin).
 EXTRA = [
-    ("ClothingRack2", "11_26bn3", FACE_PX, (-3.6, 0, -0.6)),
-    ("ClothingRack3", "11_26bn3", FACE_NX, (10.0, 0, 1.0)),
-    ("Shelf3", "1_2a88l", FACE_NX, (5.25, 0, -0.9)),
-    ("Shelf4", "1_2a88l", FACE_NX, (5.25, 0, 0.55)),
+    ("ClothingRack2", "11_26bn3", FACE_PX, (-3.6, 0, 1.0)),
+    ("ClothingRack3", "11_26bn3", FACE_NX, (13.0, 0, 2.5)),
+    ("Shelf3", "1_2a88l", FACE_NX, (7.25, 0, -0.6)),
+    ("Shelf4", "1_2a88l", FACE_NX, (7.25, 0, 0.9)),
 ]
 DIRECTOR = "res://scenes/world/grandpa/renovation_director.gd"
 
@@ -83,11 +83,11 @@ def main():
                 b = b.rstrip("\n") + '\nroom = "%s"\n' % UPGRADE_ROOMS[name]
             if name == "RoofManager":
                 b = re.sub(r"transform = Transform3D\([^)]*\)",
-                           "transform = Transform3D(%s, 0.65, 1, 1.75)" % I, b)
+                           "transform = Transform3D(%s, 4.65, 1, 3.34)" % I, b)
                 b = re.sub(r'roof_path = NodePath\("[^"]*"\)',
                            'roof_path = NodePath("../GrandpaShell/Roof")', b)
                 b = re.sub(r"interior_extents = Vector3\([^)]*\)",
-                           "interior_extents = Vector3(5.1, 1.8, 5.35)", b)
+                           "interior_extents = Vector3(9.4, 1.8, 5.1)", b)  # both buildings
         kept.append(b)
     # prune resources nothing refers to any more (sub-resources can chain)
     while True:
@@ -108,7 +108,7 @@ def main():
     ext = '[ext_resource type="PackedScene" path="%s" id="gp_shell"]' % SHELL
     out = out.replace("\n[ext_resource", "\n" + ext + "\n[ext_resource", 1)
     out = out.rstrip("\n") + ('\n\n[node name="DoorSignSpot" type="Marker3D" parent="Waypoints"]\n'
-                              'transform = Transform3D(%s, 0.45, 0, 6.35)\n' % I)
+                              'transform = Transform3D(%s, 2.0, 0, 7.7)\n' % I)
     for name, ext_id, basis, (x, y, z) in EXTRA:
         assert 'id="%s"' % ext_id in out, ext_id
         out = out.rstrip("\n") + (

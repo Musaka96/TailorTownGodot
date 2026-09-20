@@ -12,24 +12,26 @@ extends SceneTree
 
 const OUT := "res://scenes/world/grandpa/grandpa_shell_greybox.tscn"
 
-# Footprint (metres). Front room 7 x 5.5, nook 3 x 5.5, workroom 7 x 5, cloth store 3 x 5,
-# the neighbouring unit 5 x 10.5.
-const X0 := -4.35  # west wall
-const XM := 2.65  # front room | nook, workroom | cloth store
-const X1 := 5.65  # east wall of grandpa's building (party wall to next door)
-const X2 := 10.65  # east wall of the neighbouring unit
-const ZB := -3.5  # back wall
-const ZM := 1.5  # front rooms | back rooms
-const ZF := 7.0  # street front
+# Footprint (metres), on the town kit's 2 m grid so the Blender-built shop can use the kit's
+# wall pieces (docs 6.11): kit x + 0.65 = x here, 8.34 - kit y = z here. Front room 8 x 6,
+# nook 4 x 6, workroom 8 x 4, cloth store 4 x 4, the neighbouring unit 6 x 10.
+const X0 := -4.35  # west wall (kit x -5)
+const XM := 3.65  # front room | nook, workroom | cloth store (kit x 3)
+const X1 := 7.65  # east wall of grandpa's building, the party wall to next door (kit x 7)
+const X2 := 13.65  # east wall of the neighbouring unit (kit x 13)
+const ZB := -1.66  # back wall (kit y 10)
+const ZM := 2.34  # front rooms | back rooms (kit y 6)
+const ZF := 8.34  # street front (kit y 0): where Mr. Hemming's door stands in his shop
 const T := 0.2  # wall thickness
-const H := 2.8  # wall height
-const LOW := 1.1  # what stays of a left-right wall when the cut-away fades
+const H := 3.0  # wall height (the kit's)
+const LOW := 1.1  # what stays of a cut-away wall when the rest fades with the roof
 
-const DOOR_STREET := Vector2(-1.55, -0.15)  # x range of the street door
-const DOOR_WORKROOM := Vector2(-0.75, 0.6)  # x range, in the ZM wall
-const DOOR_NOOK := Vector2(3.3, 4.3)  # z range, in the XM wall
-const DOOR_CLOTH := Vector2(-1.5, -0.3)  # z range, in the XM wall
-const DOOR_NEXT := Vector2(3.5, 5.5)  # z range, in the X1 wall (knocked through later)
+# Doorways: a 1.4 m gap in the middle of a 2 m wall module.
+const DOOR_STREET := Vector2(-0.05, 1.35)  # x range, kit module -1..1 (the town's path ends here)
+const DOOR_WORKROOM := Vector2(-2.05, -0.65)  # x range, in the ZM wall
+const DOOR_NOOK := Vector2(4.64, 6.04)  # z range, in the XM wall
+const DOOR_CLOTH := Vector2(0.64, 2.04)  # z range, in the XM wall (workroom -> cloth store)
+const DOOR_NEXT := Vector2(4.64, 6.04)  # z range, in the X1 wall; lines up with the nook door
 
 var _root: Node3D
 var _body_meshes: Node3D
@@ -98,22 +100,22 @@ func _shell() -> void:
 ##   Label_<room>                     the greybox "(locked)" floor label
 func _dressing() -> void:
 	var spots := {
-		"front_sweep": [Vector3(-2.6, 0, 3.6), Vector3(0.3, 0, 3.9), Vector3(-0.2, 0, 6.3)],
+		"front_sweep": [Vector3(-2.2, 0, 4.2), Vector3(2.4, 0, 4.4), Vector3(-1.0, 0, 7.2)],
 		"workroom_clear":
 		[
-			Vector3(-2.8, 0, -1.4),
-			Vector3(-0.6, 0, -2.4),
-			Vector3(1.2, 0, -0.6),
-			Vector3(-2.2, 0, 0.5),
+			Vector3(-3.2, 0, 0.6),
+			Vector3(-0.4, 0, -0.6),
+			Vector3(1.8, 0, 0.9),
+			Vector3(2.8, 0, -0.9),
 		],
-		"cloth_clear": [Vector3(4.0, 0, -2.4), Vector3(4.9, 0, -0.6), Vector3(3.8, 0, 0.6)],
-		"nook_clear": [Vector3(4.0, 0, 2.5), Vector3(4.9, 0, 4.4), Vector3(3.9, 0, 6.0)],
+		"cloth_clear": [Vector3(5.0, 0, -0.6), Vector3(6.6, 0, 0.9), Vector3(4.6, 0, 1.2)],
+		"nook_clear": [Vector3(5.0, 0, 3.6), Vector3(6.6, 0, 5.3), Vector3(5.2, 0, 7.2)],
 		"next_clear":
 		[
-			Vector3(7.2, 0, -2.2),
-			Vector3(9.4, 0, -0.4),
-			Vector3(7.6, 0, 2.6),
-			Vector3(9.2, 0, 5.6),
+			Vector3(9.0, 0, -0.4),
+			Vector3(12.2, 0, 1.2),
+			Vector3(9.6, 0, 4.2),
+			Vector3(12.0, 0, 6.6),
 		],
 	}
 	var holder := _group("Spots")
@@ -133,10 +135,10 @@ func _dressing() -> void:
 			_slab("Pile", spot, Vector3(0, size.y / 2, 0), size, "dust" if low else "rubble")
 			i += 1
 	var rooms := {
-		"workroom": Vector3(-0.8, 0, -1.0),
-		"cloth": Vector3(4.15, 0, -1.0),
-		"nook": Vector3(4.15, 0, 4.2),
-		"nextdoor": Vector3(8.15, 0, 1.7),
+		"workroom": Vector3(-0.4, 0, 0.6),
+		"cloth": Vector3(5.65, 0, 0.2),
+		"nook": Vector3(5.65, 0, 5.3),
+		"nextdoor": Vector3(10.65, 0, 3.3),
 	}
 	for room: String in rooms:
 		var wip := Node3D.new()

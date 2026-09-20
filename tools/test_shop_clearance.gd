@@ -16,14 +16,14 @@ const WORK_R := 0.45  # half of the 0.9 m every station keeps free on its workin
 const REACH := 1.6  # the player's Interactor radius
 const FRONT := 0.9  # how far in front of a station's origin the player stands to use it
 const X_MIN := -4.6
-const X_MAX := 10.9
-const Z_MIN := -3.8
-const Z_MAX := 9.0
+const X_MAX := 13.9
+const Z_MIN := -1.9
+const Z_MAX := 10.3
 const ROOM_CENTRES := {
-	"workroom": Vector3(-0.8, 0, -0.9),
-	"cloth": Vector3(4.15, 0, -1.0),
-	"nook": Vector3(4.15, 0, 4.2),
-	"nextdoor": Vector3(8.15, 0, 1.7),
+	"workroom": Vector3(-0.35, 0, 0.34),
+	"cloth": Vector3(5.65, 0, 0.34),
+	"nook": Vector3(5.65, 0, 5.34),
+	"nextdoor": Vector3(10.65, 0, 3.34),
 }
 const STATIONS := [
 	"Shelf",

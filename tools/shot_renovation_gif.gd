@@ -10,8 +10,8 @@ extends SceneTree
 const SCENE := "res://scenes/world/grandpa/main_grandpa.tscn"
 const OUT_DIR := "res://.dev/reno_gif"
 const SIZE := Vector2i(960, 540)
-const LOOK_AT := Vector3(3.15, 0.0, 1.75)  # the middle of both buildings
-const CAM_FROM := Vector3(3.15, 16.1, 11.85)  # high over the street, looking in and down
+const LOOK_AT := Vector3(4.65, 0.0, 3.34)  # the middle of both buildings
+const CAM_FROM := Vector3(4.65, 17.8, 14.45)  # high over the street, looking in and down
 const BUILD := 1  # Renovation.Kind.BUILD
 
 var _reno: Node

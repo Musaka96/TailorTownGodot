@@ -79,31 +79,31 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_ojymr")
 
 [node name="Shelf" parent="." unique_id=2137070260 instance=ExtResource("1_2a88l")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.55, 0, 1.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.55, 0, 2.75)
 
 [node name="Shelf2" parent="." unique_id=724630444 instance=ExtResource("1_2a88l")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.15, 0, -3.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, 0, -1.25)
 
 [node name="Phone" parent="." unique_id=244267950 instance=ExtResource("3_jtjmr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, 0, 4.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0, 5.0)
 
 [node name="Worktable" parent="." unique_id=2080952600 instance=ExtResource("5_usqlc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0, 2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 2.5)
 
 [node name="SewingMachine" parent="." unique_id=1098430318 instance=ExtResource("7_f0faw")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 2.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 2.5)
 
 [node name="Bookshelf" parent="." unique_id=765844317 instance=ExtResource("9_o426c")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, 0, 1.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 2.7)
 
 [node name="ClothingRack" parent="." unique_id=1799385403 instance=ExtResource("11_26bn3")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 4.4)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 4.5)
 
 [node name="Mannequin" parent="." unique_id=1760003643 instance=ExtResource("13_ckdgv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.2, 0, 5.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 0, 6.8)
 
 [node name="Mirror" parent="." unique_id=270766224 instance=ExtResource("15_walcy")]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 1.9, 0, 5.6)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 6.95)
 
 [node name="Sidewalk" type="StaticBody3D" parent="." unique_id=1313181017]
 
@@ -126,19 +126,19 @@ shape = SubResource("BoxShape3D_y34p1")
 [node name="Waypoints" type="Node3D" parent="." unique_id=1591188085]
 
 [node name="GreetSpot" type="Marker3D" parent="Waypoints" unique_id=2002706852]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, 0, 5.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0, 6.5)
 
 [node name="CollectSpot" type="Marker3D" parent="Waypoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65, 0, 5.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0, 0, 6.5)
 
 [node name="DoorInside" type="Marker3D" parent="Waypoints" unique_id=1351360069]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0, 6.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65, 0, 7.7)
 
 [node name="DoorOutside" type="Marker3D" parent="Waypoints" unique_id=1530681602]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0, 8.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65, 0, 9.6)
 
 [node name="MirrorSpot" type="Marker3D" parent="Waypoints" unique_id=716688041]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 1.0, 0, 5.6)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2.7, 0, 6.95)
 
 [node name="StreetWest" type="Marker3D" parent="Waypoints" unique_id=394422646]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, 12.453909)
@@ -158,13 +158,13 @@ street_west_path = NodePath("../Waypoints/StreetWest")
 street_east_path = NodePath("../Waypoints/StreetEast")
 
 [node name="TrashCan" parent="." unique_id=200102761 instance=ExtResource("41_trash")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.85, 0, 6.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0, 7.8)
 
 [node name="RoofManager" type="Node3D" parent="." unique_id=200102760]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65, 1, 1.75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
 script = ExtResource("40_roofm")
 roof_path = NodePath("../GrandpaShell/Roof")
-interior_extents = Vector3(5.1, 1.8, 5.35)
+interior_extents = Vector3(9.4, 1.8, 5.1)
 
 [node name="FloraPatch3" parent="." unique_id=500448687 instance=ExtResource("28_2xgx5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.085564, 0.018687725, 1.8917577)
@@ -196,31 +196,31 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.33
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.336888)
 
 [node name="ApprenticeBench" parent="." unique_id=947779994 instance=ExtResource("33_rq063")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.1, 0, -2.7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 0, -1.2)
 room = "nextdoor"
 
 [node name="CoffeeMachine" parent="." unique_id=1309588511 instance=ExtResource("34_2a88l")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.2, 0, 1.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, 2.75)
 room = "nook"
 
 [node name="IroningBoard" parent="." unique_id=555322733 instance=ExtResource("35_j5y0n")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.4, 0, 5.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.2, 0, 7.4)
 room = "nook"
 
 [node name="DoorSignSpot" type="Marker3D" parent="Waypoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0, 6.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.0, 0, 7.7)
 
 [node name="ClothingRack2" parent="." instance=ExtResource("11_26bn3")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, -0.6)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 1.0)
 
 [node name="ClothingRack3" parent="." instance=ExtResource("11_26bn3")]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 10.0, 0, 1.0)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 13.0, 0, 2.5)
 
 [node name="Shelf3" parent="." instance=ExtResource("1_2a88l")]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 5.25, 0, -0.9)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 7.25, 0, -0.6)
 
 [node name="Shelf4" parent="." instance=ExtResource("1_2a88l")]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 5.25, 0, 0.55)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 7.25, 0, 0.9)
 
 [node name="GrandpaShell" parent="." instance=ExtResource("gp_shell")]
 

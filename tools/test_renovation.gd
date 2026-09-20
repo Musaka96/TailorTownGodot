@@ -167,7 +167,7 @@ func _rooms_and_stations() -> void:
 	_check(not _node("GrandpaShell/Wip_workroom").visible, "the builders have packed up")
 	_check(not _node("GrandpaShell/Label_workroom").visible, "the 'locked' label is gone")
 	_check(
-		table.global_position.distance_to(Vector3(-1.8, 0, -2.5)) < 0.01, "the worktable moved in"
+		table.global_position.distance_to(Vector3(-2.6, 0, -1.45)) < 0.01, "the worktable moved in"
 	)
 	_check(_node("Bookshelf").visible and _usable("Bookshelf"), "the bookshelf arrived")
 	_check(_node("ClothingRack2").visible, "and a second rack")
@@ -230,7 +230,7 @@ func _reset_puts_it_back() -> void:
 	_check(_node("Mannequin").visible, "the window mannequin stands next door")
 	_reno.reset()
 	_check(_solid("workroom"), "reset: the boards are back and solid")
-	_check(_node("Worktable").global_position.z > 1.5, "reset: the worktable is back in front")
+	_check(_node("Worktable").global_position.z > 2.34, "reset: the worktable is back in front")
 	_check(not _node("Bookshelf").visible, "reset: no bookshelf")
 	_sections_ended += 1
 
@@ -249,7 +249,7 @@ func _sheets_ride_along() -> void:
 	_check(not _usable("Worktable"), "…while the worktable under it can't be used")
 	_reno.restore({"done": ["workroom_boards", "workroom_clear", "workroom_build"]})
 	var table := _node("Worktable")
-	_check(table.global_position.z < 1.5, "workroom done, sheets still on: the table moved in")
+	_check(table.global_position.z < 2.34, "workroom done, sheets still on: the table moved in")
 	_check(sheet.visible, "…still under its sheet")
 	_check(
 		sheet.global_position.distance_to(table.global_position) < 1.0,
