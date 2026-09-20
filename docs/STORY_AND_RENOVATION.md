@@ -452,11 +452,21 @@ All asked for after seeing the first screenshots, all built:
 - **Dust sheets hang like cloth** (a lathe with folds, pooling at the floor), and **next door
   has its own paper, panelling and floor**.
 
-**Still placeholder after this round**: the day-1 mirror is still Mr. Hemming's tri-fold. It
-is a single welded mesh in a hand-owned scene, so grandpa's plain cheval glass needs its own
-model — best made in the v8 kit script and swapped by the director, which is also where the
-mirror upgrade line of §6.5 should land. The facade's dirt is a first pass (the v7 plot's
-flowers and crates still stand in front of the shop until stage D rebuilds the plot).
+**The mirror line and the forecourt (done right after)**: the day-1 mirror is grandpa's own
+**cheval glass**, built by the director from primitives so it always stands exactly where the
+mirror station does (the kit tri-fold is one welded mesh in a hand-owned scene, so it is
+hidden rather than edited); its collision follows whichever mirror is up. The **tri-fold is a
+Shop upgrade** (`mirror_trifold`, tier 1, 600) and is the first upgrade a customer can see, so
+`Renovation.appeal()` now adds `Upgrades.bonus("appeal")` — a nicer shop draws a better class
+of customer through the ceiling that already exists. The plot's **flowers, crates, chalkboard
+and cafe set on the forecourt** stay away until `facade_paint`, so the front goes from boarded
+and weedy to open and dressed in one step instead of looking cared for on day one.
+**Mr. Hemming's shop opens in oxblood** (ShopLookApplier's default index), since grandpa's
+carries fern damask from the kit and the two rooms looked identical. Only his shop uses the
+ShopLook system.
+
+**Still placeholder**: the plot itself is still Mr. Hemming's (stage D rebuilds it for this
+footprint); every cost, night and appeal threshold is provisional.
 
 ## 6.11 The Blender v8 brief (read before building the real shop)
 
