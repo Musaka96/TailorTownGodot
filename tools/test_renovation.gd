@@ -54,6 +54,7 @@ func _run() -> void:
 		_upgrades_wait_for_rooms,
 		_save_round_trip,
 		_reset_puts_it_back,
+		_sheets_ride_along,
 		_humbler_customers,
 	]:
 		_sections_begun += 1
@@ -75,7 +76,7 @@ func _fresh() -> void:
 	_check(_solid("workroom"), "day 1: boards across the workroom door are solid")
 	_check(_solid("nextdoor"), "day 1: the party wall is solid")
 	_check(not _usable("Worktable"), "day 1: the worktable sleeps under a dust sheet")
-	_check(_node("RenovationDirector/DustSheet_Worktable").visible, "day 1: its sheet shows")
+	_check(_node("Worktable/DustSheet").visible, "day 1: its sheet shows")
 	_check(not _node("Bookshelf").visible, "day 1: no bookshelf yet")
 	_check(not _node("Shelf2").visible, "day 1: the cloth store shelves are not there")
 	_check(not _node("CoffeeMachine").visible, "day 1: no coffee machine")
@@ -110,7 +111,7 @@ func _by_hand() -> void:
 	_check(_finished == ["front_sheets"], "project_finished fired exactly once")
 	_check(not _reno.clear_spot("front_sheets"), "a finished project can't be worked again")
 	_check(_usable("Mirror") and _usable("SewingMachine"), "every sheeted station is usable")
-	_check(not _node("RenovationDirector/DustSheet_Mirror").visible, "the sheets are gone")
+	_check(not _node("Mirror/DustSheet").visible, "the sheets are gone")
 	_check(_reno.available("front_sweep"), "now the floor can be swept")
 	_reno.clear_spot("front_sweep")
 	var piles := _node("GrandpaShell/Spots/front_sweep").get_children()
@@ -229,6 +230,32 @@ func _reset_puts_it_back() -> void:
 	_sections_ended += 1
 
 
+## A dust sheet is its station's own. The F3 panel can finish the workroom while the front
+## room's sheets are still on; the benches then move rooms, and their sheets must go with
+## them (they were once left behind in the front room, covering nothing) and stay pullable.
+func _sheets_ride_along() -> void:
+	_reno.reset()
+	var sheet := _node("Worktable/DustSheet")
+	var pull := 0
+	for area in sheet.find_children("*", "Area3D", true, false):
+		if area.is_in_group("interactable") and (area as Area3D).monitorable:
+			pull += 1
+	_check(pull == 1, "day 1: the sheet over the worktable can itself be pulled off")
+	_check(not _usable("Worktable"), "…while the worktable under it can't be used")
+	_reno.restore({"done": ["workroom_boards", "workroom_clear", "workroom_build"]})
+	var table := _node("Worktable")
+	_check(table.global_position.z < 1.5, "workroom done, sheets still on: the table moved in")
+	_check(sheet.visible, "…still under its sheet")
+	_check(
+		sheet.global_position.distance_to(table.global_position) < 1.0,
+		"…and the sheet moved with it (not left behind in the front room)"
+	)
+	_reno.restore({"done": ["front_sheets", "workroom_boards", "workroom_clear", "workroom_build"]})
+	_check(not sheet.visible and _usable("Worktable"), "sheets off: usable in the workroom")
+	_reno.reset()
+	_sections_ended += 1
+
+
 ## The one thing a shabby shop costs: customers with less to spend. Reputation picks the
 ## budget band, but never a better one than the shop is fit to receive.
 func _humbler_customers() -> void:
@@ -302,6 +329,9 @@ func _solid(room: String) -> bool:
 ## A station the player can walk up to and use: at least one live Interactable.
 func _usable(station: String) -> bool:
 	for area in _node(station).find_children("*", "Area3D", true, false):
+		# A dust sheet is the station's child; pulling it off isn't using the station.
+		if str(area.get_path()).contains("/DustSheet/"):
+			continue
 		if area.is_in_group("interactable") and (area as Area3D).monitorable:
 			return true
 	return false

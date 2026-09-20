@@ -32,6 +32,13 @@ const MESS_PROJECTS := ["front_sweep", "workroom_clear", "cloth_clear", "nook_cl
 ## The dust-sheet project and the stations sleeping under a sheet.
 const SHEETS_PROJECT := "front_sheets"
 const SHEETED := ["Worktable", "SewingMachine", "Mirror"]
+## The sheet over each: [centre, size] in the station's own space, from its model's bounds.
+const SHEET_BOX := {
+	"Worktable": [Vector3(0.03, 0.63, 0.315), Vector3(1.62, 1.26, 0.99)],
+	"SewingMachine": [Vector3(0.065, 0.71, 0.305), Vector3(1.55, 1.42, 0.93)],
+	"Mirror": [Vector3(0.11, 1.35, -0.325), Vector3(2.58, 2.7, 0.71)],
+}
+const SHEET_NODE := "DustSheet"
 ## Stations that move when a room opens: room -> {station: [basis, origin]}.
 const MOVES := {
 	"workroom":
@@ -141,18 +148,19 @@ func _apply_spots(project: String) -> void:
 
 
 func _apply_sheets() -> void:
-	if _sheets_released:
-		return
 	var done := Renovation.is_done(SHEETS_PROJECT)
+	if done and _sheets_released:
+		return  # handed back already; a reset or an older save un-does it and covers them again
 	var gone := SHEETED.size() if done else Renovation.spots_cleared(SHEETS_PROJECT)
 	for i in SHEETED.size():
 		var station: String = SHEETED[i]
 		var covered := i >= gone
 		var sheet: Node3D = _sheets.get(station)
 		_show(sheet, covered)
-		_set_interactable(sheet, covered)
-		# A station under a sheet can't be used; taking the sheet off wakes it up.
+		# A station under a sheet can't be used; taking the sheet off wakes it up. The sheet
+		# is the station's child, so it is set last: the station-wide switch covers it too.
 		_set_interactable(_station(station), not covered)
+		_set_interactable(sheet, covered)
 	# Once every sheet is off, leave those stations' own switches alone from then on.
 	_sheets_released = done
 
@@ -263,23 +271,23 @@ func _build_spots() -> void:
 
 
 func _build_sheets() -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.90, 0.88, 0.82)
+	mat.roughness = 1.0
 	for station: String in SHEETED:
 		var node := _station(station)
 		if node == null:
 			continue
 		var sheet := MeshInstance3D.new()
-		sheet.name = "DustSheet_" + station
+		sheet.name = SHEET_NODE
 		var box := BoxMesh.new()
-		box.size = Vector3(1.9, 1.35, 1.5)
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.90, 0.88, 0.82)
-		mat.roughness = 1.0
+		box.size = SHEET_BOX[station][1]
 		box.material = mat
 		sheet.mesh = box
-		add_child(sheet)
-		sheet.global_position = node.global_position + Vector3(0, 0.68, 0)
-		sheet.global_rotation = node.global_rotation
-		_add_work(sheet, SHEETS_PROJECT, "Pull off the dust sheet", Vector3(2.0, 1.6, 1.8))
+		sheet.position = SHEET_BOX[station][0]
+		node.add_child(sheet)  # the station's own: it goes where the station goes
+		var reach: Vector3 = SHEET_BOX[station][1] + Vector3(0.5, 0.2, 0.9)
+		_add_work(sheet, SHEETS_PROJECT, "Pull off the dust sheet", reach)
 		_sheets[station] = sheet
 
 

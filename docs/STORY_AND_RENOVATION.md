@@ -373,6 +373,55 @@ for an ASCII map of each stage. It caught three things no screenshot had shown:
 4. **Reputation tiers gate rooms** (workroom tier 1 ... next door tier 4) and costs are
    placeholders - both need a balance pass against `docs/ECONOMY.md`.
 
+## 6.11 The Blender v8 brief (read before building the real shop)
+
+**The kit is a 2 m module kit.** `build_v7.PlanB` asserts every room dimension is a multiple
+of 2 m; walls are runs of 2 m `wall_<kind>` pieces (`wall_part_v7` inside, `wall_part_arch_v7`
+for a doorway), textures bake 2 m per UV tile. The first greybox footprint (7x5.5, 3x5.5,
+7x5, 3x5, 5x10.5) is off that grid almost everywhere, so **the footprint moves onto the grid
+first** - in the greybox, where it is cheap and `test_shop_clearance` re-proves it.
+
+On-grid footprint (kit coordinates, street at -Y; Godot = kit x + 0.65, z = 8.34 - kit y):
+
+| Room | Kit x | Kit y | Size | Was |
+|---|---|---|---|---|
+| Front room | -5..3 | 0..6 | 8x6 | 7x5.5 |
+| Nook | 3..7 | 0..6 | 4x6 | 3x5.5 |
+| Workroom | -5..3 | 6..10 | 8x4 | 7x5 |
+| Cloth store | 3..7 | 6..10 | 4x4 | 3x5 |
+| Next door | 7..13 | 0..10 | 6x10 | 5x10.5 |
+
+Own building 12x10 = 120 m2, about two thirds of Mr. Hemming's v7 shop (~180 m2): still the
+smaller, humbler shop. A flush front (no stepped-out centre) on kit y = 0, which is where the
+v7 door stood, so the town's path to the door still arrives at a door (kit x = 0). The west
+wall stays where the greybox has it. The v7 plot (kit x -10..14) has room for all 18 m.
+
+How a kit shop is put together (so v8 can follow it): a list of `(piece, Matrix, colors[,
+group[, node name]])`; groups become `<root>_Body / _Roof / _Interior / _Doors`
+(`part_group`); the optional node name is how v8 can emit exactly the names of 6.8. Shells
+come from `K.townhouse(W, D, 1, front_rows, skip=..., open_sides=..., interior=True)`, then
+pieces are swapped (`V6.V6_RENAME`, the strict `_i5` wall pieces that do not z-fight).
+
+**The kit has no cut-away walls.** Its walls are whole pieces 3 m high. 6.6 needs every inner
+wall and the street front to keep only the bottom 1.1 m while the player is inside. Do it
+generically: build a wall piece, duplicate it, bisect at z = 1.1 (`bmesh.ops.bisect_plane`),
+register `<piece>_lo` (group Body) and `<piece>_hi` (group Roof). Windows get sliced near
+their sills, which reads as a low wall with a sill. Check UV/normal baking on the halves.
+
+Stages, each leaving the game playable:
+
+- **A.** Move the greybox to the grid (consts in `tools/build_grandpa_greybox.gd`, station
+  tables in `tools/make_grandpa_room.py` and `RenovationDirector.MOVES`, room centres in
+  `tools/test_shop_clearance.gd`); re-run clearance, renovation, locations.
+- **B.** v8 shell for that footprint from existing kit pieces + the generic split; export
+  `grandpa_shop_v8.gltf`; show it in the room scene. **Hybrid on purpose:** the gameplay
+  nodes of 6.8 keep coming from the Godot-side builder (tested), with its wall/floor meshes
+  hidden - Blender supplies the look only, so nothing that works can break.
+- **C.** Damage: rubble, boards, draped sheets, bucket and puddle, cobwebs as kit pieces under
+  the same node names; the per-room wear shader (`damage` 0..1, wet = dark + glossy) in place
+  of `_paint_floor`; procedural decals. The basic cheval mirror.
+- **D.** The plot rebuilt for the footprint (the v7 garden pokes into the front-left corner).
+
 ## 7. Build order
 
 | # | Milestone | Proves |

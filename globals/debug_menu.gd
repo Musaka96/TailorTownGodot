@@ -29,6 +29,9 @@ var _upg_panel: PanelContainer
 var _main_scroll: ScrollContainer
 var _main_box: VBoxContainer
 var _upg_boxes := {}  # upgrade id -> CheckBox
+var _reno_panel: PanelContainer
+var _reno_status: Label
+var _reno_boxes := {}  # project id -> CheckBox
 
 
 func _ready() -> void:
@@ -38,6 +41,7 @@ func _ready() -> void:
 	_build()
 	EventBus.money_changed.connect(func(_m: int) -> void: _refresh_money())
 	Upgrades.changed.connect(_refresh_upgrades)
+	Renovation.changed.connect(_refresh_renovation)
 	EventBus.reputation_changed.connect(func(_p: int, _t: int) -> void: _refresh_reputation())
 
 
@@ -350,6 +354,194 @@ func _new_day() -> void:
 		_note("shop opened")
 
 
+# --- Renovation --------------------------------------------------------------
+
+
+## Finish the next unfinished project (story order), for free, and report its name.
+func _finish_next_job() -> void:
+	var id := Renovation.debug_finish_next()
+	if id == "":
+		_note("Everything is done")
+	else:
+		_note("finished: %s" % str(Renovation.data(id).get("name", id)))
+
+
+func _renovate_everything() -> void:
+	Renovation.debug_finish_all()
+	_note("renovated everything")
+
+
+## Renovate everything AND grant the three room-gated upgrades, so their furniture can be
+## looked at right away without shopping the phone room by room.
+func _renovate_everything_and_upgrades() -> void:
+	Renovation.debug_finish_all()
+	for id: String in ["shop_coffee", "shop_iron", "apprentice"]:
+		Upgrades.debug_set(id, true)
+	Upgrades.changed.emit()
+	_note("renovated everything and granted the room upgrades")
+
+
+func _reset_renovation() -> void:
+	Renovation.reset()
+	_note("renovations reset")
+
+
+## Skip to dawn for every project currently under way (nights_left > 0), and nothing else.
+func _finish_building_now() -> void:
+	var state: Dictionary = Renovation.save_state()
+	var done: Array = state.get("done", [])
+	var building: Dictionary = state.get("building", {})
+	var spots: Dictionary = state.get("spots", {})
+	var finished: Array[String] = []
+	for id: String in building.keys():
+		if int(building[id]) > 0:
+			finished.append(id)
+	for id in finished:
+		done.append(id)
+		building.erase(id)
+		spots.erase(id)
+	state["done"] = done
+	state["building"] = building
+	state["spots"] = spots
+	Renovation.restore(state)
+	if finished.is_empty():
+		_note("no builders are out tonight")
+	else:
+		_note("builders finished %d job(s)" % finished.size())
+
+
+## Finish every project of `room`, and every project those depend on (through `needs`),
+## so the room opens without ever leaving a done job whose needs are unmet.
+func _open_room(room: String) -> void:
+	var ids: Array[String] = []
+	for id: String in Renovation.PROJECTS:
+		if str(Renovation.data(id).get("room", "")) == room:
+			ids.append(id)
+	_finish_ids(_with_needs(ids))
+	var room_name := str((Renovation.ROOMS.get(room, {}) as Dictionary).get("name", room))
+	_note("opened %s" % room_name)
+
+
+## One checklist tick: done also ticks its needs; undone also unticks every dependent.
+func _set_project(on: bool, id: String) -> void:
+	if on:
+		_finish_ids(_with_needs([id]))
+	else:
+		var ids := _dependents(id)
+		ids.append(id)
+		_undo_ids(ids)
+	var name := str(Renovation.data(id).get("name", id))
+	_note("%s: %s" % [name, "done" if on else "undone"])
+
+
+func _toggle_renovation() -> void:
+	_reno_panel.visible = not _reno_panel.visible
+	_refresh_renovation()
+
+
+func _refresh_renovation() -> void:
+	if _reno_status != null:
+		_reno_status.text = _reno_status_text()
+	for id: String in _reno_boxes:
+		(_reno_boxes[id] as CheckBox).set_pressed_no_signal(Renovation.is_done(id))
+
+
+## Mark every id in `ids` done for free, and drop them from "building"/"spots" — built
+## from save_state()/restore() so nothing else in the save is disturbed.
+func _finish_ids(ids: Array[String]) -> void:
+	var state: Dictionary = Renovation.save_state()
+	var done: Array = state.get("done", [])
+	var building: Dictionary = state.get("building", {})
+	var spots: Dictionary = state.get("spots", {})
+	for id: String in ids:
+		if not done.has(id):
+			done.append(id)
+		building.erase(id)
+		spots.erase(id)
+	state["done"] = done
+	state["building"] = building
+	state["spots"] = spots
+	Renovation.restore(state)
+
+
+## Un-finish every id in `ids` (leaves "building"/"spots" alone — none apply to a done id).
+func _undo_ids(ids: Array[String]) -> void:
+	var state: Dictionary = Renovation.save_state()
+	var done: Array = state.get("done", [])
+	for id: String in ids:
+		done.erase(id)
+	state["done"] = done
+	Renovation.restore(state)
+
+
+## `ids` plus everything they (transitively) need.
+func _with_needs(ids: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	var stack: Array[String] = ids.duplicate()
+	while not stack.is_empty():
+		var id: String = stack.pop_back()
+		if out.has(id) or not Renovation.PROJECTS.has(id):
+			continue
+		out.append(id)
+		for need: Variant in Renovation.data(id).get("needs", []):
+			stack.append(str(need))
+	return out
+
+
+## Every project that (transitively) needs `id`.
+func _dependents(id: String) -> Array[String]:
+	var out: Array[String] = []
+	var grew := true
+	while grew:
+		grew = false
+		for pid: String in Renovation.PROJECTS:
+			if out.has(pid) or pid == id:
+				continue
+			var needs: Array = Renovation.data(pid).get("needs", [])
+			var depends: bool = needs.has(id)
+			if not depends:
+				for other: String in out:
+					if needs.has(other):
+						depends = true
+						break
+			if depends:
+				out.append(pid)
+				grew = true
+	return out
+
+
+func _room_word(state: int) -> String:
+	match state:
+		Renovation.RoomState.SHUT:
+			return "shut"
+		Renovation.RoomState.ENTERED:
+			return "entered"
+		Renovation.RoomState.CLEARED:
+			return "cleared"
+		Renovation.RoomState.DONE:
+			return "done"
+		_:
+			return "?"
+
+
+func _reno_status_text() -> String:
+	if Locations.current == Locations.HEMMING:
+		return "Mr. Hemming's — nothing to renovate here"
+	var total := Renovation.PROJECTS.size()
+	var done := 0
+	for id: String in Renovation.PROJECTS:
+		if Renovation.is_done(id):
+			done += 1
+	var rooms: Array[String] = []
+	for room: String in Renovation.ROOMS:
+		var room_name := str((Renovation.ROOMS[room] as Dictionary).get("name", room))
+		rooms.append("%s: %s" % [room_name, _room_word(Renovation.room_state(room))])
+	return (
+		"Grandpa's shop — %d/%d done\nAppeal %d%%\n%s"
+		% [done, total, roundi(Renovation.appeal() * 100.0), ", ".join(rooms)]
+	)
+
+
 # --- Build -----------------------------------------------------------------
 
 
@@ -379,6 +571,8 @@ func _build() -> void:
 	columns.add_child(panel)
 	_upg_panel = _build_upgrades(sb)
 	columns.add_child(_upg_panel)
+	_reno_panel = _build_renovation(sb)
+	columns.add_child(_reno_panel)
 
 	# The panel outgrew the screen: its sections scroll, capped to the window height.
 	_main_scroll = ScrollContainer.new()
@@ -504,11 +698,37 @@ func _build() -> void:
 	_button(shrow, "End shift", _end_shift)
 	_button(shrow, "Next day", _new_day)
 
+	var reno := _section(box, "Renovation")
+	_reno_status = _make_label("", 12, LABEL)
+	_reno_status.custom_minimum_size = Vector2(220, 0)
+	_reno_status.autowrap_mode = TextServer.AUTOWRAP_WORD
+	reno.add_child(_reno_status)
+	var rn_row1 := _row(reno)
+	_button(rn_row1, "Finish next job", _finish_next_job)
+	_button(rn_row1, "Builders finish tonight's work", _finish_building_now)
+	var rn_row2 := _row(reno)
+	_button(rn_row2, "Renovate everything", _renovate_everything)
+	_button(rn_row2, "…and own the room upgrades", _renovate_everything_and_upgrades)
+	var rn_row3 := _row(reno)
+	_button(rn_row3, "Reset renovations", _reset_renovation)
+	_button(rn_row3, "Projects ▸", _toggle_renovation)
+	var rn_rooms1 := _row(reno)
+	var rn_rooms2 := _row(reno)
+	var rn_i := 0
+	for room: String in Renovation.ROOMS:
+		if room == "front":
+			continue
+		var room_name := str((Renovation.ROOMS[room] as Dictionary).get("name", room))
+		var target := rn_rooms1 if rn_i < 2 else rn_rooms2
+		_button(target, "Open %s" % room_name, _open_room.bind(room))
+		rn_i += 1
+
 	_status = _make_label("", 12, Color(0.7, 0.75, 0.85))
 	box.add_child(_status)
 
 	_refresh_money()
 	_refresh_reputation()
+	_refresh_renovation()
 
 
 ## The upgrade list, as a second column: a tick per upgrade, grouped as the phone groups
@@ -547,11 +767,47 @@ func _build_upgrades(sb: StyleBoxFlat) -> PanelContainer:
 	return panel
 
 
+## The renovation checklist, as a third column: a tick per project, grouped by room in
+## story order. Ticking one also ticks what it needs; un-ticking one un-ticks everything
+## that (transitively) needs it.
+func _build_renovation(sb: StyleBoxFlat) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.visible = false
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+	_heading(box, "RENOVATION")
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(250, 470)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 2)
+	scroll.add_child(list)
+	var room := ""
+	for id: String in Renovation.PROJECTS:
+		var d := Renovation.data(id)
+		if str(d.get("room", "")) != room:
+			room = str(d.get("room", ""))
+			var room_name := str((Renovation.ROOMS.get(room, {}) as Dictionary).get("name", room))
+			list.add_child(_make_label(room_name, 12, HEADING))
+		var tick := CheckBox.new()
+		tick.text = str(d.get("name", id))
+		tick.add_theme_font_size_override("font_size", 13)
+		tick.toggled.connect(_set_project.bind(id))
+		list.add_child(tick)
+		_reno_boxes[id] = tick
+	return panel
+
+
 func _toggle() -> void:
 	_layer.visible = not _layer.visible
 	GameState.input_locked = _layer.visible
 	if _layer.visible:
 		_refresh_money()
+		_refresh_renovation()
 		_fit_main()
 
 
