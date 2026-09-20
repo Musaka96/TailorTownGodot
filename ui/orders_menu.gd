@@ -12,6 +12,12 @@ const CHIP := {
 	Enums.GarmentType.PANTS: "P",
 }
 const KICKER := "Orders board"
+## The selected ticket has been taken off the board and is being held: it straightens up,
+## comes forward a little, and gets the board's burgundy edge and stitching all round.
+## (A brighter pin alone was far too quiet to find at a glance.)
+const TILT := 1.2  # degrees the others hang at
+const SEL_LINE := 5.0  # the held ticket's edge, against 1.5 for the rest
+const SEL_GROW := 1.04
 
 var _actor = null
 var _sel := 0
@@ -174,16 +180,19 @@ func _refresh() -> void:
 
 
 ## An order as a paper ticket pinned to the cork board, each hung at its own slight
-## angle; the selected one is brighter, burgundy-edged and held by a brass pin.
+## angle; the selected one is pulled off the board — straightened, a size up, brightened,
+## stitched and edged in burgundy, and held by a brass pin.
 func _make_list_card(order, selected: bool, index: int) -> Control:
 	var card := CraftPanel.new()
 	card.pad = Vector2(Style.S3, Style.S2)
 	card.setup(CraftPanel.Shape.TICKET, Style.CARD_SELECTED if selected else Style.CARD)
 	card.line = Style.ACC_ORDERS if selected else Style.BROWN
-	card.line_width = 3.0 if selected else 1.5
+	card.line_width = SEL_LINE if selected else 1.5
+	card.stitch_color = Style.ACC_ORDERS if selected else Style.NONE
 	card.pin_color = Style.BRASS if selected else Style.BURGUNDY
 	card.pad = Vector2(Style.S3, Style.S2 + 8)
-	card.rotation_degrees = 1.2 if index % 2 == 0 else -1.2
+	card.rotation_degrees = 0.0 if selected else (TILT if index % 2 == 0 else -TILT)
+	card.scale = Vector2.ONE * (SEL_GROW if selected else 1.0)
 	card.resized.connect(func() -> void: card.pivot_offset = card.size * 0.5)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", Style.S1)

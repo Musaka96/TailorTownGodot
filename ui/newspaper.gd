@@ -31,6 +31,11 @@ const N_SIDE_BODY := 14  # side-strip panel body
 ## Presses this soon after the paper lands can't fold it away — the E that locked the
 ## door (or a tap during the day card) would otherwise close a paper nobody saw.
 const OPEN_GUARD := 0.5
+## The paper is not on the mat at dawn: the boy comes round once the shop has been open
+## a while, so the quiet morning (and anything the story wants to say first) gets it to
+## itself. In in-game hours after the sign is flipped.
+const ARRIVES_AFTER := 0.75
+const ROUND_POLL := 0.5  # seconds between looks while he is still on his way
 
 var _dateline: Label
 var _folio: Label
@@ -40,6 +45,7 @@ var _fashion_body: Label
 var _events_body: Label
 var _scroll: ScrollContainer
 var _opened_at := 0.0
+var _due_day := 0  # the day whose paper is still to be delivered (0 = none)
 
 
 func _ready() -> void:
@@ -69,22 +75,37 @@ func close() -> void:
 	Sfx.play("page_turn")
 
 
-func _on_newspaper_ready(_day: int) -> void:
+func _on_newspaper_ready(day: int) -> void:
 	# Don't slide the paper up over the first-run tutorial.
 	if Tutorial != null and Tutorial.is_active():
 		return
-	# The new day starts halfway through the night card: wait for it to lift (and for the
-	# shift manager to hand input back) so the paper lands on top, not underneath.
-	var card: Control = UI.day_transition if UI != null else null
-	if card != null and card.visible:
-		if not card.visibility_changed.is_connected(_on_card_lifted):
-			card.visibility_changed.connect(_on_card_lifted, CONNECT_ONE_SHOT)
-		return
-	open()
+	if _due_day == day:
+		return  # already on its way — the round is not run twice
+	_due_day = day
+	_deliver()
 
 
-func _on_card_lifted() -> void:
-	open.call_deferred()
+## Hold today's edition until the boy's round reaches the shop, and then until the player
+## is not in the middle of something — a menu, a minigame, or one of grandpa's letters.
+## The letter goes first that way, and the paper follows it rather than sliding up
+## underneath it. Drops the round the moment a new day prints over it.
+func _deliver() -> void:
+	var day := _due_day
+	while is_inside_tree() and _due_day == day:
+		if _round_has_come() and UI != null and not UI.busy():
+			_due_day = 0
+			open()
+			return
+		await get_tree().create_timer(ROUND_POLL).timeout
+
+
+## The shop has been open long enough for the paper to have arrived.
+func _round_has_come() -> bool:
+	if Shift == null or not Shift.is_open():
+		return false
+	if DayNight == null:
+		return true
+	return DayNight.hour >= DayNight.start_hour() + ARRIVES_AFTER
 
 
 # --- Fonts -----------------------------------------------------------------

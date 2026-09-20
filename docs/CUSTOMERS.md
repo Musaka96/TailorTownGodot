@@ -104,7 +104,7 @@ The day has three phases (`Shift.Phase`), and the OPEN / CLOSED sign just inside
 
 | Phase | What's happening | Flip the sign to… |
 |---|---|---|
-| **Morning** | The day has dawned (`EventBus.day_began`): the paper lands, the pot is refilled. The clock waits at the opening hour, the benches work — prep time. No customers. | **open** the shop (`Shift.open_shop()` → `shift_started`) |
+| **Morning** | The day has dawned (`EventBus.day_began`): the day's edition is printed and the pot is refilled. The clock waits at the opening hour, the benches work — prep time. No customers, and no paper yet: the boy's round reaches the shop a while after the sign is flipped. | **open** the shop (`Shift.open_shop()` → `shift_started`) |
 | **Open** | The clock runs; walk-ins, appointments and collectors arrive. | **close early** and finish the day. It asks first (flip again within 5 s); anyone still due today calls first thing tomorrow. |
 | **After hours** | The bell has rung: no new shoppers, the work stations refuse. | **lock up** and finish the day. |
 

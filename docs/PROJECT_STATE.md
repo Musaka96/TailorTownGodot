@@ -149,7 +149,7 @@ Emitted: `item_picked_up/dropped/stored/taken`, `interaction_prompt_changed`,
 `suit_packaged` (no listeners — informational), `design_confirmed`,
 `customer_waiting/seated`,
 `order_created/part_filled/pieces_ready/ready/due/fulfilled/expired`,
-`day_began` (dawn — always before that day's `shift_started`; the paper and the coffee pot hang off it), `shift_started/ended`, `reputation_changed`, `newspaper_ready`. The customer
+`day_began` (dawn — always before that day's `shift_started`; the day's edition and the coffee pot hang off it, though the paper itself is only delivered once the shop has been open a while, and never on top of one of grandpa's letters), `shift_started/ended`, `reputation_changed`, `newspaper_ready`. The customer
 departure flow uses `Customer.departed` directly (not an EventBus signal).
 
 ## 5. Save system

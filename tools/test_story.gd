@@ -5,6 +5,9 @@ extends SceneTree
 ##   godot --headless --path . --script res://tools/test_story.gd
 
 const SCENE := "res://scenes/world/grandpa/main_grandpa.tscn"
+## How far into the shift to start the clock so the paper round has already been by
+## (ui/newspaper.gd ARRIVES_AFTER is well under an hour of a nine-hour day).
+const OPEN_A_WHILE := 0.15
 
 var _fails := 0
 var _sections_ended := 0
@@ -35,8 +38,9 @@ func _run() -> void:
 	_finds_come_from_the_work()
 	_the_shelf_fills()
 	_letters_wait_their_turn()
+	await _the_paper_queues_behind_the_letter()
 	_save_round_trip()
-	_check(_sections_ended == 5, "every section ran to its last line (%d of 5)" % _sections_ended)
+	_check(_sections_ended == 6, "every section ran to its last line (%d of 6)" % _sections_ended)
 	print("test_story: %s" % ("ALL PASS" if _fails == 0 else "%d FAILURE(S)" % _fails))
 	quit(1 if _fails > 0 else 0)
 
@@ -117,6 +121,40 @@ func _letters_wait_their_turn() -> void:
 	var earned := _announced.size()
 	_check(earned > 1, "…several of them (%d)" % earned)
 	_sections_ended += 1
+
+
+## Day one, as the player meets it: the letter is on the mat, and the morning paper does
+## not slide up underneath it. The paper waits for the shop to have been open a while,
+## and then for the letter to be folded away.
+func _the_paper_queues_behind_the_letter() -> void:
+	var ui: Node = root.get_node("UI")
+	var paper: Control = ui.newspaper
+	var note: Control = ui.story_note
+	var clock: Node = root.get_node("DayNight")
+	var shift: Node = root.get_node("Shift")
+	_story.reset()
+	ui.close_all_menus()
+	shift.reset_to(1)  # a fresh day 1, as a new game reaches it
+	shift.begin_morning()  # dawn: the paper is printed, the sign still says CLOSED
+	await _settle()
+	_check(not paper.visible, "the paper is not on the mat at dawn")
+	_check(note.visible, "grandpa's letter gets the quiet morning to itself")
+
+	clock.start_shift(OPEN_A_WHILE)  # the sign is flipped, and the round has come by
+	await _settle()
+	_check(not paper.visible, "…and no paper slides up under the letter being read")
+
+	note.close()
+	await _settle()
+	_check(paper.visible, "once the letter is folded away, the paper comes up")
+	paper.close()
+	clock.running = false
+	_sections_ended += 1
+
+
+## Long enough for the paper's delivery round to look twice (ui/newspaper.gd ROUND_POLL).
+func _settle() -> void:
+	await root.get_tree().create_timer(1.2).timeout
 
 
 func _save_round_trip() -> void:

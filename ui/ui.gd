@@ -5,6 +5,7 @@ extends CanvasLayer
 
 const POP_HEIGHT := 2.6  # metres above the player's feet a pop-up appears at
 const OUTLINE := 8  # px of walnut outline on text drawn straight over the world
+const QUIET_POLL := 0.4  # seconds between looks, while something waits its turn
 
 ## Built in code (see _build_orders_menu / _build_clock) so the scene files never
 ## have to be regenerated to add them.
@@ -117,6 +118,27 @@ func any_menu_open() -> bool:
 		if menu != null and menu.visible:
 			return true
 	return false
+
+
+## True while anything at all is on screen: a menu, a minigame, the pause, the mentor,
+## or a cutscene holding input. The things that let themselves in — grandpa's letters,
+## the morning paper — wait on this, which is what keeps them off each other's backs.
+func busy() -> bool:
+	if GameState.is_paused or GameState.input_locked:
+		return true
+	if any_menu_open():
+		return true
+	if Tutorial != null and Tutorial.is_active():
+		return true
+	return false
+
+
+## Wait until nothing else is on screen. Whoever awaits this must open straight after
+## it returns, with nothing in between that could yield — otherwise two waiters can
+## both come through on the same frame and land on top of one another.
+func quiet_moment() -> void:
+	while is_inside_tree() and busy():
+		await get_tree().create_timer(QUIET_POLL).timeout
 
 
 ## Every station menu springs open (its panel pops in) the moment it becomes visible.

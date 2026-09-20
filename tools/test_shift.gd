@@ -43,14 +43,20 @@ func _run() -> void:
 	_check(shift.phase == 0 and not shift.is_open(), "the new day dawns closed (morning)")
 	_check(not day_night.running, "the clock waits for the sign")
 	var paper: Control = root.get_node("UI").newspaper
-	_check(paper.visible, "the morning paper lands once the night card lifts")
-	paper.close()
-	_check(not root.get_node("GameState").input_locked, "input unlocked once it's folded away")
+	_check(not paper.visible, "the morning is the player's own — no paper at dawn")
 	_check("open the shop" in sign.get_interaction_prompt(null), "morning: the sign opens the shop")
 
 	sign.interact(null)
 	await process_frame
 	_check(shift.is_open() and day_night.running, "flipping the sign opens the shop")
+
+	# The boy comes round a while into the day, not the moment the sign turns.
+	_check(not paper.visible, "…and the paper is not waiting on the mat for it")
+	day_night.start_shift(0.2)  # wind the morning on past the delivery round
+	await create_timer(1.2).timeout
+	_check(paper.visible, "the paper arrives once the shop has been open a while")
+	paper.close()
+	_check(not root.get_node("GameState").input_locked, "input unlocked once it's folded away")
 
 	# Closing early asks first, then finishes the day on the second flip.
 	sign.interact(null)

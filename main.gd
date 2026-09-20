@@ -55,7 +55,7 @@ func _bar_the_door() -> void:
 func _on_letter_ready(_id: String) -> void:
 	if not is_inside_tree():
 		return
-	await _quiet_moment()
+	await UI.quiet_moment()
 	var waiting := Story.next_letter()
 	if waiting == "" or UI == null or UI.story_note == null:
 		return
@@ -65,16 +65,3 @@ func _on_letter_ready(_id: String) -> void:
 		str(note.get("body", "")),
 		func() -> void: Story.mark_read(waiting)
 	)
-
-
-## Wait for nothing else to be on screen: no menu, no pause, no tutorial speech.
-func _quiet_moment() -> void:
-	while is_inside_tree():
-		var busy := GameState.is_paused or GameState.input_locked
-		if UI != null and UI.any_menu_open():
-			busy = true
-		if Tutorial != null and Tutorial.is_active():
-			busy = true
-		if not busy:
-			return
-		await get_tree().create_timer(0.4).timeout

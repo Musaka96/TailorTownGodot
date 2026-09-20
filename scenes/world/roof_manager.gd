@@ -22,6 +22,7 @@ extends Node3D
 var _roof: Node3D
 var _player: Node3D
 var _meshes: Array[GeometryInstance3D] = []
+var _mats: Array[BaseMaterial3D] = []
 var _inside := false
 var _established := false
 var _fade: Tween
@@ -78,8 +79,13 @@ func _collect_meshes(node: Node) -> void:
 		_collect_meshes(child)
 
 
-## Roof cloth is imported opaque; give each surface a transparent-capable copy so the
-## instance transparency can actually fade it, while still writing depth when solid.
+## Roof cloth is imported opaque; give each surface its own copy, so this manager can
+## switch that copy to alpha for the fade without touching the shared material.
+##
+## The copies stay OPAQUE while the roof is solid, and that matters beyond tidiness: an
+## alpha material is skipped by the depth pre-pass, so a permanently-alpha roof left the
+## rooms underneath it in the depth buffer — and the screen-space outline pass happily
+## drew their silhouettes straight through the tiles. Solid means solid.
 func _prime_materials() -> void:
 	for gi in _meshes:
 		var mi := gi as MeshInstance3D
@@ -90,12 +96,20 @@ func _prime_materials() -> void:
 			if mat == null or mat.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
 				continue
 			var dup: BaseMaterial3D = mat.duplicate()
-			dup.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			dup.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
 			mi.set_surface_override_material(s, dup)
+			_mats.append(dup)
+
+
+## Alpha on only while there is something to see through — see _prime_materials.
+func _set_fadable(on: bool) -> void:
+	var mode := BaseMaterial3D.TRANSPARENCY_ALPHA if on else BaseMaterial3D.TRANSPARENCY_DISABLED
+	for mat in _mats:
+		mat.transparency = mode
 
 
 func _apply_instant(target: float) -> void:
+	_set_fadable(target > 0.0)
 	for gi in _meshes:
 		gi.transparency = target
 	_roof.visible = target < 1.0
@@ -106,11 +120,22 @@ func _fade_to(target: float) -> void:
 		_fade.kill()
 	if target < 1.0:
 		_roof.visible = true  # reveal before it fades back in
+	_set_fadable(true)
 	_fade = create_tween().set_parallel(true)
 	for gi in _meshes:
 		_fade.tween_property(gi, "transparency", target, fade_time)
+	_fade.chain().tween_callback(_settle.bind(target))
+
+
+## The fade is over: either the roof is gone, or it is solid again and goes back to
+## being an opaque, depth-writing lid.
+func _settle(target: float) -> void:
 	if target >= 1.0:
-		_fade.chain().tween_callback(_hide_roof)
+		_hide_roof()
+		return
+	_set_fadable(false)
+	for gi in _meshes:
+		gi.transparency = 0.0
 
 
 func _hide_roof() -> void:

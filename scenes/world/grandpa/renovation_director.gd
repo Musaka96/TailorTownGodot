@@ -144,6 +144,20 @@ const DAMP := preload("res://assets/textures/renovation/damp.png")
 const PUDDLE := preload("res://assets/textures/renovation/puddle.png")
 const PUDDLE_ORM := preload("res://assets/textures/renovation/puddle_orm.png")
 const PLASTER := preload("res://assets/textures/renovation/plaster.png")
+## Bare plaster and damp belong on wall, not on glass: the shop kit builds each wall run
+## out of named panels, and only these two have nothing cut out of them. Everything else
+## — a window, a door, a shopfront, an archway — is left alone, so no patch of brick ever
+## washes across a pane the player is meant to see through.
+const SOLID_PANELS := ["wall_plain", "wall_part_v7"]
+const PANEL_REACH := 1.0  # how near the room's wall line a panel must stand to count
+const PANEL_INSET := 0.04  # keeps a patch off the panel's very edge
+const PANEL_JOIN := 0.4  # panels this close run together as one stretch of plaster
+const PANEL_MIN := 0.7  # a stretch narrower than this is not worth a patch
+const WALL_OFF := 0.3  # how far in from the room's edge a wall patch sits
+const WALL_MID := 1.5  # its centre height
+const WALL_H := 3.0  # and how far up the wall it reaches
+const WALL_DEPTH := 0.7  # how deep it projects (it only has the one wall to find)
+const DAMP_WIDE := 2.4  # how broad one streak of damp runs
 
 ## Floor colour by Renovation.RoomState (SHUT, ENTERED, CLEARED, DONE), until the real
 ## shop swaps this for its wear shader.
@@ -166,6 +180,7 @@ var _floor_mats := {}  # room -> its own StandardMaterial3D
 var _wear := {}  # room -> its Decals
 var _dark := {}  # room -> the box of shadow in it
 var _facade: Array[Decal] = []  # dirt over the street front
+var _panels: Array[AABB] = []  # the shop's blind wall panels, in world space
 var _forecourt: Array[MeshInstance3D] = []  # the plot's dressing outside the shop door
 var _keepsakes := {}  # keepsake id -> the little thing standing on the shelf
 var _sheets_released := false  # the sheeted stations have been handed back for good
@@ -688,9 +703,9 @@ func _build_wear() -> void:
 		if DAMP_WALLS.has(room):
 			decals.append_array(_damp(room, lo, span))
 		for side in 4:  # the paper has gone: bare plaster, brick showing through
-			var bare := _wall_decal(room, side, lo, span)
-			bare.set_meta("bare", true)
-			decals.append(bare)
+			for bare in _bare_wall(room, side, lo, span):
+				bare.set_meta("bare", true)
+				decals.append(bare)
 		if PUDDLES.has(room):
 			var at: Vector2 = lo + span * (PUDDLES[room] as Vector2)
 			var wet := _decal(
@@ -706,27 +721,104 @@ func _build_wear() -> void:
 		_wear[room] = decals
 
 
-## One wall of `room` stripped back to the plaster. `side`: 0 back (low z), 1 street (high
-## z), 2 west (low x), 3 east (high x).
-func _wall_decal(room: String, side: int, lo: Vector2, span: Vector2) -> Decal:
-	var at := Vector3(lo.x + span.x / 2.0, 1.5, lo.y + span.y / 2.0)
-	var turn := Vector3(90, 0, 0)
-	var size := Vector3(span.x, 0.7, 3.0)
-	match side:
-		0:
-			at.z = lo.y + 0.3
-		1:
-			at.z = lo.y + span.y - 0.3
-			turn = Vector3(90, 180, 0)
-		2:
-			at.x = lo.x + 0.3
-			turn = Vector3(90, 90, 0)
-			size = Vector3(span.y, 0.7, 3.0)
-		_:
-			at.x = lo.x + span.x - 0.3
-			turn = Vector3(90, -90, 0)
-			size = Vector3(span.y, 0.7, 3.0)
-	return _decal("bare%d" % side, room, PLASTER, at, size, turn)
+## One wall of `room` stripped back to the plaster — a patch per blind stretch of it, so
+## the windows and the doorway through it stay clear. `side`: 0 back (low z), 1 street
+## (high z), 2 west (low x), 3 east (high x).
+func _bare_wall(room: String, side: int, lo: Vector2, span: Vector2) -> Array[Decal]:
+	var out: Array[Decal] = []
+	var runs := _solid_spans(side, lo, span)
+	for i in runs.size():
+		var run: Vector2 = runs[i]
+		var mid := (run.x + run.y) / 2.0
+		var size := Vector3(run.y - run.x, WALL_DEPTH, WALL_H)
+		var at := Vector3(mid, WALL_MID, lo.y + WALL_OFF)
+		var turn := Vector3(90, 0, 0)
+		match side:
+			1:
+				at.z = lo.y + span.y - WALL_OFF
+				turn = Vector3(90, 180, 0)
+			2:
+				at = Vector3(lo.x + WALL_OFF, WALL_MID, mid)
+				turn = Vector3(90, 90, 0)
+			3:
+				at = Vector3(lo.x + span.x - WALL_OFF, WALL_MID, mid)
+				turn = Vector3(90, -90, 0)
+		out.append(_decal("bare%d_%d" % [side, i], room, PLASTER, at, size, turn))
+	return out
+
+
+## Every blind wall panel the shop is built from, in world space. Gathered once — the
+## shell does not move, and the wear is rebuilt whenever a job finishes.
+func _solid_panels() -> Array[AABB]:
+	if not _panels.is_empty():
+		return _panels
+	var shop := get_node_or_null(shop_path)
+	if shop == null:
+		return _panels
+	for node in shop.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for key: String in SOLID_PANELS:
+			if mi.name.contains(key):
+				_panels.append(mi.global_transform * mi.get_aabb())
+				break
+	return _panels
+
+
+## The stretches of `side`'s wall that are blind panel, as [from, to] along the wall.
+func _solid_spans(side: int, lo: Vector2, span: Vector2) -> Array[Vector2]:
+	var along_x := side <= 1
+	var wall := lo.y if side == 0 else lo.y + span.y
+	if side == 2:
+		wall = lo.x
+	elif side == 3:
+		wall = lo.x + span.x
+	var from := lo.x if along_x else lo.y
+	var to := from + (span.x if along_x else span.y)
+	var out: Array[Vector2] = []
+	for box: AABB in _solid_panels():
+		var across := box.get_center().z if along_x else box.get_center().x
+		if absf(across - wall) > PANEL_REACH:
+			continue
+		var a := maxf(from, (box.position.x if along_x else box.position.z) + PANEL_INSET)
+		var b := minf(to, (box.end.x if along_x else box.end.z) - PANEL_INSET)
+		if b - a > 0.0:
+			out.append(Vector2(a, b))
+	return _joined(out)
+
+
+## Neighbouring panels are one wall to the eye, so their patches are run together — a
+## few long stretches of bare plaster broken at the openings, rather than a stripe per
+## panel (which reads as a tiling mistake, not as a shop nobody has papered in years).
+func _joined(runs: Array[Vector2]) -> Array[Vector2]:
+	runs.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var out: Array[Vector2] = []
+	for run: Vector2 in runs:
+		if not out.is_empty() and run.x - out[-1].y <= PANEL_JOIN:
+			out[-1] = Vector2(out[-1].x, maxf(out[-1].y, run.y))
+			continue
+		out.append(run)
+	var wide: Array[Vector2] = []
+	for run: Vector2 in out:
+		if run.y - run.x >= PANEL_MIN:
+			wide.append(run)
+	return wide
+
+
+## Slide a streak along the wall until it sits on blind panel rather than across a
+## window. Stays where it is when nothing on that wall is wide enough to take it.
+func _onto_panel(at: float, runs: Array[Vector2], wide: float) -> float:
+	var best := at
+	var nearest := INF
+	for run: Vector2 in runs:
+		if run.y - run.x < wide:
+			continue
+		var held := clampf(at, run.x + wide / 2.0, run.y - wide / 2.0)
+		if absf(held - at) < nearest:
+			nearest = absf(held - at)
+			best = held
+	return best
 
 
 ## Every room that starts shut gets a box of shadow: from the shop it is a dark hole, and
@@ -842,14 +934,15 @@ func _damp(room: String, lo: Vector2, span: Vector2) -> Array[Decal]:
 	var wall := str(DAMP_WALLS[room][0])
 	var count := int(DAMP_WALLS[room][1])
 	var along := span.x if wall == "back" else span.y
+	var runs := _solid_spans(0 if wall == "back" else 2, lo, span)
 	for i in count:
 		var t := (float(i) + 0.5) / float(count)
-		var at := Vector3(lo.x + along * t, 1.5, lo.y + 0.2)
+		var at := Vector3(_onto_panel(lo.x + along * t, runs, DAMP_WIDE), 1.5, lo.y + 0.2)
 		var turn := Vector3(90, 0, 0)  # the decal looks at the back wall (-Z)
 		if wall == "west":
-			at = Vector3(lo.x + 0.2, 1.5, lo.y + along * t)
+			at = Vector3(lo.x + 0.2, 1.5, _onto_panel(lo.y + along * t, runs, DAMP_WIDE))
 			turn = Vector3(90, 90, 0)  # ...or at the west wall (-X)
-		out.append(_decal("damp%d" % i, room, DAMP, at, Vector3(2.4, 0.8, 3.0), turn))
+		out.append(_decal("damp%d" % i, room, DAMP, at, Vector3(DAMP_WIDE, 0.8, 3.0), turn))
 	return out
 
 
