@@ -116,6 +116,7 @@ live in a session, but the workflow stays builder-script/headless based.
 |---|---|
 | Add/adjust a station | `stations/<name>/`, wire `UI.open_*` in `ui/ui.gd` |
 | Add a UI screen | `ui/`, use the `Style` kit + a `MenuSkin`; check with `tools/check_ui.gd` |
+| Write anything the player reads | `WRITING_STYLE_GUIDE.md` + the `tailortown-writing` skill; check with `tools/check_writing.gd` |
 | Change economy/tuning | `data/game_config.tres` (+ `tools/build_config.gd` to regenerate) |
 | Add a fabric/material | `data/materials/*.tres` (+ `tools/build_content.gd`) |
 | Change order-matching / dress rules | `data/scripts/dress_code.gd` + `data/dress_code.tres` |

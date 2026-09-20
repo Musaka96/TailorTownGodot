@@ -73,10 +73,10 @@ const PATTERNS := [
 	],
 	[
 		"Pinstripe",
-		"Thin, evenly spaced vertical lines on a darker ground, woven in (a 'chalk stripe' "
-		+ "is softer and wider).\n\n"
-		+ "It rose with 1920s finance and the power suits of the 1980s, lending height and "
-		+ "authority. Reads formal — best in navy or charcoal.",
+		"Thin, evenly spaced vertical lines on a darker ground, woven in rather than "
+		+ "printed. A 'chalk stripe' is softer and wider.\n\n"
+		+ "Bankers wore it in the 1920s and executives wore it again in the 1980s. It adds "
+		+ "height, and height is most of why anyone wears it. Navy or charcoal.",
 	],
 	[
 		"Herringbone",

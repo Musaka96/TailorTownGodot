@@ -54,6 +54,7 @@ instances). Never bulk-regenerate scenes — it clobbers the map.
 ## Verification
 
 Every change is checked headlessly before commit: `tools/validate.gd` (loads all
-scripts/scenes), `gdlint`, `tools/check_ui.gd` (UI style guide), and the relevant
+scripts/scenes), `gdlint`, `tools/check_ui.gd` (UI style guide),
+`tools/check_writing.gd` (writing style guide), and the relevant
 `tools/test_phase*.gd` smoke tests. Prefer asking the owner to playtest feel/motion;
 headless checks are guardrails. See `HANDOFF.md` for exact commands.

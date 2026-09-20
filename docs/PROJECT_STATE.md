@@ -174,7 +174,8 @@ Headless builders write committed content: `build_config`, `build_content`
 still in use: **`build_character.gd`** (character rig from the KayKit import) and
 **`build_dev.gd`** (`scenes/dev/dev_shop.tscn` sandbox — nests hand-owned scenes as
 instances, safe). `build_main_menu.gd` authored the 3D menu once (now hand-edited).
-Verifiers: `validate.gd` (loads every script/scene), `check_ui.gd` (style guide).
+Verifiers: `validate.gd` (loads every script/scene), `check_ui.gd` (UI style guide),
+`check_writing.gd` (writing style guide).
 Smoke tests: `test_phase1..6`, `test_save`, `test_shift`, `test_news`,
 `test_wardrobe`. Screenshot tools need a GPU (no `--headless`): `screenshot.gd`,
 `shot_rig/ui/menu/phone/worktable/sewing/mirror/closeup.gd`.
