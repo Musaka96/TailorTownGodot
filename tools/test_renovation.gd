@@ -18,6 +18,11 @@ var _game: Node
 var _upg: Node
 var _main: Node
 var _finished: Array[String] = []
+## pricing.gd, loaded at run time: naming the Pricing class here would compile it before the
+## autoloads it uses exist, which leaves it broken for the whole run.
+var _pricing: Variant
+var _sections_begun := 0
+var _sections_ended := 0
 
 
 func _initialize() -> void:
@@ -39,14 +44,24 @@ func _run() -> void:
 	for _i in 4:
 		await process_frame
 
-	_fresh()
-	_gating()
-	_by_hand()
-	_by_phone()
-	_rooms_and_stations()
-	_upgrades_wait_for_rooms()
-	_save_round_trip()
-	_reset_puts_it_back()
+	_pricing = load("res://data/scripts/pricing.gd")
+	for section: Callable in [
+		_fresh,
+		_gating,
+		_by_hand,
+		_by_phone,
+		_rooms_and_stations,
+		_upgrades_wait_for_rooms,
+		_save_round_trip,
+		_reset_puts_it_back,
+		_humbler_customers,
+	]:
+		_sections_begun += 1
+		section.call()
+	_check(
+		_sections_ended == _sections_begun,
+		"every section ran to its last line (%d of %d)" % [_sections_ended, _sections_begun]
+	)
 	print("test_renovation: %s" % ("ALL PASS" if _fails == 0 else "%d FAILURE(S)" % _fails))
 	quit(1 if _fails > 0 else 0)
 
@@ -66,6 +81,7 @@ func _fresh() -> void:
 	_check(not _node("CoffeeMachine").visible, "day 1: no coffee machine")
 	_check(_usable("Shelf"), "day 1: the one cloth shelf works")
 	_check(_usable("Phone"), "day 1: the phone works")
+	_sections_ended += 1
 
 
 func _gating() -> void:
@@ -78,6 +94,7 @@ func _gating() -> void:
 	_check(not _reno.available("cloth_boards"), "the cloth store waits for the workroom")
 	_check(not _reno.available("no_such_project"), "an unknown project is never available")
 	_check(not _reno.clear_spot("front_window"), "building work can't be done by hand")
+	_sections_ended += 1
 
 
 func _by_hand() -> void:
@@ -103,6 +120,7 @@ func _by_hand() -> void:
 	_check(piles.size() == 3 and hidden == 1, "one of three dust piles has gone")
 	_reno.clear_spot("front_sweep")
 	_reno.clear_spot("front_sweep")
+	_sections_ended += 1
 
 
 func _by_phone() -> void:
@@ -120,6 +138,7 @@ func _by_phone() -> void:
 	root.get_node("EventBus").day_began.emit(2)
 	_check(_reno.is_done("front_window"), "done at dawn")
 	_check(_reno.nights_left("front_window") == 0, "no nights left on a finished job")
+	_sections_ended += 1
 
 
 func _rooms_and_stations() -> void:
@@ -152,6 +171,7 @@ func _rooms_and_stations() -> void:
 	_check(not _reno.available("cloth_boards"), "…but at tier 1 its door still can't be tackled")
 	_rep.points = int(_rep.TIERS[2]["at"])
 	_check(_reno.available("cloth_boards"), "at tier 2 it can")
+	_sections_ended += 1
 
 
 func _upgrades_wait_for_rooms() -> void:
@@ -172,6 +192,7 @@ func _upgrades_wait_for_rooms() -> void:
 	_check(not _node("CoffeeMachine").visible, "not bought yet: still not there")
 	_check(_upg.buy("shop_coffee"), "bought")
 	_check(_node("CoffeeMachine").visible, "and there it stands")
+	_sections_ended += 1
 
 
 func _save_round_trip() -> void:
@@ -193,6 +214,7 @@ func _save_round_trip() -> void:
 	_check(_reno.spots_cleared("cloth_clear") == 1, "…and the half-finished scrubbing")
 	_check(not _reno.is_done("not_a_project"), "unknown ids in a save are ignored")
 	_check(_node("Bookshelf").visible, "the shop follows the restored state")
+	_sections_ended += 1
 
 
 func _reset_puts_it_back() -> void:
@@ -204,6 +226,60 @@ func _reset_puts_it_back() -> void:
 	_check(_solid("workroom"), "reset: the boards are back and solid")
 	_check(_node("Worktable").global_position.z > 1.5, "reset: the worktable is back in front")
 	_check(not _node("Bookshelf").visible, "reset: no bookshelf")
+	_sections_ended += 1
+
+
+## The one thing a shabby shop costs: customers with less to spend. Reputation picks the
+## budget band, but never a better one than the shop is fit to receive.
+func _humbler_customers() -> void:
+	var cfg: Resource = root.get_node("Config").data
+	var lows: Array = cfg.budget_min_by_tier
+	var highs: Array = cfg.budget_max_by_tier
+	var best := lows.size() - 1
+	_rep.points = int(_rep.TIERS[_rep.TIERS.size() - 1]["at"])  # a master's name...
+	_reno.reset()  # ...over a shop still under dust sheets
+	_check(_pricing.shop_tier_ceiling() == 0, "a fresh shop receives tier-0 customers only")
+	var band := _budget_band()
+	_check(
+		band.x >= int(lows[0]) and band.y <= int(highs[0]),
+		"…so even a master's customers bring tier-0 budgets (%d..%d)" % [band.x, band.y]
+	)
+	_check(band.x >= int(lows[0]), "a shabby shop never pays worse than a new one does")
+	for id: String in ["front_sheets", "front_sweep", "front_window", "front_lights"]:
+		while not _reno.is_done(id):
+			_reno.debug_finish_next()
+	_check(_pricing.shop_tier_ceiling() == 1, "a tidy front room welcomes tier-1 customers")
+	_reno.debug_finish_all()
+	_check(_pricing.shop_tier_ceiling() >= best, "the finished shop receives anyone")
+	band = _budget_band()
+	_check(
+		band.x >= int(lows[best]) and band.y <= int(highs[best]),
+		"…and the master's customers bring top budgets (%d..%d)" % [band.x, band.y]
+	)
+	# Explicit tiers (tools, tests) are never capped, and neither is Mr. Hemming's shop.
+	_reno.reset()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	_check(_pricing.random_budget(rng, best) >= int(lows[best]), "an explicit tier is not capped")
+	root.get_node("Locations").sync_to_scene("res://main.tscn")
+	_check(_pricing.shop_tier_ceiling() > best, "no ceiling at Mr. Hemming's")
+	band = _budget_band()
+	_check(band.x >= int(lows[best]), "…his customers' budgets follow reputation alone")
+	root.get_node("Locations").sync_to_scene(SCENE)
+	_sections_ended += 1
+
+
+## Lowest and highest of many budgets drawn the way the game draws them.
+func _budget_band() -> Vector2i:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 12345
+	var low := 1 << 30
+	var high := 0
+	for _i in 300:
+		var b: int = _pricing.random_budget(rng)
+		low = mini(low, b)
+		high = maxi(high, b)
+	return Vector2i(low, high)
 
 
 # --- helpers -------------------------------------------------------------------

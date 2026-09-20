@@ -32,6 +32,13 @@ extends Resource
 ## Budget range (the most they'll pay) per reputation tier.
 @export var budget_min_by_tier: Array[int] = [300, 350, 420, 500, 600]
 @export var budget_max_by_tier: Array[int] = [450, 550, 650, 800, 950]
+## Grandpa's shop only: how far the renovation must have come (Renovation.appeal(),
+## 0..1) before customers with a tier's budget will walk in. Reputation earns the
+## better clientele, the shop has to be fit to receive them; the lower of the two
+## picks the budget band. Tier 0 is always welcome, so a new shop loses nothing.
+## PROVISIONAL: front room tidy ~0.19, +workroom ~0.34, +cloth store ~0.5,
+## +nook ~0.66, everything 1.0.
+@export var appeal_for_budget_tier: Array[float] = [0.0, 0.15, 0.3, 0.45, 0.6]
 ## Chance a shopper is one of your regulars (once you have some).
 @export var regular_chance: float = 0.35
 ## Each completed order raises that regular's budget by this much (capped).

@@ -60,6 +60,7 @@ var _verbose := false
 var _main: Node
 var _space: PhysicsDirectSpaceState3D
 var _exclude: Array[RID] = []
+var _stages_done := 0  # a stage that errors out midway must not pass silently
 
 
 func _initialize() -> void:
@@ -83,6 +84,10 @@ func _run() -> void:
 	for stage: String in STAGES:
 		await _set_stage(STAGES[stage])
 		_check_stage(stage, start)
+	_check(
+		_stages_done == STAGES.size(),
+		"every stage was checked to the end (%d of %d)" % [_stages_done, STAGES.size()]
+	)
 	print("test_shop_clearance: %s" % ("ALL PASS" if _fails == 0 else "%d FAILURE(S)" % _fails))
 	quit(1 if _fails > 0 else 0)
 
@@ -150,6 +155,7 @@ func _check_stage(stage: String, start: Vector3) -> void:
 	_check(_near(wide, mirror, 0.45), "%s: 1.2 m aisle from the door to the mirror" % stage)
 	if _verbose:
 		_draw(free, seen, stage)
+	_stages_done += 1
 
 
 # --- the floor as a grid -------------------------------------------------------------

@@ -211,10 +211,27 @@ static func tip_share(score: float) -> float:
 	return top * clampf((score - from) / maxf(1.0 - from, 0.001), 0.0, 1.0)
 
 
+## The best budget tier grandpa's shop is fit to receive, from how far its renovation
+## has come: a shabby shop draws humbler customers, and that is all it costs. Anywhere
+## else (Mr. Hemming's, saves from before the move) there is no ceiling.
+static func shop_tier_ceiling() -> int:
+	var c := Config.data
+	var top := 99
+	if c == null or Locations == null or Locations.current != Locations.GRANDPA:
+		return top
+	var appeal: float = Renovation.appeal() if Renovation != null else 1.0
+	top = 0
+	for i in c.appeal_for_budget_tier.size():
+		if appeal + 0.0001 >= c.appeal_for_budget_tier[i]:
+			top = i
+	return top
+
+
 ## A customer's budget at reputation `tier` (before any loyalty bonus).
 static func random_budget(rng: RandomNumberGenerator, tier := -1) -> int:
 	if tier < 0:
 		tier = Reputation.tier() if Reputation != null else 0
+		tier = mini(tier, shop_tier_ceiling())
 	var c := Config.data
 	if c == null or c.budget_min_by_tier.is_empty():
 		return int(round(rng.randf_range(300, 450)))

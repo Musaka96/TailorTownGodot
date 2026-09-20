@@ -100,6 +100,7 @@ func _ready() -> void:
 	_build_spots()
 	_build_sheets()
 	Renovation.changed.connect(_apply)
+	Renovation.project_finished.connect(_on_project_finished)
 	_apply()
 
 
@@ -168,6 +169,21 @@ func _apply_stations() -> void:
 	for station: String in APPEAR:
 		var there := Renovation.room_state(APPEAR[station]) == Renovation.RoomState.DONE
 		_set_station_live(_station(station), there)
+
+
+## Tell the player: a room coming back is the reward, so it shouldn't happen unnoticed.
+## (Loading a save restores the state without finishing anything, so it stays quiet.)
+func _on_project_finished(id: String) -> void:
+	if UI == null or not UI.has_method("toast"):
+		return
+	var d := Renovation.data(id)
+	var opened := str(d.get("opens", ""))
+	if opened != "":
+		UI.toast("The %s is ready" % str(Renovation.ROOMS[opened]["name"]).to_lower())
+	elif int(d.get("kind", Renovation.Kind.BUILD)) == Renovation.Kind.BUILD:
+		UI.toast("The builders have finished: %s" % str(d.get("name", id)).to_lower())
+	else:
+		UI.toast("Done: %s" % str(d.get("name", id)).to_lower())
 
 
 # --- Interacting ---------------------------------------------------------------
