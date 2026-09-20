@@ -31,9 +31,11 @@ const TUT_BUDGET := 1000
 
 # --- Mentor lines ------------------------------------------------------------
 
+## The player has come to HIM: they mean to reopen their grandfather's shop and can't sew.
 const M_PROMPT := (
-	"Ah, a new face on the Row! I'm [b]Mr. Hemming[/b] — forty years behind the shears. "
-	+ "Shall I show you how a proper tailor's shop runs?"
+	"So you're his grandchild! I'm [b]Mr. Hemming[/b] — I learned this trade at your "
+	+ "grandfather's bench, forty years ago. You mean to open his old shop again? Then let me "
+	+ "show you how a tailor's shop runs, here in mine."
 )
 const M_ORDER := (
 	"Order taken — that's their ticket, up top. Every suit begins with cloth, and cloth "
@@ -126,7 +128,14 @@ const M_REP := (
 const M_BYE := (
 	"That's the lot. Busy? Flip the [b]shop sign[/b] on the phone, or book a customer for "
 	+ "another day when you greet them. Read the [b]Handbook[/b] ([b]%s[/b]) when unsure, and treat "
-	+ "yourself to an upgrade when the till allows. Make the Row proud!"
+	+ "yourself to an upgrade when the till allows."
+)
+## The last thing he says: the lesson was in his shop, the work is in grandpa's (the game moves
+## there next). It names the three things the renovation asks of the player.
+const M_SEND_OFF := (
+	"Your grandfather's shop has stood shut a good while, so don't expect mine: pull off the "
+	+ "[b]dust sheets[/b], clear what you can [b]by hand[/b], and ring the [b]builders[/b] on the "
+	+ "telephone for the rest. A room at a time. Off you go — make the old man proud!"
 )
 
 ## The parts the mentor runs up for the tutorial order are sewn to its design at this
@@ -255,7 +264,7 @@ const STEPS := [
 	{"id": "orders", "event": "", "mentor": [M_ORDERS]},
 	{"id": "reputation", "event": "", "mentor": [M_REP]},
 	{"id": "newspaper", "event": "", "mentor": [M_PAPER]},
-	{"id": "handbook", "event": "", "point": "Bookshelf", "mentor": [M_BYE]},
+	{"id": "handbook", "event": "", "point": "Bookshelf", "mentor": [M_BYE, M_SEND_OFF]},
 ]
 
 # Station node-name prefixes gated during a make step (only the step's own is usable).

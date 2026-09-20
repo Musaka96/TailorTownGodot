@@ -6,8 +6,9 @@ extends Control
 ##    so you can see what better cloth awaits). Choose an unlocked one to open its order
 ##    form (fabric / colour / pattern / length) — the supplier decides which fabrics stock.
 ##  - Shop Upgrades -> buy reputation-gated shop upgrades, grouped by machine.
+##  - Builders (grandpa's shop only) -> order BUILD renovation projects, grouped by room.
 
-enum Screen { HUB, SUPPLIERS, ORDER, UPGRADES }
+enum Screen { HUB, SUPPLIERS, ORDER, UPGRADES, BUILDERS }
 enum ORow { FABRIC, COLOR, PATTERN, PATTERN_COLOR, LENGTH }
 
 const PANEL_W := 520
@@ -25,6 +26,9 @@ const HUB_OPTIONS := [
 	{"title": "Shop Sign", "desc": ""},  # text filled live (see _hub_card_text)
 ]
 const HUB_SIGN := 2
+## Appended after HUB_OPTIONS (grandpa's shop only, see _hub_options) — its index there
+## is HUB_OPTIONS.size(), never earlier, so it can't shift the sign card or the tutorial.
+const BUILDERS_CARD := {"title": "Builders", "desc": "Book the renovation work on the shop."}
 const KICKER := "Order pad"
 const OROW_NAME := {
 	ORow.FABRIC: "Fabric",
@@ -53,6 +57,7 @@ var _length := 10.0
 var _row := 0
 var _status := ""
 var _upg_ids: Array = []
+var _build_ids: Array = []
 var _list_scroll: ScrollContainer
 var _list_pad: MarginContainer
 var _selected_row: Control = null
@@ -81,6 +86,15 @@ func _ready() -> void:
 	_build_preview()
 	_wrap_rows()
 	_upg_ids = Upgrades.all_ids()
+	_build_ids = _builder_ids()
+	Renovation.changed.connect(_on_renovation_changed)
+
+
+## The builders' work may finish (or its cost/lock state may change) while this screen
+## is open, e.g. at dawn (EventBus.day_began) — refresh so the row/preview stay honest.
+func _on_renovation_changed() -> void:
+	if visible and _screen == Screen.BUILDERS:
+		_refresh()
 
 
 func open(phone, actor) -> void:
@@ -137,7 +151,7 @@ func _fit_list() -> void:
 	if _list_scroll == null or not visible:
 		return
 	var tallest := minf(get_viewport_rect().size.y - _panel.offset_top - LIST_MARGIN, PANEL_MAX_H)
-	if _screen == Screen.UPGRADES:
+	if _screen == Screen.UPGRADES or _screen == Screen.BUILDERS:
 		_list_scroll.custom_minimum_size.y = 0.0
 		_list_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		_panel.offset_bottom = _panel.offset_top + tallest
@@ -266,6 +280,8 @@ func _refresh() -> void:
 			_refresh_order()
 		Screen.UPGRADES:
 			_refresh_upgrades()
+		Screen.BUILDERS:
+			_refresh_builders()
 	_fit_list.call_deferred()
 
 
@@ -273,13 +289,22 @@ func _refresh_hub() -> void:
 	_head.set_kicker(KICKER)
 	_title.text = "Phone"
 	_preview.visible = false
-	_row = clampi(_row, 0, HUB_OPTIONS.size() - 1)
+	var opts := _hub_options()
+	_row = clampi(_row, 0, opts.size() - 1)
 	_hub_sel = _row
-	for i in HUB_OPTIONS.size():
-		var opt: Dictionary = HUB_OPTIONS[i]
+	for i in opts.size():
 		var text := _hub_card_text(i)
 		_rows.add_child(_make_hub_card(text[0], text[1], i == _row))
 	_set_hint([["W/S", "Select"], ["E", "Open"], ["Esc", "Hang up"]])
+
+
+## The hub cards for the current location: the base three, plus Builders at grandpa's
+## shop (where rooms actually need booking). A function of location, not a mutated
+## const, so HUB_SIGN and the tutorial's Hemming's-shop indices never move.
+func _hub_options() -> Array:
+	if Locations.current == Locations.GRANDPA:
+		return HUB_OPTIONS + [BUILDERS_CARD]
+	return HUB_OPTIONS
 
 
 ## The supplier phonebook: browse every mill (locked ones too) and read what they stock.
@@ -380,6 +405,32 @@ func _refresh_upgrades() -> void:
 	_set_hint([["W/S", "Select"], ["E", "Buy"], ["Esc", "Back"]])
 
 
+## BUILD renovation projects only (cleanup is done by hand in the shop), grouped under a
+## header per room in ROOMS order — locked ones are listed too, so the player can see
+## what's coming, the same way locked suppliers are shown.
+func _refresh_builders() -> void:
+	_preview.visible = true
+	_contacts.visible = false
+	_swatch.visible = false
+	_head.set_kicker(KICKER)
+	_title.text = "Builders"
+	_row = clampi(_row, 0, maxi(_build_ids.size() - 1, 0))
+	if not _build_ids.is_empty():
+		_show_builder_preview(_build_ids[_row])
+	var last_room := ""
+	for i in _build_ids.size():
+		var id: String = _build_ids[i]
+		var room := str(Renovation.data(id).get("room", ""))
+		if room != last_room:
+			last_room = room
+			_rows.add_child(Style.header(_room_name(room), Style.ACC_ORDER))
+		var card := _make_builder_row(id, _row == i)
+		if _row == i:
+			_selected_row = card
+		_rows.add_child(card)
+	_set_hint([["W/S", "Select"], ["E", "Order"], ["Esc", "Back"]])
+
+
 func _build_contacts() -> void:
 	for child in _contacts.get_children():
 		child.queue_free()
@@ -434,6 +485,35 @@ func _show_upgrade_preview(id: String) -> void:
 		_price_label.text = "Buy:  $ %d%s" % [cost, _status]
 		var ok := GameState.can_afford(cost)
 		_price_label.add_theme_color_override("font_color", Style.FOREST if ok else Style.CLAY)
+
+
+## Right-hand detail for the highlighted renovation project: its blurb, room, and either
+## its progress, its lock reason, or its price and how long the builders will need.
+func _show_builder_preview(id: String) -> void:
+	var d := Renovation.data(id)
+	_name_label.text = str(d.get("name", "?"))
+	_summary_label.text = str(d.get("desc", ""))
+	var room_name := _room_name(str(d.get("room", "")))
+	var line := ""
+	var col := Style.INK
+	if Renovation.is_done(id):
+		line = "Done"
+		col = Style.FOREST
+	elif Renovation.nights_left(id) > 0:
+		line = "Builders in — %s left" % _nights_text(Renovation.nights_left(id))
+		col = Style.AMBER
+	elif not Renovation.tier_met(id):
+		line = "Needs %s" % _tier_name(Renovation.tier_needed(id))
+		col = Style.CLAY
+	elif _builder_blocker(id) != "":
+		line = _blocker_text(_builder_blocker(id))
+		col = Style.CLAY
+	else:
+		var cost := int(d.get("cost", 0))
+		line = "$%d  ·  The builders need %s" % [cost, _nights_text(int(d.get("nights", 1)))]
+		col = Style.FOREST if GameState.can_afford(cost) else Style.CLAY
+	_price_label.text = "%s\n%s%s" % [room_name, line, _status]
+	_price_label.add_theme_color_override("font_color", col)
 
 
 func _tier_name(t: int) -> String:
@@ -561,6 +641,85 @@ func _status_label(text: String, col: Color) -> Label:
 	return lbl
 
 
+func _make_builder_row(id: String, selected: bool) -> Control:
+	var d := Renovation.data(id)
+	var card := _card_panel(selected)
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", Style.S2)
+	card.add_child(hbox)
+	var name_label := Label.new()
+	name_label.text = str(d.get("name", "?"))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_font_override("font", Style.font_medium())
+	name_label.add_theme_color_override("font_color", Style.INK)
+	name_label.add_theme_font_size_override("font_size", Style.T_BODY)
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(name_label)
+	var status := _builder_status(id, d)
+	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(status)
+	return card
+
+
+## Right-hand status of a builders row: done / under way / locked, or its price (in the
+## unaffordable colour when the player can't yet cover it).
+func _builder_status(id: String, d: Dictionary) -> Label:
+	if Renovation.is_done(id):
+		return _status_label("Done", Style.FOREST)
+	var nights := Renovation.nights_left(id)
+	if nights > 0:
+		return _status_label("Builders in — %s left" % _nights_text(nights), Style.AMBER)
+	if not Renovation.tier_met(id):
+		return _status_label("Needs %s" % _tier_name(Renovation.tier_needed(id)), Style.CLAY)
+	var blocker := _builder_blocker(id)
+	if blocker != "":
+		var name: String = str(Renovation.data(blocker).get("name", blocker))
+		return _status_label("After: %s" % name, Style.CLAY)
+	var cost := int(d.get("cost", 0))
+	var afford := GameState.can_afford(cost)
+	var price := Style.money(cost, Style.T_BODY, Style.INK_SOFT if afford else Style.CLAY)
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	return price
+
+
+## The id of the first not-yet-done project this one's `needs` waits on ("" if none).
+func _builder_blocker(id: String) -> String:
+	for other: String in Renovation.data(id).get("needs", []):
+		if not Renovation.is_done(other):
+			return other
+	return ""
+
+
+## The preview's reason text for a `needs` lock: cleanup work is done by hand in the
+## shop (not ordered), so it gets its own phrasing rather than "After: <name>".
+func _blocker_text(blocker_id: String) -> String:
+	var bd := Renovation.data(blocker_id)
+	var name := str(bd.get("name", blocker_id))
+	if int(bd.get("kind", Renovation.Kind.BUILD)) == Renovation.Kind.CLEANUP:
+		return "First, in the shop: %s" % name
+	return "After: %s" % name
+
+
+func _room_name(room: String) -> String:
+	return str(Renovation.ROOMS.get(room, {}).get("name", room))
+
+
+func _nights_text(n: int) -> String:
+	return "%d night%s" % [n, "" if n == 1 else "s"]
+
+
+## BUILD project ids only, grouped by room in ROOMS order (cleanup is done by hand, not
+## ordered from the phone).
+func _builder_ids() -> Array:
+	var ids: Array = []
+	for room: String in Renovation.ROOMS:
+		for id: String in Renovation.all_ids():
+			var d := Renovation.data(id)
+			if str(d.get("room", "")) == room and int(d.get("kind", -1)) == Renovation.Kind.BUILD:
+				ids.append(id)
+	return ids
+
+
 # --- Input -----------------------------------------------------------------
 
 
@@ -588,11 +747,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _row_count() -> int:
 	match _screen:
 		Screen.HUB:
-			return HUB_OPTIONS.size()
+			return _hub_options().size()
 		Screen.SUPPLIERS:
 			return Upgrades.VENDORS.size()
 		Screen.ORDER:
 			return _order_rows().size()
+		Screen.BUILDERS:
+			return _build_ids.size()
 	return _upg_ids.size()
 
 
@@ -633,6 +794,8 @@ func _confirm() -> void:
 			_order_roll()
 		Screen.UPGRADES:
 			_buy_upgrade()
+		Screen.BUILDERS:
+			_order_builder()
 
 
 func _back() -> void:
@@ -655,7 +818,7 @@ func _back() -> void:
 
 ## Title + description for a hub card (the sign card shows its live state).
 func _hub_card_text(i: int) -> Array:
-	var opt: Dictionary = HUB_OPTIONS[i]
+	var opt: Dictionary = _hub_options()[i]
 	if i != HUB_SIGN:
 		return [opt["title"], opt["desc"]]
 	if FrontDesk.booked:
@@ -667,6 +830,12 @@ func _open_hub_choice() -> void:
 	if _hub_sel == HUB_SIGN:
 		FrontDesk.booked = not FrontDesk.booked
 		Sfx.play("drawer")
+		_refresh()
+		return
+	if _hub_sel == HUB_OPTIONS.size():  # the Builders card, only ever present at grandpa's
+		_screen = Screen.BUILDERS
+		_row = 0
+		_status = ""
 		_refresh()
 		return
 	_screen = Screen.SUPPLIERS if _hub_sel == 0 else Screen.UPGRADES
@@ -804,6 +973,32 @@ func _needs(id: String) -> String:
 	if base == "" or Upgrades.has(base):
 		return ""
 	return str(Upgrades.data(base).get("name", base))
+
+
+## Book a BUILD project's renovation work: the same refusal feedback as _buy_upgrade
+## (a status line, nothing spent) when it can't be ordered, else pay, start the nights,
+## and toast it like a purchase.
+func _order_builder() -> void:
+	if _build_ids.is_empty():
+		return
+	var id: String = _build_ids[_row]
+	if Renovation.is_done(id):
+		_status = "  (already done)"
+	elif Renovation.nights_left(id) > 0:
+		_status = "  (the builders are already on it)"
+	elif not Renovation.tier_met(id):
+		_status = "  (need more reputation)"
+	elif _builder_blocker(id) != "":
+		var name: String = str(Renovation.data(_builder_blocker(id)).get("name", ""))
+		_status = "  (finish %s first)" % name
+	elif not GameState.can_afford(int(Renovation.data(id).get("cost", 0))):
+		_status = "  (not enough money)"
+	elif Renovation.order(id):
+		Sfx.play("coins")
+		var nights := int(Renovation.data(id).get("nights", 1))
+		UI.toast("Builders booked — done in %s" % _nights_text(nights))
+		_status = "  — booked!"
+	_refresh()
 
 
 # --- Tutorial hooks ----------------------------------------------------------
