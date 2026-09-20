@@ -1,130 +1,117 @@
 class_name Handbook
 
-## Content for the Tailor's Handbook (opened at the bookshelf). Real-world
-## tailoring knowledge — fabrics, patterns, styles — plus a Dress Codes chapter
-## whose guidance is described in plain language, derived live from the
-## configurable Catalog.dress_code so it always reflects the rules in play.
-
-# Colour tone buckets (MaterialFactory palette indices).
-const LIGHT_COLORS := [2, 4]  # Light Grey, Tan
-const MID_COLORS := [6]  # Blue
-# Patterns that read as bold / statement-making (Enums.Pattern indices).
-const BOLD_PATTERNS := [3, 4, 5]  # Houndstooth, Windowpane, Glen Check
+## Content for the Tailor's Handbook (opened at the bookshelf). Real-world tailoring
+## knowledge — fabrics, patterns, styles — plus a Dress Codes chapter whose guidance is
+## derived live from the configurable Catalog.dress_code so it always reflects the rules
+## actually in play.
+##
+## Voice: Pops's working notes, per docs/WRITING_STYLE_GUIDE.md §3.3. Plain words, an
+## opinion in every entry, and something the player can act on at the mirror. The Dress
+## Codes chapter names the exact colours and patterns the rulebook allows, because a
+## handbook that hints ("keep to dark, sombre colours") is both vaguer and wordier than
+## one that simply says "navy, charcoal or black".
 
 # [title, body]  (body supports a little BBCode: [b]…[/b])
 const FABRICS := [
 	[
 		"Worsted Wool",
-		"Wool spun from long fibres that are combed straight ([i]worsted[/i]) before "
-		+ "being tightly twisted into a smooth, hard yarn. The result is crisp, durable "
-		+ "cloth that holds a sharp press.\n\n"
-		+ "Named after Worstead, a village in Norfolk, England, where the technique grew "
-		+ "up in the Middle Ages. Fineness is graded by [b]Super[/b] numbers — Super 100s, "
-		+ "120s and up — with higher numbers finer, softer and more delicate.\n\n"
-		+ "The default suiting cloth: worn year-round, from the boardroom to black tie.",
+		"The everyday suit cloth. The wool is combed straight before it is spun, so the "
+		+ "yarn comes out smooth and hard and the cloth holds a press.\n\n"
+		+ "You will see it graded by a [b]Super[/b] number. Super 100s, 120s, 150s. The "
+		+ "higher you go the finer and softer it gets, and the sooner it wears through at "
+		+ "the elbow. Super 100s does for most people.\n\n"
+		+ "Use it for anything. When you cannot decide, this is the answer.",
 	],
 	[
 		"Flannel",
-		"A soft wool with a lightly brushed (napped) surface that blurs the weave for a "
-		+ "warm, matte look. It can be worsted- or woollen-spun, then teaselled to raise "
-		+ "the fuzzy face.\n\n"
-		+ "The name likely comes from the Welsh [i]gwlanen[/i]; production centred on Wales "
-		+ "from the 17th century. Grey flannel became a 20th-century icon — the uniform of "
-		+ "the mid-century professional.\n\n"
-		+ "A cool-weather cloth: autumn and winter suits and odd trousers.",
+		"Wool with the face brushed up until the weave goes soft and fuzzy. It does not "
+		+ "shine and it keeps a man warm.\n\n"
+		+ "Grey flannel was the office uniform for most of my working life. I have cut "
+		+ "hundreds of them and I never tired of it.\n\n"
+		+ "Autumn and winter. Too hot for July.",
 	],
 	[
 		"Tweed",
-		"A rugged, coarse woollen cloth, woven thick and slightly hairy for warmth and "
-		+ "weather resistance. The name is thought to come from the Scots [i]tweel[/i] "
-		+ "(twill), possibly via the River Tweed.\n\n"
-		+ "Born in the Scottish Highlands and Ireland as hard-wearing rural cloth; Harris "
-		+ "Tweed is still hand-woven in the Outer Hebrides and legally protected. Victorian "
-		+ "gentry adopted it for country estates and sport.\n\n"
-		+ "Country and casual, in earthy browns and greens, herringbones and checks — a "
-		+ "cold-weather cloth.",
+		"Scottish hill cloth, made to keep a shepherd dry. The gentry took it up for "
+		+ "shooting weekends and it has been country wear ever since.\n\n"
+		+ "Thick, hairy, warm, rough on the hands. Browns and greens and greys, usually "
+		+ "with a herringbone or a check woven into it.\n\n"
+		+ "Never for a funeral and never for an office. A cold party, a weekend in the "
+		+ "country, and that is the whole list.",
 	],
 	[
 		"Mohair Blend",
-		"Fibre from the Angora goat, usually blended with wool. It is crisp and light with "
-		+ "a natural sheen, springs back from creases, and breathes well.\n\n"
-		+ "Angora goats trace to the Ankara region of Turkey (from which 'Angora' takes its "
-		+ "name). Mohair-wool 'tonik' suits were the sharp, shiny look of the 1960s Mods.\n\n"
-		+ "Its lustre and light weight make it a favourite for summer suits and for evening "
-		+ "and formal wear.",
+		"Goat hair spun in with the wool. Light, springs back out of a crease, and carries "
+		+ "a faint shine.\n\n"
+		+ "Summer and evening. The shine is the point of it, so do not put it on a man who "
+		+ "wants to go unnoticed.",
 	],
 	[
 		"Linen",
-		"Woven from the fibres of the flax plant. It is wonderfully cool and breathable, "
-		+ "but wrinkles readily — a rumpled charm that is part of the look.\n\n"
-		+ "One of the oldest textiles known: linen wrapped the pharaohs of ancient Egypt. "
-		+ "Flax is retted, beaten and combed before spinning, a labour-intensive process "
-		+ "that long made it prized.\n\n"
-		+ "The quintessential hot-weather, casual cloth, at home in tan and natural tones.",
+		"Flax. It creases if you look at it, it creases worse after an hour of wearing, "
+		+ "and that is simply the cloth.\n\n"
+		+ "A customer who minds should be told so at the mirror and not at the fitting. "
+		+ "Cool as a cellar in August.\n\n"
+		+ "Tan and natural. Nothing darker than sand.",
 	],
 ]
 
 const PATTERNS := [
 	[
 		"Solid",
-		"No pattern at all — the most versatile and most formal choice. It lets the "
-		+ "cloth's colour and texture speak, and flatters almost any occasion. The safest "
-		+ "place to start.",
+		"No pattern at all, which is the safest thing you can put on a man and the one to "
+		+ "reach for when the day is a serious one.",
 	],
 	[
 		"Pinstripe",
-		"Thin, evenly spaced vertical lines on a darker ground, woven in rather than "
-		+ "printed. A 'chalk stripe' is softer and wider.\n\n"
-		+ "Bankers wore it in the 1920s and executives wore it again in the 1980s. It adds "
-		+ "height, and height is most of why anyone wears it. Navy or charcoal.",
+		"Thin straight lines running up and down a dark cloth, woven in rather than "
+		+ "printed. A chalk stripe is the same idea, softer and wider.\n\n"
+		+ "Bankers wore it in the twenties and have not stopped. It makes a man look "
+		+ "taller, and that is most of why anyone wears it.\n\n"
+		+ "Navy or charcoal. Not brown.",
 	],
 	[
 		"Herringbone",
-		"A broken-twill weave whose diagonal reverses back and forth to form rows of Vs, "
-		+ "like a fish's skeleton — hence the name.\n\n"
-		+ "An ancient structure found in Roman brickwork and jewellery long before cloth. "
-		+ "Subtle and textured; a mainstay of tweeds and jackets.",
+		"A zig-zag texture laid in rows, like the bones of a fish. That is where the name "
+		+ "comes from.\n\n"
+		+ "Quiet from a distance and interesting up close. You find it mostly in tweed and "
+		+ "in odd jackets. Safe nearly anywhere.",
 	],
 	[
 		"Houndstooth",
-		"Broken checks with sharp, pointed 'teeth', traditionally in black and white. It "
-		+ "comes from the woven shepherd's checks of the Scottish Lowlands.\n\n"
-		+ "Bold and full of character; the smaller 'puppytooth' is more restrained and "
-		+ "easier to wear day to day.",
+		"Broken checks with little points on them, usually black and white. Shepherds in "
+		+ "the Scottish Lowlands wove it first.\n\n"
+		+ "It shouts. The small version is called puppytooth, and a man can wear that one "
+		+ "to work without anybody minding.",
 	],
 	[
 		"Windowpane",
-		"Widely spaced horizontal and vertical lines crossing into large squares, like the "
-		+ "panes of a window.\n\n"
-		+ "Striking and fashion-forward — it draws the eye, so it is best worn with "
-		+ "confidence and in moderation.",
+		"Lines crossing into large squares, like the panes of a window.\n\n"
+		+ "It reads from across a street, which is either the point or the problem. One "
+		+ "piece of it in a suit. Never two.",
 	],
 	[
 		"Glen Check",
-		"Also called Glen plaid or Prince of Wales check: small and large woven checks "
-		+ "combined, often with a faint coloured overcheck.\n\n"
-		+ "Designed on the Glenurquhart estate in 19th-century Scotland and made famous by "
-		+ "Edward VIII. Smart, British and surprisingly versatile.",
+		"Small checks and large checks woven over one another, sometimes with a faint "
+		+ "coloured line running through. Also called Prince of Wales check.\n\n"
+		+ "Edward VIII wore it and half the country followed him. Smart without being "
+		+ "stiff about it.",
 	],
 	[
 		"Birdseye",
-		"A tiny dotted texture created by a small repeating weave, each 'eye' a speck of "
-		+ "the ground colour.\n\n"
-		+ "Near-solid from across a room, with quiet depth up close. Refined and very "
-		+ "business-appropriate.",
+		"Tiny dots, each one a speck of the colour underneath showing through.\n\n"
+		+ "From across a room it passes for plain. Up close it does not. Good for "
+		+ "business, and good for a man who thinks he dislikes pattern.",
 	],
 	[
 		"Sharkskin",
-		"A weave that alternates two colours of yarn to give a smooth, softly iridescent "
-		+ "surface that shifts in the light.\n\n"
-		+ "Sleek and modern-classic — think Rat Pack navy and grey suits of the 1960s.",
+		"Two colours of yarn woven together so the cloth shifts shade as the man turns.\n\n"
+		+ "Navy and grey, mostly. It looks expensive, which is the whole idea.",
 	],
 	[
 		"Nailhead",
-		"Minute dots like the heads of nails scattered on a solid ground, from a small "
-		+ "two-tone weave.\n\n"
-		+ "A step more interesting than plain while still reading as near-solid — a quiet, "
-		+ "dependable business texture.",
+		"Dots the size of a nail head scattered on a plain ground. A step up from plain, "
+		+ "and nobody notices unless they are standing close.",
 	],
 ]
 
@@ -132,59 +119,65 @@ const PATTERNS := [
 const STYLES := [
 	[
 		"Old-School",
-		"Heritage tailoring. Structured shoulders, a fuller, draped cut, sober colour and "
-		+ "time-honoured patterns like check and herringbone, often with a waistcoat. Formal "
-		+ "and unmistakably traditional — the look of old money and old films.",
+		"The way it was cut before the war. Heavy shoulders, a full skirt to the jacket, "
+		+ "dark cloth, and a waistcoat more often than not.\n\n"
+		+ "Check and herringbone. Nothing invented after 1930.",
 		"res://assets/handbook/styles/oldschool.jpg",
 	],
 	[
 		"Classic",
-		"The balanced middle ground: clean lines, versatile navy and grey, understated "
-		+ "pattern. It borrows from no single era and so never dates — the dependable "
-		+ "default of a well-dressed wardrobe.",
+		"Navy or grey, clean lines, and a pattern you have to look for. It belongs to no "
+		+ "particular year, so it never goes out.\n\n"
+		+ "When a customer cannot tell you what he wants, cut him this.",
 		"res://assets/handbook/styles/classic.jpg",
 	],
 	[
 		"Modern",
-		"A trimmer, contemporary cut with fresher colour, peak lapels and confident pattern "
-		+ "mixing. Sharp and current — made to look of-the-moment.",
+		"A trimmer cut with fresher colour and a pointed lapel, made to look like this "
+		+ "year rather than any other.",
 		"res://assets/handbook/styles/modern.jpg",
 	],
 	[
 		"Fashion",
-		"Expressive and trend-led. Bolder colour, statement patterns like windowpane, and "
-		+ "playful touches — a bow tie, an unexpected cloth. Cut to be noticed.",
+		"Loud on purpose. Big patterns, colours you would not put on a banker, and the "
+		+ "jacket need not match the trousers.\n\n"
+		+ "This is the one brief where a plain cloth will disappoint.",
 		"res://assets/handbook/styles/fashion.jpg",
 	],
 ]
 
-# [occasion enum, title, prose]  (plain-language guidance is appended live)
+# [occasion enum, title, prose]  (the rulebook summary is appended live)
 const OCCASIONS := [
 	[
 		Enums.Occasion.WEDDING,
 		"Weddings",
-		"Dress to celebrate without upstaging the couple. Daytime and summer weddings "
-		+ "welcome lighter greys, blues and tans; evening calls for navy or charcoal. Keep "
-		+ "black for the most formal, after-dark affairs.",
+		"You are dressing a guest and not the groom. Nothing that pulls an eye off the "
+		+ "couple.\n\n"
+		+ "A daytime wedding in summer will take lighter greys, blues and tans. An evening "
+		+ "one wants navy or charcoal. Keep black for the grandest sort, after dark.",
 	],
 	[
 		Enums.Occasion.FUNERAL,
 		"Funerals",
-		"Sombre and respectful above all. Black and charcoal, plain weaves and minimal "
-		+ "pattern are the safe tradition. Modern mourning permits deep, muted colours — "
-		+ "never anything bright or attention-seeking.",
+		"Black. Charcoal if black is beyond them.\n\n"
+		+ "Nothing that shines and nothing with a loud check in it. Nobody at a funeral "
+		+ "should be looking at a suit, and it is your job to see that they do not.",
 	],
 	[
 		Enums.Occasion.BUSINESS,
 		"Business",
-		"The lounge suit is the workhorse of professional life. Navy and charcoal read as "
-		+ "competent and trustworthy; a quiet texture adds authority. Understated wins.",
+		"A plain dark suit is the workhorse of this trade. You will cut more of these than "
+		+ "everything else together.\n\n"
+		+ "Navy or charcoal. A quiet texture in the cloth is money without saying so. Keep "
+		+ "the pattern small enough that it disappears at ten paces.",
 	],
 	[
 		Enums.Occasion.PARTY,
 		"Parties",
-		"Here you have room to express yourself. Richer colours, bolder patterns and "
-		+ "textured cloth all come into their own, especially in the evening. Have some fun.",
+		"Here a man may enjoy himself.\n\n"
+		+ "Deeper colours, bigger patterns, cloth with something going on in it. The "
+		+ "evening especially. If he asks you for something quiet, give it to him, but do "
+		+ "not steer him there.",
 	],
 ]
 
@@ -220,37 +213,77 @@ static func _dress_entries() -> Array:
 	return out
 
 
-# Plain-language guidance per style, derived from the rule (no exact lists).
+## The rulebook, in words: for each style, the colours and patterns the jacket may take,
+## then the shirt and trouser rules. Named outright rather than hinted at — the player
+## has to be able to read this and go straight to the mirror and build the suit.
 static func _rule_summary(occasion: int) -> String:
 	if Catalog.dress_code == null:
 		return ""
-	var lines := ["[b]What works here[/b]"]
+	var lines := ["[b]What to make[/b]"]
 	for style in range(Enums.Style.size()):
 		var rule: DressRule = Catalog.dress_code.rule_for(occasion, style)
 		if rule == null:
 			continue
-		var tone := _tone_phrase(rule.allowed_colors)
-		var pattern := _pattern_phrase(rule)
-		lines.append("%s — %s, %s." % [Enums.style_name(style), tone, pattern])
+		lines.append(
+			"[b]%s[/b] — %s. %s" % [Enums.style_name(style), _colors(rule), _patterns(rule)]
+		)
+	lines.append("")
+	lines.append("[b]The shirt[/b] — %s" % _shirt_rule(occasion))
+	lines.append(
+		(
+			"[b]The trousers[/b] — Same cloth and same colour as the jacket. The same "
+			+ "pattern as the jacket, or plain. A Fashion brief is the exception: there he "
+			+ "may mix them."
+		)
+	)
 	return "\n".join(lines)
 
 
-static func _tone_phrase(colors: Array) -> String:
-	if colors.is_empty():
-		return "colour is open"
-	for c in colors:
-		if c in LIGHT_COLORS:
-			return "lighter, brighter tones are welcome"
-	for c in colors:
-		if c in MID_COLORS:
-			return "rich, mid-depth colour suits it"
-	return "keep to dark, sombre colours"
+## "navy, charcoal or black" — the jacket colours this rule allows.
+static func _colors(rule: DressRule) -> String:
+	var out: Array[String] = []
+	for c: int in rule.allowed_colors:
+		out.append(MaterialFactory.color_name(c).to_lower())
+	return _sentence(_list(out, "any colour"))
 
 
-static func _pattern_phrase(rule: DressRule) -> String:
+## "Pinstripe, herringbone or plain." plus the warning when the brief demands a pattern.
+static func _patterns(rule: DressRule) -> String:
+	var out: Array[String] = []
+	for p: int in rule.allowed_patterns:
+		out.append(_pattern_word(p))
+	var s := _sentence(_list(out, "any pattern")) + "."
 	if rule.require_pattern:
-		return "and it wants a bold, statement pattern"
-	for p in rule.allowed_patterns:
-		if p in BOLD_PATTERNS:
-			return "a little pattern is fine"
-	return "go easy on pattern — subtle or none"
+		s += " A plain cloth will not do here."
+	return s
+
+
+## What the shirt may be for this occasion, from the DressCode tables.
+static func _shirt_rule(occasion: int) -> String:
+	var cols: Array[String] = []
+	for c: int in DressCode.SHIRT_COLORS.get(occasion, []):
+		cols.append(MaterialFactory.color_name(c).to_lower())
+	var pats: Array[String] = []
+	for p: int in DressCode.SHIRT_PATTERNS.get(occasion, []):
+		pats.append(_pattern_word(p))
+	if cols.is_empty() and pats.is_empty():
+		return "Anything he likes."
+	return "%s. %s." % [_sentence(_list(cols, "any colour")), _sentence(_list(pats, "any pattern"))]
+
+
+## "Solid" is the enum's word; "plain" is the one a person uses.
+static func _pattern_word(p: int) -> String:
+	return "plain" if p == Enums.Pattern.SOLID else Enums.pattern_name(p).to_lower()
+
+
+## ["a", "b", "c"] -> "a, b or c". An empty list means the rule allows everything.
+static func _list(names: Array[String], if_empty: String) -> String:
+	if names.is_empty():
+		return if_empty
+	if names.size() == 1:
+		return names[0]
+	return "%s or %s" % [", ".join(names.slice(0, names.size() - 1)), names[names.size() - 1]]
+
+
+static func _sentence(s: String) -> String:
+	return s.substr(0, 1).to_upper() + s.substr(1)

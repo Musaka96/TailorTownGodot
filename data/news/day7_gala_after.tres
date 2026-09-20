@@ -6,6 +6,7 @@
 script = ExtResource("1_tqkj3")
 id = "day7_gala_after"
 headline = "The Gala Dazzles the City"
-body = "Well-cut guests drew every admiring eye. A good night for a tailor's name."
-exact_day = 7
+body = "Guests were photographed on the steps until the flash powder ran out."
+exact_day = 6
 priority = 8
+seasonal = true

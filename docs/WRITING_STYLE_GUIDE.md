@@ -315,9 +315,37 @@ in the wild while "not just X, but Y" rises — so §2 matters more than §4.
 
 ## 6. The standing backlog
 
-What the audit of 2026-09-20 found. The game's prose is in good shape — the lexical scan
-came back empty across all twelve prose files, and there is not one "not just X, but Y" in
-the game — so what's left is structural:
+The audit of 2026-09-20 found eleven items. All were worked on 2026-09-21; what the pass
+changed is recorded below, and the punctuation census that drove it is in §2.6.
+
+**What the pass moved:**
+
+| | before | after |
+|---|---|---|
+| em dashes per 1000 words, Hemming | 13.5 | 0.0 |
+| em dashes per 1000 words, Handbook | 16.8 | 2.1 |
+| em dashes per 1000 words, Upgrades | 17.3 | 0.0 |
+| em dashes per 1000 words, Pops | 15.5 | 10.2 |
+| Upgrade descriptions hinging on a dash or colon | 62% | 0% |
+| em dashes in `STEAM_PAGE.md` | 68 | 24 |
+| `check_writing.gd` warnings | 19 | 5 |
+
+The 13–17 band that four different voices shared is gone, which was the point: the tell was
+never the count, it was that everybody punctuated alike.
+
+**Still open / judgement calls:**
+
+- Upgrade descriptions still have the flattest sentence-length spread in the game (0.42).
+  That may be correct for a phone catalogue read one line at a time; it is not obviously
+  worth fixing.
+- Five checker warnings remain and all five are defensible: two are regex false positives,
+  two name real colour lists the player needs, and one is "Plaster, slates and a bucket
+  that lost the fight", which is among the best lines in the game.
+- The shears keepsake lost "that is not yours yet". That was the most quotable line in the
+  file, cut on the argument that "yet" is the writer winking at the player about the arc.
+  It is the one change in this pass most worth a second opinion.
+
+**The original eleven, for the record:**
 
 | # | Where | What | Size |
 |---|---|---|---|

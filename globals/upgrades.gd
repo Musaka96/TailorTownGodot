@@ -19,7 +19,7 @@ const UPGRADES := {
 		"category": "Cutting Table",
 		"cost": 200,
 		"tier": 0,
-		"desc": "Brass weights hold the cloth flat — it barely pulls at the shears.",
+		"desc": "Brass weights hold the cloth flat. It barely pulls at the shears.",
 		"effects": {"cut_drift": 0.4},
 	},
 	"cut_chalk_wheel":
@@ -36,7 +36,7 @@ const UPGRADES := {
 		"category": "Cutting Table",
 		"cost": 450,
 		"tier": 1,
-		"desc": "Keener shears — hold Shift to cut fast (riskier) at the cutting table.",
+		"desc": "Keener shears. Hold Shift at the cutting table to cut fast and risk it.",
 	},
 	"cut_master":
 	{
@@ -44,7 +44,7 @@ const UPGRADES := {
 		"category": "Cutting Table",
 		"cost": 1400,
 		"tier": 2,
-		"desc": "Tailor-grade shears: faster cuts and a longer, quicker glide.",
+		"desc": "Tailor-grade shears. Faster cuts, and a longer glide down the straights.",
 		"effects": {"cut_glide_bonus": 0.5, "cut_glide_build": 2.0},
 	},
 	"cut_pinking":
@@ -61,7 +61,7 @@ const UPGRADES := {
 		"category": "Cutting Table",
 		"cost": 1100,
 		"tier": 2,
-		"desc": "Fold the cloth for shirts and jacket backs: cut half, then unfold it.",
+		"desc": "Fold the cloth for shirts and jacket backs. Cut half, then unfold it.",
 	},
 	"cut_rotary":
 	{
@@ -69,7 +69,7 @@ const UPGRADES := {
 		"category": "Cutting Table",
 		"cost": 3000,
 		"tier": 3,
-		"desc": "The rule snaps to the chalk: straight edges roll by themselves.",
+		"desc": "The rule snaps to the chalk. Straight edges roll by themselves.",
 	},
 	"sew_dial":
 	{
@@ -85,7 +85,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 450,
 		"tier": 1,
-		"desc": "A smooth action: the motor answers the pedal quicker; Shift for top gear.",
+		"desc": "A smooth action. The motor answers the pedal quicker. Shift for top gear.",
 		"effects": {"sew_spin": 2.0, "sew_coast": 1.5},
 	},
 	"sew_guide":
@@ -94,7 +94,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 400,
 		"tier": 1,
-		"desc": "A steel edge the cloth rides against — it eases the seam back on its line.",
+		"desc": "A steel edge for the cloth to ride against. It eases the seam back onto its line.",
 		"effects": {"sew_drift": 0.5},
 	},
 	"sew_needle_down":
@@ -103,7 +103,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 450,
 		"tier": 1,
-		"desc": "Let go and it stops dead, needle down — easy to stop right on a corner.",
+		"desc": "Let go and it stops dead with the needle down. Easy to stop on a corner.",
 		"effects": {"sew_coast": 40.0},
 	},
 	"sew_industrial":
@@ -121,7 +121,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 1100,
 		"tier": 2,
-		"desc": "Feeds both layers evenly — slippery cloth stops wandering off the line.",
+		"desc": "Feeds both layers evenly. Slippery cloth stops wandering off the line.",
 		"effects": {"sew_drift": 0.25},
 	},
 	"sew_knee":
@@ -130,7 +130,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 900,
 		"tier": 2,
-		"desc": "Lift the foot with your knee: both hands stay free to turn the cloth.",
+		"desc": "Lift the foot with your knee. Both hands stay free to turn the cloth.",
 		"effects": {"sew_turn": 1.8},
 	},
 	"sew_clips":
@@ -139,7 +139,7 @@ const UPGRADES := {
 		"category": "Sewing Machine",
 		"cost": 800,
 		"tier": 2,
-		"desc": "Clips instead of pins: sew straight over them at any speed.",
+		"desc": "Clips instead of pins. Sew straight over them at any speed.",
 	},
 	"sew_roller":
 	{
@@ -164,7 +164,7 @@ const UPGRADES := {
 		"category": "Workshop",
 		"cost": 400,
 		"tier": 1,
-		"desc": "Good light on the benches — the chalk line is easier to hit.",
+		"desc": "Good light on the benches. The chalk line is easier to hit.",
 		"effects": {"bench_band": 1.15},
 	},
 	"mirror_trifold":
@@ -175,8 +175,8 @@ const UPGRADES := {
 		"tier": 1,
 		"desc":
 		(
-			"Grandpa's cheval glass shows a customer one angle. Three panels show them every "
-			+ "angle — and a customer who can see the back of a jacket trusts the shop with more."
+			"Grandpa's cheval glass shows a customer one angle. Three panels show him every "
+			+ "angle. A man who can see the back of a jacket trusts the shop with more."
 		),
 		"effects": {"appeal": 0.06},
 	},
@@ -186,7 +186,7 @@ const UPGRADES := {
 		"category": "Workshop",
 		"cost": 350,
 		"tier": 1,
-		"desc": "Two cups a day: pour one well and it steadies your hands for a few jobs.",
+		"desc": "Two cups a day. Pour one well and your hands stay steady for a few jobs.",
 	},
 	"shop_espresso":
 	{
@@ -197,8 +197,8 @@ const UPGRADES := {
 		"needs": "shop_coffee",
 		"desc":
 		(
-			"Grind, tamp and pull a real shot: an extra cup a day, and each one keeps"
-			+ " your hands steady for longer."
+			"Grind, tamp, pull. An extra cup a day, and each one holds your hands steady"
+			+ " for longer."
 		),
 		"effects": {"coffee_jobs": 2.0, "coffee_cups": 1.0},
 	},
@@ -218,8 +218,8 @@ const UPGRADES := {
 		"tier": 3,
 		"desc":
 		(
-			"Percy works at his own bench: give him a part of an order and he fetches"
-			+ " the cloth, cuts and sews it — and gets better with every job."
+			"Percy works at his own bench. Give him a part of an order and he fetches the"
+			+ " cloth, cuts it and sews it. He gets better every time."
 		),
 	},
 	"rack_hooks":

@@ -6,6 +6,6 @@
 script = ExtResource("1_tjqnc")
 id = "day2_market"
 headline = "Cloth Prices Hold at the Exchange"
-body = "Bolts are plentiful this week and prices steady — a fine time to stock up."
+body = "Bolts are plentiful and prices steady. The Exchange expects it to hold to the month's end."
 exact_day = 2
 priority = 4

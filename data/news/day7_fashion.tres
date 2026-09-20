@@ -6,7 +6,7 @@
 script = ExtResource("1_oe50w")
 id = "day7_fashion"
 headline = "Herringbone Is the Talk of the Salons"
-body = "The salons can speak of nothing but a sharp herringbone this week."
+body = "One cutter claims he has done nothing else since Tuesday."
 kind = 1
 exact_day = 7
 priority = 5

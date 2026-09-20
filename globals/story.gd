@@ -27,8 +27,8 @@ const KEEPSAKES := {
 		"text":
 		(
 			"Under the sheet on the cutting bench, laid square to the edge the way he always "
-			+ "left them. The handles are worn to the shape of a hand that is not yours yet. "
-			+ "Somebody oiled these before they locked the door for the last time."
+			+ "left them. The handles are worn to the shape of a hand. Somebody oiled these "
+			+ "before they locked the door."
 		),
 	},
 	"front_sweep":
@@ -61,7 +61,7 @@ const KEEPSAKES := {
 			"The old paper came off and there they were, pencilled straight onto the plaster: "
 			+ "forty years of shoulders and inside legs, name and date beside each one. Some "
 			+ "of the names have three sets, boy to man. The decorators have papered over "
-			+ "them again — but you copied every one into the back of the notebook first."
+			+ "them again. You copied every one into the back of the notebook first."
 		),
 	},
 	"workroom_clear":
@@ -72,7 +72,7 @@ const KEEPSAKES := {
 		(
 			"Under a floorboard that gave when you shifted the rubble: a toffee tin, rusted "
 			+ "shut, full of photographs. Him at this bench. Him and a boy of about fifteen "
-			+ "at this bench — and that boy has Mr. Hemming's ears."
+			+ "at this bench. The boy has Mr. Hemming's ears."
 		),
 	},
 	"cloth_clear":
@@ -82,8 +82,8 @@ const KEEPSAKES := {
 		"text":
 		(
 			"Damp has got the covers but the pages held. Every order he ever took, ruled and "
-			+ "totted up in the same small hand. The last entry is a winter coat, finished, "
-			+ "collected, paid — and then half a page of nothing."
+			+ "totted up in the same small hand. The last entry is a winter coat. Finished, "
+			+ "collected, paid. Then half a page of nothing."
 		),
 	},
 	"nook_clear":
@@ -113,7 +113,7 @@ const LETTERS := {
 		),
 		"body":
 		(
-			"My dear one — so you are going to open it up again. I will not pretend I am not "
+			"My dear one. So you are going to open it up again. I will not pretend I am not "
 			+ "pleased, but I will not pretend it is a kindness either: that shop is damp, the "
 			+ "roof went in the year I left, and the workroom is nailed shut for a reason.\n\n"
 			+ "Go and see Hemming on the Row before you touch anything. He learned at my bench "
@@ -132,6 +132,8 @@ const LETTERS := {
 			+ "That roof beat me. I put buckets under it for two winters and told myself I "
 			+ "would see to it in the spring, and then there were no more springs in that "
 			+ "shop. You have done in a week what I put off for two years.\n\n"
+			+ "He will have told you my benches were in the wrong place. He has been saying it "
+			+ "for forty years and he is still wrong.\n\n"
 			+ "The benches go back where the light falls, not where there is room. You will "
 			+ "see what I mean the first time you cut a dark cloth at four in the afternoon.\n\n"
 			+ "— Pops"
@@ -162,7 +164,7 @@ const LETTERS := {
 			+ "with it — my name, where the whole lane could read it, and me twenty-three and "
 			+ "certain I would make a fool of us. It took a good few years before I could walk "
 			+ "up the lane and look at it straight.\n\n"
-			+ "Go outside and look at it straight. You have earned that much.\n\n"
+			+ "Go outside and look at it straight.\n\n"
 			+ "— Pops"
 		),
 	},

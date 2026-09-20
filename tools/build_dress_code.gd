@@ -19,22 +19,22 @@ const DRESS_CODE := "res://data/scripts/dress_code.gd"
 
 # [occasion, style, colors, patterns, require_pattern, hint]
 const RULES := [
-	[0, 0, [1, 0, 3], [1, 2, 0], false, "Timeless and dark — pinstripe or plain."],
-	[0, 1, [0, 1, 2], [0, 2, 7], false, "Elegant navy or grey, understated."],
-	[0, 2, [0, 6, 7, 2], [0, 7, 6, 5], false, "Fresh colour, clean lines."],
-	[0, 3, [4, 2, 6, 7, 8], [5, 4, 3], true, "Light and eye-catching — go bold with pattern."],
-	[1, 0, [3, 1], [0, 2, 6], false, "Traditional mourning black, a fine weave at most."],
-	[1, 1, [3, 1, 0], [0, 7, 8], false, "Sombre and plain — nothing loud."],
-	[1, 2, [3, 1, 0, 9, 7], [0, 7, 8, 6], false, "Dark, but a deep colour is fine."],
-	[1, 3, [1, 3, 7, 9], [4, 5, 3], true, "Dark base — but make it a statement."],
-	[2, 0, [1, 0], [1, 2, 0], false, "Banker's classic — pinstripe, dark."],
-	[2, 1, [0, 1, 2], [0, 1, 7, 8], false, "Professional navy or grey, understated."],
-	[2, 2, [0, 6, 1, 2], [0, 7, 5, 6], false, "Sharp and current, subtle texture."],
-	[2, 3, [6, 2, 7, 8], [4, 5, 3], true, "Creative professional — pattern-forward."],
-	[3, 0, [5, 1, 9], [2, 3, 6], false, "Vintage tweed vibes."],
-	[3, 1, [0, 1, 7], [0, 7, 2], false, "Smart but relaxed."],
-	[3, 2, [7, 9, 8, 6], [0, 5, 4], false, "Rich colour, contemporary."],
-	[3, 3, [4, 2, 8, 7, 6], [3, 4, 5, 1], true, "Anything goes — light and loud."],
+	[0, 0, [1, 0, 3], [1, 2, 0], false, "Dark, the old way. Pinstripe or plain."],
+	[0, 1, [0, 1, 2], [0, 2, 7], false, "Navy or grey. Nothing that shouts."],
+	[0, 2, [0, 6, 7, 2], [0, 7, 6, 5], false, "Lighter colour, clean lines."],
+	[0, 3, [4, 2, 6, 7, 8], [5, 4, 3], true, "Light and loud. It must have a pattern."],
+	[1, 0, [3, 1], [0, 2, 6], false, "Mourning black. A fine weave at most."],
+	[1, 1, [3, 1, 0], [0, 7, 8], false, "Black or charcoal, and plain."],
+	[1, 2, [3, 1, 0, 9, 7], [0, 7, 8, 6], false, "Dark. A deep colour will pass."],
+	[1, 3, [1, 3, 7, 9], [4, 5, 3], true, "Dark cloth, bold pattern. Both."],
+	[2, 0, [1, 0], [1, 2, 0], false, "The banker's suit. Pinstripe, dark."],
+	[2, 1, [0, 1, 2], [0, 1, 7, 8], false, "Navy or grey. Keep the pattern small."],
+	[2, 2, [0, 6, 1, 2], [0, 7, 5, 6], false, "Sharp, with a texture in the cloth."],
+	[2, 3, [6, 2, 7, 8], [4, 5, 3], true, "Office, but with a pattern that talks."],
+	[3, 0, [5, 1, 9], [2, 3, 6], false, "Old country tweed. Brown or green."],
+	[3, 1, [0, 1, 7], [0, 7, 2], false, "Smart, but he means to sit down in it."],
+	[3, 2, [7, 9, 8, 6], [0, 5, 4], false, "A deep colour. Burgundy, forest, olive."],
+	[3, 3, [4, 2, 8, 7, 6], [3, 4, 5, 1], true, "Anything light and loud. Pattern needed."],
 ]
 
 

@@ -59,7 +59,8 @@ func _stories(out: Array) -> void:
 		2,
 		4,
 		"Cloth Prices Hold at the Exchange",
-		"Bolts are plentiful this week and prices steady — a fine time to stock up."
+		"Bolts are plentiful and prices steady. The Exchange expects it to hold to "
+		+ "the month's end."
 	)
 	_day_story(
 		out,
@@ -85,14 +86,16 @@ func _stories(out: Array) -> void:
 		"Theatre Season Opens to Full Houses",
 		"The playhouses light up for the season, and finer coats fill every box."
 	)
+	# Seasonal (see _city_events): the morning after the gala, whenever that falls.
 	_day_story(
 		out,
 		"day7_gala_after",
-		7,
+		6,
 		8,
 		"The Gala Dazzles the City",
-		"Well-cut guests drew every admiring eye. A good night for a tailor's name."
+		"Guests were photographed on the steps until the flash powder ran out."
 	)
+	out[-1].seasonal = true
 	_day_story(
 		out,
 		"day8_wool",
@@ -124,7 +127,10 @@ func _fashions(out: Array) -> void:
 	t1.priority = 5
 	t1.fashion_pattern = 1  # Pinstripe
 	t1.fashion_bonus = 8
-	t1.body = "The smart set is asking for pinstripe again — heads will turn."
+	t1.body = (
+		"The smart set is asking for pinstripe again. Three orders this week at "
+		+ "Hemming's alone."
+	)
 	out.append(t1)
 
 	var t2 := _mk("day4_fashion", 1, "Tweed Warms the City's Shoulders")
@@ -132,7 +138,7 @@ func _fashions(out: Array) -> void:
 	t2.priority = 5
 	t2.fashion_fabric = 2  # Tweed
 	t2.fashion_bonus = 8
-	t2.body = "As the air cools, tweed warms every shoulder in town."
+	t2.body = "The cloth merchants report tweed outselling everything else two to one."
 	out.append(t2)
 
 	var t3 := _mk("day7_fashion", 1, "Herringbone Is the Talk of the Salons")
@@ -140,36 +146,43 @@ func _fashions(out: Array) -> void:
 	t3.priority = 5
 	t3.fashion_pattern = 2  # Herringbone
 	t3.fashion_bonus = 8
-	t3.body = "The salons can speak of nothing but a sharp herringbone this week."
+	t3.body = "One cutter claims he has done nothing else since Tuesday."
 	out.append(t3)
 
 
 ## Dated city events. They run every morning across their lead-up window
 ## (min_day..event_day, repeatable) and bias which customers arrive as the day nears.
+##
+## Seasonal: their days count from the morning the social season opens (News opens it
+## once the shop is on its feet), so the gala is announced that morning and held four
+## days later, and the Guild Review follows a week after the season began.
 func _city_events(out: Array) -> void:
 	var gala := _mk("event_autumn_gala", 2, "The Autumn Charity Gala")
-	gala.min_day = 3
-	gala.max_day = 6
+	gala.seasonal = true
+	gala.min_day = 1
+	gala.max_day = 5
 	gala.repeatable = true
 	gala.priority = 7
-	gala.event_day = 6
+	gala.event_day = 5
 	gala.event_occasion = 3  # Party
 	gala.event_style = 3  # Fashion
-	gala.bias_days = 3
-	gala.bias_chance = 0.6
-	gala.body = "The city's charity gala fills every diary — the set will want something bold."
+	gala.bias_days = 4
+	gala.bias_chance = 0.4
+	gala.mention_bonus = 8  # the first event is kind: being seen there is worth a line
+	gala.body = "The gala fills every diary in the city. Bold cloth, by all accounts."
 	out.append(gala)
 
 	var guild := _mk("event_guild_review", 2, "The Tailors' Guild Autumn Review")
-	guild.min_day = 7
-	guild.max_day = 10
+	guild.seasonal = true
+	guild.min_day = 8
+	guild.max_day = 11
 	guild.repeatable = true
 	guild.priority = 7
-	guild.event_day = 10
+	guild.event_day = 11
 	guild.event_occasion = 2  # Business
 	guild.event_style = 1  # Classic
 	guild.bias_days = 3
-	guild.bias_chance = 0.6
+	guild.bias_chance = 0.4
 	guild.body = "The Guild will tour the Row to judge craft and cut; a fine showing lifts a name."
 	out.append(guild)
 
@@ -198,6 +211,11 @@ func _fillers(out: Array) -> void:
 		[
 			"Weather: Mild, With a Chance of Tweed",
 			"The almanac advises a layer. The Row's tailors advise two.",
+		],
+		[
+			"Correction",
+			"Tuesday's notice should have read buttonhole, not button hole. We regret "
+			+ "the distress caused to the Guild.",
 		],
 	]
 	for i in pieces.size():

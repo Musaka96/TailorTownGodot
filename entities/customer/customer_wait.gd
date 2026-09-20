@@ -133,7 +133,7 @@ func say_sorry() -> void:
 		"regular":
 			UI.toast('%s: "For you? Of course. I\'ll look in tomorrow."' % who)
 		"moved":
-			UI.toast('%s: "Hm. Tomorrow, then — but I shan\'t pay full price."' % who)
+			UI.toast('%s: "Hm. Tomorrow, then. I shan\'t pay full price."' % who)
 		"event":
 			mood = "sad"
 			UI.toast('%s: "It was for the event! Tomorrow is no use to me."' % who)

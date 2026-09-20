@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="DressCode" format=3 uid="uid://djljlek0ccgh3"]
 
-[ext_resource type="Script" uid="uid://dfsp60hrrln13" path="res://data/scripts/dress_rule.gd" id="1_ybt8c"]
-[ext_resource type="Script" uid="uid://cpiuuoyxaa5iv" path="res://data/scripts/dress_code.gd" id="2_e5v0l"]
+[ext_resource type="Script" path="res://data/scripts/dress_rule.gd" id="1_ybt8c"]
+[ext_resource type="Script" path="res://data/scripts/dress_code.gd" id="2_e5v0l"]
 
 [sub_resource type="Resource" id="Resource_cgpov"]
 script = ExtResource("1_ybt8c")
@@ -9,14 +9,14 @@ occasion = 0
 style = 0
 allowed_colors = Array[int]([1, 0, 3])
 allowed_patterns = Array[int]([1, 2, 0])
-hint = "Timeless and dark — pinstripe or plain."
+hint = "Dark, the old way. Pinstripe or plain."
 
 [sub_resource type="Resource" id="Resource_ig3jc"]
 script = ExtResource("1_ybt8c")
 occasion = 0
 allowed_colors = Array[int]([0, 1, 2])
 allowed_patterns = Array[int]([0, 2, 7])
-hint = "Elegant navy or grey, understated."
+hint = "Navy or grey. Nothing that shouts."
 
 [sub_resource type="Resource" id="Resource_70ls5"]
 script = ExtResource("1_ybt8c")
@@ -24,7 +24,7 @@ occasion = 0
 style = 2
 allowed_colors = Array[int]([0, 6, 7, 2])
 allowed_patterns = Array[int]([0, 7, 6, 5])
-hint = "Fresh colour, clean lines."
+hint = "Lighter colour, clean lines."
 
 [sub_resource type="Resource" id="Resource_oqf83"]
 script = ExtResource("1_ybt8c")
@@ -33,7 +33,7 @@ style = 3
 allowed_colors = Array[int]([4, 2, 6, 7, 8])
 allowed_patterns = Array[int]([5, 4, 3])
 require_pattern = true
-hint = "Light and eye-catching — go bold with pattern."
+hint = "Light and loud. It must have a pattern."
 
 [sub_resource type="Resource" id="Resource_cig4a"]
 script = ExtResource("1_ybt8c")
@@ -41,14 +41,14 @@ occasion = 1
 style = 0
 allowed_colors = Array[int]([3, 1])
 allowed_patterns = Array[int]([0, 2, 6])
-hint = "Traditional mourning black, a fine weave at most."
+hint = "Mourning black. A fine weave at most."
 
 [sub_resource type="Resource" id="Resource_vlm77"]
 script = ExtResource("1_ybt8c")
 occasion = 1
 allowed_colors = Array[int]([3, 1, 0])
 allowed_patterns = Array[int]([0, 7, 8])
-hint = "Sombre and plain — nothing loud."
+hint = "Black or charcoal, and plain."
 
 [sub_resource type="Resource" id="Resource_0fmdn"]
 script = ExtResource("1_ybt8c")
@@ -56,7 +56,7 @@ occasion = 1
 style = 2
 allowed_colors = Array[int]([3, 1, 0, 9, 7])
 allowed_patterns = Array[int]([0, 7, 8, 6])
-hint = "Dark, but a deep colour is fine."
+hint = "Dark. A deep colour will pass."
 
 [sub_resource type="Resource" id="Resource_1yx1r"]
 script = ExtResource("1_ybt8c")
@@ -65,27 +65,27 @@ style = 3
 allowed_colors = Array[int]([1, 3, 7, 9])
 allowed_patterns = Array[int]([4, 5, 3])
 require_pattern = true
-hint = "Dark base — but make it a statement."
+hint = "Dark cloth, bold pattern. Both."
 
 [sub_resource type="Resource" id="Resource_vbal6"]
 script = ExtResource("1_ybt8c")
 style = 0
 allowed_colors = Array[int]([1, 0])
 allowed_patterns = Array[int]([1, 2, 0])
-hint = "Banker's classic — pinstripe, dark."
+hint = "The banker's suit. Pinstripe, dark."
 
 [sub_resource type="Resource" id="Resource_uo4n5"]
 script = ExtResource("1_ybt8c")
 allowed_colors = Array[int]([0, 1, 2])
 allowed_patterns = Array[int]([0, 1, 7, 8])
-hint = "Professional navy or grey, understated."
+hint = "Navy or grey. Keep the pattern small."
 
 [sub_resource type="Resource" id="Resource_3t4oe"]
 script = ExtResource("1_ybt8c")
 style = 2
 allowed_colors = Array[int]([0, 6, 1, 2])
 allowed_patterns = Array[int]([0, 7, 5, 6])
-hint = "Sharp and current, subtle texture."
+hint = "Sharp, with a texture in the cloth."
 
 [sub_resource type="Resource" id="Resource_1j7y3"]
 script = ExtResource("1_ybt8c")
@@ -93,7 +93,7 @@ style = 3
 allowed_colors = Array[int]([6, 2, 7, 8])
 allowed_patterns = Array[int]([4, 5, 3])
 require_pattern = true
-hint = "Creative professional — pattern-forward."
+hint = "Office, but with a pattern that talks."
 
 [sub_resource type="Resource" id="Resource_uk8vu"]
 script = ExtResource("1_ybt8c")
@@ -101,14 +101,14 @@ occasion = 3
 style = 0
 allowed_colors = Array[int]([5, 1, 9])
 allowed_patterns = Array[int]([2, 3, 6])
-hint = "Vintage tweed vibes."
+hint = "Old country tweed. Brown or green."
 
 [sub_resource type="Resource" id="Resource_lni8c"]
 script = ExtResource("1_ybt8c")
 occasion = 3
 allowed_colors = Array[int]([0, 1, 7])
 allowed_patterns = Array[int]([0, 7, 2])
-hint = "Smart but relaxed."
+hint = "Smart, but he means to sit down in it."
 
 [sub_resource type="Resource" id="Resource_lng0c"]
 script = ExtResource("1_ybt8c")
@@ -116,7 +116,7 @@ occasion = 3
 style = 2
 allowed_colors = Array[int]([7, 9, 8, 6])
 allowed_patterns = Array[int]([0, 5, 4])
-hint = "Rich colour, contemporary."
+hint = "A deep colour. Burgundy, forest, olive."
 
 [sub_resource type="Resource" id="Resource_gxueg"]
 script = ExtResource("1_ybt8c")
@@ -125,7 +125,7 @@ style = 3
 allowed_colors = Array[int]([4, 2, 8, 7, 6])
 allowed_patterns = Array[int]([3, 4, 5, 1])
 require_pattern = true
-hint = "Anything goes — light and loud."
+hint = "Anything light and loud. Pattern needed."
 
 [resource]
 script = ExtResource("2_e5v0l")

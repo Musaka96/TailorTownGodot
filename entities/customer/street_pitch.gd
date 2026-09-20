@@ -19,10 +19,10 @@ const PITCHES := [
 	"One fitting and your mother will finally be proud!",
 	"You walk like someone who needs a waistcoat!",
 	"Trousers that fit — it's not a myth, step inside!",
-	"I can see your ankles from here. Let me help!",
-	"Free compliments with every jacket!",
+	"I can see your ankles from here. Let me help.",
+	"Free compliments with every jacket.",
 	"You, yes you — born to wear pinstripes!",
-	"My tape measure has been asking about you!",
+	"My tape measure has been asking about you.",
 	"Lapels so sharp you'll need a licence!",
 	"Be honest: when were you last properly measured?",
 ]

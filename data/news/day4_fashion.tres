@@ -6,7 +6,7 @@
 script = ExtResource("1_ona3i")
 id = "day4_fashion"
 headline = "Tweed Warms the City's Shoulders"
-body = "As the air cools, tweed warms every shoulder in town."
+body = "The cloth merchants report tweed outselling everything else two to one."
 kind = 1
 exact_day = 4
 priority = 5

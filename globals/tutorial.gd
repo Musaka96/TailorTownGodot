@@ -32,111 +32,129 @@ const TUT_BUDGET := 1000
 # --- Mentor lines ------------------------------------------------------------
 
 ## The player has come to HIM: they mean to reopen their grandfather's shop and can't sew.
+## He had Pops's bench for six years and owes him nothing, which is the whole of his
+## character — see docs/WRITING_STYLE_GUIDE.md §3.4. Bold marks a key or a station the
+## player must find on screen, never a concept.
 const M_PROMPT := (
-	"So you're old [b]Pops Thimble's[/b] grandchild! I'm [b]Mr. Hemming[/b] — I learned this "
-	+ "trade at your grandfather's bench, forty years ago. You mean to open his shop again? "
-	+ "Then let me "
-	+ "show you how a tailor's shop runs, here in mine."
+	"Thimble's grandchild. He wrote to me.\n\n"
+	+ "I'm [b]Hemming[/b]. I had six years at your grandfather's bench and his temper for "
+	+ "every one of them. You can't sew. Nobody can, starting out. We'll use my shop, since "
+	+ "yours isn't fit to stand up in. Watch, and touch nothing until I say."
 )
 const M_ORDER := (
-	"Order taken — that's their ticket, up top. Every suit begins with cloth, and cloth "
-	+ "begins with the [b]telephone[/b]: ring a supplier and have a bolt of [b]%s[/b] sent "
-	+ "round for the jacket. This first one's [b]on the house[/b]; after that, longer bolts "
-	+ "are cheaper per metre."
+	"Order's taken. Their ticket sits up at the top there; look at it often.\n\n"
+	+ "Every suit starts as cloth and cloth starts on the [b]telephone[/b]. Ring a supplier "
+	+ "and have a bolt of [b]%s[/b] sent round for the jacket. I'll stand this one. After "
+	+ "today, order long. A longer bolt costs you less the metre."
 )
 const M_MAKE := (
-	"A suit is built in pieces. You [b]measure and cut a length[/b] off the bolt, "
-	+ "[b]shape it[/b] at the worktable, then [b]stitch it[/b] at the sewing machine."
+	"A suit comes in pieces, never in one go. Measure a length off the bolt and cut it. "
+	+ "Shape it at the [b]worktable[/b]. Stitch it at the [b]machine[/b]. That order, always."
 )
 const M_MEASURE := (
-	"Mind the [b]length[/b]! Every part takes its own: about [b]2 m[/b] for a jacket, "
-	+ "[b]1.4 m[/b] for trousers and [b]1.6 m[/b] for a shirt, a touch more for big sizes. "
-	+ "Too short and it's useless; too long and the offcut is wasted. Measure twice, cut once!"
+	"Mind the length! A jacket takes [b]2 m[/b]. Trousers 1.4, a shirt 1.6, and more again "
+	+ "for a big man.\n\n"
+	+ "Too short and the piece is firewood. Too long and you've bought cloth for the bin. "
+	+ "Measure twice, cut once!"
 )
 # The bench games have variants (CutVariants / SewVariants); these introduce the ones
 # whose controls a first-timer can't guess. Steer and Rhythm need no speech.
 const M_CUT_ALLOWANCE := (
-	"On the table it goes. Choose a part and its outline is chalked on your cloth: hold "
-	+ "[b]Space[/b] and the shears push along it, gliding down the straight runs. The curves "
-	+ "are yours to steer with [b]A[/b] and [b]D[/b]. Keep to the chalk — cut inside it and "
-	+ "you've nicked the garment."
+	"On the table with it. Pick a part and its outline goes on your cloth in chalk.\n\n"
+	+ "Hold [b]Space[/b] and the shears walk the straight runs on their own. The curves you "
+	+ "steer, [b]A[/b] and [b]D[/b]. Stay outside the chalk. Cut inside it and you've cut "
+	+ "the garment instead of the waste."
 )
 const M_CUT_STROKES := (
-	"On the table it goes. Choose a part, then hold [b]Space[/b] to open the shears along "
-	+ "the chalk and let go to close them — long, even strokes make the cleanest edge."
+	"On the table with it. Pick a part, then hold [b]Space[/b] to open the blades along the "
+	+ "chalk and let go to close them. Long strokes, even ones. Chop at it and you'll get an "
+	+ "edge like a saw."
 )
 const M_SEW_PEDAL := (
-	"Now the machine. The needle stays put and [b]you guide the cloth[/b]. Line it up on the "
-	+ "dotted guide with [b]A[/b] and [b]D[/b], then press the pedal — [b]Space[/b]. Ease off "
-	+ "at the [b]amber marks[/b] and stop on a corner to turn the cloth."
+	"Now the machine. The needle doesn't move about. You move the cloth.\n\n"
+	+ "Line it up on the dotted guide with [b]A[/b] and [b]D[/b]. The pedal is [b]Space[/b]. "
+	+ "Ease off where you see an amber mark, and stop dead on a corner to turn the cloth."
 )
-const M_SEW_PINS := "Pull each [b]pin[/b] with [b]E[/b] before the needle reaches it. "
-const M_SEW_LOCK := "At the end mark, hold [b]S[/b] with the pedal to [b]backstitch[/b]. "
-const M_SEW_CUT := "Then [b]E[/b] cuts the thread."
+const M_SEW_PINS := "Pull each pin with [b]E[/b] before the needle gets to it. "
+const M_SEW_LOCK := (
+	"At the end mark, hold [b]S[/b] with the pedal down. That's a [b]backstitch[/b] and it "
+	+ "locks the seam. "
+)
+const M_SEW_CUT := "Then [b]E[/b] for the thread."
 const M_GREET := (
-	"Splendid — and there's the bell! Your first customer. Folk walk in with a brief in "
-	+ "mind. Greet them kindly and show them to the [b]fitting mirror[/b]."
+	"Bell. That one's yours.\n\n"
+	+ "They come in with something in mind already. Let them say what it is before you go "
+	+ "guessing for them, then take them to the [b]fitting mirror[/b]."
 )
 const M_CODE_1 := (
-	"Now, the heart of the trade. Every customer has an [b]occasion[/b] — business, a party, "
-	+ "a wedding — and a [b]style[/b], classic or otherwise. Together they make a "
-	+ "[b]dress code[/b]."
+	"Every customer brings two things. An occasion: a wedding, a funeral, business, a "
+	+ "party. And a style: old-school, classic, modern, or whatever they're calling fashion "
+	+ "this year. Put the two together and that's the dress code."
 )
 const M_CODE_2 := (
-	"The code says which [b]cloths[/b], [b]colours[/b] and [b]patterns[/b] are proper. "
-	+ "A %s suit wants sober colours and a cloth that works hard; a quiet pinstripe is "
-	+ "quite at home. Loud checks at a board meeting? Never."
+	"The code tells you which cloths, colours and patterns are correct. A %s suit wants "
+	+ "dark colours and a cloth that works for its living; a quiet pinstripe sits well "
+	+ "there. Loud checks at a board meeting? Never."
 )
 const M_CODE_3 := (
-	"Two golden rules: [b]match the trousers to the jacket[/b], and keep the [b]shirt "
-	+ "light[/b]. The panel flags what suits the brief, and the [b]Handbook[/b] on the "
-	+ "bookshelf lists every code."
+	"Two rules you don't break. The trousers match the jacket. The shirt stays pale.\n\n"
+	+ "The panel marks what suits the brief, and the [b]Handbook[/b] on the bookshelf has "
+	+ "every code written out. Your grandfather wrote most of it."
 )
 const M_STOCK := (
-	"And don't fret if a cloth says [b]Not in stock[/b] — design what the customer "
-	+ "wants anyway. Once they've said yes, just [b]order that bolt[/b] on the phone and "
-	+ "make the parts from it."
+	"If a cloth says [b]Not in stock[/b], design it anyway. Get their yes first, then order "
+	+ "the bolt on the phone and make the parts from it. Never tell a customer what you "
+	+ "haven't got."
 )
 const M_PAPER := (
-	"Every morning the [b]Tailor's Gazette[/b] lands on the mat. It tells you what's "
-	+ "[b]in fashion[/b] (suits in that style earn extra standing) and which [b]events[/b] "
-	+ "are coming, so you can stock the right cloth. Press [b]%s[/b] to read it any time."
+	"The [b]Tailor's Gazette[/b] comes through the door every morning. It says what's in "
+	+ "fashion, and a suit cut to that style earns you more standing. It says what's "
+	+ "coming, too: a wedding, a funeral, the season's parties.\n\n"
+	+ "Read it and you'll have the right cloth on the shelf before anyone asks. [b]%s[/b] "
+	+ "opens it."
 )
 const M_ORDERS := (
-	"Paid! The price is the [b]cloth[/b] the parts need plus your [b]craft fee[/b], so any "
-	+ "cloth you waste comes out of your own pocket. Most customers come back on their "
-	+ "[b]due day[/b] (red ticket = today) and pay on collection; splendid work earns a "
-	+ "[b]tip[/b]. Treat people well and they'll come back as [b]regulars[/b]."
+	"Paid. The price is the cloth plus your fee for the making. Mind that: the cloth is "
+	+ "theirs either way, so cloth you waste comes out of your fee and nobody else's.\n\n"
+	+ "They collect on their due day, and the ticket goes red on the day. Don't let it go "
+	+ "past. Good work gets you a tip. The ones who come back a second time are what a shop "
+	+ "actually is."
 )
 const M_RACK := (
-	"While you were at the machine I ran up the [b]%s[/b] for this order — they're hanging "
-	+ "on the [b]rack[/b]. Take your piece over and hang it with them."
+	"While you were at the machine I ran up the %s for this order. They're on the "
+	+ "[b]rack[/b]. Take yours over and hang it with them."
 )
 const M_COMBINE := (
-	"See that? Parts made for the same order [b]gather on one hanger[/b], under a ticket "
-	+ "saying whose they are and what's still to come — and when the last one joins, it's "
-	+ "a [b]finished suit[/b]. Each rack keeps its own, and you can always [b]take a set "
-	+ "apart[/b] from the rack."
+	"There. Parts cut for one order find each other on a single hanger, under a ticket "
+	+ "saying whose they are and what's still wanting. When the last one goes up it stops "
+	+ "being parts and starts being a suit.\n\n"
+	+ "Each rack keeps its own. You can pull a set apart again if you must."
 )
 const M_COLLECT := (
-	"And here's our customer, right on cue — most come back on their due day, but this one "
-	+ "waited. Fetch the suit off the rack and [b]hand it over[/b]."
+	"And here he is. Most come on their due day. This one's left it. Fetch the suit off the "
+	+ "rack and put it in his hands."
 )
 const M_REP := (
-	"Do the work well and your [b]reputation[/b] grows — those stars, top left. A good "
-	+ "name opens doors: [b]premium suppliers[/b] and new [b]shop upgrades[/b] on the phone."
+	"Do the work properly and word gets about. Those stars, top left, are what the Row "
+	+ "thinks of you.\n\n"
+	+ "A name opens doors. The better cloth houses start taking your calls, and there's kit "
+	+ "on the phone you can't buy yet."
 )
 const M_BYE := (
-	"That's the lot. Busy? Flip the [b]shop sign[/b] on the phone, or book a customer for "
-	+ "another day when you greet them. Read the [b]Handbook[/b] ([b]%s[/b]) when unsure, and treat "
-	+ "yourself to an upgrade when the till allows."
+	"That's the lot. If the bench is full, flip the shop sign on the phone, or book a "
+	+ "customer for a later day when you greet them. The [b]Handbook[/b] is [b]%s[/b] when "
+	+ "you're unsure.\n\n"
+	+ "And spend some of that money on your benches. Bad shears cost more than good ones."
 )
 ## The last thing he says: the lesson was in his shop, the work is in grandpa's (the game moves
-## there next). It names the three things the renovation asks of the player.
+## there next). It names the three things the renovation asks of the player, then hands the
+## argument to Pops — whose first letter answers this about the benches.
 const M_SEND_OFF := (
-	"Your grandfather's shop has stood shut a good while, so don't expect mine: pull off the "
-	+ "[b]dust sheets[/b], clear what you can [b]by hand[/b], and ring the [b]builders[/b] on the "
-	+ "telephone for the rest. A room at a time. Off you go — make Barnaby proud!"
+	"His shop's stood shut a good while, so don't expect mine. Pull the [b]dust sheets[/b] "
+	+ "off, clear what you can carry by hand, and ring the [b]builders[/b] for the rest. A "
+	+ "room at a time.\n\n"
+	+ "And when you get into the workroom: his benches were in the wrong place. Tell him I "
+	+ "said so."
 )
 
 ## The parts the mentor runs up for the tutorial order are sewn to its design at this
