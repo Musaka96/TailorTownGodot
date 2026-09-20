@@ -11,6 +11,11 @@ extends SceneTree
 ## +Z, the game camera looks toward -Z). See docs/STORY_AND_RENOVATION.md §6.5.
 
 const OUT := "res://scenes/world/grandpa/grandpa_shell_greybox.tscn"
+## false = the Blender-built shop (IMPORT/town_kit/build_v8_grandpa.py) is what the player sees:
+## this shell then only carries what is tested and works - collision, the boards across the
+## doorways, the mess to clear, the builders' clutter - with its own walls, roof and floor
+## labels left out and its floors unseen (they still give the director the building's outline).
+const SHOW_SHELL := false
 
 # Footprint (metres), on the town kit's 2 m grid so the Blender-built shop can use the kit's
 # wall pieces (docs 6.11): kit x + 0.65 = x here, 8.34 - kit y = z here. Front room 8 x 6,
@@ -275,6 +280,9 @@ func _segments(a: float, b: float, gaps: Array) -> Array:
 
 
 func _slab(nm: String, parent: Node, at: Vector3, size: Vector3, mat: String) -> void:
+	var shell_part := parent == _body_meshes or parent == _roof
+	if shell_part and not SHOW_SHELL and not nm.begins_with("Floor_"):
+		return
 	var mesh := MeshInstance3D.new()
 	mesh.name = nm
 	var box := BoxMesh.new()
@@ -282,6 +290,7 @@ func _slab(nm: String, parent: Node, at: Vector3, size: Vector3, mat: String) ->
 	box.material = _mat(mat)
 	mesh.mesh = box
 	mesh.position = at
+	mesh.visible = SHOW_SHELL or not nm.begins_with("Floor_")
 	_add(parent, mesh)
 
 
@@ -296,6 +305,8 @@ func _collide(nm: String, at: Vector3, size: Vector3) -> void:
 
 
 func _label(room: String, text: String, at: Vector3) -> void:
+	if not SHOW_SHELL:
+		return  # a greybox aid; the real shop shows its state by itself
 	var label := Label3D.new()
 	label.name = "Label_" + room
 	label.text = text

@@ -165,7 +165,9 @@ func _rooms_and_stations() -> void:
 	root.get_node("EventBus").day_began.emit(4)
 	_check(_reno.room_state("workroom") == DONE, "done after the second night")
 	_check(not _node("GrandpaShell/Wip_workroom").visible, "the builders have packed up")
-	_check(not _node("GrandpaShell/Label_workroom").visible, "the 'locked' label is gone")
+	# The floor label is a greybox aid: the real shop has none (the shell builder's SHOW_SHELL).
+	var label := _main.get_node_or_null("ShopRoom/GrandpaShell/Label_workroom") as Node3D
+	_check(label == null or not label.visible, "no 'locked' label on a finished room")
 	_check(
 		table.global_position.distance_to(Vector3(-2.6, 0, -1.45)) < 0.01, "the worktable moved in"
 	)

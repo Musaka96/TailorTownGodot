@@ -36,744 +36,520 @@ material = SubResource("StandardMaterial3D_vymmj")
 size = Vector3(6, 0.1, 10)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xbwow"]
-resource_name = "greybox_wall"
-albedo_color = Color(0.8, 0.78, 0.74, 1)
-roughness = 0.95
-
-[sub_resource type="BoxMesh" id="BoxMesh_opeod"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 3, 10)
-
-[sub_resource type="BoxMesh" id="BoxMesh_r62hn"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.1, 2.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_8ahqr"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.1, 2.6)
-
-[sub_resource type="BoxMesh" id="BoxMesh_b5cn3"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.1, 2.3000002)
-
-[sub_resource type="BoxMesh" id="BoxMesh_4u0wy"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.1, 6.2999997)
-
-[sub_resource type="BoxMesh" id="BoxMesh_rwteg"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.1, 2.3000002)
-
-[sub_resource type="BoxMesh" id="BoxMesh_067ie"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 3, 10)
-
-[sub_resource type="BoxMesh" id="BoxMesh_c4yv2"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(18, 3, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_v1io7"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(2.3, 1.1, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_8pi10"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(8.3, 1.1, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_ugnnd"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(4.2999997, 1.1, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_jlfyf"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(12.299999, 1.1, 0.2)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ino1e"]
-resource_name = "greybox_roof"
-albedo_color = Color(0.45, 0.33, 0.3, 1)
-roughness = 0.95
-
-[sub_resource type="BoxMesh" id="BoxMesh_sacmf"]
-material = SubResource("StandardMaterial3D_ino1e")
-size = Vector3(18.4, 0.2, 10.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_fsjcb"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.9, 2.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_rtrah"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.9, 2.6)
-
-[sub_resource type="BoxMesh" id="BoxMesh_bd7yi"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.9, 2.3000002)
-
-[sub_resource type="BoxMesh" id="BoxMesh_74xfc"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.9, 6.2999997)
-
-[sub_resource type="BoxMesh" id="BoxMesh_swtpt"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(0.2, 1.9, 2.3000002)
-
-[sub_resource type="BoxMesh" id="BoxMesh_rerks"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(2.3, 1.9, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_y787t"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(8.3, 1.9, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_7uypy"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(1.4, 0.9, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_foh83"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(4.2999997, 1.9, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_7qyjw"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(12.299999, 1.9, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_43tqn"]
-material = SubResource("StandardMaterial3D_xbwow")
-size = Vector3(1.4, 0.9, 0.2)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aij01"]
 resource_name = "greybox_boards"
 albedo_color = Color(0.47, 0.33, 0.2, 1)
 roughness = 0.95
 
-[sub_resource type="BoxMesh" id="BoxMesh_bucvj"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_opeod"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(1.4599999, 1.1, 0.26)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_str6m"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_r62hn"]
 size = Vector3(1.4, 3, 0.2)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sehmq"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_8ahqr"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(0.26, 1.1, 1.46)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_r10qb"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_b5cn3"]
 size = Vector3(0.2, 3, 1.4000001)
 
-[sub_resource type="BoxMesh" id="BoxMesh_i131s"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_4u0wy"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(0.26, 1.1, 1.4599999)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_gfcgg"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_rwteg"]
 size = Vector3(0.2, 3, 1.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_fsjyu"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_067ie"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(0.26, 1.1, 1.46)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_5tg1m"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_c4yv2"]
 size = Vector3(0.2, 3, 1.4000001)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_30u6l"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_v1io7"]
 size = Vector3(0.2, 3, 10)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_cf4kq"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_8pi10"]
 size = Vector3(0.2, 3, 2.3)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_toctl"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_ugnnd"]
 size = Vector3(0.2, 3, 2.6)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_r5o7x"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_jlfyf"]
 size = Vector3(0.2, 3, 2.3000002)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_lmieu"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_ino1e"]
 size = Vector3(0.2, 3, 6.2999997)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_si5ch"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_sacmf"]
 size = Vector3(0.2, 3, 2.3000002)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_l08iu"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_fsjcb"]
 size = Vector3(0.2, 3, 10)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_cbo5a"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_rtrah"]
 size = Vector3(18, 3, 0.2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_mkgvs"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_bd7yi"]
 size = Vector3(2.3, 3, 0.2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_k4hii"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_74xfc"]
 size = Vector3(8.3, 3, 0.2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_eaicc"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_swtpt"]
 size = Vector3(4.2999997, 3, 0.2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_s8o7g"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_rerks"]
 size = Vector3(12.299999, 3, 0.2)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4iah0"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y787t"]
 resource_name = "greybox_dust"
 albedo_color = Color(0.55, 0.5, 0.42, 1)
 roughness = 0.95
 
-[sub_resource type="BoxMesh" id="BoxMesh_p3hqu"]
-material = SubResource("StandardMaterial3D_4iah0")
+[sub_resource type="BoxMesh" id="BoxMesh_7uypy"]
+material = SubResource("StandardMaterial3D_y787t")
 size = Vector3(0.765, 0.08, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_4db1f"]
-material = SubResource("StandardMaterial3D_4iah0")
+[sub_resource type="BoxMesh" id="BoxMesh_foh83"]
+material = SubResource("StandardMaterial3D_y787t")
 size = Vector3(1.02, 0.08, 0.72)
 
-[sub_resource type="BoxMesh" id="BoxMesh_cr66b"]
-material = SubResource("StandardMaterial3D_4iah0")
+[sub_resource type="BoxMesh" id="BoxMesh_7qyjw"]
+material = SubResource("StandardMaterial3D_y787t")
 size = Vector3(1.275, 0.08, 0.9)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_meawn"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_43tqn"]
 resource_name = "greybox_rubble"
 albedo_color = Color(0.5, 0.47, 0.44, 1)
 roughness = 0.95
 
-[sub_resource type="BoxMesh" id="BoxMesh_vvpin"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_aij01"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(0.765, 0.2925, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_0uh2n"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_bucvj"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.02, 0.39, 0.72)
 
-[sub_resource type="BoxMesh" id="BoxMesh_yj4y2"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_str6m"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.275, 0.4875, 0.9)
 
-[sub_resource type="BoxMesh" id="BoxMesh_6b1ai"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_sehmq"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(0.765, 0.2925, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_7uvjq"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_r10qb"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(0.765, 0.2925, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_22h1a"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_i131s"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.02, 0.39, 0.72)
 
-[sub_resource type="BoxMesh" id="BoxMesh_ggads"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_gfcgg"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.275, 0.4875, 0.9)
 
-[sub_resource type="BoxMesh" id="BoxMesh_tvvcu"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_fsjyu"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(0.765, 0.2925, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_f5tid"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_5tg1m"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.02, 0.39, 0.72)
 
-[sub_resource type="BoxMesh" id="BoxMesh_2c1cw"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_30u6l"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.275, 0.4875, 0.9)
 
-[sub_resource type="BoxMesh" id="BoxMesh_2rnae"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_cf4kq"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(0.765, 0.2925, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_32xm4"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_toctl"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.02, 0.39, 0.72)
 
-[sub_resource type="BoxMesh" id="BoxMesh_r5six"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_r5o7x"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(1.275, 0.4875, 0.9)
 
-[sub_resource type="BoxMesh" id="BoxMesh_x0o31"]
-material = SubResource("StandardMaterial3D_meawn")
+[sub_resource type="BoxMesh" id="BoxMesh_lmieu"]
+material = SubResource("StandardMaterial3D_43tqn")
 size = Vector3(0.765, 0.2925, 0.54)
 
-[sub_resource type="BoxMesh" id="BoxMesh_5eljx"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_si5ch"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(1.6, 0.9, 0.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_reu2q"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l08iu"]
 resource_name = "greybox_tarp"
 albedo_color = Color(0.3, 0.42, 0.55, 1)
 roughness = 0.95
 
-[sub_resource type="BoxMesh" id="BoxMesh_k4e53"]
-material = SubResource("StandardMaterial3D_reu2q")
+[sub_resource type="BoxMesh" id="BoxMesh_cbo5a"]
+material = SubResource("StandardMaterial3D_l08iu")
 size = Vector3(1.6, 0.06, 1.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_ego66"]
-material = SubResource("StandardMaterial3D_ino1e")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mkgvs"]
+resource_name = "greybox_roof"
+albedo_color = Color(0.45, 0.33, 0.3, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="BoxMesh_k4hii"]
+material = SubResource("StandardMaterial3D_mkgvs")
 size = Vector3(0.5, 0.36, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_i5ktf"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_eaicc"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(1.6, 0.9, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_2tnxg"]
-material = SubResource("StandardMaterial3D_reu2q")
+[sub_resource type="BoxMesh" id="BoxMesh_s8o7g"]
+material = SubResource("StandardMaterial3D_l08iu")
 size = Vector3(1.6, 0.06, 1.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_g1shu"]
-material = SubResource("StandardMaterial3D_ino1e")
+[sub_resource type="BoxMesh" id="BoxMesh_4iah0"]
+material = SubResource("StandardMaterial3D_mkgvs")
 size = Vector3(0.5, 0.36, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_70cw4"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_p3hqu"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(1.6, 0.9, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_uhl07"]
-material = SubResource("StandardMaterial3D_reu2q")
+[sub_resource type="BoxMesh" id="BoxMesh_4db1f"]
+material = SubResource("StandardMaterial3D_l08iu")
 size = Vector3(1.6, 0.06, 1.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_1sjhx"]
-material = SubResource("StandardMaterial3D_ino1e")
+[sub_resource type="BoxMesh" id="BoxMesh_cr66b"]
+material = SubResource("StandardMaterial3D_mkgvs")
 size = Vector3(0.5, 0.36, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_8gbwf"]
-material = SubResource("StandardMaterial3D_aij01")
+[sub_resource type="BoxMesh" id="BoxMesh_meawn"]
+material = SubResource("StandardMaterial3D_xbwow")
 size = Vector3(1.6, 0.9, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_csh5f"]
-material = SubResource("StandardMaterial3D_reu2q")
+[sub_resource type="BoxMesh" id="BoxMesh_vvpin"]
+material = SubResource("StandardMaterial3D_l08iu")
 size = Vector3(1.6, 0.06, 1.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_ksij7"]
-material = SubResource("StandardMaterial3D_ino1e")
+[sub_resource type="BoxMesh" id="BoxMesh_0uh2n"]
+material = SubResource("StandardMaterial3D_mkgvs")
 size = Vector3(0.5, 0.36, 0.5)
 
-[node name="GrandpaShell" type="Node3D" unique_id=672421468]
+[node name="GrandpaShell" type="Node3D" unique_id=2097802520]
 
-[node name="Body" type="Node3D" parent="." unique_id=2081861722]
+[node name="Body" type="Node3D" parent="." unique_id=763096472]
 
-[node name="Floor_front" type="MeshInstance3D" parent="Body" unique_id=1745154994]
+[node name="Floor_front" type="MeshInstance3D" parent="Body" unique_id=564696684]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, -0.03, 5.34)
+visible = false
 mesh = SubResource("BoxMesh_50wq6")
 
-[node name="Floor_nook" type="MeshInstance3D" parent="Body" unique_id=394904312]
+[node name="Floor_nook" type="MeshInstance3D" parent="Body" unique_id=388211804]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, -0.03, 5.34)
+visible = false
 mesh = SubResource("BoxMesh_u1y2u")
 
-[node name="Floor_workroom" type="MeshInstance3D" parent="Body" unique_id=703384362]
+[node name="Floor_workroom" type="MeshInstance3D" parent="Body" unique_id=1312535853]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, -0.03, 0.34)
+visible = false
 mesh = SubResource("BoxMesh_4uy1m")
 
-[node name="Floor_cloth" type="MeshInstance3D" parent="Body" unique_id=1978572150]
+[node name="Floor_cloth" type="MeshInstance3D" parent="Body" unique_id=1419034638]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, -0.03, 0.34)
+visible = false
 mesh = SubResource("BoxMesh_to13q")
 
-[node name="Floor_nextdoor" type="MeshInstance3D" parent="Body" unique_id=1720701437]
+[node name="Floor_nextdoor" type="MeshInstance3D" parent="Body" unique_id=1893486004]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.65, -0.03, 3.34)
+visible = false
 mesh = SubResource("BoxMesh_krykm")
 
-[node name="West0" type="MeshInstance3D" parent="Body" unique_id=2000379167]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.35, 1.5, 3.3400002)
-mesh = SubResource("BoxMesh_opeod")
+[node name="Roof" type="Node3D" parent="." unique_id=7231404]
 
-[node name="Mid0" type="MeshInstance3D" parent="Body" unique_id=248773081]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 0.55, -0.51)
-mesh = SubResource("BoxMesh_r62hn")
+[node name="Blockers" type="Node3D" parent="." unique_id=1996282178]
 
-[node name="Mid1" type="MeshInstance3D" parent="Body" unique_id=1510902785]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 0.55, 3.34)
-mesh = SubResource("BoxMesh_8ahqr")
-
-[node name="Mid2" type="MeshInstance3D" parent="Body" unique_id=2038911663]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 0.55, 7.19)
-mesh = SubResource("BoxMesh_b5cn3")
-
-[node name="Party0" type="MeshInstance3D" parent="Body" unique_id=1268468936]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 0.55, 1.49)
-mesh = SubResource("BoxMesh_4u0wy")
-
-[node name="Party1" type="MeshInstance3D" parent="Body" unique_id=1232856406]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 0.55, 7.19)
-mesh = SubResource("BoxMesh_rwteg")
-
-[node name="East0" type="MeshInstance3D" parent="Body" unique_id=624504107]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.65, 1.5, 3.3400002)
-mesh = SubResource("BoxMesh_067ie")
-
-[node name="Back0" type="MeshInstance3D" parent="Body" unique_id=2003409089]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6499996, 1.5, -1.66)
-mesh = SubResource("BoxMesh_c4yv2")
-
-[node name="Divide0" type="MeshInstance3D" parent="Body" unique_id=796107809]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.1999998, 0.55, 2.34)
-mesh = SubResource("BoxMesh_v1io7")
-
-[node name="Divide1" type="MeshInstance3D" parent="Body" unique_id=766220758]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.55, 2.34)
-mesh = SubResource("BoxMesh_8pi10")
-
-[node name="Front0" type="MeshInstance3D" parent="Body" unique_id=125661077]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 0.55, 8.34)
-mesh = SubResource("BoxMesh_ugnnd")
-
-[node name="Front1" type="MeshInstance3D" parent="Body" unique_id=1241266662]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0.55, 8.34)
-mesh = SubResource("BoxMesh_jlfyf")
-
-[node name="Roof" type="Node3D" parent="." unique_id=885424896]
-
-[node name="RoofSlab" type="MeshInstance3D" parent="Roof" unique_id=1251846560]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 3.1, 3.34)
-mesh = SubResource("BoxMesh_sacmf")
-
-[node name="MidTop0" type="MeshInstance3D" parent="Roof" unique_id=1070798175]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 2.05, -0.51)
-mesh = SubResource("BoxMesh_fsjcb")
-
-[node name="MidTop1" type="MeshInstance3D" parent="Roof" unique_id=1204379919]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 2.05, 3.34)
-mesh = SubResource("BoxMesh_rtrah")
-
-[node name="MidTop2" type="MeshInstance3D" parent="Roof" unique_id=1820425755]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 2.05, 7.19)
-mesh = SubResource("BoxMesh_bd7yi")
-
-[node name="PartyTop0" type="MeshInstance3D" parent="Roof" unique_id=509663997]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 2.05, 1.49)
-mesh = SubResource("BoxMesh_74xfc")
-
-[node name="PartyTop1" type="MeshInstance3D" parent="Roof" unique_id=1194102196]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 2.05, 7.19)
-mesh = SubResource("BoxMesh_swtpt")
-
-[node name="DivideTop0" type="MeshInstance3D" parent="Roof" unique_id=2116969889]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.1999998, 2.05, 2.34)
-mesh = SubResource("BoxMesh_rerks")
-
-[node name="DivideTop1" type="MeshInstance3D" parent="Roof" unique_id=800203039]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 2.05, 2.34)
-mesh = SubResource("BoxMesh_y787t")
-
-[node name="DivideLintel2" type="MeshInstance3D" parent="Roof" unique_id=329110070]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3499999, 2.55, 2.34)
-mesh = SubResource("BoxMesh_7uypy")
-
-[node name="FrontTop0" type="MeshInstance3D" parent="Roof" unique_id=767324359]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 2.05, 8.34)
-mesh = SubResource("BoxMesh_foh83")
-
-[node name="FrontTop1" type="MeshInstance3D" parent="Roof" unique_id=1853287489]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 2.05, 8.34)
-mesh = SubResource("BoxMesh_7qyjw")
-
-[node name="FrontLintel2" type="MeshInstance3D" parent="Roof" unique_id=1704527805]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65000004, 2.55, 8.34)
-mesh = SubResource("BoxMesh_43tqn")
-
-[node name="Blockers" type="Node3D" parent="." unique_id=1901737259]
-
-[node name="Blocker_workroom" type="StaticBody3D" parent="Blockers" unique_id=941834227]
+[node name="Blocker_workroom" type="StaticBody3D" parent="Blockers" unique_id=1514627693]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3499999, 0.55, 2.34)
 
-[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_workroom" unique_id=435824751]
-mesh = SubResource("BoxMesh_bucvj")
+[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_workroom" unique_id=1080297992]
+mesh = SubResource("BoxMesh_opeod")
 
-[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_workroom" unique_id=1837207546]
+[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_workroom" unique_id=267332555]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
-shape = SubResource("BoxShape3D_str6m")
+shape = SubResource("BoxShape3D_r62hn")
 
-[node name="Blocker_nook" type="StaticBody3D" parent="Blockers" unique_id=666635516]
+[node name="Blocker_nook" type="StaticBody3D" parent="Blockers" unique_id=1745965121]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 0.55, 5.34)
 
-[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_nook" unique_id=1194524145]
-mesh = SubResource("BoxMesh_sehmq")
+[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_nook" unique_id=1097967666]
+mesh = SubResource("BoxMesh_8ahqr")
 
-[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_nook" unique_id=78905798]
+[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_nook" unique_id=65723848]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
-shape = SubResource("BoxShape3D_r10qb")
+shape = SubResource("BoxShape3D_b5cn3")
 
-[node name="Blocker_cloth" type="StaticBody3D" parent="Blockers" unique_id=129436586]
+[node name="Blocker_cloth" type="StaticBody3D" parent="Blockers" unique_id=1785967968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 0.55, 1.3399999)
 
-[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_cloth" unique_id=1361498835]
-mesh = SubResource("BoxMesh_i131s")
+[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_cloth" unique_id=1303139223]
+mesh = SubResource("BoxMesh_4u0wy")
 
-[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_cloth" unique_id=55520645]
+[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_cloth" unique_id=1657826051]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
-shape = SubResource("BoxShape3D_gfcgg")
+shape = SubResource("BoxShape3D_rwteg")
 
-[node name="Blocker_nextdoor" type="StaticBody3D" parent="Blockers" unique_id=1018484827]
+[node name="Blocker_nextdoor" type="StaticBody3D" parent="Blockers" unique_id=1910437371]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 0.55, 5.34)
 
-[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_nextdoor" unique_id=1242105348]
-mesh = SubResource("BoxMesh_fsjyu")
+[node name="Boards" type="MeshInstance3D" parent="Blockers/Blocker_nextdoor" unique_id=517822000]
+mesh = SubResource("BoxMesh_067ie")
 
-[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_nextdoor" unique_id=1007270767]
+[node name="Col" type="CollisionShape3D" parent="Blockers/Blocker_nextdoor" unique_id=1661742290]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
-shape = SubResource("BoxShape3D_5tg1m")
+shape = SubResource("BoxShape3D_c4yv2")
 
-[node name="Walls" type="StaticBody3D" parent="." unique_id=2072931242]
+[node name="Walls" type="StaticBody3D" parent="." unique_id=1940570955]
 
-[node name="Col_West0" type="CollisionShape3D" parent="Walls" unique_id=193483593]
+[node name="Col_West0" type="CollisionShape3D" parent="Walls" unique_id=681546819]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.35, 1.5, 3.3400002)
-shape = SubResource("BoxShape3D_30u6l")
+shape = SubResource("BoxShape3D_v1io7")
 
-[node name="Col_Mid0" type="CollisionShape3D" parent="Walls" unique_id=76443084]
+[node name="Col_Mid0" type="CollisionShape3D" parent="Walls" unique_id=380052642]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 1.5, -0.51)
-shape = SubResource("BoxShape3D_cf4kq")
+shape = SubResource("BoxShape3D_8pi10")
 
-[node name="Col_Mid1" type="CollisionShape3D" parent="Walls" unique_id=83428158]
+[node name="Col_Mid1" type="CollisionShape3D" parent="Walls" unique_id=2141619516]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 1.5, 3.34)
-shape = SubResource("BoxShape3D_toctl")
+shape = SubResource("BoxShape3D_ugnnd")
 
-[node name="Col_Mid2" type="CollisionShape3D" parent="Walls" unique_id=841888955]
+[node name="Col_Mid2" type="CollisionShape3D" parent="Walls" unique_id=1221571894]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.65, 1.5, 7.19)
-shape = SubResource("BoxShape3D_r5o7x")
+shape = SubResource("BoxShape3D_jlfyf")
 
-[node name="Col_Party0" type="CollisionShape3D" parent="Walls" unique_id=451451637]
+[node name="Col_Party0" type="CollisionShape3D" parent="Walls" unique_id=1360267820]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 1.5, 1.49)
-shape = SubResource("BoxShape3D_lmieu")
+shape = SubResource("BoxShape3D_ino1e")
 
-[node name="Col_Party1" type="CollisionShape3D" parent="Walls" unique_id=708658418]
+[node name="Col_Party1" type="CollisionShape3D" parent="Walls" unique_id=2134722627]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.65, 1.5, 7.19)
-shape = SubResource("BoxShape3D_si5ch")
+shape = SubResource("BoxShape3D_sacmf")
 
-[node name="Col_East0" type="CollisionShape3D" parent="Walls" unique_id=349909492]
+[node name="Col_East0" type="CollisionShape3D" parent="Walls" unique_id=1911225738]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.65, 1.5, 3.3400002)
-shape = SubResource("BoxShape3D_l08iu")
+shape = SubResource("BoxShape3D_fsjcb")
 
-[node name="Col_Back0" type="CollisionShape3D" parent="Walls" unique_id=1456637383]
+[node name="Col_Back0" type="CollisionShape3D" parent="Walls" unique_id=1894201153]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6499996, 1.5, -1.66)
-shape = SubResource("BoxShape3D_cbo5a")
+shape = SubResource("BoxShape3D_rtrah")
 
-[node name="Col_Divide0" type="CollisionShape3D" parent="Walls" unique_id=1012499569]
+[node name="Col_Divide0" type="CollisionShape3D" parent="Walls" unique_id=1282869982]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.1999998, 1.5, 2.34)
-shape = SubResource("BoxShape3D_mkgvs")
+shape = SubResource("BoxShape3D_bd7yi")
 
-[node name="Col_Divide1" type="CollisionShape3D" parent="Walls" unique_id=1200655260]
+[node name="Col_Divide1" type="CollisionShape3D" parent="Walls" unique_id=842050923]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 1.5, 2.34)
-shape = SubResource("BoxShape3D_k4hii")
+shape = SubResource("BoxShape3D_74xfc")
 
-[node name="Col_Front0" type="CollisionShape3D" parent="Walls" unique_id=1154395315]
+[node name="Col_Front0" type="CollisionShape3D" parent="Walls" unique_id=1656375528]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 1.5, 8.34)
-shape = SubResource("BoxShape3D_eaicc")
+shape = SubResource("BoxShape3D_swtpt")
 
-[node name="Col_Front1" type="CollisionShape3D" parent="Walls" unique_id=557520039]
+[node name="Col_Front1" type="CollisionShape3D" parent="Walls" unique_id=1334210885]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 1.5, 8.34)
-shape = SubResource("BoxShape3D_s8o7g")
+shape = SubResource("BoxShape3D_rerks")
 
-[node name="Spots" type="Node3D" parent="." unique_id=264353297]
+[node name="Spots" type="Node3D" parent="." unique_id=168286463]
 
-[node name="front_sweep" type="Node3D" parent="Spots" unique_id=1368040287]
+[node name="front_sweep" type="Node3D" parent="Spots" unique_id=1188099897]
 
-[node name="Spot0" type="Node3D" parent="Spots/front_sweep" unique_id=83536305]
+[node name="Spot0" type="Node3D" parent="Spots/front_sweep" unique_id=1008560870]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 0, 4.2)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/front_sweep/Spot0" unique_id=1624262995]
+[node name="Pile" type="MeshInstance3D" parent="Spots/front_sweep/Spot0" unique_id=1934186491]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("BoxMesh_p3hqu")
+mesh = SubResource("BoxMesh_7uypy")
 
-[node name="Spot1" type="Node3D" parent="Spots/front_sweep" unique_id=522842514]
+[node name="Spot1" type="Node3D" parent="Spots/front_sweep" unique_id=802231685]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 4.4)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/front_sweep/Spot1" unique_id=72871010]
+[node name="Pile" type="MeshInstance3D" parent="Spots/front_sweep/Spot1" unique_id=510298228]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("BoxMesh_4db1f")
+mesh = SubResource("BoxMesh_foh83")
 
-[node name="Spot2" type="Node3D" parent="Spots/front_sweep" unique_id=437980291]
+[node name="Spot2" type="Node3D" parent="Spots/front_sweep" unique_id=1326686717]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 7.2)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/front_sweep/Spot2" unique_id=1129115150]
+[node name="Pile" type="MeshInstance3D" parent="Spots/front_sweep/Spot2" unique_id=1472615462]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("BoxMesh_cr66b")
+mesh = SubResource("BoxMesh_7qyjw")
 
-[node name="workroom_clear" type="Node3D" parent="Spots" unique_id=283098848]
+[node name="workroom_clear" type="Node3D" parent="Spots" unique_id=345019924]
 
-[node name="Spot0" type="Node3D" parent="Spots/workroom_clear" unique_id=1084077128]
+[node name="Spot0" type="Node3D" parent="Spots/workroom_clear" unique_id=844818852]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2, 0, 0.6)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot0" unique_id=1942543068]
+[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot0" unique_id=1462405725]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14625, 0)
-mesh = SubResource("BoxMesh_vvpin")
+mesh = SubResource("BoxMesh_aij01")
 
-[node name="Spot1" type="Node3D" parent="Spots/workroom_clear" unique_id=2025179795]
+[node name="Spot1" type="Node3D" parent="Spots/workroom_clear" unique_id=1703848923]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0, -0.6)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot1" unique_id=1794943733]
+[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot1" unique_id=1497076910]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.195, 0)
-mesh = SubResource("BoxMesh_0uh2n")
+mesh = SubResource("BoxMesh_bucvj")
 
-[node name="Spot2" type="Node3D" parent="Spots/workroom_clear" unique_id=909324273]
+[node name="Spot2" type="Node3D" parent="Spots/workroom_clear" unique_id=2106187861]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0, 0.9)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot2" unique_id=2012713335]
+[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot2" unique_id=849269061]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24375, 0)
-mesh = SubResource("BoxMesh_yj4y2")
+mesh = SubResource("BoxMesh_str6m")
 
-[node name="Spot3" type="Node3D" parent="Spots/workroom_clear" unique_id=1275511720]
+[node name="Spot3" type="Node3D" parent="Spots/workroom_clear" unique_id=1415052873]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0, -0.9)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot3" unique_id=348518528]
+[node name="Pile" type="MeshInstance3D" parent="Spots/workroom_clear/Spot3" unique_id=1647212387]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14625, 0)
-mesh = SubResource("BoxMesh_6b1ai")
+mesh = SubResource("BoxMesh_sehmq")
 
-[node name="cloth_clear" type="Node3D" parent="Spots" unique_id=352494536]
+[node name="cloth_clear" type="Node3D" parent="Spots" unique_id=131424285]
 
-[node name="Spot0" type="Node3D" parent="Spots/cloth_clear" unique_id=588933240]
+[node name="Spot0" type="Node3D" parent="Spots/cloth_clear" unique_id=248744403]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -0.6)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/cloth_clear/Spot0" unique_id=620478533]
+[node name="Pile" type="MeshInstance3D" parent="Spots/cloth_clear/Spot0" unique_id=799884553]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14625, 0)
-mesh = SubResource("BoxMesh_7uvjq")
+mesh = SubResource("BoxMesh_r10qb")
 
-[node name="Spot1" type="Node3D" parent="Spots/cloth_clear" unique_id=1110780836]
+[node name="Spot1" type="Node3D" parent="Spots/cloth_clear" unique_id=426682747]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.6, 0, 0.9)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/cloth_clear/Spot1" unique_id=2147018206]
+[node name="Pile" type="MeshInstance3D" parent="Spots/cloth_clear/Spot1" unique_id=1053657709]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.195, 0)
-mesh = SubResource("BoxMesh_22h1a")
+mesh = SubResource("BoxMesh_i131s")
 
-[node name="Spot2" type="Node3D" parent="Spots/cloth_clear" unique_id=1629919910]
+[node name="Spot2" type="Node3D" parent="Spots/cloth_clear" unique_id=767167826]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 0, 1.2)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/cloth_clear/Spot2" unique_id=1353569424]
+[node name="Pile" type="MeshInstance3D" parent="Spots/cloth_clear/Spot2" unique_id=1015335304]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24375, 0)
-mesh = SubResource("BoxMesh_ggads")
+mesh = SubResource("BoxMesh_gfcgg")
 
-[node name="nook_clear" type="Node3D" parent="Spots" unique_id=566645916]
+[node name="nook_clear" type="Node3D" parent="Spots" unique_id=368590289]
 
-[node name="Spot0" type="Node3D" parent="Spots/nook_clear" unique_id=1619112318]
+[node name="Spot0" type="Node3D" parent="Spots/nook_clear" unique_id=355328759]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 3.6)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/nook_clear/Spot0" unique_id=1056209879]
+[node name="Pile" type="MeshInstance3D" parent="Spots/nook_clear/Spot0" unique_id=390168660]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14625, 0)
-mesh = SubResource("BoxMesh_tvvcu")
+mesh = SubResource("BoxMesh_fsjyu")
 
-[node name="Spot1" type="Node3D" parent="Spots/nook_clear" unique_id=706723249]
+[node name="Spot1" type="Node3D" parent="Spots/nook_clear" unique_id=2006067386]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.6, 0, 5.3)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/nook_clear/Spot1" unique_id=23509803]
+[node name="Pile" type="MeshInstance3D" parent="Spots/nook_clear/Spot1" unique_id=382822280]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.195, 0)
-mesh = SubResource("BoxMesh_f5tid")
+mesh = SubResource("BoxMesh_5tg1m")
 
-[node name="Spot2" type="Node3D" parent="Spots/nook_clear" unique_id=448654035]
+[node name="Spot2" type="Node3D" parent="Spots/nook_clear" unique_id=1571870407]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.2, 0, 7.2)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/nook_clear/Spot2" unique_id=1784631606]
+[node name="Pile" type="MeshInstance3D" parent="Spots/nook_clear/Spot2" unique_id=1316837968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24375, 0)
-mesh = SubResource("BoxMesh_2c1cw")
+mesh = SubResource("BoxMesh_30u6l")
 
-[node name="next_clear" type="Node3D" parent="Spots" unique_id=1683318171]
+[node name="next_clear" type="Node3D" parent="Spots" unique_id=1988032781]
 
-[node name="Spot0" type="Node3D" parent="Spots/next_clear" unique_id=1136986168]
+[node name="Spot0" type="Node3D" parent="Spots/next_clear" unique_id=69602687]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, -0.4)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot0" unique_id=1886429330]
+[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot0" unique_id=850600485]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14625, 0)
-mesh = SubResource("BoxMesh_2rnae")
+mesh = SubResource("BoxMesh_cf4kq")
 
-[node name="Spot1" type="Node3D" parent="Spots/next_clear" unique_id=284000026]
+[node name="Spot1" type="Node3D" parent="Spots/next_clear" unique_id=1736467120]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.2, 0, 1.2)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot1" unique_id=2102956134]
+[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot1" unique_id=570251214]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.195, 0)
-mesh = SubResource("BoxMesh_32xm4")
+mesh = SubResource("BoxMesh_toctl")
 
-[node name="Spot2" type="Node3D" parent="Spots/next_clear" unique_id=1621351085]
+[node name="Spot2" type="Node3D" parent="Spots/next_clear" unique_id=1539252965]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.6, 0, 4.2)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot2" unique_id=619776496]
+[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot2" unique_id=1587696703]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24375, 0)
-mesh = SubResource("BoxMesh_r5six")
+mesh = SubResource("BoxMesh_r5o7x")
 
-[node name="Spot3" type="Node3D" parent="Spots/next_clear" unique_id=338548721]
+[node name="Spot3" type="Node3D" parent="Spots/next_clear" unique_id=807914466]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 6.6)
 
-[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot3" unique_id=2064681986]
+[node name="Pile" type="MeshInstance3D" parent="Spots/next_clear/Spot3" unique_id=1072745691]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14625, 0)
-mesh = SubResource("BoxMesh_x0o31")
+mesh = SubResource("BoxMesh_lmieu")
 
-[node name="Wip_workroom" type="Node3D" parent="." unique_id=23568829]
+[node name="Wip_workroom" type="Node3D" parent="." unique_id=1020707164]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0, 0.6)
 
-[node name="Trestle" type="MeshInstance3D" parent="Wip_workroom" unique_id=129947671]
+[node name="Trestle" type="MeshInstance3D" parent="Wip_workroom" unique_id=1589702647]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("BoxMesh_5eljx")
+mesh = SubResource("BoxMesh_si5ch")
 
-[node name="Tarp" type="MeshInstance3D" parent="Wip_workroom" unique_id=1371451575]
+[node name="Tarp" type="MeshInstance3D" parent="Wip_workroom" unique_id=1598762807]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.04, 0.9)
-mesh = SubResource("BoxMesh_k4e53")
+mesh = SubResource("BoxMesh_cbo5a")
 
-[node name="Pots" type="MeshInstance3D" parent="Wip_workroom" unique_id=868462976]
+[node name="Pots" type="MeshInstance3D" parent="Wip_workroom" unique_id=1026483761]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.18, 0.7)
-mesh = SubResource("BoxMesh_ego66")
+mesh = SubResource("BoxMesh_k4hii")
 
-[node name="Wip_cloth" type="Node3D" parent="." unique_id=158350058]
+[node name="Wip_cloth" type="Node3D" parent="." unique_id=1978198258]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, 0, 0.2)
 
-[node name="Trestle" type="MeshInstance3D" parent="Wip_cloth" unique_id=830326248]
+[node name="Trestle" type="MeshInstance3D" parent="Wip_cloth" unique_id=1344329227]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("BoxMesh_i5ktf")
+mesh = SubResource("BoxMesh_eaicc")
 
-[node name="Tarp" type="MeshInstance3D" parent="Wip_cloth" unique_id=1386464508]
+[node name="Tarp" type="MeshInstance3D" parent="Wip_cloth" unique_id=568021748]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.04, 0.9)
-mesh = SubResource("BoxMesh_2tnxg")
+mesh = SubResource("BoxMesh_s8o7g")
 
-[node name="Pots" type="MeshInstance3D" parent="Wip_cloth" unique_id=1300716184]
+[node name="Pots" type="MeshInstance3D" parent="Wip_cloth" unique_id=1978445480]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.18, 0.7)
-mesh = SubResource("BoxMesh_g1shu")
+mesh = SubResource("BoxMesh_4iah0")
 
-[node name="Wip_nook" type="Node3D" parent="." unique_id=1386633243]
+[node name="Wip_nook" type="Node3D" parent="." unique_id=1844271376]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, 0, 5.3)
 
-[node name="Trestle" type="MeshInstance3D" parent="Wip_nook" unique_id=1247297432]
+[node name="Trestle" type="MeshInstance3D" parent="Wip_nook" unique_id=1059993435]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("BoxMesh_70cw4")
+mesh = SubResource("BoxMesh_p3hqu")
 
-[node name="Tarp" type="MeshInstance3D" parent="Wip_nook" unique_id=2132033490]
+[node name="Tarp" type="MeshInstance3D" parent="Wip_nook" unique_id=771136584]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.04, 0.9)
-mesh = SubResource("BoxMesh_uhl07")
+mesh = SubResource("BoxMesh_4db1f")
 
-[node name="Pots" type="MeshInstance3D" parent="Wip_nook" unique_id=825790075]
+[node name="Pots" type="MeshInstance3D" parent="Wip_nook" unique_id=608522743]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.18, 0.7)
-mesh = SubResource("BoxMesh_1sjhx")
+mesh = SubResource("BoxMesh_cr66b")
 
-[node name="Wip_nextdoor" type="Node3D" parent="." unique_id=549037829]
+[node name="Wip_nextdoor" type="Node3D" parent="." unique_id=1797990992]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.65, 0, 3.3)
 
-[node name="Trestle" type="MeshInstance3D" parent="Wip_nextdoor" unique_id=2097521702]
+[node name="Trestle" type="MeshInstance3D" parent="Wip_nextdoor" unique_id=1809032372]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("BoxMesh_8gbwf")
+mesh = SubResource("BoxMesh_meawn")
 
-[node name="Tarp" type="MeshInstance3D" parent="Wip_nextdoor" unique_id=405645430]
+[node name="Tarp" type="MeshInstance3D" parent="Wip_nextdoor" unique_id=1788118624]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.04, 0.9)
-mesh = SubResource("BoxMesh_csh5f")
+mesh = SubResource("BoxMesh_vvpin")
 
-[node name="Pots" type="MeshInstance3D" parent="Wip_nextdoor" unique_id=1494989]
+[node name="Pots" type="MeshInstance3D" parent="Wip_nextdoor" unique_id=933566421]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.18, 0.7)
-mesh = SubResource("BoxMesh_ksij7")
-
-[node name="Label_workroom" type="Label3D" parent="." unique_id=1837468588]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -0.35, 0.06, 0.34)
-pixel_size = 0.006
-modulate = Color(1, 1, 1, 0.75)
-text = "Workroom
-(locked)"
-font_size = 96
-
-[node name="Label_cloth" type="Label3D" parent="." unique_id=1061104735]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 5.65, 0.06, 0.34)
-pixel_size = 0.006
-modulate = Color(1, 1, 1, 0.75)
-text = "Cloth store
-(locked)"
-font_size = 96
-
-[node name="Label_nook" type="Label3D" parent="." unique_id=330252820]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 5.65, 0.06, 5.34)
-pixel_size = 0.006
-modulate = Color(1, 1, 1, 0.75)
-text = "Nook
-(locked)"
-font_size = 96
-
-[node name="Label_nextdoor" type="Label3D" parent="." unique_id=1736012893]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 10.65, 0.06, 3.34)
-pixel_size = 0.006
-modulate = Color(1, 1, 1, 0.75)
-text = "Next door
-(not yours)"
-font_size = 96
+mesh = SubResource("BoxMesh_0uh2n")

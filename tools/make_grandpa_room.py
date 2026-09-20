@@ -10,6 +10,10 @@ import io, re, sys, os
 SRC = "scenes/world/shop_room.tscn"
 OUT = "scenes/world/grandpa/grandpa_shop_room.tscn"
 SHELL = "res://scenes/world/grandpa/grandpa_shell_greybox.tscn"
+# The look: the Blender-built shop (IMPORT/town_kit/build_v8_grandpa.py), standing where Mr.
+# Hemming's stands in his scene (same kit origin). Not in git, like all kit exports.
+SHOP = "res://IMPORT/town_kit/export/v8/grandpa_shop_v8.gltf"
+SHOP_AT = "0.65319407, -0.13519084, 8.336888"
 
 DROP = {"Walls", "TailorShop", "NewHouseBase2", "MaterialRoll", "FabricPiece",
         "GarmentPiece", "Suit"}
@@ -85,7 +89,8 @@ def main():
                 b = re.sub(r"transform = Transform3D\([^)]*\)",
                            "transform = Transform3D(%s, 4.65, 1, 3.34)" % I, b)
                 b = re.sub(r'roof_path = NodePath\("[^"]*"\)',
-                           'roof_path = NodePath("../GrandpaShell/Roof")', b)
+                           'roof_path = NodePath("../GrandpaShop/grandpa_shop_v8/'
+                           'grandpa_shop_v8_Roof")', b)
                 b = re.sub(r"interior_extents = Vector3\([^)]*\)",
                            "interior_extents = Vector3(9.4, 1.8, 5.1)", b)  # both buildings
         kept.append(b)
@@ -114,6 +119,11 @@ def main():
         out = out.rstrip("\n") + (
             '\n\n[node name="%s" parent="." instance=ExtResource("%s")]\n'
             'transform = Transform3D(%s, %s, %s, %s)\n' % (name, ext_id, basis, x, y, z))
+    ext = '[ext_resource type="PackedScene" path="%s" id="gp_shop"]' % SHOP
+    out = out.replace("\n[ext_resource", "\n" + ext + "\n[ext_resource", 1)
+    out = out.rstrip("\n") + ('\n\n[node name="GrandpaShop" parent="." '
+                              'instance=ExtResource("gp_shop")]\n'
+                              'transform = Transform3D(%s, %s)\n' % (I, SHOP_AT))
     out = out.rstrip("\n") + '\n\n[node name="GrandpaShell" parent="." instance=ExtResource("gp_shell")]\n'
     ext = '[ext_resource type="Script" path="%s" id="gp_director"]' % DIRECTOR
     out = out.replace("\n[ext_resource", "\n" + ext + "\n[ext_resource", 1)
