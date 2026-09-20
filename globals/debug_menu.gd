@@ -386,6 +386,16 @@ func _reset_renovation() -> void:
 	_note("renovations reset")
 
 
+func _skip_goal() -> void:
+	var id := Guide.debug_skip()
+	_note("guide: %s" % (id if id != "" else "finished"))
+
+
+func _restart_guide() -> void:
+	Guide.debug_restart()
+	_note("guide: %s" % Guide.current_id())
+
+
 ## Skip to dawn for every project currently under way (nights_left > 0), and nothing else.
 func _finish_building_now() -> void:
 	var state: Dictionary = Renovation.save_state()
@@ -722,6 +732,11 @@ func _build() -> void:
 		var target := rn_rooms1 if rn_i < 2 else rn_rooms2
 		_button(target, "Open %s" % room_name, _open_room.bind(room))
 		rn_i += 1
+
+	var guide := _section(box, "Guide")
+	var gd_row := _row(guide)
+	_button(gd_row, "Skip goal", _skip_goal)
+	_button(gd_row, "Restart guide", _restart_guide)
 
 	_status = _make_label("", 12, Color(0.7, 0.75, 0.85))
 	box.add_child(_status)

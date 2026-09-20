@@ -54,6 +54,7 @@ const IN_WORLD := [
 	"res://stations/apprentice_bench/apprentice_bench.gd",
 ]
 const UI_CHROME := [
+	"res://globals/guide.gd",
 	"res://globals/order_manager.gd",
 	"res://ui/phone_order.gd",
 	"res://ui/customer_request.gd",
