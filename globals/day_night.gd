@@ -14,7 +14,7 @@ extends Node
 
 const DEFAULT_START_HOUR := 8.0
 const DEFAULT_END_HOUR := 17.0
-const DEFAULT_SHIFT_SECONDS := 300.0
+const DEFAULT_SHIFT_SECONDS := 420.0
 
 # Sun look across the shift (ends = warm/low, midday = neutral/higher — never zenith).
 const SUN_MID := Color(1.0, 0.97, 0.90)

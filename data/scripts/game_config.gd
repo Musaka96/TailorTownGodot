@@ -140,7 +140,7 @@ extends Resource
 ## In-game hour the shift closes at; the closing bell rings here.
 @export var shift_end_hour: float = 17.0
 ## Real seconds for the whole shift (open → close) to play out.
-@export var shift_real_seconds: float = 300.0
+@export var shift_real_seconds: float = 420.0
 
 @export_group("Cutting minigame")
 @export var cut_lead_seconds: float = 1.6  ## "get ready" pause before cutting starts

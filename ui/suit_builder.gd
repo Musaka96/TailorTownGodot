@@ -6,6 +6,9 @@ extends Control
 
 enum Row { PART, FABRIC, COLOR, PATTERN, STYLE }
 const KICKER := "Fitting room"
+# The mark for "in fashion" — the same glyph on the header line and on the rows, so the
+# thing you're told to look for is the thing you see when you land on it.
+const TREND_MARK := "★"
 const ROW_NAME := {
 	Row.PART: "Part",
 	Row.FABRIC: "Fabric",
@@ -53,6 +56,7 @@ var _swatch: MaterialSwatch
 var _name_label: Label
 var _sub_label: Label
 var _brief_label: Label
+var _trend_label: Label
 var _hint_bar: HBoxContainer
 var _total_slot: VBoxContainer
 var _scroll: ScrollContainer
@@ -186,6 +190,15 @@ func _build_decor_once() -> void:
 	_brief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_brief_label)
 	box.move_child(_brief_label, _head.get_index() + 1)
+	# Under the brief: what the paper says is in fashion, marked with the same star the
+	# rows wear, so you know what to hunt for instead of cycling every fabric blind.
+	_trend_label = Label.new()
+	_trend_label.add_theme_font_override("font", Style.font_bold())
+	_trend_label.add_theme_font_size_override("font_size", Style.T_CAPTION)
+	_trend_label.add_theme_color_override("font_color", Style.BRASS)
+	_trend_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_trend_label)
+	box.move_child(_trend_label, _brief_label.get_index() + 1)
 	# The panel is the one fixed thing (docked right, full height): the rows fill what is
 	# left and scroll, so the quote and the key prompts stay pinned to the bottom and no
 	# content — a long cloth name, an extra badge line — can push the panel around.
@@ -317,6 +330,42 @@ func _row_on_target(row: int) -> bool:
 		return false
 	var k: String = ROW_KEY[row]
 	return int(_cfg()[k]) == int(want.get(k, -1))
+
+
+# --- What's in fashion -------------------------------------------------------
+
+
+## The running trend as {fabric, pattern} enum values, -1 where the paper named none.
+func _trend() -> Dictionary:
+	var ev: NewsEvent = News.current_fashion if News != null else null
+	if ev == null:
+		return {"fabric": -1, "pattern": -1}
+	return {"fabric": ev.fashion_fabric, "pattern": ev.fashion_pattern}
+
+
+## Whether `row`'s current value is the one the paper says is in fashion. Only the
+## Fabric and Pattern rows can be: the trend never names a colour or a cut.
+func _in_style(row: int) -> bool:
+	if _part_sel < 0 or not (row == Row.FABRIC or row == Row.PATTERN):
+		return false
+	var want: int = _trend()[ROW_KEY[row]]
+	return want >= 0 and int(_cfg()[ROW_KEY[row]]) == want
+
+
+## The header's fashion line — "★ In style: Pinstripe or Tweed (+8 standing)", and
+## "★ In style — this suit follows it" once any part does. "" when nothing is in fashion.
+func _trend_text() -> String:
+	var t := _trend()
+	var bits: Array[String] = []
+	if int(t["pattern"]) >= 0:
+		bits.append(Enums.pattern_name(int(t["pattern"])))
+	if int(t["fabric"]) >= 0:
+		bits.append(Enums.fabric_name(int(t["fabric"])))
+	if bits.is_empty():
+		return ""
+	var bonus: int = News.current_fashion.fashion_bonus
+	var tail := " — this suit follows it" if News.fashion_matches(_design) else ""
+	return "%s In style: %s (+%d standing)%s" % [TREND_MARK, " or ".join(bits), bonus, tail]
 
 
 ## Width kept free at the left edge (the tutorial's goal tag), so the customer is centred
@@ -479,6 +528,8 @@ func _refresh() -> void:
 	else:
 		_brief_label.text = _status.strip_edges()
 		_clear_total()
+	_trend_label.text = _trend_text()
+	_trend_label.visible = _trend_label.text != ""
 	_update_stock()
 	_rebuild_hint_bar()
 
@@ -540,6 +591,14 @@ func _make_row(row: int, selected: bool) -> Control:
 		tick.add_theme_color_override("font_color", Style.FOREST)
 		tick.add_theme_font_size_override("font_size", Style.T_VALUE)
 		hbox.add_child(tick)
+	if _in_style(row):
+		# The paper's star: this cloth or pattern is what the city is wearing this week.
+		var star := Label.new()
+		star.text = TREND_MARK
+		star.tooltip_text = "In style — the paper is calling for this"
+		star.add_theme_color_override("font_color", Style.BRASS)
+		star.add_theme_font_size_override("font_size", Style.T_VALUE)
+		hbox.add_child(star)
 	return card
 
 

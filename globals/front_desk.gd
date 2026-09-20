@@ -88,7 +88,8 @@ func _part_minutes() -> float:
 
 
 func _shift_minutes() -> float:
-	var secs: float = Config.data.shift_real_seconds if Config.data != null else 300.0
+	var fallback: float = DayNight.DEFAULT_SHIFT_SECONDS
+	var secs: float = Config.data.shift_real_seconds if Config.data != null else fallback
 	return maxf(secs / 60.0, 0.5)
 
 
