@@ -319,7 +319,7 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
     (`Upgrades.ROOM_OF`; only in grandpa's shop, so Hemming's and old saves are unchanged).
   - Tests: `test_renovation` (gating, money, nights, scene effects, save round trip),
     `test_shop_clearance` (below), `test_locations`. GIF of the whole procedure:
-    `docs/media/renovation_greybox.gif` (`tools/shot_renovation_gif.gd` +
+    `docs/media/renovation.gif` (`tools/shot_renovation_gif.gd` +
     `tools/make_renovation_gif.py`).
 - **Playable loop (2026-09-20)**: the phone's **Builders** card (grandpa's shop only) orders
   building work, so the renovation can be played through without debug tools; the **F3
@@ -337,7 +337,38 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
   `IMPORT/town_kit/export/v7/`, and `/IMPORT/` is ignored, so a fresh clone has none of
   them. Grandpa's room scene depends on the same files; the v8 shop will follow the same
   convention.
-- Next: stage B, the look (Blender v8).
+- **Stage B done - the look**: `IMPORT/town_kit/build_v8_grandpa.py` (not in git, like the
+  rest of the kit; ~40 s, writes only `export/v8/`) builds grandpa's building as a front
+  block and a lower back block - two modest roofs meeting in a valley over the workroom -
+  and next door as a separate house in another colour, from the kit's own wall pieces:
+  shop windows, the double door, arched inner doorways, wainscot, skirting, curtains, a named
+  plank floor per room, door leaves in a `Doors` group (so `ShopDoor` swings them for
+  customers). **Cut-away**: every inner wall, the street front and the party wall are
+  bisected at 1.1 m (`split()`); the upper halves go to the roof group with the caps,
+  cornices and curtains above them, and `RoofManager` fades the lot. The cut is filled
+  dark, which reads like the kit's wall caps. **Hybrid on purpose**: Blender is the look
+  only; collision, boards, mess and builders' clutter still come from the tested Godot-side
+  shell (`SHOW_SHELL := false` leaves its own walls, roof and labels out).
+- **Stage C, first pass - damage**: per-room wear as Decals whose strength follows the
+  renovation (`RenovationDirector.wear_of`): a grey film of grime on the floor, damp down a
+  full-height wall, a wet glossy puddle under the leak; shut/entered 1.0, cleared 0.6, done 0;
+  the front room starts at 0.75 and each of its jobs takes a quarter away. Limited to the
+  shop's shell by render layer 2, so it never lands on people. Procedural textures:
+  `tools/make_wear_textures.py` -> `assets/textures/renovation/`. The mess is seeded heaps of
+  brick, plaster and slate, dust mounds with dead leaves, planks nailed across the doorways
+  (all below the cut), a low run of bricks across the party wall, a trestle, ladder, tarp and
+  paint pots for the builders. The third dust sheet covers the rack, not the 2.5 m mirror.
+- **Checked as a shop**: a customer called in grandpa's walks in from the street through
+  the new door (which swings open) to the counter.
+- **Still placeholder**: dust sheets are linen-coloured boxes (want draped meshes); the
+  day-1 mirror is still Mr. Hemming's tri-fold (want grandpa's plain cheval glass); the
+  cornice band came out navy, not terracotta; next door wears the same wallpaper as
+  grandpa's (interior slots are global, not per building or room); the plot is still Mr.
+  Hemming's (stage D) with its props hidden where they fall inside the building; a blossom
+  tree overhangs next door's corner. All costs, nights and appeal thresholds are provisional.
+- Not started: the story pieces of section 2 beyond Mr. Hemming's words (prologue panels,
+  grandpa's letters, keepsakes, old regulars, headlines), naming the shop, the fitting
+  corner and the mirror upgrade line, Mr. Hemming as a body in his shop, his Row diorama.
 
 ## 6.8 Names the Blender-built shop must keep
 
