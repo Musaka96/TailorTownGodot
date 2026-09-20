@@ -30,10 +30,12 @@ static func attach(root: Node) -> void:
 		return
 	var marker := root.find_child("DoorInside", true, false) as Node3D
 	var at := marker.global_position if marker != null else Vector3(0.66, 0.0, 7.2)
+	# A shop with a different doorway says where its sign stands ("DoorSignSpot" marker).
+	var spot := root.find_child("DoorSignSpot", true, false) as Node3D
 	var sign := DoorSign.new()
 	sign.name = "DoorSign"
 	root.add_child(sign)
-	sign.global_position = at + OFFSET
+	sign.global_position = spot.global_position if spot != null else at + OFFSET
 
 
 func _ready() -> void:

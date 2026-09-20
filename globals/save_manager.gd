@@ -24,12 +24,14 @@ const DIR := "user://saves"
 const DIR_TOOLS := "user://saves_tools"
 const SLOTS := 3
 const AUTO_SLOT := "auto"
-const MAIN_SCENE := "res://main.tscn"
 const MENU_SCENE := "res://scenes/menu/main_menu.tscn"
 
-## "" = booted straight into the game (tests/dev); "new"/"load" = came from the
-## menu and there's first-frame work to do in notify_game_ready.
+## "" = booted straight into the game (tests/dev); "new"/"load" = came from the menu,
+## "arrive" = came from Mr. Hemming's; there's first-frame work to do in notify_game_ready.
 var _mode := ""
+## True while a new game is still at Mr. Hemming's: the player is kept indoors and nothing
+## is saved, because that shop is not theirs. Cleared on leaving for grandpa's.
+var _apprentice := false
 var _pending: Dictionary = {}
 ## Where in the saved day to resume the clock (0..1); set while applying a load.
 var _resume_progress := 0.0
@@ -69,13 +71,25 @@ func load_from(slot: Variant) -> bool:
 		return false
 	_pending = data
 	_mode = "load"
-	_enter_game(false)
+	_enter_game(false, Locations.scene_of(Locations.valid(data.get("location", ""))))
 	return true
 
 
 ## Capture the live shop and write it to `slot`; returns whether it was written.
 func save_to(slot: Variant, save_name := "") -> bool:
+	if not can_save():
+		return false
 	return _write(slot, capture(save_name))
+
+
+## False during the apprenticeship at Mr. Hemming's: his shop isn't the player's to save.
+func can_save() -> bool:
+	return not _apprentice
+
+
+## True while the player is learning at Mr. Hemming's and mustn't wander off.
+func kept_indoors() -> bool:
+	return _apprentice
 
 
 ## Leave the game and return to the main menu, behind the curtain.
@@ -84,6 +98,7 @@ func to_menu() -> void:
 		return
 	_mode = "menu"
 	_pending = {}
+	_apprentice = false
 	_leave_game()
 
 
@@ -122,9 +137,12 @@ func has_any_save() -> bool:
 func notify_game_ready() -> void:
 	var mode := _mode
 	_mode = ""
+	var here := get_tree().current_scene
+	if here != null:
+		Locations.sync_to_scene(here.scene_file_path)
 	if UI != null:
 		UI.visible = true  # reveal the HUD/newspaper now that a game is running
-	if mode == "new" or mode == "load":
+	if mode != "":
 		GameState.input_locked = true  # nobody wanders about behind the curtain
 	match mode:
 		"load":
@@ -138,15 +156,23 @@ func notify_game_ready() -> void:
 			get_tree().paused = false
 			await _settle(Sfx.THEME)
 		"new":
+			# Mr. Hemming's shop: the apprenticeship. His shelves are stocked for the lesson.
 			await get_tree().process_frame
 			_give_starter_cloth(get_tree().current_scene)
 			await _settle(Sfx.THEME)
 			if Tutorial != null:
-				# Freeze the shop (no day, no newspaper) until the tutorial is chosen/skipped.
+				# Freeze the shop (no day, no newspaper) until the tutorial is chosen/skipped;
+				# either way the player then leaves for grandpa's shop.
 				get_tree().paused = true
-				Tutorial.offer(_begin_new_day)
+				Tutorial.offer(_leave_for_grandpas)
 			else:
-				_begin_new_day()
+				_leave_for_grandpas()
+		"arrive":
+			# The first morning in grandpa's shop.
+			await get_tree().process_frame
+			_give_starter_cloth(get_tree().current_scene)
+			await _settle(Sfx.THEME)
+			_begin_new_day()
 		_:
 			# Booted straight into main.tscn (dev): start the day here since DayNight no
 			# longer auto-starts at boot.
@@ -170,13 +196,30 @@ func _draw_curtain() -> void:
 ## Draw the curtain across the menu, then swap to the game behind it. Not awaited by the
 ## callers — they hand over and the rest happens once the fabric has landed. The curtain
 ## opens later, from notify_game_ready, once the shop has settled.
-func _enter_game(fresh: bool) -> void:
+func _enter_game(fresh: bool, scene := "") -> void:
 	_entering = true
 	await _draw_curtain()
 	if fresh:
 		_reset_autoloads()
+	_apprentice = fresh
 	_entering = false
-	_change_scene(MAIN_SCENE)
+	_change_scene(scene if scene != "" else Locations.scene_of(Locations.HEMMING))
+
+
+## The apprenticeship is over (or was declined): draw the curtain on Mr. Hemming's shop and
+## open it on grandpa's. Nothing made or earned at Hemming's comes along — it was his cloth
+## and his customer — so the run starts clean there.
+func _leave_for_grandpas() -> void:
+	if _entering:
+		return
+	_entering = true
+	get_tree().paused = false
+	await _draw_curtain()
+	_reset_autoloads()
+	_apprentice = false
+	_mode = "arrive"
+	_entering = false
+	_change_scene(Locations.scene_of(Locations.GRANDPA))
 
 
 ## The same, the other way: draw the curtain over the shop, swap back to the menu behind it,
@@ -248,6 +291,7 @@ func capture(save_name := "") -> Dictionary:
 		"version": VERSION,
 		"saved_at": Time.get_datetime_string_from_system(),
 		"name": save_name,
+		"location": str(Locations.current),
 		"money": GameState.money,
 		"account": GameState.account_owed,
 		"focus": GameState.focus,
@@ -410,6 +454,8 @@ func _carry(scene: Node) -> Node:
 
 
 func _on_shift_ended() -> void:
+	if not can_save():
+		return
 	var day := Shift.day if Shift != null else 1
 	_write(AUTO_SLOT, capture("Autosave — end of day %d" % day))
 

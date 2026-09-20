@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://dnncrqa07eagc" path="res://main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/world/grandpa/grandpa_shop_room.tscn" id="2_room"]
+[ext_resource type="PackedScene" uid="uid://j7f17grkjgtt" path="res://scenes/player/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" uid="uid://cvt2773d8i654" path="res://scenes/camera/camera_rig.tscn" id="4_cam"]
+
+[sub_resource type="Compositor" id="Compositor_gp"]
+
+[node name="Main" type="Node3D"]
+process_mode = 3
+script = ExtResource("1_main")
+
+[node name="ShopRoom" parent="." instance=ExtResource("2_room")]
+
+[node name="WorldEnvironment" parent="ShopRoom" index="0"]
+compositor = SubResource("Compositor_gp")
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4, 0.1, 3.8)
+
+[node name="CameraRig" parent="." instance=ExtResource("4_cam")]
+target_path = NodePath("../Player")
+
+[editable path="ShopRoom"]

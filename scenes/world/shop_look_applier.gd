@@ -61,6 +61,11 @@ var _warned: Dictionary = {}  # message -> true, so warnings don't spam every ap
 ## Add a ShopLookApplier under the shop node (a name starting with "tailor_shop_v")
 ## found anywhere under `root`, load the default look list and apply the current one.
 ## Returns the applier, or null (with a warning) if no shop could be found.
+## Whether `root` holds a kit shop whose surfaces can be recoloured (the greybox has none).
+static func has_shop(root: Node) -> bool:
+	return _find_shop(root) != null
+
+
 static func attach(root: Node) -> ShopLookApplier:
 	var shop := _find_shop(root)
 	if shop == null:

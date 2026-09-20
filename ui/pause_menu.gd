@@ -82,7 +82,9 @@ func _show_main() -> void:
 	_head.title.text = "Paused"
 	_refresh_meta()
 	_box.add_child(MenuKit.button("Resume", _resume))
-	_box.add_child(MenuKit.button("Save Game", func() -> void: _show_slots(true)))
+	# Mr. Hemming's shop isn't the player's to save; the game saves from grandpa's on.
+	if SaveManager.can_save():
+		_box.add_child(MenuKit.button("Save Game", func() -> void: _show_slots(true)))
 	_box.add_child(MenuKit.button("Load Game", func() -> void: _show_slots(false)))
 	_box.add_child(MenuKit.button("Handbook", _open_handbook))
 	_box.add_child(MenuKit.button("Controls", _show_controls))

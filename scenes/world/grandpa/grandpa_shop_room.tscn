@@ -1,0 +1,186 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world/grandpa/grandpa_shell_greybox.tscn" id="gp_shell"]
+[ext_resource type="PackedScene" uid="uid://jk4i7qcpjrbf" path="res://stations/shelf/shelf.tscn" id="1_2a88l"]
+[ext_resource type="PackedScene" uid="uid://d067p6q3lrihi" path="res://stations/phone/phone.tscn" id="3_jtjmr"]
+[ext_resource type="PackedScene" uid="uid://bp2junry4wnt8" path="res://stations/worktable/worktable.tscn" id="5_usqlc"]
+[ext_resource type="PackedScene" uid="uid://dwmvby0t0h8mq" path="res://stations/sewing_machine/sewing_machine.tscn" id="7_f0faw"]
+[ext_resource type="PackedScene" path="res://stations/clothing_rack/clothing_rack.tscn" id="11_26bn3"]
+[ext_resource type="PackedScene" uid="uid://c76bm2lo5brwt" path="res://stations/mirror/mirror.tscn" id="15_walcy"]
+[ext_resource type="Script" uid="uid://4777dfdbrk2e" path="res://entities/customer/customer_manager.gd" id="17_08xdy"]
+[ext_resource type="PackedScene" uid="uid://ms21rgi1x564" path="res://scenes/props/flora_patch.tscn" id="28_2xgx5"]
+[ext_resource type="PackedScene" uid="uid://boxl5ttu0p6f1" path="res://scenes/grass_patch.tscn" id="33_ov3w0"]
+[ext_resource type="Script" uid="uid://clfnpwwjvwxfb" path="res://scenes/world/roof_manager.gd" id="40_roofm"]
+[ext_resource type="PackedScene" uid="uid://s8v4bsnqp5up" path="res://stations/trash_can/trash_can.tscn" id="41_trash"]
+[ext_resource type="PackedScene" uid="uid://be4rajia0rg1c" path="res://IMPORT/town_kit/export/v7/edging_v7.gltf" id="50_edging"]
+[ext_resource type="PackedScene" uid="uid://dr0wctvie0jya" path="res://IMPORT/town_kit/export/v7/plot_v7.gltf" id="60_plot6"]
+[ext_resource type="PackedScene" uid="uid://bio3uboj3a854" path="res://IMPORT/town_kit/export/v7/town_v7.gltf" id="61_town6"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
+
+[sub_resource type="Sky" id="Sky_hg8uv"]
+sky_material = SubResource("ProceduralSkyMaterial_c7tjy")
+
+[sub_resource type="Environment" id="Environment_d058j"]
+background_mode = 1
+background_color = Color(0.76862746, 0.8509804, 0.8392157, 1)
+sky = SubResource("Sky_hg8uv")
+ambient_light_source = 2
+ambient_light_color = Color(0.84705883, 0.89411765, 0.8666667, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 2
+ssao_enabled = true
+ssao_radius = 0.6
+ssao_intensity = 1.4
+ssao_light_affect = 0.1
+glow_enabled = true
+glow_intensity = 0.4
+glow_bloom = 0.06
+glow_hdr_threshold = 0.95
+fog_enabled = true
+fog_light_color = Color(0.7490196, 0.81960785, 0.8156863, 1)
+fog_density = 0.002
+adjustment_enabled = true
+adjustment_contrast = 1.04
+adjustment_saturation = 1.12
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ojymr"]
+size = Vector3(30, 1, 30)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3fqpp"]
+size = Vector3(48, 1, 4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ov3w0"]
+size = Vector3(9.949585, 1, 1.9765625)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_y34p1"]
+size = Vector3(60, 1, 52.617188)
+
+[node name="ShopRoom" type="Node3D" unique_id=1507661624]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=563568563]
+environment = SubResource("Environment_d058j")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=814668976]
+transform = Transform3D(0.81915206, 0.46984634, -0.32898995, 0, 0.57357645, 0.81915206, 0.57357645, -0.6710101, 0.46984634, 0, 0, 0)
+visible = false
+light_energy = 0.0
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1108522204]
+
+[node name="GroundCol" type="CollisionShape3D" parent="Floor" unique_id=734846109]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+shape = SubResource("BoxShape3D_ojymr")
+
+[node name="Shelf" parent="." unique_id=2137070260 instance=ExtResource("1_2a88l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.55, 0, 1.95)
+
+[node name="Phone" parent="." unique_id=244267950 instance=ExtResource("3_jtjmr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4, 0, 4.6)
+
+[node name="Worktable" parent="." unique_id=2080952600 instance=ExtResource("5_usqlc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0, 2.5)
+
+[node name="SewingMachine" parent="." unique_id=1098430318 instance=ExtResource("7_f0faw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 2.4)
+
+[node name="ClothingRack" parent="." unique_id=1799385403 instance=ExtResource("11_26bn3")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 4.4)
+
+[node name="Mirror" parent="." unique_id=270766224 instance=ExtResource("15_walcy")]
+transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 1.45, 0, 5.65)
+
+[node name="Sidewalk" type="StaticBody3D" parent="." unique_id=1313181017]
+
+[node name="PathCol" type="CollisionShape3D" parent="Sidewalk" unique_id=220170867]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.47823548, 12.541105)
+shape = SubResource("BoxShape3D_3fqpp")
+
+[node name="PathCol2" type="CollisionShape3D" parent="Sidewalk" unique_id=1892759569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.8600445, -0.47823548, 9.530433)
+shape = SubResource("BoxShape3D_ov3w0")
+
+[node name="Street" type="StaticBody3D" parent="." unique_id=1024456187]
+
+[node name="AsphaltCol" type="CollisionShape3D" parent="Street" unique_id=538795973]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -4.3085938)
+shape = SubResource("BoxShape3D_y34p1")
+
+[node name="Storefront" type="Node3D" parent="." unique_id=7638284]
+
+[node name="Waypoints" type="Node3D" parent="." unique_id=1591188085]
+
+[node name="GreetSpot" type="Marker3D" parent="Waypoints" unique_id=2002706852]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0, 5.9)
+
+[node name="CollectSpot" type="Marker3D" parent="Waypoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0, 5.9)
+
+[node name="DoorInside" type="Marker3D" parent="Waypoints" unique_id=1351360069]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0, 6.4)
+
+[node name="DoorOutside" type="Marker3D" parent="Waypoints" unique_id=1530681602]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0, 8.3)
+
+[node name="MirrorSpot" type="Marker3D" parent="Waypoints" unique_id=716688041]
+transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 1.25, 0, 6.25)
+
+[node name="StreetWest" type="Marker3D" parent="Waypoints" unique_id=394422646]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, 12.453909)
+
+[node name="StreetEast" type="Marker3D" parent="Waypoints" unique_id=1779476627]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 11.833154)
+
+[node name="CustomerManager" type="Node3D" parent="." unique_id=1388212487]
+script = ExtResource("17_08xdy")
+mirror_path = NodePath("../Mirror")
+greet_path = NodePath("../Waypoints/GreetSpot")
+mirror_spot_path = NodePath("../Waypoints/MirrorSpot")
+collect_spot_path = NodePath("../Waypoints/CollectSpot")
+door_in_path = NodePath("../Waypoints/DoorInside")
+door_out_path = NodePath("../Waypoints/DoorOutside")
+street_west_path = NodePath("../Waypoints/StreetWest")
+street_east_path = NodePath("../Waypoints/StreetEast")
+
+[node name="TrashCan" parent="." unique_id=200102761 instance=ExtResource("41_trash")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.85, 0, 6.45)
+
+[node name="RoofManager" type="Node3D" parent="." unique_id=200102760]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65, 1, 1.75)
+script = ExtResource("40_roofm")
+roof_path = NodePath("../GrandpaShell/Roof")
+interior_extents = Vector3(5.1, 1.8, 5.35)
+
+[node name="FloraPatch3" parent="." unique_id=500448687 instance=ExtResource("28_2xgx5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59.085564, 0.018687725, 1.8917577)
+patch_size = Vector2(28.03, 14.56)
+
+[node name="Node3D" type="Node3D" parent="." unique_id=1782033005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.23479, 0, 0)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2137816016]
+transform = Transform3D(1, 0, 0, 0, 0.7751285, 0.63180363, 0, -0.63180363, 0.7751285, 0, 0, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_angular_distance = 3.0
+shadow_enabled = true
+shadow_opacity = 0.9
+shadow_blur = 1.5
+
+[node name="GrassPatch" parent="." unique_id=1909371927 instance=ExtResource("33_ov3w0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.85996, 0.019536532, 16.668962)
+patch_size = Vector2(11.795, 11.05)
+grass_amount = 140
+
+[node name="TailorPlot" parent="." unique_id=904485733 instance=ExtResource("60_plot6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.336888)
+
+[node name="Town" parent="." unique_id=194241255 instance=ExtResource("61_town6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.336888)
+
+[node name="LawnEdging" parent="." unique_id=2040583806 instance=ExtResource("50_edging")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.336888)
+
+[node name="DoorSignSpot" type="Marker3D" parent="Waypoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0, 6.35)
+
+[node name="GrandpaShell" parent="." instance=ExtResource("gp_shell")]

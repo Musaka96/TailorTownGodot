@@ -232,8 +232,12 @@ All small and independent; can land in any order after 6.1–6.2.
 
 ## 6.5 Station plan per room (owner-approved 2026-09-20, layout A)
 
-Room sizes to greybox with: front room 6x5 m, nook 3x5, workroom 6x5, cloth store 3x5,
-neighbouring unit 5x10. Yard behind stays free (keeps a later garden room possible).
+Room sizes (greybox, 2026-09-20): **front room 7x5.5 m**, nook 3x5.5, workroom 7x5, cloth
+store 3x5, neighbouring unit 5x10.5. The first sketch said 6x5, but the real station
+footprints are bigger than drawn (the phone *is* the 2.0x0.7 reception desk; worktable
+1.4x1.7, sewing 1.7x1.5, rack 1.8x1.2, tri-fold mirror 2.0x1.4 including standing room), so
+the room grew per the circulation rule below. Yard behind stays free (keeps a later garden
+room possible). The footprint lives in one place: `tools/build_grandpa_greybox.gd`.
 
 | Stage | Stations |
 |---|---|
@@ -271,6 +275,31 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
   each renovation state. Re-run whenever furniture footprints or room sizes change.
 - If the 6x5 front room cannot meet this with all seven day-1 stations, **grow the room**
   (6.5x5.5) before dropping a station.
+
+## 6.6 What the greybox taught us (feeds the Blender v8 brief)
+
+- **Dollhouse cut-away.** The game camera is a perspective camera, so in a small shop not
+  only left-right walls hide floor: *inner* front-to-back walls lean across the side rooms
+  too. In the greybox every inner wall and the street front keep only their bottom 1.1 m;
+  everything above it lives in the `Roof` group that `RoofManager` fades while the player
+  is inside. Outer side walls and the back wall stay whole (they lean away / sit behind).
+  v8 must export its walls split the same way (`_Body` low part, `_Roof` upper part).
+- **Locked rooms stay in view** through the cut-away: dark floor, rubble, boards across
+  the doorway (`Blockers/Blocker_<room>`, one StaticBody each, freed by a renovation).
+- **Door sign**: a shop with its own doorway places a `DoorSignSpot` marker.
+- **The v7 plot garden pokes into the front-left corner** of grandpa's footprint (the v7
+  wings were set back). Cosmetic, greybox only; v8 rebuilds the plot for the new footprint.
+- **The day-1 mirror is still the big tri-fold.** The basic cheval mirror is a v8 asset.
+
+## 6.7 Status
+
+- **M1 (2026-09-20, branch `story-renovation`)**: `Locations` autoload; a new game opens at
+  Mr. Hemming's (`main.tscn`, no saving, door barred for the player), then the curtain
+  falls and rises on grandpa's greybox shop (`scenes/world/grandpa/`), which is the saved
+  world; saves carry `location`; old saves (no key) still open in `main.tscn`.
+  Tools: `tools/build_grandpa_greybox.gd` (shell), `tools/make_grandpa_room.py` (one-time
+  room converter), `tools/shot_grandpa.gd`, `tools/test_locations.gd`.
+- Next: M2 `Renovation` autoload on the greybox.
 
 ## 7. Build order
 

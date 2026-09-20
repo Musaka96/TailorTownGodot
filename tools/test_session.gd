@@ -33,7 +33,11 @@ func _run() -> void:
 	_sm.new_game()
 	await _until(func() -> bool: return tut._layer != null)
 	_check(tut._layer != null, "new game offers the tutorial")
-	tut.abort()
+	# Nothing is saved at Mr. Hemming's: decline the tour, which moves the game to grandpa's.
+	_check(not _sm.save_to(SLOT, "session test"), "no saving during the apprenticeship")
+	tut._on_prompt_answer(1)
+	await _through_curtain()
+	_check(root.get_node("Locations").current == &"grandpa", "declined → grandpa's shop")
 	root.get_node("Orders").debug_add_random()
 	_check(_tickets() == 1, "one order → one ticket")
 	_check(_sm.save_to(SLOT, "session test"), "saved")
