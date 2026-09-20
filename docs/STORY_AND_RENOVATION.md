@@ -1,6 +1,6 @@
 # TailorTown — Story, Renovation & Progression Plan
 
-Proposed 2026-09-20. Status: **plan, awaiting owner decisions** (see §9). Nothing here is
+Proposed 2026-09-20. Status: **plan, owner decisions mostly in** (see §9). Nothing here is
 built yet. This doc subsumes ROADMAP item **E** (new location) and pulls **D** (shop
 personalization) forward, because the story needs both.
 
@@ -256,18 +256,24 @@ change.
 - **Tone**: abandoned can drift gloomy. Keep warm light, plants, the bird's nest, funny
   finds.
 
-## 9. Decisions for the owner
+## 9. Owner decisions (answered 2026-09-20)
 
-1. **Grandpa alive, writes letters, visits at the end?** (recommended) or passed away
-   (more bittersweet, no letters — Hemming and keepsakes carry it all).
-2. **Hybrid renovation** (hands-on cleanup + phone builders)? or phone-only (cheaper to
-   build, less cozy)?
-3. **Grandpa's shop on the existing town plot, Hemming's v7 shop in a small new "Row"
-   diorama?** (recommended)
-4. **Soft gameplay effects from damage** (appeal, closing at dusk, bucket) or purely
-   visual + room gating?
-5. **Expansion direction** at the end: knock through into the neighbouring unit
-   (recommended; friendly to the camera) or build into the yard?
-6. **Names**: grandpa, the family/shop name (or player-named at the sign repaint), the
-   town vs "the Row".
-7. **Hemming as a physical character** in his shop, or portrait-only as now?
+1. **Grandpa is alive**, writes letters, visits at the end. ✔
+2. **Hybrid renovation**: hands-on cleanup *and* phone builders. ✔
+3. **Grandpa's shop on the existing town plot; Hemming's v7 shop in a small new "Row"
+   diorama.** ✔
+4. **No damage mechanics.** Damage is visual + room gating only. The single gameplay
+   effect of a shabby shop is **humbler customers** (appeal → customer tier ceiling). This
+   overrides §3 "Does damage affect gameplay?": no closing at dusk, no bucket chore, no
+   puddle slowdown. The bucket, drips and puddles stay as set dressing.
+5. **Expansion direction: open.** Three layouts were shown (A knock through sideways,
+   B into the yard, C sideways first then a glazed garden room). Recommendation: **A now,
+   shaped so C stays possible** (keep the yard free behind the workroom).
+6. **Names: cute.** Proposal, awaiting a yes: grandpa **Barnaby "Pops" Thimble**; the shop
+   **The Little Thimble** (faded on the old sign; the player may rename it at the sign
+   repaint); the town **Buttonbrook**; Hemming's street stays **the Row**. Alternatives:
+   Bobbin / Button for the family name, "Thimble & Thread" for the shop.
+7. **Hemming is a physical character** in his shop (character parts system), standing at
+   the second bench; the portrait dialog stays for his speech. ✔
+
+Work happens on the `story-renovation` branch.
