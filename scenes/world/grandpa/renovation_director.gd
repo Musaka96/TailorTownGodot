@@ -41,6 +41,9 @@ const SHEET_BOX := {
 	"ClothingRack": [Vector3(0.0, 0.82, 0.0), Vector3(1.72, 1.64, 0.62)],
 }
 const SHEET_NODE := "DustSheet"
+## How the drape is built: rings from the floor up, and corners around each ring.
+const DRAPE_RINGS := 7
+const DRAPE_SIDES := 20
 ## Stations that move when a room opens: room -> {station: [basis, origin]}.
 const MOVES := {
 	"workroom":
@@ -363,15 +366,61 @@ func _build_sheets() -> void:
 			continue
 		var sheet := MeshInstance3D.new()
 		sheet.name = SHEET_NODE
-		var box := BoxMesh.new()
-		box.size = SHEET_BOX[station][1]
-		box.material = mat
-		sheet.mesh = box
-		sheet.position = SHEET_BOX[station][0]
+		sheet.mesh = _drape(SHEET_BOX[station][1], hash(station))
+		sheet.material_override = mat
+		sheet.position = SHEET_BOX[station][0] - Vector3(0, SHEET_BOX[station][1].y / 2.0, 0)
 		node.add_child(sheet)  # the station's own: it goes where the station goes
 		var reach: Vector3 = SHEET_BOX[station][1] + Vector3(0.5, 0.2, 0.9)
 		_add_work(sheet, SHEETS_PROJECT, "Pull off the dust sheet", reach)
 		_sheets[station] = sheet
+
+
+## A sheet thrown over something `size` big: rings of a rounded rectangle from the floor up,
+## flaring where the cloth pools, pinched in at the top where it lies on the furniture, with
+## folds running down it. `salt` makes each sheet hang a little differently.
+func _drape(size: Vector3, salt: int) -> ArrayMesh:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = salt
+	var folds := 7 + (absi(salt) % 3)
+	var phase := dice.randf_range(0.0, TAU)
+	var rings: Array[PackedVector3Array] = []
+	for r in DRAPE_RINGS + 1:
+		var t := float(r) / float(DRAPE_RINGS)  # 0 at the floor, 1 at the top
+		# wide where it pools, drawn in over the top
+		var spread := 1.0 + 0.08 * (1.0 - t) - 0.13 * smoothstep(0.72, 1.0, t)
+		var y := size.y * t
+		if t > 0.995:
+			y -= size.y * 0.02  # the top sags a touch
+		var ring := PackedVector3Array()
+		for i in DRAPE_SIDES:
+			var a := TAU * float(i) / float(DRAPE_SIDES)
+			var ripple := 1.0 + 0.035 * sin(folds * a + phase) * (0.35 + 0.65 * (1.0 - t))
+			var c := cos(a)
+			var sn := sin(a)
+			# a rounded rectangle, not an ellipse: the cloth still shows the shape underneath
+			var x := signf(c) * pow(absf(c), 0.55) * size.x / 2.0 * spread * ripple
+			var z := signf(sn) * pow(absf(sn), 0.55) * size.z / 2.0 * spread * ripple
+			ring.append(Vector3(x, y, z))
+		rings.append(ring)
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for r in DRAPE_RINGS:
+		for i in DRAPE_SIDES:
+			var j := (i + 1) % DRAPE_SIDES
+			var a1 := rings[r][i]
+			var b1 := rings[r][j]
+			var c1 := rings[r + 1][j]
+			var d1 := rings[r + 1][i]
+			for v: Vector3 in [a1, b1, c1, a1, c1, d1]:
+				tool.add_vertex(v)
+	var top := rings[DRAPE_RINGS]
+	var middle := Vector3(0, top[0].y + size.y * 0.015, 0)
+	for i in DRAPE_SIDES:
+		var j := (i + 1) % DRAPE_SIDES
+		for v: Vector3 in [top[i], middle, top[j]]:
+			tool.add_vertex(v)
+	tool.generate_normals()
+	return tool.commit()
 
 
 func _add_work(host: Node3D, project: String, verb: String, size: Vector3) -> void:
