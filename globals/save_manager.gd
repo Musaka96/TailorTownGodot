@@ -302,6 +302,7 @@ func capture(save_name := "") -> Dictionary:
 		"reputation": Reputation.points if Reputation != null else 0,
 		"upgrades": Upgrades.save_state() if Upgrades != null else {},
 		"renovation": Renovation.save_state() if Renovation != null else {},
+		"story": Story.save_state() if Story != null else {},
 		"clock": DayNight.progress() if DayNight != null else 0.0,
 		"morning": Shift != null and Shift.phase == Shift.Phase.MORNING,
 		"day_start_money": Shift.day_start_money() if Shift != null else GameState.money,
@@ -363,6 +364,8 @@ func _apply_pending() -> void:
 		Upgrades.restore(d.get("upgrades", {}))
 	if Renovation != null:
 		Renovation.restore(d.get("renovation", {}))
+	if Story != null:
+		Story.restore(d.get("story", {}))
 	_resume_progress = float(d.get("clock", 0.0))
 	_resume_day_money = int(d.get("day_start_money", GameState.money))
 	if News != null:
@@ -430,6 +433,8 @@ func _reset_autoloads() -> void:
 		Upgrades.reset()
 	if Renovation != null:
 		Renovation.reset()
+	if Story != null:
+		Story.reset()
 	Orders.clear()
 	Shift.reset_to(1)
 	if News != null:

@@ -111,6 +111,24 @@ const NOOK_WALL := "NookWall"
 ## one plain pane on a stand, about a third the width of Mr. Hemming's.
 const TRIFOLD_UPGRADE := "mirror_trifold"
 const CHEVAL_NODE := "ChevalGlass"
+## The memory shelf on the front-room wall: what each keepsake looks like standing on it,
+## as [size, colour]. Story.KEEPSAKES picks one of these by name.
+const KEEPSAKE_PROPS := {
+	"shears": [Vector3(0.05, 0.03, 0.26), Color(0.62, 0.64, 0.68)],
+	"thimble": [Vector3(0.05, 0.06, 0.05), Color(0.76, 0.60, 0.26)],
+	"photo": [Vector3(0.16, 0.12, 0.02), Color(0.55, 0.42, 0.28)],
+	"pencil": [Vector3(0.02, 0.02, 0.18), Color(0.85, 0.72, 0.30)],
+	"tin": [Vector3(0.15, 0.08, 0.11), Color(0.68, 0.36, 0.28)],
+	"ledger": [Vector3(0.14, 0.05, 0.19), Color(0.36, 0.28, 0.42)],
+	"paper": [Vector3(0.17, 0.03, 0.13), Color(0.85, 0.82, 0.70)],
+}
+## Where it hangs and how long the boards are. The WEST wall of the front room: it stands
+## full height and never fades, so the shelf is never left hanging in mid-air the way it
+## was on the street front (which is cut away for the camera).
+const SHELF_AT := Vector3(-4.18, 1.35, 3.3)
+const SHELF_TURN := 90.0
+const SHELF_LENGTH := 1.7
+const SHELF_VERB := "Grandpa's shelf"
 const CHEVAL_SOLID := Vector3(1.0, 1.4, 0.55)
 ## The front of the shop: grimy and weedy until it is repainted.
 const FACADE_JOB := "facade_paint"
@@ -149,6 +167,7 @@ var _wear := {}  # room -> its Decals
 var _dark := {}  # room -> the box of shadow in it
 var _facade: Array[Decal] = []  # dirt over the street front
 var _forecourt: Array[MeshInstance3D] = []  # the plot's dressing outside the shop door
+var _keepsakes := {}  # keepsake id -> the little thing standing on the shelf
 var _sheets_released := false  # the sheeted stations have been handed back for good
 
 
@@ -169,10 +188,12 @@ func _ready() -> void:
 	_build_spots()
 	_build_sheets()
 	_build_cheval()
+	_build_memory_shelf()
 	_build_wear()
 	_build_dark()
 	_build_facade()
 	Upgrades.changed.connect(_apply)
+	Story.changed.connect(_apply_keepsakes)
 	Renovation.changed.connect(_apply)
 	Renovation.project_finished.connect(_on_project_finished)
 	_apply()
@@ -201,6 +222,7 @@ func _apply() -> void:
 	_apply_facade()
 	_apply_nook_wall()
 	_apply_mirror()
+	_apply_keepsakes()
 
 
 func _apply_spots(project: String) -> void:
@@ -270,7 +292,16 @@ func _on_project_finished(id: String) -> void:
 
 
 ## Spots, sheets and boards all forward here through a small proxy (see _Work below).
+## The shelf by the door: how many of his things are on it.
+func shelf_prompt() -> String:
+	if Story.keepsake_count() == 0:
+		return "Grandpa's shelf — nothing on it yet"
+	return "Grandpa's shelf (%d)" % Story.keepsake_count()
+
+
 func work_prompt(project: String, verb: String) -> String:
+	if verb == SHELF_VERB:
+		return shelf_prompt()
 	if project == "":
 		return "The party wall — that's a job for the builders"
 	if Renovation.available(project):
@@ -283,7 +314,11 @@ func work_prompt(project: String, verb: String) -> String:
 	return ""
 
 
-func do_work(project: String) -> void:
+func do_work(project: String, verb := "") -> void:
+	if verb == SHELF_VERB:
+		if UI != null and UI.story_note != null:
+			UI.story_note.open(SHELF_VERB, Story.shelf_text())
+		return
 	if not Renovation.available(project):
 		return
 	GameState.input_locked = true
@@ -466,6 +501,51 @@ func _apply_mirror() -> void:
 			continue
 		(shape.shape as BoxShape3D).size = SOLID["Mirror"][1] if bought else CHEVAL_SOLID
 		shape.position = SOLID["Mirror"][0] if bought else Vector3(0.11, 0.7, -0.1)
+
+
+## A shelf of plain boards by the door, and on it everything the renovation has turned up.
+## The things stand there from the start, unseen, so finding one only has to show it.
+func _build_memory_shelf() -> void:
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.34, 0.23, 0.15)
+	wood.roughness = 0.8
+	var shelf := Node3D.new()
+	shelf.name = "MemoryShelf"
+	add_child(shelf)
+	shelf.global_position = SHELF_AT
+	shelf.rotation_degrees = Vector3(0, SHELF_TURN, 0)
+	_part(shelf, "Board", Vector3.ZERO, Vector3(SHELF_LENGTH, 0.04, 0.22), Vector3.ZERO, wood)
+	for side: float in [-1.0, 1.0]:
+		_part(
+			shelf,
+			"Bracket%d" % int(side),
+			Vector3(side * (SHELF_LENGTH / 2.0 - 0.08), -0.1, 0.05),
+			Vector3(0.04, 0.18, 0.12),
+			Vector3.ZERO,
+			wood
+		)
+	var ids: Array = Story.KEEPSAKES.keys()
+	var step := SHELF_LENGTH / float(maxi(ids.size(), 1))
+	for i in ids.size():
+		var id: String = ids[i]
+		var prop: Array = KEEPSAKE_PROPS.get(str(Story.KEEPSAKES[id]["prop"]), [])
+		if prop.is_empty():
+			continue
+		var size: Vector3 = prop[0]
+		var paint := StandardMaterial3D.new()
+		paint.albedo_color = prop[1]
+		paint.roughness = 0.6
+		var at := Vector3(-SHELF_LENGTH / 2.0 + step * (i + 0.5), 0.02 + size.y / 2.0, 0.0)
+		var thing := _part(shelf, "Keepsake_" + id, at, size, Vector3(0, 12.0 * i, 0), paint)
+		thing.visible = false
+		_keepsakes[id] = thing
+	_add_work(shelf, "", SHELF_VERB, Vector3(1.9, 1.0, 1.1))
+
+
+## What has been found is on the shelf; the rest is not there yet.
+func _apply_keepsakes() -> void:
+	for id: String in _keepsakes:
+		(_keepsakes[id] as Node3D).visible = Story.has_found(id)
 
 
 func _build_boards() -> void:
@@ -914,4 +994,4 @@ class _Work:
 		return director.work_prompt(project, verb)
 
 	func interact(_actor: Variant) -> void:
-		director.do_work(project)
+		director.do_work(project, verb)

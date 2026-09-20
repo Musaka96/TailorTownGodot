@@ -24,6 +24,8 @@ func _ready() -> void:
 	# An apprentice stays in until the lesson is done (customers still come and go).
 	if SaveManager.kept_indoors():
 		_bar_the_door()
+	# A letter from grandpa waits for a quiet moment rather than barging in mid-order.
+	Story.letter_ready.connect(_on_letter_ready)
 	# The shop scene is fully built now (children _ready before this). Let the save
 	# system apply a queued load / start a new day / resume a direct boot.
 	SaveManager.notify_game_ready()
@@ -46,3 +48,33 @@ func _bar_the_door() -> void:
 	add_child(body)
 	var mid := inside.global_position.lerp(outside.global_position, 0.5)
 	body.global_position = mid + Vector3.UP * 1.5
+
+
+## A letter has been earned. Hold it back until the player is not in a menu, a minigame or a
+## conversation, then hand it over — and only in a shop that is theirs.
+func _on_letter_ready(_id: String) -> void:
+	if not is_inside_tree():
+		return
+	await _quiet_moment()
+	var waiting := Story.next_letter()
+	if waiting == "" or UI == null or UI.story_note == null:
+		return
+	var note := Story.letter(waiting)
+	UI.story_note.open(
+		str(note.get("title", "A letter")),
+		str(note.get("body", "")),
+		func() -> void: Story.mark_read(waiting)
+	)
+
+
+## Wait for nothing else to be on screen: no menu, no pause, no tutorial speech.
+func _quiet_moment() -> void:
+	while is_inside_tree():
+		var busy := GameState.is_paused or GameState.input_locked
+		if UI != null and UI.any_menu_open():
+			busy = true
+		if Tutorial != null and Tutorial.is_active():
+			busy = true
+		if not busy:
+			return
+		await get_tree().create_timer(0.4).timeout

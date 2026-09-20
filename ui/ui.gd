@@ -12,6 +12,8 @@ var orders_menu: Control
 var clock: Control
 var reputation: Control
 var newspaper: Control
+## Grandpa's letters and the memory shelf, on a sheet of his notepaper.
+var story_note: Control
 var day_transition: Control
 var pause_menu: Control
 var rack_menu: Control
@@ -67,6 +69,7 @@ func _ready() -> void:
 	rack_menu = _build_rack_menu()
 	apprentice_menu = _build_code_menu("ApprenticeMenu", "res://ui/apprentice_menu.gd")
 	bench_game = _build_code_menu("BenchGameScreen", "res://ui/bench_game_screen.gd")
+	story_note = _build_code_menu("StoryNote", "res://ui/story_note.gd")
 	_wire_pop_ins()
 
 
@@ -85,6 +88,7 @@ func close_all_menus() -> void:
 		apprentice_menu,
 		bench_game,
 		newspaper,
+		story_note,
 	]:
 		if menu != null and menu.visible:
 			if menu.has_method("close"):
@@ -108,6 +112,7 @@ func any_menu_open() -> bool:
 		apprentice_menu,
 		bench_game,
 		newspaper,
+		story_note,
 	]:
 		if menu != null and menu.visible:
 			return true
