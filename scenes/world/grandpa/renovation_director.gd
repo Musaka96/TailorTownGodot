@@ -159,8 +159,10 @@ const PANEL_INSET := 0.04  # keeps a patch off the panel's very edge
 const PANEL_JOIN := 0.4  # panels this close run together as one stretch of plaster
 const PANEL_MIN := 0.7  # a stretch narrower than this is not worth a patch
 const WALL_OFF := 0.3  # how far in from the room's edge a wall patch sits
-const WALL_MID := 1.5  # its centre height
-const WALL_H := 3.0  # and how far up the wall it reaches
+## From the top of the skirting to just under the wall cap (the walls stand 2.86 m): a
+## patch that ran the full 3 m climbed over the cap and showed as brick above the wall.
+const WALL_MID := 1.48  # its centre height
+const WALL_H := 2.64  # and how far up the wall it reaches
 const WALL_DEPTH := 0.7  # how deep it projects (it only has the one wall to find)
 const DAMP_WIDE := 2.4  # how broad one streak of damp runs
 

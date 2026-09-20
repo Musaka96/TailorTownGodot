@@ -108,9 +108,9 @@ damp()
 puddle()
 
 
-def plaster(name, w=768, h=1152, wide_m=2.0, high_m=3.0):
-    """Bare wall where the old paper has gone, as one 2 m x 3 m length of wall (the decal is
-    laid in lengths, never stretched, so the bricks keep their size). Pale plaster, a few
+def plaster(name, w=768, h=1014, wide_m=2.0, high_m=2.64):
+    """Bare wall where the old paper has gone, as one 2 m x 2.64 m length of wall (the decal is
+    laid in lengths, skirting to wall cap, never stretched, so the bricks keep their size). Pale plaster, a few
     chunky patches of brick where that has fallen away too, hairline cracks — and a TORN
     outline: the alpha is cut by noise, so what is left of the old paper hangs on in ragged
     strips at the edges and the decal never shows as a box. Edges are crisp, not feathered:
@@ -120,8 +120,8 @@ def plaster(name, w=768, h=1152, wide_m=2.0, high_m=3.0):
     base = 0.74 + 0.12 * fbm((w, h), (3, 7, 15))
     rgb = np.dstack([base * 0.90, base * 0.87, base * 0.80])
 
-    # chunky bricks, each its own shade: 6 to the length, 12 courses up the wall
-    bw, bh = w / 6.0, h / 12.0
+    # chunky bricks, each its own shade: 6 to the length, 11 courses up the wall
+    bw, bh = w / 6.0, h / 11.0
     row = np.floor(yy / bh)
     shift = (row % 2) * (bw / 2.0)
     col = np.floor((xx + shift) / bw)
