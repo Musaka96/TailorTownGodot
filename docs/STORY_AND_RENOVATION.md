@@ -426,6 +426,38 @@ for an ASCII map of each stage. It caught three things no screenshot had shown:
 4. **Reputation tiers gate rooms** (workroom tier 1 ... next door tier 4) and costs are
    placeholders - both need a balance pass against `docs/ECONOMY.md`.
 
+## 6.10a Owner's round of 2026-09-20 (walls, dark rooms, the nook, the front)
+
+All asked for after seeing the first screenshots, all built:
+
+- **Full walls between the rooms.** The stub walls (1.1 m) are gone; every wall stands its
+  full height. Only the STREET FRONTS are still cut away — the camera has to see in over
+  them. The two walls that would hide something are their own glTF groups and Godot moves
+  them: **`Divider`** (front rooms | back rooms) is faded by a second `RoofManager` over the
+  back rooms, so the player is never hidden behind their own wall; **`NookWall`** comes out
+  for good when the nook is fitted out.
+- **A locked room is dark.** A box of shadow fills any room still shut: from the shop it is
+  a black hole behind the boards, and what is in there stays a surprise. The light comes in
+  when the boards come off (`RoomState.SHUT` only) and never goes back.
+- **The nook joins the shop.** Owner: "when you unlock the nook I want it to just expand the
+  front room, no doorway separating them." `nook_build` removes `NookWall` entirely.
+- **No wallpaper in an unrenovated room.** Bare plaster with brick showing through where it
+  has fallen, one decal per wall (`plaster.png`, procedural). The front room keeps it until
+  `front_paper`; every other room until its own building work is done.
+- **The front of the shop looks shut**: three boarded windows (pulled off by hand, one window
+  at a time), weeds along the plinth, dirt over the paintwork and the sign. Fixed by
+  `front_boards` → `front_window` → `facade_paint`.
+- **The shop has a name over the door**: THIMBLE, on a board that hangs out and tilts back to
+  face the camera. Flat on the wall it foreshortened to a gold bar (the 55° camera rule).
+- **Dust sheets hang like cloth** (a lathe with folds, pooling at the floor), and **next door
+  has its own paper, panelling and floor**.
+
+**Still placeholder after this round**: the day-1 mirror is still Mr. Hemming's tri-fold. It
+is a single welded mesh in a hand-owned scene, so grandpa's plain cheval glass needs its own
+model — best made in the v8 kit script and swapped by the director, which is also where the
+mirror upgrade line of §6.5 should land. The facade's dirt is a first pass (the v7 plot's
+flowers and crates still stand in front of the shop until stage D rebuilds the plot).
+
 ## 6.11 The Blender v8 brief (read before building the real shop)
 
 **The kit is a 2 m module kit.** `build_v7.PlanB` asserts every room dimension is a multiple
@@ -513,10 +545,9 @@ change.
    puddle slowdown. The bucket, drips and puddles stay as set dressing.
 5. **Expansion: layout A** (knock through sideways into the neighbouring unit), yard kept
    free so a garden room stays possible. Station plan approved, see §6.5. ✔
-6. **Names: cute.** Proposal, awaiting a yes: grandpa **Barnaby "Pops" Thimble**; the shop
-   **The Little Thimble** (faded on the old sign; the player may rename it at the sign
-   repaint); the town **Buttonbrook**; Hemming's street stays **the Row**. Alternatives:
-   Bobbin / Button for the family name, "Thimble & Thread" for the shop.
+6. **Names (owner: "those are cool")**: grandpa **Barnaby "Pops" Thimble**; the shop **The
+   Little Thimble**; the town **Buttonbrook**; Hemming's street stays **the Row**. The sign
+   over the door reads **THIMBLE** (one word carries at the camera's distance). ✔
 7. **Hemming is a physical character** in his shop (character parts system), standing at
    the second bench; the portrait dialog stays for his speech. ✔
 
