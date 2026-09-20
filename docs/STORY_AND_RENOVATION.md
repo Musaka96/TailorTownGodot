@@ -370,9 +370,20 @@ Cramped must never mean stuck. Player capsule radius is 0.34 m, customers simila
   grandpa's (interior slots are global, not per building or room); the plot is still Mr.
   Hemming's (stage D) with its props hidden where they fall inside the building; a blossom
   tree overhangs next door's corner. All costs, nights and appeal thresholds are provisional.
-- Not started: the story pieces of section 2 beyond Mr. Hemming's words (prologue panels,
-  grandpa's letters, keepsakes, old regulars, headlines), naming the shop, the fitting
-  corner and the mirror upgrade line, Mr. Hemming as a body in his shop, his Row diorama.
+- **Story, first two channels (2026-09-20)**: `globals/story.gd` (`Story`, saved with the
+  game) + `ui/story_note.gd` (`UI.story_note`, one sheet of his notepaper used for both).
+  **Keepsakes**: 7 of them, each hung off a job's `project_finished` — shears, thimble,
+  photograph, the measurements under the paper, the tin of photographs, the ledger, the
+  day's paper. They stand on a **memory shelf** on the front room's WEST wall (full
+  height, so it never floats when the street front is cut away), built by the director;
+  the props are there from the start and unseen, so a find only has to show one. The
+  shelf is one interactable and reads back as one page. **Letters**: arrival, then after
+  the workroom, the cloth store, the repaint and the knock-through; a letter waits in
+  `Story` until `main.gd._quiet_moment()` says nothing else is on screen. Test:
+  `tools/test_story.gd` (55 checks).
+- Not started: the prologue panels, old regulars who knew him, the newspaper headlines,
+  the fitting corner, Mr. Hemming as a body in his shop, his Row diorama, and the balance
+  pass. Grandpa's visit at the end is written into the last letter but not staged.
 
 ## 6.8 Names the Blender-built shop must keep
 
