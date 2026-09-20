@@ -125,6 +125,8 @@ func _dressing() -> void:
 		],
 	}
 	var holder := _group("Spots")
+	_boarded_windows(holder)
+	_facade_weeds()
 	for project: String in spots:
 		var group := Node3D.new()
 		group.name = project
@@ -158,6 +160,83 @@ func _dressing() -> void:
 	_label("cloth", "Cloth store\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZB + ZM) / 2))
 	_label("nook", "Nook\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZM + ZF) / 2))
 	_label("nextdoor", "Next door\n(not yours)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZF) / 2))
+
+
+## The three shop windows on the street, boarded over. Their own spots, so the player pulls
+## them off one window at a time; they hang on the outside face of the front wall, so a
+## FacadeFader in the room scene fades them with the wall above it.
+func _boarded_windows(holder: Node3D) -> void:
+	var group := Node3D.new()
+	group.name = "front_boards"
+	_add(holder, group)
+	var i := 0
+	for x: float in [X0 + 1.0, X0 + 3.0, X0 + 7.0]:  # the shop-window modules, not the door
+		var spot := Node3D.new()
+		spot.name = "Spot%d" % i
+		spot.position = Vector3(x, 1.25, ZF + T / 2 + 0.07)  # over the glass, under the sign
+		_add(group, spot)
+		_board_up(spot, i)
+		i += 1
+
+
+## One window boarded over. Whoever did it was in a hurry: thick planks at whatever angle
+## came to hand, and a longer one across them. No two windows are boarded alike, so three
+## of them in a row never read as a railing.
+func _board_up(spot: Node3D, which: int) -> void:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = hash("boards/%d" % which)
+	var lays := [
+		[Vector3(0, -0.42, 0), 4.0],
+		[Vector3(0, 0.02, 0), -6.0],
+		[Vector3(0, 0.46, 0), 3.0],
+	]
+	for row in lays.size():
+		var at: Vector3 = lays[row][0] + Vector3(dice.randf_range(-0.05, 0.05), 0, 0)
+		var lean: float = float(lays[row][1]) + dice.randf_range(-5.0, 5.0)
+		var plank := _chunk(
+			spot,
+			at + Vector3(0, 0, 0.03 * row),
+			Vector3(dice.randf_range(1.9, 2.1), dice.randf_range(0.2, 0.28), 0.06),
+			Vector3(0, 0, lean),
+			"plank_a" if row % 2 == 0 else "plank_b"
+		)
+		plank.name = "Plank%d" % row
+	# one longer plank across the lot, nailed corner to corner
+	var brace := _chunk(
+		spot,
+		Vector3(0, 0, 0.12),
+		Vector3(2.5, 0.22, 0.06),
+		Vector3(0, 0, dice.randf_range(28.0, 42.0) * (1.0 if which % 2 == 0 else -1.0)),
+		"plank_b"
+	)
+	brace.name = "Brace"
+
+
+## Weeds that have come up along the front while the shop stood shut.
+func _facade_weeds() -> void:
+	var group := _group("Facade")
+	var dice := RandomNumberGenerator.new()
+	dice.seed = 8801
+	var clump := 0
+	while clump < 22:
+		var at := Vector3(X0 + dice.randf_range(0.2, 11.6), 0.0, ZF + 0.35)
+		var holder := Node3D.new()
+		holder.name = "Weed%d" % clump
+		holder.position = at + Vector3(0, 0, dice.randf_range(-0.12, 0.12))
+		_add(group, holder)
+		for blade in dice.randi_range(5, 9):
+			var high := dice.randf_range(0.3, 0.72)
+			var leaf := _chunk(
+				holder,
+				Vector3(dice.randf_range(-0.12, 0.12), high / 2.0, dice.randf_range(-0.06, 0.06)),
+				Vector3(0.05, high, 0.05),
+				Vector3(
+					dice.randf_range(-22, 22), dice.randf_range(0, 180), dice.randf_range(-22, 22)
+				),
+				"weed_a" if blade % 2 == 0 else "weed_b"
+			)
+			leaf.name = "Blade%d" % blade
+		clump += 1
 
 
 # --- pieces ------------------------------------------------------------------
@@ -481,6 +560,8 @@ func _mat(id: String) -> StandardMaterial3D:
 		"leaf_b": Color(0.56, 0.47, 0.18),
 		"paint_a": Color(0.30, 0.47, 0.40),
 		"paint_b": Color(0.72, 0.60, 0.36),
+		"weed_a": Color(0.36, 0.48, 0.22),
+		"weed_b": Color(0.46, 0.55, 0.26),
 		"tarp": Color(0.30, 0.42, 0.55),
 	}
 	var m := StandardMaterial3D.new()

@@ -232,6 +232,12 @@ script = ExtResource("40_roofm")
 roof_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Divider")
 interior_extents = Vector3(6.1, 1.8, 2.1)
 
+[node name="FacadeFader" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
+script = ExtResource("40_roofm")
+roof_path = NodePath("../GrandpaShell/Spots/front_boards")
+interior_extents = Vector3(9.4, 1.8, 5.1)
+
 [node name="GrandpaShell" parent="." instance=ExtResource("gp_shell")]
 
 [node name="RenovationDirector" type="Node3D" parent="."]

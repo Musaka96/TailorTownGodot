@@ -126,6 +126,11 @@ func _by_hand() -> void:
 	_reno.clear_spot("front_sweep")
 	_reno.clear_spot("front_sweep")
 	_check(_reno.available("workroom_boards"), "front room swept: now the boards can come off")
+	_check(_reno.available("front_boards"), "…and the shop windows can be unboarded")
+	_check(not _reno.can_order("front_window"), "no glazier while the boards are still up")
+	for _i in 3:
+		_reno.clear_spot("front_boards")
+	_check(_reno.is_done("front_boards"), "all three windows unboarded")
 	_check(not _reno.available("nook_boards"), "the nook also waits for a better name (tier 3)")
 	_sections_ended += 1
 

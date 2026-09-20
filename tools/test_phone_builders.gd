@@ -14,6 +14,8 @@ const GRANDPA_SCENE := "res://scenes/world/grandpa/main_grandpa.tscn"
 const BUILD_IDS := [
 	"front_window",
 	"front_lights",
+	"front_paper",
+	"facade_paint",
 	"workroom_build",
 	"cloth_build",
 	"nook_build",
@@ -155,9 +157,9 @@ func _test_status_states() -> void:
 	)
 
 	# "After: <job>": front_window's own tier (room 'front') is 0, always met, so with
-	# its `needs` (front_sweep) unmet this isolates the earlier-job lock text.
+	# its `needs` (front_boards) unmet this isolates the earlier-job lock text.
 	_check(
-		_row_status_text("front_window") == "After: %s" % str(_reno.data("front_sweep")["name"]),
+		_row_status_text("front_window") == "After: %s" % str(_reno.data("front_boards")["name"]),
 		"status: locked by an earlier job reads 'After: <job name>'"
 	)
 
@@ -167,6 +169,8 @@ func _test_status_states() -> void:
 	for id: String in ["front_sheets", "front_sheets", "front_sheets"]:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
+		_reno.clear_spot(id)
+	for id: String in ["front_boards", "front_boards", "front_boards"]:
 		_reno.clear_spot(id)
 	_rep.points = int(_rep.TIERS[1]["at"])
 	_check(_reno.clear_spot("workroom_boards"), "setup: workroom boards cleared at tier 1")
@@ -225,6 +229,8 @@ func _test_order_success() -> void:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
 		_reno.clear_spot(id)
+	for id: String in ["front_boards", "front_boards", "front_boards"]:
+		_reno.clear_spot(id)
 	_check(_reno.available("front_window"), "setup: front_window is available")
 
 	_game.money = 1000
@@ -264,7 +270,7 @@ func _test_order_refused() -> void:
 	_rep.points = 0
 	_game.money = 100000
 
-	# Locked by an earlier job: front_window's needs (front_sweep) aren't met yet.
+	# Locked by an earlier job: front_window's needs (front_boards) aren't met yet.
 	_open_builders()
 	var idx: int = _menu._build_ids.find("front_window")
 	_menu._row = idx
@@ -281,6 +287,8 @@ func _test_order_refused() -> void:
 	for id: String in ["front_sheets", "front_sheets", "front_sheets"]:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
+		_reno.clear_spot(id)
+	for id: String in ["front_boards", "front_boards", "front_boards"]:
 		_reno.clear_spot(id)
 	_check(_reno.available("front_window"), "setup: front_window is now available")
 	_game.money = 0
@@ -308,6 +316,8 @@ func _test_day_began_autorefresh() -> void:
 	for id: String in ["front_sheets", "front_sheets", "front_sheets"]:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
+		_reno.clear_spot(id)
+	for id: String in ["front_boards", "front_boards", "front_boards"]:
 		_reno.clear_spot(id)
 	_game.money = 1000
 	_check(_reno.order("front_window"), "setup: front_window booked ahead of the day-tick test")

@@ -79,7 +79,14 @@ const LABEL_NOTE: Array[String] = ["(locked)", "(needs clearing)", "(needs the b
 ## each of its own jobs takes some of that away.
 const WEAR_BY_STATE: Array[float] = [1.0, 1.0, 0.6, 0.0]
 const FRONT_WEAR := 0.75
-const FRONT_JOBS := ["front_sheets", "front_sweep", "front_window", "front_lights"]
+const FRONT_JOBS := [
+	"front_sheets",
+	"front_sweep",
+	"front_boards",
+	"front_window",
+	"front_lights",
+	"front_paper",
+]
 ## Damp runs down a wall that stands full height (the cut-away ones would only show its
 ## faint foot): room -> [which wall, how many streaks]. A puddle lies where the roof leaks.
 const DAMP_WALLS := {
@@ -97,6 +104,10 @@ const DARK_FADE := 0.7
 ## The wall between the front room and the nook: fitting out the nook takes it away, so the
 ## nook becomes part of the shop with no doorway between them.
 const NOOK_WALL := "NookWall"
+## The front of the shop: grimy and weedy until it is repainted.
+const FACADE_JOB := "facade_paint"
+## The front room keeps its bare walls until the shop is papered.
+const PAPER_JOB := "front_paper"
 const WEAR_LAYER := 2  # render layer of the shop's shell: wear never lands on people
 const WEAR_FADE := 0.9  # seconds a room takes to come clean
 const GRIME := preload("res://assets/textures/renovation/grime.png")
@@ -125,6 +136,7 @@ var _sheets := {}  # station name -> the sheet node over it
 var _floor_mats := {}  # room -> its own StandardMaterial3D
 var _wear := {}  # room -> its Decals
 var _dark := {}  # room -> the box of shadow in it
+var _facade: Array[Decal] = []  # dirt over the street front
 var _sheets_released := false  # the sheeted stations have been handed back for good
 
 
@@ -146,6 +158,7 @@ func _ready() -> void:
 	_build_sheets()
 	_build_wear()
 	_build_dark()
+	_build_facade()
 	Renovation.changed.connect(_apply)
 	Renovation.project_finished.connect(_on_project_finished)
 	_apply()
@@ -171,6 +184,7 @@ func _apply() -> void:
 	_apply_stations()
 	_apply_wear()
 	_apply_dark()
+	_apply_facade()
 	_apply_nook_wall()
 
 
@@ -415,7 +429,9 @@ func _build_wear() -> void:
 		if DAMP_WALLS.has(room):
 			decals.append_array(_damp(room, lo, span))
 		for side in 4:  # the paper has gone: bare plaster, brick showing through
-			decals.append(_wall_decal(room, side, lo, span))
+			var bare := _wall_decal(room, side, lo, span)
+			bare.set_meta("bare", true)
+			decals.append(bare)
 		if PUDDLES.has(room):
 			var at: Vector2 = lo + span * (PUDDLES[room] as Vector2)
 			var wet := _decal(
@@ -456,6 +472,54 @@ func _wall_decal(room: String, side: int, lo: Vector2, span: Vector2) -> Decal:
 
 ## Every room that starts shut gets a box of shadow: from the shop it is a dark hole, and
 ## whatever is in there stays a surprise until the boards come off.
+## The walls have their paper back: the front room when the shop is papered, any other room
+## when its own building work is done.
+func _papered(room: String) -> bool:
+	if room == "front":
+		return Renovation.is_done(PAPER_JOB)
+	return Renovation.room_state(room) == Renovation.RoomState.DONE
+
+
+## The street front: years of dirt over the paintwork and the sign, and weeds along the
+## plinth, until the front is repainted.
+func _build_facade() -> void:
+	var front := _shell.get_node_or_null("Body/Floor_front") as MeshInstance3D
+	var nook := _shell.get_node_or_null("Body/Floor_nook") as MeshInstance3D
+	if front == null or nook == null:
+		return
+	var box := (front.global_transform * front.get_aabb()).merge(
+		nook.global_transform * nook.get_aabb()
+	)
+	var wide := box.size.x / 3.0
+	for i in 3:
+		var at := Vector3(
+			box.position.x + wide * (i + 0.5), 1.7, box.position.z + box.size.z + 0.45
+		)
+		var dirt := _decal(
+			"facade%d" % i, "front", GRIME, at, Vector3(wide, 1.2, 4.2), Vector3(90, 0, 0)
+		)
+		dirt.normal_fade = 0.0  # the frontage is one flat face, nothing to fade against
+		_facade.append(dirt)
+
+
+## Grime lifts and the weeds go with the repaint.
+func _apply_facade() -> void:
+	var done := Renovation.is_done(FACADE_JOB)
+	var weeds := _shell.get_node_or_null("Facade")
+	if weeds is Node3D:
+		(weeds as Node3D).visible = not done
+	for dirt: Decal in _facade:
+		var target := 0.0 if done else 1.0
+		if is_equal_approx(float(dirt.get_meta("wear", -1.0)), target):
+			continue
+		dirt.set_meta("wear", target)
+		dirt.visible = true
+		var fade := create_tween()
+		fade.tween_property(dirt, "albedo_mix", target, WEAR_FADE)
+		if target <= 0.0:
+			fade.tween_callback(dirt.hide)
+
+
 func _build_dark() -> void:
 	var shade := StandardMaterial3D.new()
 	shade.albedo_color = Color(DARK, DARK_ALPHA)
@@ -551,6 +615,10 @@ func _apply_wear() -> void:
 	for room: String in _wear:
 		var target := wear_of(room)
 		for decal: Decal in _wear[room]:
+			if bool(decal.get_meta("bare", false)):
+				target = 0.0 if _papered(room) else 0.95
+			else:
+				target = wear_of(room)
 			if is_equal_approx(float(decal.get_meta("wear", -1.0)), target):
 				continue
 			decal.set_meta("wear", target)

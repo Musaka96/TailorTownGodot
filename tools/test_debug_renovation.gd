@@ -191,6 +191,9 @@ func _builders_finish_only_underway() -> void:
 	for _i in 3:
 		_reno.clear_spot("front_sweep")
 	_game.money = 10000
+	# the shop windows are boarded: the glazier only comes once they are off
+	for _i in 3:
+		_reno.clear_spot("front_boards")
 	_check(_reno.order("front_window"), "builders tonight: front_window ordered")
 	_check(_reno.order("front_lights"), "builders tonight: front_lights ordered")
 	_check(

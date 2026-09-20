@@ -51,6 +51,16 @@ const PROJECTS := {
 		"desc": "Years of dust and a few dead leaves. A broom does wonders.",
 		"appeal": 1,
 	},
+	"front_boards":
+	{
+		"name": "Pull the boards off the windows",
+		"room": "front",
+		"kind": Kind.CLEANUP,
+		"spots": 3,
+		"needs": ["front_sweep"],
+		"desc": "Somebody boarded the shop up years ago. Let the daylight back in.",
+		"appeal": 2,
+	},
 	"front_window":
 	{
 		"name": "Reglaze the shop window",
@@ -58,7 +68,7 @@ const PROJECTS := {
 		"kind": Kind.BUILD,
 		"cost": 150,
 		"nights": 1,
-		"needs": ["front_sweep"],
+		"needs": ["front_boards"],
 		"desc": "Boards off, new glass in. Let the street see you're open.",
 		"appeal": 2,
 	},
@@ -72,6 +82,28 @@ const PROJECTS := {
 		"needs": ["front_sweep"],
 		"desc": "Half the lamps are dead. A proper light makes a proper shop.",
 		"appeal": 2,
+	},
+	"front_paper":
+	{
+		"name": "Paper the shop",
+		"room": "front",
+		"kind": Kind.BUILD,
+		"cost": 450,
+		"nights": 2,
+		"needs": ["front_lights"],
+		"desc": "What is left of the old paper comes off, and the fern goes back up.",
+		"appeal": 3,
+	},
+	"facade_paint":
+	{
+		"name": "Repaint the front and the sign",
+		"room": "front",
+		"kind": Kind.BUILD,
+		"cost": 700,
+		"nights": 2,
+		"needs": ["front_window"],
+		"desc": "Weeds out, paintwork back, THIMBLE bright over the door again.",
+		"appeal": 4,
 	},
 	"workroom_boards":
 	{
