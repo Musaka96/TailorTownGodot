@@ -97,7 +97,7 @@ in player text as a warning; the warning list is the to-do list, not a ban.
 > **BAD** — "sober colours, a hard-wearing cloth and a quiet pattern"
 > **GOOD** — "sober colours and a cloth that works hard"
 
-### 2.6 Ration the em dash **[CHECK]**
+### 2.6 Ration the em dash — and give every mark one job **[CHECK]**
 
 The em dash is this game's house connective and it stays. But GPT-4.1 uses it at **3.28×**
 the human rate, and three in one sentence is a run-on wearing a costume.
@@ -106,6 +106,59 @@ the human rate, and three in one sentence is a run-on wearing a costume.
 - **Two** is a warning — usually one should be a full stop.
 - **In dialogue, the em dash means interruption only** (`"But I—"`). Trailing off is `…`.
   Never use it for parenthesis inside speech.
+- **The hinge dash is a warning** (`— and`, `— but`, `— then`, `— so`). See below.
+
+**What the census of 2026-09-21 found.** Typography is clean: zero `--` double hyphens,
+zero en dashes, every dash a real em dash. The distribution is the problem.
+
+| | Pops | Hemming | Handbook | Upgrades | Gazette | Customers | UI | Renovation |
+|---|---|---|---|---|---|---|---|---|
+| em dashes per 1000 words | 15.5 | 13.5 | 16.8 | 17.3 | 10.0 | 25.8 | 28.7 | **0.0** |
+
+**The tell is not the count, it is the uniformity.** Four voices that are meant to be a
+dying grandfather, a brusque master tailor, a reference book and a product blurb all
+punctuate inside a 13–17 band. That is one hand visible through four masks, and it is
+louder than any word choice. Renovation, at zero, proves the game does not need the mark.
+
+**One mark, one job.** Of the 72 player-facing strings containing an em dash, 76% use it
+for apposition, 22% to join two clauses, and **exactly one** to interrupt anybody. The
+whole game contains **two ellipses**. So the em dash has eaten the work of the comma, the
+colon, the full stop, the parenthesis and the ellipsis — and a mark that means six things
+means nothing.
+
+**The hinge is the tic.** 19 places run *concrete detail → dash → payoff* with `— and /
+— but / — then / — so`. It is the same gesture in every voice, and once the reader hears
+it they can predict the beat. Let the full stop do it; the silence is where the reader
+does the work.
+
+> **BAD** — `globals/story.gd`
+> "The last entry is a winter coat, finished, collected, paid — and then half a page of
+> nothing."
+>
+> **GOOD**
+> "The last entry is a winter coat. Finished, collected, paid. Then half a page of
+> nothing."
+
+> **BAD** — `docs/STEAM_PAGE.md`
+> "Smooth the wrinkles out on the pressing board — linger and you scorch it — and hang it
+> on the rack — the jacket, shirt and trousers of one order find each other there…"
+>
+> **GOOD**
+> "Press the wrinkles out; linger and you scorch it. Hang it on the rack. The jacket,
+> shirt and trousers of one order find each other there."
+
+**The other marks.** Semicolons (Handbook 6.3/1k, Gazette 5.6/1k) are working *for* you —
+models under-use them. Colons are the best-used mark in the game; leave them. Scare quotes
+around trade terms in the Handbook (`'chalk stripe'`, `'puppytooth'`, `'eye'`) come out: a
+scare quote says *I know this is a funny word*, and a tailor does not think puppytooth is
+a funny word. Keep `[i]italics[/i]` for foreign etymons only. Ellipses belong to customers
+and nobody else — that is the one mark exclusive to a voice, which is exactly right. Use
+`…`, not three dots.
+
+**Renovation is the reference.** Same author, same game, opposite result: 5% of its job
+descriptions hinge on a dash or colon, against 62% of the upgrade descriptions (which have
+the flattest sentence-length spread in the game, 0.31). "Mouldy crates out, walls scrubbed
+down." Two short declaratives, a full stop between them. Write to that.
 
 > **BAD** — `docs/STEAM_PAGE.md`
 > "Smooth the wrinkles out on the pressing board — linger and you scorch it — and hang it
@@ -274,6 +327,11 @@ the game — so what's left is structural:
 | 4 | `globals/tutorial.gd` | Framing sentences before instructions; `[b]` spray, up to six per speech (§3.4). | S |
 | 5 | `data/news/*.tres` | 20 articles, all the same length and shape. Needs a correction notice, a classified, one that is three words long. | S |
 | 6 | everywhere | 9 rule-of-three lists flagged by the checker (§2.5). | XS |
+| 7 | everywhere | 19 hinge dashes (§2.6). Grep `— and`, `— but`, `— then`, `— so`; replace the dash with a stop and let the payoff stand as a fragment. The one mechanical change that most stops the surfaces sounding like each other. | S |
+| 8 | `globals/tutorial.gd` | **Hemming isn't written yet** — he is half tooltip ("red ticket = today", "Press %s to read it any time") and half kindly uncle ("Splendid — and there's the bell!", "make Barnaby proud!"). Pops already wrote his character in one clause: *"he owes me nothing, which is exactly why he will teach you properly."* That is a man with a grudge. None of him is in the tutorial. | L |
+| 9 | `data/scripts/handbook.gd` | Four hedged etymologies ("likely", "thought to", "possibly", "trace to"). A tailor either knows or doesn't care. Cut the hedge or cut the etymology. Entries need an *opinion* the player can act on at the mirror, not a digest. | M |
+| 10 | `entities/customer/street_pitch.gd` | 11 of 12 pitches end in "!". The one that doesn't — *"Be honest: when were you last properly measured?"* — is the best. Flatten two or three so the shouts land. | XS |
+| 11 | `globals/story.gd` | The sign letter ends "You have earned that much", which is a moral (§3.1) and repeats "look at it straight" from two lines up. End on the instruction. | XS |
 
 ---
 

@@ -50,7 +50,7 @@ const M_MAKE := (
 )
 const M_MEASURE := (
 	"Mind the [b]length[/b]! Every part takes its own: about [b]2 m[/b] for a jacket, "
-	+ "[b]1.4 m[/b] for pants and [b]1.6 m[/b] for a shirt, a touch more for big sizes. "
+	+ "[b]1.4 m[/b] for trousers and [b]1.6 m[/b] for a shirt, a touch more for big sizes. "
 	+ "Too short and it's useless; too long and the offcut is wasted. Measure twice, cut once!"
 )
 # The bench games have variants (CutVariants / SewVariants); these introduce the ones

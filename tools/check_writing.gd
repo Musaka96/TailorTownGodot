@@ -24,6 +24,7 @@ extends SceneTree
 ##   W6  markdown bold              ERROR   §3.6, IN_WORLD only
 ##   W7  em-dash budget             ERROR at 3+, warn at 2      §2.6
 ##   W8  rule-of-three list         warn                        §2.5
+##   W9  hinge dash ("— and ...")   warn                        §2.6
 ##
 ## W7-at-2 and W8 are warnings on purpose: both are legitimate often enough that a ban
 ## would just teach people to route around the checker. The warning list is the to-do
@@ -103,6 +104,10 @@ const TAIL := (
 )
 # W8. "a, b and c" — the model's default rhythm. §2.5.
 const TRIAD := "\\b\\w+, \\w+,? and \\w+\\b"
+# W9. The hinge: concrete detail, dash, payoff. One gesture shared by every voice in the
+# game, which is what makes it the loudest punctuation tell — see §2.6. A full stop and a
+# fragment do the same work, and the silence between them does it better.
+const HINGE := "— (?:and|but|then|so)\\b"
 ## Any quoted run in a .gd or .tres line. Non-greedy over escapes so "a\"b" stays one.
 const STRING_LITERAL := "\"((?:[^\"\\\\]|\\\\.)*)\""
 
@@ -232,6 +237,8 @@ func _check_string(s: String, line_no: int, in_world: bool) -> Array[Dictionary]
 		out.append(_issue(line_no, "warn ", "W7", "2 em-dashes — one wants to be a stop", s))
 	for hit in _matches(low, TRIAD):
 		out.append(_issue(line_no, "warn ", "W8", "rule-of-three '%s'" % hit, s))
+	for hit in _matches(low, HINGE):
+		out.append(_issue(line_no, "warn ", "W9", "hinge dash '%s' — let a stop do it" % hit, s))
 	return out
 
 
