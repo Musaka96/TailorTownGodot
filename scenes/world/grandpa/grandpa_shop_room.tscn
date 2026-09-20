@@ -226,6 +226,12 @@ transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 7.25
 [node name="GrandpaShop" parent="." instance=ExtResource("gp_shop")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.336888)
 
+[node name="DividerFader" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.65, 1, 0.34)
+script = ExtResource("40_roofm")
+roof_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Divider")
+interior_extents = Vector3(6.1, 1.8, 2.1)
+
 [node name="GrandpaShell" parent="." instance=ExtResource("gp_shell")]
 
 [node name="RenovationDirector" type="Node3D" parent="."]

@@ -88,12 +88,22 @@ const DAMP_WALLS := {
 const PUDDLES := {
 	"workroom": Vector2(0.62, 0.45), "cloth": Vector2(0.4, 0.5), "nextdoor": Vector2(0.3, 0.35)
 }
+## A room nobody has opened is dark: a box of shadow filling it, which lifts when the
+## boards come off. Inset from the walls so the boards themselves stay lit.
+const DARK := Color(0.015, 0.015, 0.02)
+const DARK_ALPHA := 0.93
+const DARK_INSET := 0.2
+const DARK_FADE := 0.7
+## The wall between the front room and the nook: fitting out the nook takes it away, so the
+## nook becomes part of the shop with no doorway between them.
+const NOOK_WALL := "NookWall"
 const WEAR_LAYER := 2  # render layer of the shop's shell: wear never lands on people
 const WEAR_FADE := 0.9  # seconds a room takes to come clean
 const GRIME := preload("res://assets/textures/renovation/grime.png")
 const DAMP := preload("res://assets/textures/renovation/damp.png")
 const PUDDLE := preload("res://assets/textures/renovation/puddle.png")
 const PUDDLE_ORM := preload("res://assets/textures/renovation/puddle_orm.png")
+const PLASTER := preload("res://assets/textures/renovation/plaster.png")
 
 ## Floor colour by Renovation.RoomState (SHUT, ENTERED, CLEARED, DONE), until the real
 ## shop swaps this for its wear shader.
@@ -114,6 +124,7 @@ var _home := {}  # station name -> its day-1 Transform3D
 var _sheets := {}  # station name -> the sheet node over it
 var _floor_mats := {}  # room -> its own StandardMaterial3D
 var _wear := {}  # room -> its Decals
+var _dark := {}  # room -> the box of shadow in it
 var _sheets_released := false  # the sheeted stations have been handed back for good
 
 
@@ -134,6 +145,7 @@ func _ready() -> void:
 	_build_spots()
 	_build_sheets()
 	_build_wear()
+	_build_dark()
 	Renovation.changed.connect(_apply)
 	Renovation.project_finished.connect(_on_project_finished)
 	_apply()
@@ -158,6 +170,8 @@ func _apply() -> void:
 	_apply_sheets()
 	_apply_stations()
 	_apply_wear()
+	_apply_dark()
+	_apply_nook_wall()
 
 
 func _apply_spots(project: String) -> void:
@@ -400,6 +414,8 @@ func _build_wear() -> void:
 		decals.append(_decal("grime", room, GRIME, mid, Vector3(span.x, 0.5, span.y), Vector3.ZERO))
 		if DAMP_WALLS.has(room):
 			decals.append_array(_damp(room, lo, span))
+		for side in 4:  # the paper has gone: bare plaster, brick showing through
+			decals.append(_wall_decal(room, side, lo, span))
 		if PUDDLES.has(room):
 			var at: Vector2 = lo + span * (PUDDLES[room] as Vector2)
 			var wet := _decal(
@@ -413,6 +429,84 @@ func _build_wear() -> void:
 			wet.texture_orm = PUDDLE_ORM
 			decals.append(wet)
 		_wear[room] = decals
+
+
+## One wall of `room` stripped back to the plaster. `side`: 0 back (low z), 1 street (high
+## z), 2 west (low x), 3 east (high x).
+func _wall_decal(room: String, side: int, lo: Vector2, span: Vector2) -> Decal:
+	var at := Vector3(lo.x + span.x / 2.0, 1.5, lo.y + span.y / 2.0)
+	var turn := Vector3(90, 0, 0)
+	var size := Vector3(span.x, 0.7, 3.0)
+	match side:
+		0:
+			at.z = lo.y + 0.3
+		1:
+			at.z = lo.y + span.y - 0.3
+			turn = Vector3(90, 180, 0)
+		2:
+			at.x = lo.x + 0.3
+			turn = Vector3(90, 90, 0)
+			size = Vector3(span.y, 0.7, 3.0)
+		_:
+			at.x = lo.x + span.x - 0.3
+			turn = Vector3(90, -90, 0)
+			size = Vector3(span.y, 0.7, 3.0)
+	return _decal("bare%d" % side, room, PLASTER, at, size, turn)
+
+
+## Every room that starts shut gets a box of shadow: from the shop it is a dark hole, and
+## whatever is in there stays a surprise until the boards come off.
+func _build_dark() -> void:
+	var shade := StandardMaterial3D.new()
+	shade.albedo_color = Color(DARK, DARK_ALPHA)
+	shade.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	shade.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shade.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for room: String in Renovation.ROOMS:
+		if room == "front":
+			continue
+		var floor_mesh := _shell.get_node_or_null("Body/Floor_" + room) as MeshInstance3D
+		if floor_mesh == null:
+			continue
+		var box := floor_mesh.global_transform * floor_mesh.get_aabb()
+		var hole := MeshInstance3D.new()
+		hole.name = "Dark_" + room
+		var cube := BoxMesh.new()
+		cube.size = Vector3(box.size.x - DARK_INSET, 2.9, box.size.z - DARK_INSET)
+		cube.material = shade
+		hole.mesh = cube
+		hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(hole)
+		hole.global_position = box.get_center() + Vector3(0, 1.45, 0)
+		_dark[room] = hole
+
+
+## Light gets in the moment the boards come off, and never goes back.
+func _apply_dark() -> void:
+	for room: String in _dark:
+		var hole: MeshInstance3D = _dark[room]
+		var shut := Renovation.room_state(room) == Renovation.RoomState.SHUT
+		if shut == hole.visible:
+			continue
+		if shut:
+			hole.visible = true
+			hole.transparency = 0.0
+			continue
+		var light := create_tween()
+		light.tween_property(hole, "transparency", 1.0, DARK_FADE)
+		light.tween_callback(hole.hide)
+
+
+## The nook is fitted out: down comes the wall, and the shop is one room wider.
+func _apply_nook_wall() -> void:
+	var shop := get_node_or_null(shop_path)
+	if shop == null:
+		return
+	var wall: Node3D = null
+	for node in shop.find_children("*" + NOOK_WALL, "Node3D", true, false):
+		wall = node as Node3D
+	if wall != null:
+		wall.visible = Renovation.room_state("nook") != Renovation.RoomState.DONE
 
 
 ## Streaks of damp down one wall of `room`: the back wall (low z) or the west wall (low x).

@@ -106,3 +106,52 @@ os.makedirs(OUT, exist_ok=True)
 grime()
 damp()
 puddle()
+
+
+def plaster(w=512, h=384):
+    """Bare wall where the paper has gone: mottled plaster, patches of brick showing through
+    where it has fallen away, and a few hairline cracks. Alpha is near solid, so at full
+    strength the decal replaces the wallpaper outright."""
+    base = 0.72 + 0.16 * fbm((w, h), (3, 7, 15))
+    rgb = np.dstack([base * 0.86, base * 0.83, base * 0.78])
+
+    # brick courses: 8 high, offset every other row
+    bh = h / 9.0
+    bw = w / 7.0
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    row = np.floor(yy / bh)
+    shift = (row % 2) * (bw / 2.0)
+    u = ((xx + shift) % bw) / bw
+    v = (yy % bh) / bh
+    mortar = (smooth(u, 0.0, 0.06) * smooth(1.0 - u, 0.0, 0.06)
+              * smooth(v, 0.0, 0.10) * smooth(1.0 - v, 0.0, 0.10))
+    clay = 0.8 + 0.4 * value_noise((w, h), 40)
+    brick = np.dstack([0.52 * clay, 0.29 * clay, 0.23 * clay])
+    mortar_col = np.dstack([base * 0.7, base * 0.68, base * 0.65])
+    brickwork = mortar_col + (brick - mortar_col) * mortar[..., None]
+
+    # where the plaster has come off
+    fallen = smooth(fbm((w, h), (2, 4, 9)), 0.52, 0.66)
+    rgb = rgb + (brickwork - rgb) * fallen[..., None]
+    # a lip of shadow around each bare patch, so it reads as a hole in the plaster
+    lip = np.clip(fallen * (1.0 - fallen) * 4.0, 0.0, 1.0)
+    rgb *= 1.0 - 0.35 * lip[..., None]
+
+    cracks = np.zeros((h, w), np.float32)
+    for _ in range(5):                          # short and few: hairlines, not creepers
+        x = RNG.uniform(0.08, 0.92) * w
+        y0 = int(RNG.uniform(0.0, 0.7) * h)
+        drift = RNG.uniform(-0.3, 0.3)
+        for y in range(y0, min(h, y0 + int(RNG.uniform(0.15, 0.35) * h))):
+            x += drift + RNG.uniform(-0.9, 0.9)
+            xi = int(np.clip(x, 1, w - 2))
+            if RNG.random() < 0.75:
+                cracks[y, xi] = 1.0
+    cracks *= 1.0 - fallen                      # no cracks where the plaster is already gone
+    rgb *= 1.0 - 0.4 * cracks[..., None]
+
+    alpha = (0.94 - 0.1 * fbm((w, h), (5, 11))) * edge_fade(w, h, 0.05)
+    save_rgba("plaster.png", np.clip(rgb, 0, 1), alpha)
+
+
+plaster()
