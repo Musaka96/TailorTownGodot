@@ -113,7 +113,7 @@ def main():
     ext = '[ext_resource type="PackedScene" path="%s" id="gp_shell"]' % SHELL
     out = out.replace("\n[ext_resource", "\n" + ext + "\n[ext_resource", 1)
     out = out.rstrip("\n") + ('\n\n[node name="DoorSignSpot" type="Marker3D" parent="Waypoints"]\n'
-                              'transform = Transform3D(%s, 2.0, 0, 7.7)\n' % I)
+                              'transform = Transform3D(%s, 2.65, 0, 7.75)\n' % I)
     for name, ext_id, basis, (x, y, z) in EXTRA:
         assert 'id="%s"' % ext_id in out, ext_id
         out = out.rstrip("\n") + (
