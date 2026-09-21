@@ -193,3 +193,8 @@ extends Resource
 @export var sew2_coast_seconds: float = 0.35  ## v2: motor full → 0 after letting go
 @export var sew2_turn_sewing_deg: float = 50.0  ## v2: turning the cloth while sewing (°/s)
 @export var sew2_turn_still_deg: float = 80.0  ## v2: turning it about a stopped needle
+## v2 grades a seam harder than a cut: a narrower perfect band (share of the cutting one)
+## and less credit for stitches that wander off it.
+@export var sew2_perfect_scale: float = 0.6
+@export var sew2_good_score: float = 0.6  ## v2: a stitch in the good band (a cut scores 0.8)
+@export var sew2_rough_score: float = 0.25  ## v2: a stitch near the raw edge or too deep

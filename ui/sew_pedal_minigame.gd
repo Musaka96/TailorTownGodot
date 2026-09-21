@@ -199,6 +199,7 @@ func _begin() -> void:
 		_coast = c.sew2_coast_seconds
 		_turn_still = deg_to_rad(c.sew2_turn_still_deg)
 		_turn_sewing = deg_to_rad(c.sew2_turn_sewing_deg)
+		_band_perfect *= c.sew2_perfect_scale
 	# The seam line sits only 1.5 cm in from the raw edge, so "good" has to stop well
 	# short of it — wander further out and you're about to sew off the cloth.
 	_band_good = minf(_band_good, ALLOWANCE * EDGE_SAFE)
@@ -396,7 +397,7 @@ func _feed(delta: float) -> void:
 		return
 	_zone = _zone_of(d)
 	_off_cloth = d > ALLOWANCE
-	_record(_zone, step, 0.0 if _off_cloth else ZONE_SCORE[_zone])
+	_record(_zone, step, 0.0 if _off_cloth else _stitch_score(_zone))
 	_check_edge(step)
 	if _state > State.RUNNING:
 		return
@@ -595,6 +596,16 @@ func _index_at_arc(s: float) -> int:
 
 func _finish() -> void:
 	_succeed()
+
+
+## What a stitch in `zone` is worth: only the perfect band earns full marks on a seam.
+func _stitch_score(zone: int) -> float:
+	var c := Config.data
+	if c == null or zone == Zone.PERFECT:
+		return ZONE_SCORE[zone]
+	if zone == Zone.GOOD:
+		return c.sew2_good_score
+	return minf(c.sew2_rough_score, ZONE_SCORE[zone])
 
 
 ## The seam's own score, plus a little for each locked end.
