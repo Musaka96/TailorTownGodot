@@ -34,9 +34,13 @@ const MESS_PROJECTS := [
 	"cloth_clear",
 	"nook_clear",
 	"next_clear",
+	"yard_rubbish",
+	"yard_weeds",
 ]
 ## Spots that are boards over a window rather than a heap: they are prised off, not scooped.
 const BOARDED_SPOTS := ["front_boards"]
+## What the prompt says at a spot, when it isn't the heap's "Clear this away".
+const SPOT_VERBS := {"yard_rubbish": "Clear the rubbish", "yard_weeds": "Pull the weeds"}
 ## The dust-sheet project and the stations sleeping under a sheet.
 const SHEETS_PROJECT := "front_sheets"
 ## (Not the tri-fold mirror: it is 2.5 m tall, and under a sheet it was a white wall
@@ -408,10 +412,10 @@ func _up_next(project: String, host: Node3D) -> Vector3:
 # --- Building the hands-on bits ---------------------------------------------------
 
 
-## TEMPORARY, until the plot is rebuilt for this footprint (docs 6.11, stage D): the plot
-## and its edging were laid out around Mr. Hemming's shop, whose wings stand further back, so
-## garden beds and props now fall inside grandpa's rooms. Hide the small things whose centre
-## lies inside the building (its outline = the shell's own floors); lawns and paving stay.
+## A guard: hide any small plot prop whose centre lies inside the building (its outline =
+## the shell's own floors); lawns and paving stay. The plot is laid out for this footprint
+## now (IMPORT/town_kit/build_v8_town.py), so this should find nothing; it was written when
+## the lot was still Mr. Hemming's and his garden beds fell inside grandpa's rooms.
 func _clear_plot_inside() -> void:
 	var outline := Rect2()
 	for mesh in _shell.get_node("Body").get_children():
@@ -641,7 +645,8 @@ func _build_spots() -> void:
 			if project in BOARDED_SPOTS:  # up on the shop front, reached from the street
 				_add_work(spot as Node3D, project, "Pull off the boards", Vector3(2.2, 3.0, 1.8))
 			else:
-				_add_work(spot as Node3D, project, "Clear this away", Vector3(1.5, 1.4, 1.5))
+				var verb: String = SPOT_VERBS.get(project, "Clear this away")
+				_add_work(spot as Node3D, project, verb, Vector3(1.5, 1.4, 1.5))
 
 
 func _build_sheets() -> void:
@@ -1161,3 +1166,7 @@ class _Work:
 
 	func interact(_actor: Variant) -> void:
 		director.do_work(project, verb, get_parent() as Node3D)
+
+	## What the brass outline goes round: the heap, board or sheet this job sits on.
+	func outline_root() -> Node:
+		return get_parent()

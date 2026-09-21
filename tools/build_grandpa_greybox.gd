@@ -123,6 +123,16 @@ func _dressing() -> void:
 			Vector3(9.6, 0, 4.2),
 			Vector3(12.0, 0, 6.6),
 		],
+		# Outside (IMPORT/town_kit/build_v8_town.py lays the lot): rubbish on the brick
+		# forecourt, clear of the door's path, and weeds in the front of the side garden.
+		"yard_rubbish": [Vector3(-2.9, 0, 9.45), Vector3(4.9, 0, 9.6), Vector3(6.9, 0, 9.3)],
+		"yard_weeds":
+		[
+			Vector3(-8.3, 0, 8.4),
+			Vector3(-5.6, 0, 8.3),
+			Vector3(-7.8, 0, 6.9),
+			Vector3(-5.9, 0, 6.5),
+		],
 	}
 	var holder := _group("Spots")
 	_boarded_windows(holder)
@@ -141,6 +151,12 @@ func _dressing() -> void:
 			dice.seed = hash("%s/%d" % [project, i])  # the same heap every build
 			if project == "front_sweep":
 				_dust_heap(spot, dice)
+			elif project == "yard_rubbish":
+				_litter(spot, dice)
+			elif project == "yard_weeds":
+				for k in 3:
+					var root := Vector3(dice.randf_range(-0.4, 0.4), 0, dice.randf_range(-0.35, 0.35))
+					_weed_clump(spot, "Clump%d" % k, root, dice, 1.4)
 			else:
 				_rubble_heap(spot, dice)
 			i += 1
@@ -217,26 +233,55 @@ func _facade_weeds() -> void:
 	var group := _group("Facade")
 	var dice := RandomNumberGenerator.new()
 	dice.seed = 8801
-	var clump := 0
-	while clump < 22:
+	for clump in 22:
 		var at := Vector3(X0 + dice.randf_range(0.2, 11.6), 0.0, ZF + 0.35)
-		var holder := Node3D.new()
-		holder.name = "Weed%d" % clump
-		holder.position = at + Vector3(0, 0, dice.randf_range(-0.12, 0.12))
-		_add(group, holder)
-		for blade in dice.randi_range(5, 9):
-			var high := dice.randf_range(0.3, 0.72)
-			var leaf := _chunk(
-				holder,
-				Vector3(dice.randf_range(-0.12, 0.12), high / 2.0, dice.randf_range(-0.06, 0.06)),
-				Vector3(0.05, high, 0.05),
-				Vector3(
-					dice.randf_range(-22, 22), dice.randf_range(0, 180), dice.randf_range(-22, 22)
-				),
-				"weed_a" if blade % 2 == 0 else "weed_b"
-			)
-			leaf.name = "Blade%d" % blade
-		clump += 1
+		at.z += dice.randf_range(-0.12, 0.12)
+		_weed_clump(group, "Weed%d" % clump, at, dice, 1.0)
+
+
+## A clump of weed blades at `at` under `parent`; `scale` > 1 for the rank garden kind.
+func _weed_clump(
+	parent: Node3D, nm: String, at: Vector3, dice: RandomNumberGenerator, scale: float
+) -> void:
+	var holder := Node3D.new()
+	holder.name = nm
+	holder.position = at
+	_add(parent, holder)
+	for blade in dice.randi_range(5, 9):
+		var high := dice.randf_range(0.3, 0.72) * scale
+		var reach := 0.12 * scale
+		var leaf := _chunk(
+			holder,
+			Vector3(dice.randf_range(-reach, reach), high / 2.0, dice.randf_range(-0.06, 0.06)),
+			Vector3(0.05, high, 0.05),
+			Vector3(dice.randf_range(-22, 22), dice.randf_range(0, 180), dice.randf_range(-22, 22)),
+			"weed_a" if blade % 2 == 0 else "weed_b"
+		)
+		leaf.name = "Blade%d" % blade
+
+
+## What blows up against a shut shop: a broken crate, loose boards, old newspapers.
+func _litter(parent: Node3D, dice: RandomNumberGenerator) -> void:
+	var crate := _chunk(
+		parent,
+		Vector3(dice.randf_range(-0.2, 0.2), 0.2, 0),
+		Vector3(0.5, 0.4, 0.4),
+		Vector3(dice.randf_range(-8, 8), dice.randf_range(0, 360), dice.randf_range(-14, 14)),
+		"plank_a"
+	)
+	crate.name = "Crate"
+	for i in dice.randi_range(1, 2):
+		var lie := Vector3(dice.randf_range(-0.4, 0.4), 0.03, dice.randf_range(-0.3, 0.3))
+		var spin := Vector3(dice.randf_range(0, 6), dice.randf_range(0, 360), 0)
+		_chunk(parent, lie, Vector3(dice.randf_range(0.8, 1.1), 0.04, 0.14), spin, "plank_b")
+	for i in dice.randi_range(3, 5):
+		var at := Vector3(dice.randf_range(-0.55, 0.55), 0.012, dice.randf_range(-0.45, 0.45))
+		var spin := Vector3(dice.randf_range(-4, 4), dice.randf_range(0, 360), 0)
+		_chunk(parent, at, Vector3(0.34, 0.012, 0.26), spin, "paper")
+	for i in dice.randi_range(2, 4):
+		var at := Vector3(dice.randf_range(-0.5, 0.5), 0.045, dice.randf_range(-0.4, 0.4))
+		var spin := Vector3(dice.randf_range(-12, 12), dice.randf_range(0, 360), 0)
+		_chunk(parent, at, Vector3(0.13, 0.012, 0.08), spin, "leaf_a" if i % 2 == 0 else "leaf_b")
 
 
 # --- pieces ------------------------------------------------------------------
@@ -563,6 +608,7 @@ func _mat(id: String) -> StandardMaterial3D:
 		"weed_a": Color(0.36, 0.48, 0.22),
 		"weed_b": Color(0.46, 0.55, 0.26),
 		"tarp": Color(0.30, 0.42, 0.55),
+		"paper": Color(0.80, 0.77, 0.66),
 	}
 	var m := StandardMaterial3D.new()
 	m.resource_name = "greybox_" + id

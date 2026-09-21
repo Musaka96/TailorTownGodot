@@ -61,6 +61,26 @@ const PROJECTS := {
 		"desc": "Somebody boarded the shop up years ago. Let the daylight back in.",
 		"appeal": 2,
 	},
+	"yard_rubbish":
+	{
+		"name": "Clear the rubbish off the forecourt",
+		"room": "front",
+		"kind": Kind.CLEANUP,
+		"spots": 3,
+		"needs": ["front_boards"],
+		"desc": "Crates and wet newspaper against the door. Nobody walks into a shop past that.",
+		"appeal": 1,
+	},
+	"yard_weeds":
+	{
+		"name": "Weed the side garden",
+		"room": "front",
+		"kind": Kind.CLEANUP,
+		"spots": 4,
+		"needs": ["yard_rubbish"],
+		"desc": "Docks and thistles up to the knee. The cherry is still under there somewhere.",
+		"appeal": 1,
+	},
 	"front_window":
 	{
 		"name": "Reglaze the shop window",
