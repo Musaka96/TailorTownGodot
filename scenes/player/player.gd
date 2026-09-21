@@ -44,6 +44,8 @@ const SPRINT_ANIM_MULT := 1.6
 var _step_t := 0.0
 var _was_moving := false
 var _sprinting := false
+## Busy at something by hand (see work_at): arms out in front, bobbing to the work.
+var _working := false
 
 ## The player's hands. Stations reach it as `actor.carry`.
 @onready var carry: CarrySlot = $Carry
@@ -127,9 +129,35 @@ func _physics_process(delta: float) -> void:
 	if _model.has_method("set_locomotion_speed"):
 		_model.set_locomotion_speed(SPRINT_ANIM_MULT if _sprinting else 1.0)
 	if _model.has_method("set_carrying"):
-		_model.set_carrying(not carry.is_empty())
+		_model.set_carrying(_working or not carry.is_empty())
 
 	_footsteps(delta)
+
+
+## Put the player to work at `point` for `seconds` (clearing rubble, pulling off a sheet):
+## turn to face it, reach both arms out and bob into the job a few times. The caller locks
+## input; this is only the look of it.
+func work_at(point: Vector3, seconds: float) -> void:
+	var to := point - global_position
+	var yaw := _model.rotation.y
+	if Vector2(to.x, to.z).length_squared() > 0.0001:
+		yaw = _model.rotation.y + wrapf(atan2(to.x, to.z) - _model.rotation.y, -PI, PI)
+	_working = true
+	var home := _model.position
+	var size := _model.scale
+	var ahead := Vector3(sin(yaw), 0.0, cos(yaw))
+	var turn := create_tween()
+	turn.tween_property(_model, "rotation:y", yaw, 0.12).set_trans(Tween.TRANS_SINE)
+	var beats := maxi(1, roundi(seconds / 0.3))
+	var beat := seconds / beats
+	var bob := create_tween()
+	for i in beats:
+		var dip := home + ahead * 0.12 + Vector3(0.0, -0.03, 0.0)
+		bob.tween_property(_model, "position", dip, beat * 0.4).set_trans(Tween.TRANS_SINE)
+		bob.parallel().tween_property(_model, "scale", size * Vector3(1.05, 0.93, 1.05), beat * 0.4)
+		bob.tween_property(_model, "position", home, beat * 0.6).set_trans(Tween.TRANS_BACK)
+		bob.parallel().tween_property(_model, "scale", size, beat * 0.6)
+	bob.tween_callback(func() -> void: _working = false)
 
 
 ## Set the held item down on the floor just ahead of the player. Returns whether

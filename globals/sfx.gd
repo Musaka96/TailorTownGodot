@@ -90,6 +90,15 @@ const LIB := {
 	"juice_top": "juice_top.wav",
 	"juice_drop": "juice_drop.wav",
 	"juice_stamp": "juice_stamp.wav",
+	# renovation by hand (synthesised, build_renovation_audio.gd)
+	"reno_scoop": "reno_scoop.wav",
+	"reno_tumble": "reno_tumble.wav",
+	"reno_whip": "reno_whip.wav",
+	"reno_creak": "reno_creak.wav",
+	"reno_clatter": "reno_clatter.wav",
+	"reno_tick": "reno_tick.wav",
+	"reno_done": "reno_done.wav",
+	"reno_open": "reno_open.wav",
 	# world stingers & ambience
 	"new_order_ping": "new_order_ping.wav",
 	"order_complete": "order_complete.wav",

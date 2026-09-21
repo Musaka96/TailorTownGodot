@@ -14,7 +14,6 @@ extends Node3D
 ## never change.
 
 const INTERACTABLE := preload("res://entities/scripts/interactable.gd")
-const WORK_SECONDS := 0.55
 
 const FACE_Z := Basis.IDENTITY
 const FACE_PX := Basis(Vector3(0, 0, -1), Vector3.UP, Vector3(1, 0, 0))  # on a west wall
@@ -28,7 +27,16 @@ const BOARDS := {
 	"nextdoor": "",
 }
 ## Cleanup projects whose spots are mess piles built into the shell (Spots/<project>).
-const MESS_PROJECTS := ["front_sweep", "workroom_clear", "cloth_clear", "nook_clear", "next_clear"]
+const MESS_PROJECTS := [
+	"front_sweep",
+	"front_boards",
+	"workroom_clear",
+	"cloth_clear",
+	"nook_clear",
+	"next_clear",
+]
+## Spots that are boards over a window rather than a heap: they are prised off, not scooped.
+const BOARDED_SPOTS := ["front_boards"]
 ## The dust-sheet project and the stations sleeping under a sheet.
 const SHEETS_PROJECT := "front_sheets"
 ## (Not the tri-fold mirror: it is 2.5 m tall, and under a sheet it was a white wall
@@ -191,6 +199,11 @@ var _panels: Array[AABB] = []  # the shop's blind wall panels, in world space
 var _forecourt: Array[MeshInstance3D] = []  # the plot's dressing outside the shop door
 var _keepsakes := {}  # keepsake id -> the little thing standing on the shelf
 var _sheets_released := false  # the sheeted stations have been handed back for good
+## Which sheet comes off next: SHEETED, reordered as the player picks them, so the sheet
+## the player pulled is the one that goes.
+var _sheet_order: Array = SHEETED.duplicate()
+var _working := false  # a job is playing out; another press waits for it
+var _fx: RenovationFx
 
 
 func _ready() -> void:
@@ -214,6 +227,9 @@ func _ready() -> void:
 	_build_wear()
 	_build_dark()
 	_build_facade()
+	_fx = RenovationFx.new()
+	_fx.name = "Fx"
+	add_child(_fx)
 	Upgrades.changed.connect(_apply)
 	Story.changed.connect(_apply_keepsakes)
 	Renovation.changed.connect(_apply)
@@ -268,8 +284,8 @@ func _apply_sheets() -> void:
 	if done and _sheets_released:
 		return  # handed back already; a reset or an older save un-does it and covers them again
 	var gone := SHEETED.size() if done else Renovation.spots_cleared(SHEETS_PROJECT)
-	for i in SHEETED.size():
-		var station: String = SHEETED[i]
+	for i in _sheet_order.size():
+		var station: String = _sheet_order[i]
 		var covered := i >= gone
 		var sheet: Node3D = _sheets.get(station)
 		_show(sheet, covered)
@@ -336,20 +352,57 @@ func work_prompt(project: String, verb: String) -> String:
 	return ""
 
 
-func do_work(project: String, verb := "") -> void:
+## `host` is the thing pressed on (a heap, a sheet, a doorway's boards): it plays out on
+## that very one, which then goes (see RenovationFx).
+func do_work(project: String, verb := "", host: Node3D = null) -> void:
 	if verb == SHELF_VERB:
 		if UI != null and UI.story_note != null:
 			UI.story_note.open(SHELF_VERB, Story.shelf_text())
 		return
-	if not Renovation.available(project):
+	if _working or not Renovation.available(project):
 		return
+	_working = true
 	GameState.input_locked = true
-	if Sfx != null:
-		Sfx.play("cloth_rustle", -2.0, 0.9, 1.1)
-	await get_tree().create_timer(WORK_SECONDS).timeout
+	var kind := _kind_of(project, host)
+	var at := _up_next(project, host)
+	if host != null and _fx != null:
+		var player := get_tree().get_first_node_in_group("player") as Node3D
+		await _fx.play(kind, host, player)
+	var finished := Renovation.clear_spot(project)
+	if _fx != null:
+		var opens := kind == RenovationFx.Kind.BOARDS and not project in BOARDED_SPOTS
+		_fx.celebrate(at, finished, finished and opens)
+		await get_tree().create_timer(RenovationFx.PAYOFF).timeout
 	GameState.input_locked = false
-	if Renovation.clear_spot(project) and Sfx != null:
-		Sfx.play("putdown")
+	_working = false
+
+
+func _kind_of(project: String, host: Node3D) -> RenovationFx.Kind:
+	if project == SHEETS_PROJECT:
+		return RenovationFx.Kind.SHEET
+	if project in BOARDED_SPOTS or (host != null and host.get_parent() == _blockers()):
+		return RenovationFx.Kind.BOARDS
+	return RenovationFx.Kind.PILE
+
+
+## Line `host` up to be the next to go — the spots and sheets go in order, and this makes
+## the one the player picked come next — and say where it stands, for the sparkle.
+func _up_next(project: String, host: Node3D) -> Vector3:
+	if host == null:
+		return global_position
+	var next := Renovation.spots_cleared(project)
+	if project == SHEETS_PROJECT:
+		var station := str(host.get_parent().name)
+		if station in _sheet_order and _sheet_order.find(station) >= next:
+			_sheet_order.erase(station)
+			_sheet_order.insert(next, station)
+	elif project in MESS_PROJECTS and host.get_index() >= next:
+		host.get_parent().move_child(host, next)
+	var box := AABB(host.global_position, Vector3.ZERO)
+	for mesh in host.find_children("*", "MeshInstance3D", true, false):
+		var m := mesh as MeshInstance3D
+		box = box.merge(m.global_transform * m.get_aabb())
+	return box.get_center()
 
 
 # --- Building the hands-on bits ---------------------------------------------------
@@ -585,7 +638,10 @@ func _build_spots() -> void:
 		if holder == null:
 			continue
 		for spot in holder.get_children():
-			_add_work(spot as Node3D, project, "Clear this away", Vector3(1.5, 1.4, 1.5))
+			if project in BOARDED_SPOTS:  # up on the shop front, reached from the street
+				_add_work(spot as Node3D, project, "Pull off the boards", Vector3(2.2, 3.0, 1.8))
+			else:
+				_add_work(spot as Node3D, project, "Clear this away", Vector3(1.5, 1.4, 1.5))
 
 
 func _build_sheets() -> void:
@@ -1002,6 +1058,10 @@ func _station(station: String) -> Node3D:
 	return _room.get_node_or_null(station) as Node3D
 
 
+func _blockers() -> Node:
+	return _shell.get_node_or_null("Blockers")
+
+
 func _blocker(room: String) -> Node3D:
 	return _shell.get_node_or_null("Blockers/Blocker_" + room) as Node3D
 
@@ -1097,4 +1157,4 @@ class _Work:
 		return director.work_prompt(project, verb)
 
 	func interact(_actor: Variant) -> void:
-		director.do_work(project, verb)
+		director.do_work(project, verb, get_parent() as Node3D)

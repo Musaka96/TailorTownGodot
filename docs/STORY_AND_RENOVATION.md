@@ -528,6 +528,30 @@ Stages, each leaving the game playable:
   of `_paint_floor`; procedural decals. The basic cheval mirror.
 - **D.** The plot rebuilt for the footprint (the v7 garden pokes into the front-left corner).
 
+## 6.12 Doing the work by hand (feel pass, 2026-09-21)
+
+Clearing used to be a 0.55 s freeze and a pop. Now each press plays out
+(`scenes/world/grandpa/renovation_fx.gd`, beat sheet by Fable):
+
+| Job | Takes | What happens |
+| --- | --- | --- |
+| Heap ("Clear this away") | 0.6 s | heap squashes under the grab, its bits hop one by one toward the player and shrink away; chips in the heap's colour + a dust puff; `reno_scoop` → `reno_tumble` |
+| Dust sheet | 0.9 s | two tugs, then the whip: the sheet flies up and over toward the player, crumpling; old dust hangs where it lay; `cloth_rustle` → `reno_whip` |
+| Boards (doorways and the shop windows) | 1.2 s | planks prised off one after another: creak, tip, tumble flat to the floor, bounce, gone; splinters + dust; `reno_creak` / `reno_clatter` |
+
+Then a pinch of gold sparkle + `reno_tick`. The job that finishes a project gets a bigger
+burst and `reno_done`; doorway boards that let the player into a room get `reno_open` and
+gold motes in the doorway instead. The player turns to the job, reaches both arms out (the
+carry pose) and bobs into it (`Player.work_at`). Input stays locked through the job + 0.25 s;
+a press mashed mid-job is ignored.
+
+- The heap or sheet the player pressed is the one that goes (spots used to vanish in scene
+  order). Within a session only: after a reload the first N go, as before.
+- The three boarded shop windows (`front_boards`) had no interactable at all, so the job
+  could only be finished from the F3 panel. They are now pressed from the street.
+- Sounds are synthesised (`tools/build_renovation_audio.gd`), cute not foley.
+- Test: `tools/test_renovation_fx.gd`.
+
 ## 7. Build order
 
 | # | Milestone | Proves |
