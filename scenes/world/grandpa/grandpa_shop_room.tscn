@@ -20,9 +20,9 @@
 [ext_resource type="Script" uid="uid://clfnpwwjvwxfb" path="res://scenes/world/roof_manager.gd" id="40_roofm"]
 [ext_resource type="PackedScene" uid="uid://s8v4bsnqp5up" path="res://stations/trash_can/trash_can.tscn" id="41_trash"]
 [ext_resource type="Script" uid="uid://5fytlswior6w" path="res://scenes/world/wall_cutaway.gd" id="70_wallcut"]
-[ext_resource type="PackedScene" uid="uid://be4rajia0rg1c" path="res://IMPORT/town_kit/export/v7/edging_v7.gltf" id="50_edging"]
-[ext_resource type="PackedScene" uid="uid://dr0wctvie0jya" path="res://IMPORT/town_kit/export/v7/plot_v7.gltf" id="60_plot6"]
-[ext_resource type="PackedScene" uid="uid://bio3uboj3a854" path="res://IMPORT/town_kit/export/v7/town_v7.gltf" id="61_town6"]
+[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/edging_v8.gltf" id="50_edging"]
+[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/plot_v8.gltf" id="60_plot6"]
+[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/town_v8.gltf" id="61_town6"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
