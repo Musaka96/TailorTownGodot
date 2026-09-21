@@ -116,6 +116,9 @@ const DARK := Color(0.015, 0.015, 0.02)
 const DARK_ALPHA := 0.93
 const DARK_INSET := 0.23  # 0.2 put its faces in the door reveals' plane (z-fighting)
 const DARK_FADE := 0.7
+## How tall the shadow stands: under the ceiling, never up through the roof. The workshop's
+## walls are 2.4 m (build_v8_grandpa.py SHED_SCALE), the house's 3 m.
+const DARK_HEIGHT := {"default": 2.9, "nextdoor": 2.3}
 ## The wall between the front room and the nook: fitting out the nook takes it away, so the
 ## nook becomes part of the shop with no doorway between them.
 const NOOK_WALL := "NookWall"
@@ -965,12 +968,13 @@ func _build_dark() -> void:
 		var hole := MeshInstance3D.new()
 		hole.name = "Dark_" + room
 		var cube := BoxMesh.new()
-		cube.size = Vector3(box.size.x - DARK_INSET, 2.9, box.size.z - DARK_INSET)
+		var high: float = DARK_HEIGHT.get(room, DARK_HEIGHT["default"])
+		cube.size = Vector3(box.size.x - DARK_INSET, high, box.size.z - DARK_INSET)
 		cube.material = shade
 		hole.mesh = cube
 		hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(hole)
-		hole.global_position = box.get_center() + Vector3(0, 1.45, 0)
+		hole.global_position = box.get_center() + Vector3(0, high / 2.0, 0)
 		_dark[room] = hole
 
 
