@@ -185,7 +185,7 @@ func _unticking_cascades() -> void:
 
 func _builders_finish_only_underway() -> void:
 	_reno.reset()
-	_rep.points = int(_rep.TIERS[1]["at"])
+	_rep.points = 0  # reputation gates nothing here any more
 	for _i in 3:
 		_reno.clear_spot("front_sheets")
 	for _i in 3:
@@ -206,8 +206,8 @@ func _builders_finish_only_underway() -> void:
 		"builders tonight: both ordered jobs are finished"
 	)
 	_check(
-		_reno.nights_left("front_window") == 0 and _reno.nights_left("front_lights") == 0,
-		"builders tonight: no nights left on either"
+		not _reno.is_building("front_window") and not _reno.is_building("front_lights"),
+		"builders tonight: neither is still building"
 	)
 	_check(not _reno.is_done("workroom_boards"), "builders tonight: workroom_boards untouched")
 	_check_invariant("builders finish tonight")

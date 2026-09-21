@@ -5,33 +5,39 @@ extends Node
 ## Two kinds of work (docs/STORY_AND_RENOVATION.md §3):
 ##  - CLEANUP is done by hand, in the shop, for free: every project has a few spots to
 ##    clear (boards to pull off, dust sheets, rubble) and is finished when they all are.
-##  - BUILD work is ordered from the phone: it costs money, may need a reputation tier,
-##    and the builders take some nights over it. It finishes at dawn (EventBus.day_began).
+##  - BUILD work is ordered from the phone and costs money, nothing else. The builders do
+##    it on the spot: RenovationDirector plays the job out (camera, dust, hammering, about
+##    six seconds) and calls finish_build() under the dust cloud. Where no director is
+##    listening (Mr. Hemming's shop, a headless test), the job finishes at once.
 ##
 ## A locked room goes SHUT -> ENTERED (boards off the door) -> CLEARED (mess gone) -> DONE
 ## (rebuilt; its stations move in). This autoload only holds the data and the state; the
 ## scene side (blockers, mess, stations) is RenovationDirector, which listens to `changed`.
-## Modelled on Upgrades: same gating, same save_state/restore/reset habits.
+## Modelled on Upgrades: same save_state/restore/reset habits. Reputation gates nothing
+## here: the shop's income is what paces it (a shabby shop draws humbler customers, and the
+## reputation tier still caps what they spend: Pricing.shop_tier_ceiling).
 
 signal changed
 signal project_finished(id: String)
+## Building work was paid for and the builders are at it now. Whoever handles this owes
+## finish_build(id) when the show is over.
+signal build_started(id: String)
 
 enum Kind { CLEANUP, BUILD }
 enum RoomState { SHUT, ENTERED, CLEARED, DONE }
 
 ## Rooms in story order. "front" is open from the first morning.
 const ROOMS := {
-	"front": {"name": "Front room", "tier": 0, "ready": "The front room is ready"},
-	"workroom":
-	{"name": "Workroom", "tier": 1, "ready": "The workroom is ready: the benches move in"},
-	"cloth": {"name": "Cloth store", "tier": 2, "ready": "The cloth store is ready"},
-	"nook": {"name": "Nook", "tier": 3, "ready": "The nook is ready"},
-	"nextdoor":
-	{"name": "Workshop", "tier": 4, "ready": "The workshop is ready: room for an apprentice"},
+	"front": {"name": "Front room", "ready": "The front room is ready"},
+	"workroom": {"name": "Workroom", "ready": "The workroom is ready: the benches move in"},
+	"cloth": {"name": "Cloth store", "ready": "The cloth store is ready"},
+	"nook": {"name": "Nook", "ready": "The nook is ready"},
+	"nextdoor": {"name": "Workshop", "ready": "The workshop is ready: room for an apprentice"},
 }
 
-## PROVISIONAL costs and nights: they put the projects in the right order of size, but have
-## not been balanced in "days of profit" against docs/ECONOMY.md yet.
+## Costs in "days of profit" (docs/ECONOMY.md §5): the front room's jobs are about a day
+## each for a brand-new shop, each back room a few days at the tier it tends to come at, and
+## grandpa's workshop the long saving-up at the end (docs/STORY_AND_RENOVATION.md §6.13).
 const PROJECTS := {
 	"front_sheets":
 	{
@@ -87,8 +93,7 @@ const PROJECTS := {
 		"name": "Reglaze the shop window",
 		"room": "front",
 		"kind": Kind.BUILD,
-		"cost": 150,
-		"nights": 1,
+		"cost": 180,
 		"needs": ["front_boards"],
 		"desc": "The old panes are cracked and grey with grime. New glass lets the street see in.",
 		"appeal": 2,
@@ -98,8 +103,7 @@ const PROJECTS := {
 		"name": "Fix the wiring and lamps",
 		"room": "front",
 		"kind": Kind.BUILD,
-		"cost": 200,
-		"nights": 1,
+		"cost": 220,
 		"needs": ["front_sweep"],
 		"desc": "Half the lamps are dead. A proper light makes a proper shop.",
 		"appeal": 2,
@@ -109,8 +113,7 @@ const PROJECTS := {
 		"name": "Paper the shop",
 		"room": "front",
 		"kind": Kind.BUILD,
-		"cost": 450,
-		"nights": 2,
+		"cost": 380,
 		"needs": ["front_lights"],
 		"desc": "What is left of the old paper comes off, and the fern goes back up.",
 		"appeal": 3,
@@ -120,8 +123,7 @@ const PROJECTS := {
 		"name": "Repaint the front and the sign",
 		"room": "front",
 		"kind": Kind.BUILD,
-		"cost": 700,
-		"nights": 2,
+		"cost": 560,
 		"needs": ["front_window"],
 		"desc": "Weeds out, paintwork back, THIMBLE bright over the door again.",
 		"appeal": 4,
@@ -152,8 +154,7 @@ const PROJECTS := {
 		"name": "Patch the roof, relay the floor",
 		"room": "workroom",
 		"kind": Kind.BUILD,
-		"cost": 900,
-		"nights": 2,
+		"cost": 750,
 		"needs": ["workroom_clear"],
 		"opens": "workroom",
 		"desc": "A dry, sound room at last. The benches move out of the front room.",
@@ -185,8 +186,7 @@ const PROJECTS := {
 		"name": "Damp-proof and shelve the cloth store",
 		"room": "cloth",
 		"kind": Kind.BUILD,
-		"cost": 1400,
-		"nights": 2,
+		"cost": 1200,
 		"needs": ["cloth_clear"],
 		"opens": "cloth",
 		"desc": "Two long walls of shelving and the delivery door working again.",
@@ -218,8 +218,7 @@ const PROJECTS := {
 		"name": "Fit out the nook",
 		"room": "nook",
 		"kind": Kind.BUILD,
-		"cost": 1800,
-		"nights": 2,
+		"cost": 1500,
 		"needs": ["nook_clear"],
 		"opens": "nook",
 		"desc": "Sockets, a counter and a bit of comfort: room for coffee and pressing.",
@@ -230,8 +229,7 @@ const PROJECTS := {
 		"name": "Make the workshop roof sound",
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
-		"cost": 6000,
-		"nights": 1,
+		"cost": 2400,
 		"needs": ["nook_build"],
 		"desc": "Grandpa's old workshop, down the side. The felt is off and the rain gets in.",
 		"appeal": 2,
@@ -241,8 +239,7 @@ const PROJECTS := {
 		"name": "Unbrick the door to the workshop",
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
-		"cost": 1500,
-		"nights": 2,
+		"cost": 900,
 		"needs": ["next_buy"],
 		"enters": "nextdoor",
 		"desc": "Grandpa bricked it up the winter the damp came in. Mind the dust.",
@@ -263,8 +260,7 @@ const PROJECTS := {
 		"name": "Fit out the workshop",
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
-		"cost": 3000,
-		"nights": 3,
+		"cost": 2600,
 		"needs": ["next_clear"],
 		"opens": "nextdoor",
 		"desc": "Light, a stove and a proper bench. Room enough to take on an apprentice.",
@@ -273,13 +269,8 @@ const PROJECTS := {
 }
 
 var _done := {}  # project id -> true
-var _building := {}  # project id -> nights left
+var _building := {}  # project id -> true while the builders are at it (a few seconds)
 var _spots := {}  # cleanup project id -> spots cleared so far
-
-
-func _ready() -> void:
-	EventBus.day_began.connect(_on_day_began)
-
 
 # --- Queries -----------------------------------------------------------------
 
@@ -296,9 +287,9 @@ func is_done(id: String) -> bool:
 	return _done.has(id)
 
 
-## Nights until the builders finish `id`; 0 when it isn't under way.
-func nights_left(id: String) -> int:
-	return int(_building.get(id, 0))
+## The builders are at `id` right now (the few seconds of the show).
+func is_building(id: String) -> bool:
+	return _building.has(id)
 
 
 func spots_cleared(id: String) -> int:
@@ -309,19 +300,6 @@ func _kind(id: String) -> int:
 	return int(data(id).get("kind", Kind.BUILD))
 
 
-## The reputation tier a project asks for: its own, or else its room's.
-func tier_needed(id: String) -> int:
-	var d := data(id)
-	if d.has("tier"):
-		return int(d["tier"])
-	var room: Dictionary = ROOMS.get(str(d.get("room", "")), {})
-	return int(room.get("tier", 0))
-
-
-func tier_met(id: String) -> bool:
-	return Reputation == null or Reputation.tier() >= tier_needed(id)
-
-
 ## Every project this one waits for is finished.
 func needs_met(id: String) -> bool:
 	for other: String in data(id).get("needs", []):
@@ -330,11 +308,11 @@ func needs_met(id: String) -> bool:
 	return true
 
 
-## Open to be worked on now: known, not done or under way, unlocked by tier and by order.
+## Open to be worked on now: known, not done or under way, and everything before it done.
 func available(id: String) -> bool:
 	if not PROJECTS.has(id) or is_done(id) or _building.has(id):
 		return false
-	return tier_met(id) and needs_met(id)
+	return needs_met(id)
 
 
 ## BUILD work the player can order from the phone right now (available and affordable).
@@ -395,24 +373,25 @@ func clear_spot(id: String) -> bool:
 	return true
 
 
-## Order building work from the phone: pay now, the builders finish after `nights`.
+## Order building work from the phone: pay now, and the builders get straight to it. With
+## nobody to play the job out (no director listening), it is simply done.
 func order(id: String) -> bool:
 	if not can_order(id):
 		return false
 	if not GameState.spend(int(data(id).get("cost", 0))):
 		return false
-	_building[id] = maxi(int(data(id).get("nights", 1)), 1)
+	_building[id] = true
 	changed.emit()
+	if build_started.get_connections().is_empty():
+		_finish(id)
+	else:
+		build_started.emit(id)
 	return true
 
 
-func _on_day_began(_day: int) -> void:
-	var finished: Array[String] = []
-	for id: String in _building.keys():
-		_building[id] = int(_building[id]) - 1
-		if int(_building[id]) <= 0:
-			finished.append(id)
-	for id in finished:
+## The builders are done with `id` (the director calls this under its dust cloud).
+func finish_build(id: String) -> void:
+	if _building.has(id):
 		_finish(id)
 
 
@@ -459,7 +438,7 @@ func debug_finish_all() -> void:
 func save_state() -> Dictionary:
 	return {
 		"done": _done.keys(),
-		"building": _building.duplicate(),
+		"building": _building.keys(),
 		"spots": _spots.duplicate(),
 	}
 
@@ -470,10 +449,11 @@ func restore(d: Variant) -> void:
 		for id: Variant in (d as Dictionary).get("done", []):
 			if PROJECTS.has(str(id)):
 				_done[str(id)] = true
-		var building: Dictionary = (d as Dictionary).get("building", {})
-		for id: Variant in building:
-			if PROJECTS.has(str(id)) and not _done.has(str(id)):
-				_building[str(id)] = int(building[id])
+		# Building work saved mid-show (or an older save's builders still out overnight):
+		# it was paid for, so it is simply done.
+		for id: Variant in (d as Dictionary).get("building", []):
+			if PROJECTS.has(str(id)):
+				_done[str(id)] = true
 		var spots: Dictionary = (d as Dictionary).get("spots", {})
 		for id: Variant in spots:
 			if PROJECTS.has(str(id)) and not _done.has(str(id)):

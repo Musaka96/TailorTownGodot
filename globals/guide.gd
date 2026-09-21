@@ -266,7 +266,7 @@ func _builders_called() -> bool:
 	for id: String in Renovation.PROJECTS:
 		if int(Renovation.data(id).get("kind", -1)) != Renovation.Kind.BUILD:
 			continue
-		if Renovation.is_done(id) or Renovation.nights_left(id) > 0:
+		if Renovation.is_done(id) or Renovation.is_building(id):
 			return true
 	return false
 

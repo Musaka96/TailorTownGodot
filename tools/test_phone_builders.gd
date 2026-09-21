@@ -98,7 +98,7 @@ func _at_grandpas() -> void:
 	_test_status_states()
 	_test_order_success()
 	_test_order_refused()
-	_test_day_began_autorefresh()
+	_test_finish_autorefresh()
 
 	_menu.close()
 	_sections_ended += 1
@@ -149,31 +149,22 @@ func _test_status_states() -> void:
 	_rep.points = 0
 	_game.money = 0
 
-	# "Needs <tier>": workroom_build needs tier 1; its own `needs` (workroom_clear) is
-	# still unmet too, but tier is checked first, so this isolates the tier-lock text.
-	_check(
-		_row_status_text("workroom_build") == "Needs %s" % _rep.TIERS[1]["name"],
-		"status: locked by reputation reads 'Needs <tier name>'"
-	)
-
-	# "After: <job>": front_window's own tier (room 'front') is 0, always met, so with
-	# its `needs` (front_boards) unmet this isolates the earlier-job lock text.
+	# "After: <job>": front_window's `needs` (front_boards) is unmet, so this isolates the
+	# earlier-job lock text (reputation gates nothing here any more).
 	_check(
 		_row_status_text("front_window") == "After: %s" % str(_reno.data("front_boards")["name"]),
 		"status: locked by an earlier job reads 'After: <job name>'"
 	)
 
-	# Clear the earlier jobs (front_* need no reputation) and raise reputation to tier 1
-	# — workroom_boards/workroom_clear need it too (inherited from the workroom's tier),
-	# so it has to go up before they can be cleared by hand.
+	# Clear the earlier jobs so workroom_build becomes available; reputation never enters
+	# into it.
 	for id: String in ["front_sheets", "front_sheets", "front_sheets"]:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
 		_reno.clear_spot(id)
 	for id: String in ["front_boards", "front_boards", "front_boards"]:
 		_reno.clear_spot(id)
-	_rep.points = int(_rep.TIERS[1]["at"])
-	_check(_reno.clear_spot("workroom_boards"), "setup: workroom boards cleared at tier 1")
+	_check(_reno.clear_spot("workroom_boards"), "setup: workroom boards cleared at 0 reputation")
 	for id: String in ["workroom_clear", "workroom_clear", "workroom_clear", "workroom_clear"]:
 		_reno.clear_spot(id)
 	_check(_reno.available("workroom_build"), "setup: workroom_build is now available")
@@ -203,14 +194,10 @@ func _test_status_states() -> void:
 	_game.money = 5000
 	_check(_reno.order("workroom_build"), "setup: workroom_build ordered for the state test")
 	_check(
-		(
-			_row_status_text("workroom_build")
-			== "Builders in — %s left" % _nights_str(int(_reno.data("workroom_build")["nights"]))
-		),
-		"status: under way reads 'Builders in — N night(s) left'"
+		_row_status_text("workroom_build") == "The builders are at it",
+		"status: under way reads 'The builders are at it'"
 	)
-	_event_bus.day_began.emit(2)
-	_event_bus.day_began.emit(3)
+	_reno.finish_build("workroom_build")
 	_check(_reno.is_done("workroom_build"), "setup: workroom_build finished")
 	_check(_row_status_text("workroom_build") == "Done", "status: a finished project reads 'Done'")
 
@@ -244,12 +231,9 @@ func _test_order_success() -> void:
 	var before := int(_game.money)
 	_menu._confirm()
 	_check(int(_game.money) == before - cost, "ordering front_window spends exactly its cost, once")
-	_check(_reno.nights_left("front_window") > 0, "ordering front_window sets nights_left")
+	_check(_reno.is_building("front_window"), "ordering front_window leaves it building")
 	_check(
-		(
-			_row_status_text("front_window")
-			== "Builders in — %s left" % _nights_str(int(_reno.data("front_window")["nights"]))
-		),
+		_row_status_text("front_window") == "The builders are at it",
 		"after ordering, the row reads the under-way text"
 	)
 
@@ -281,7 +265,7 @@ func _test_order_refused() -> void:
 		int(_game.money) == before, "confirming a locked row (needs an earlier job) spends nothing"
 	)
 	_check(not _reno.is_done("front_window"), "…and does not order it")
-	_check(_reno.nights_left("front_window") == 0, "…nights_left stays 0")
+	_check(not _reno.is_building("front_window"), "…and never starts building")
 
 	# Available but unaffordable.
 	for id: String in ["front_sheets", "front_sheets", "front_sheets"]:
@@ -300,7 +284,7 @@ func _test_order_refused() -> void:
 	_menu._confirm()
 	_check(int(_game.money) == before, "confirming an unaffordable row spends nothing")
 	_check(not _reno.is_done("front_window"), "…and does not order it")
-	_check(_reno.nights_left("front_window") == 0, "…nights_left stays 0")
+	_check(not _reno.is_building("front_window"), "…and never starts building")
 
 	_reno.reset()
 	_rep.points = 0
@@ -308,11 +292,12 @@ func _test_order_refused() -> void:
 	_sections_ended += 1
 
 
-## (f) A job finishing at dawn (EventBus.day_began) while the Builders screen is open
-## updates the row to Done without the test ever calling _refresh() itself.
-func _test_day_began_autorefresh() -> void:
+## (f) A job finishing (finish_build, however it is called — the builders' show or the F3
+## panel) while the Builders screen is open updates the row to Done without the test ever
+## calling _refresh() itself; day_began no longer has anything to do with it.
+func _test_finish_autorefresh() -> void:
 	_reno.reset()
-	_rep.points = int(_rep.TIERS[1]["at"])
+	_rep.points = 0
 	for id: String in ["front_sheets", "front_sheets", "front_sheets"]:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
@@ -320,18 +305,22 @@ func _test_day_began_autorefresh() -> void:
 	for id: String in ["front_boards", "front_boards", "front_boards"]:
 		_reno.clear_spot(id)
 	_game.money = 1000
-	_check(_reno.order("front_window"), "setup: front_window booked ahead of the day-tick test")
+	_check(_reno.order("front_window"), "setup: front_window booked ahead of the finish test")
 
 	_open_builders()
 	var idx: int = _menu._build_ids.find("front_window")
 	_menu._row = idx
 	_menu._refresh()
-	_check(_row_status_text("front_window") != "Done", "before dawn: the row is not yet Done")
-	_check(visible_row_text(idx) != "Done", "before dawn: the on-screen row is not yet Done")
+	_check(_row_status_text("front_window") != "Done", "before finishing: the row is not yet Done")
+	_check(visible_row_text(idx) != "Done", "before finishing: the on-screen row is not yet Done")
 
-	_event_bus.day_began.emit(2)  # 1 night: finishes it, and Renovation.changed should
-	# reach the still-open screen on its own (Renovation.changed -> _on_renovation_changed).
-	_check(_reno.is_done("front_window"), "setup: front_window finished at dawn")
+	_event_bus.day_began.emit(2)
+	_check(not _reno.is_done("front_window"), "day_began no longer finishes a building job")
+	_check(visible_row_text(idx) != "Done", "…so the row still isn't Done")
+
+	_reno.finish_build("front_window")  # Renovation.changed should reach the still-open
+	# screen on its own (Renovation.changed -> _on_renovation_changed).
+	_check(_reno.is_done("front_window"), "setup: front_window finished")
 	_check(
 		visible_row_text(idx) == "Done",
 		"the open screen's own row shows Done right away, with no _refresh() call from the test"
@@ -352,12 +341,6 @@ func _open_builders() -> void:
 	_menu._row = 3
 	_menu._refresh()
 	_menu._confirm()
-
-
-## Independent of _nights_text in phone_order.gd, so this test can't be fooled by a bug
-## in that same helper.
-func _nights_str(n: int) -> String:
-	return "%d night%s" % [n, "" if n == 1 else "s"]
 
 
 func _titles(opts: Array) -> Array:

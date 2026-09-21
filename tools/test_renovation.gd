@@ -17,6 +17,7 @@ var _rep: Node
 var _game: Node
 var _upg: Node
 var _main: Node
+var _director: Node3D
 var _finished: Array[String] = []
 ## pricing.gd, loaded at run time: naming the Pricing class here would compile it before the
 ## autoloads it uses exist, which leaves it broken for the whole run.
@@ -43,6 +44,7 @@ func _run() -> void:
 	root.get_node("Locations").sync_to_scene(SCENE)
 	for _i in 4:
 		await process_frame
+	_director = _main.get_node("ShopRoom/RenovationDirector") as Node3D
 
 	_pricing = load("res://data/scripts/pricing.gd")
 	for section: Callable in [
@@ -50,6 +52,7 @@ func _run() -> void:
 		_gating,
 		_by_hand,
 		_by_phone,
+		_ordering_and_building,
 		_rooms_and_stations,
 		_upgrades_wait_for_rooms,
 		_save_round_trip,
@@ -88,12 +91,8 @@ func _fresh() -> void:
 func _gating() -> void:
 	_check(_reno.available("front_sheets"), "dust sheets can be pulled off at once")
 	_check(not _reno.available("front_sweep"), "sweeping waits for the sheets (needs)")
-	_check(not _reno.available("workroom_boards"), "workroom boards wait for reputation")
-	_check(not _reno.tier_met("workroom_boards"), "…because the tier isn't met")
-	_rep.points = int(_rep.TIERS[1]["at"])
-	_check(_reno.tier_met("workroom_boards"), "at tier 1 the name is good enough for the workroom")
-	_check(not _reno.needs_met("workroom_boards"), "…but the front room is tidied first")
-	_check(not _reno.available("workroom_boards"), "…so the boards stay on for now")
+	_check(not _reno.available("workroom_boards"), "workroom boards wait for the front room")
+	_check(not _reno.needs_met("workroom_boards"), "…the front room is tidied first")
 	_check(not _reno.available("cloth_boards"), "the cloth store waits for the workroom")
 	_check(not _reno.available("no_such_project"), "an unknown project is never available")
 	_check(not _reno.clear_spot("front_window"), "building work can't be done by hand")
@@ -125,13 +124,18 @@ func _by_hand() -> void:
 	_check(not _reno.available("workroom_boards"), "half swept: the workroom still waits")
 	_reno.clear_spot("front_sweep")
 	_reno.clear_spot("front_sweep")
-	_check(_reno.available("workroom_boards"), "front room swept: now the boards can come off")
+	_check(
+		_reno.available("workroom_boards"),
+		"front room swept: now the boards can come off (no reputation needed)"
+	)
 	_check(_reno.available("front_boards"), "…and the shop windows can be unboarded")
 	_check(not _reno.can_order("front_window"), "no glazier while the boards are still up")
 	for _i in 3:
 		_reno.clear_spot("front_boards")
 	_check(_reno.is_done("front_boards"), "all three windows unboarded")
-	_check(not _reno.available("nook_boards"), "the nook also waits for a better name (tier 3)")
+	_check(
+		_reno.available("nook_boards"), "the nook door can also be tackled: the front room gates it"
+	)
 	_sections_ended += 1
 
 
@@ -139,17 +143,88 @@ func _by_phone() -> void:
 	_game.money = 0
 	_check(not _reno.can_order("front_window"), "no money: the glazier can't be ordered")
 	_check(not _reno.order("front_window"), "…and order() refuses")
+	_check(_game.money == 0, "…and nothing was spent")
 	_game.money = 1000
 	_check(_reno.can_order("front_window"), "with money it can")
+	var cost := int(_reno.data("front_window")["cost"])
 	_check(_reno.order("front_window"), "ordered")
-	_check(_game.money == 1000 - 150, "the cost came off, exactly once")
-	_check(_reno.nights_left("front_window") == 1, "the builders need a night")
+	_check(_game.money == 1000 - cost, "the cost came off, exactly once")
 	_check(not _reno.order("front_window"), "it can't be ordered twice")
-	_check(_game.money == 850, "…and no second charge")
-	_check(not _reno.is_done("front_window"), "not done the same day")
-	root.get_node("EventBus").day_began.emit(2)
-	_check(_reno.is_done("front_window"), "done at dawn")
-	_check(_reno.nights_left("front_window") == 0, "no nights left on a finished job")
+	_check(_game.money == 1000 - cost, "…and no second charge")
+	_check(
+		_reno.is_building("front_window") and not _reno.is_done("front_window"),
+		"the builders are at it, not done the same moment"
+	)
+	_reno.finish_build("front_window")
+	_check(
+		_reno.is_done("front_window") and not _reno.is_building("front_window"),
+		"finish_build completes it"
+	)
+	_sections_ended += 1
+
+
+## The bookkeeping either shape of the world uses: nobody listening to build_started (a
+## fresh headless test, Mr. Hemming's shop) finishes the job at once; something listening
+## (the RenovationDirector at grandpa's) leaves it building until finish_build says so, and
+## day_began no longer has any say in it at all.
+func _ordering_and_building() -> void:
+	var director_cb := Callable(_director, "_on_build_started")
+	_reno.build_started.disconnect(director_cb)
+
+	# Nobody listening: order() finishes the job at once and spends exactly the cost.
+	_finished.clear()
+	_game.money = 1000
+	var cost := int(_reno.data("front_lights")["cost"])
+	_check(_reno.order("front_lights"), "no listener: front_lights orders")
+	_check(_game.money == 1000 - cost, "…spending exactly its cost")
+	_check(
+		_reno.is_done("front_lights") and not _reno.is_building("front_lights"),
+		"…and finishing at once"
+	)
+	_check(_finished == ["front_lights"], "…project_finished fired exactly once")
+
+	# Unaffordable: order() refuses and spends nothing.
+	_game.money = 10
+	var before := int(_game.money)
+	_check(not _reno.can_order("front_paper"), "front_paper can't be afforded on 10")
+	_check(not _reno.order("front_paper"), "…so order() refuses")
+	_check(int(_game.money) == before, "…and nothing was spent")
+
+	# Something listening: order() leaves the job building, not done, until finish_build.
+	var dummy := func(_id: String) -> void: pass
+	_reno.build_started.connect(dummy)
+	_finished.clear()
+	_game.money = 1000
+	_check(_reno.order("facade_paint"), "with a listener: facade_paint orders")
+	_check(
+		_reno.is_building("facade_paint") and not _reno.is_done("facade_paint"),
+		"…and is left building, not done"
+	)
+	_check(_finished.is_empty(), "…project_finished has not fired yet")
+
+	# day_began no longer touches it.
+	root.get_node("EventBus").day_began.emit(99)
+	_check(
+		_reno.is_building("facade_paint") and not _reno.is_done("facade_paint"),
+		"day_began no longer finishes a building job"
+	)
+
+	_reno.finish_build("facade_paint")
+	_check(
+		_reno.is_done("facade_paint") and not _reno.is_building("facade_paint"),
+		"finish_build completes it"
+	)
+	_check(_finished == ["facade_paint"], "…and project_finished fires exactly once")
+
+	# finish_build on anything not currently building does nothing.
+	_finished.clear()
+	_reno.finish_build("facade_paint")
+	_check(_finished.is_empty(), "finish_build on an already-done id does nothing")
+	_reno.finish_build("next_build")
+	_check(_finished.is_empty(), "finish_build on a job never ordered does nothing")
+
+	_reno.build_started.disconnect(dummy)
+	_reno.build_started.connect(director_cb)
 	_sections_ended += 1
 
 
@@ -166,10 +241,9 @@ func _rooms_and_stations() -> void:
 	_game.money = 5000
 	_check(_reno.order("workroom_build"), "the builders are booked for the workroom")
 	_check(_node("GrandpaShell/Wip_workroom").visible, "their clutter stands in the room")
-	root.get_node("EventBus").day_began.emit(3)
-	_check(_reno.room_state("workroom") == CLEARED, "two nights: not done after one")
-	root.get_node("EventBus").day_began.emit(4)
-	_check(_reno.room_state("workroom") == DONE, "done after the second night")
+	_check(_reno.room_state("workroom") == CLEARED, "ordered but not finished: still just cleared")
+	_reno.finish_build("workroom_build")
+	_check(_reno.room_state("workroom") == DONE, "finish_build brings the room home")
 	_check(not _node("GrandpaShell/Wip_workroom").visible, "the builders have packed up")
 	# The floor label is a greybox aid: the real shop has none (the shell builder's SHOW_SHELL).
 	var label := _main.get_node_or_null("ShopRoom/GrandpaShell/Label_workroom") as Node3D
@@ -180,11 +254,9 @@ func _rooms_and_stations() -> void:
 	_check(_node("Bookshelf").visible and _usable("Bookshelf"), "the bookshelf arrived")
 	_check(_node("ClothingRack2").visible, "and a second rack")
 	_check(not _node("Shelf2").visible, "the cloth store is still not there")
-	# The cloth store is reached through the workroom AND asks for a better name (tier 2).
+	# The cloth store is reached through the workroom; reputation gates nothing here.
 	_check(_reno.needs_met("cloth_boards"), "the workroom no longer holds the cloth store up")
-	_check(not _reno.available("cloth_boards"), "…but at tier 1 its door still can't be tackled")
-	_rep.points = int(_rep.TIERS[2]["at"])
-	_check(_reno.available("cloth_boards"), "at tier 2 it can")
+	_check(_reno.available("cloth_boards"), "…so its door can be tackled at once")
 	_sections_ended += 1
 
 
@@ -199,8 +271,7 @@ func _upgrades_wait_for_rooms() -> void:
 	for id: String in ["nook_boards", "nook_clear", "nook_clear", "nook_clear"]:
 		_reno.clear_spot(id)
 	_reno.order("nook_build")
-	root.get_node("EventBus").day_began.emit(5)
-	root.get_node("EventBus").day_began.emit(6)
+	_reno.finish_build("nook_build")
 	_check(_reno.room_state("nook") == DONE, "the nook is fitted out")
 	_check(_upg.can_buy("shop_coffee"), "now the coffee machine can be bought")
 	_check(not _node("CoffeeMachine").visible, "not bought yet: still not there")
@@ -210,24 +281,38 @@ func _upgrades_wait_for_rooms() -> void:
 
 
 func _save_round_trip() -> void:
-	for id: String in ["cloth_boards", "cloth_clear"]:
+	for id: String in ["cloth_boards", "cloth_clear", "cloth_clear", "cloth_clear"]:
 		_reno.clear_spot(id)
-	_reno.order("cloth_build")
+	_reno.clear_spot("yard_rubbish")  # one of three: left half-finished on purpose
+	_check(_reno.order("cloth_build"), "setup: cloth_build ordered")
+	_check(
+		_reno.is_building("cloth_build") and not _reno.is_done("cloth_build"),
+		"setup: still mid-build when it is saved"
+	)
 	var snap: Dictionary = _reno.save_state()
-	var state_before := [
-		_reno.room_state("workroom"), _reno.room_state("cloth"), _reno.nights_left("cloth_build")
-	]
+	_check(snap["building"] is Array, "save_state's building list is an Array")
+	_check(snap["building"] == ["cloth_build"], "…naming the job the builders are at")
+	var workroom_before: int = _reno.room_state("workroom")
 	_reno.reset()
 	_check(_reno.room_state("workroom") == SHUT, "reset really empties it")
 	snap["done"].append("not_a_project")
 	_reno.restore(snap)
-	var state_after := [
-		_reno.room_state("workroom"), _reno.room_state("cloth"), _reno.nights_left("cloth_build")
-	]
-	_check(state_after == state_before, "restore brings back rooms and the builders' nights")
-	_check(_reno.spots_cleared("cloth_clear") == 1, "…and the half-finished scrubbing")
+	_check(
+		_reno.room_state("workroom") == workroom_before, "restore brings the finished rooms back"
+	)
+	# A job still building when it was saved was paid for, so restore simply finishes it.
+	_check(_reno.is_done("cloth_build"), "restore finishes a job that was still building")
+	_check(_reno.room_state("cloth") == DONE, "…and the cloth store comes with it")
+	_check(_reno.spots_cleared("yard_rubbish") == 1, "…and the half-finished cleanup")
 	_check(not _reno.is_done("not_a_project"), "unknown ids in a save are ignored")
 	_check(_node("Bookshelf").visible, "the shop follows the restored state")
+
+	# An old save's building dict (id -> nights left) is still accepted the same way: any
+	# id it names was paid for, so it is simply done.
+	_reno.reset()
+	_reno.restore({"building": {"front_window": 2}})
+	_check(_reno.is_done("front_window"), "an old-format building dict still marks its job done")
+	_reno.reset()
 	_sections_ended += 1
 
 

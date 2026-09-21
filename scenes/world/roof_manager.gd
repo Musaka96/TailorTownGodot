@@ -15,6 +15,11 @@ extends Node3D
 ## gables, caps and cornices stay away. For views framed from inside the shop (the
 ## fitting mirror). Set through hold_walls(); WallCutaway.hold_solid does the lower halves.
 static var walls_held := false
+## While `watching`, every roof fader judges "inside" by `watch_point` instead of by where
+## the player stands: a camera shown into another room (the builders' show) sees into it.
+## Set through watch() / unwatch().
+static var watching := false
+static var watch_point := Vector3.ZERO
 
 ## The roof to fade (a MeshInstance3D or a parent holding the roof meshes).
 @export_node_path("Node3D") var roof_path: NodePath
@@ -52,12 +57,22 @@ static func hold_walls(on: bool) -> void:
 	walls_held = on
 
 
+## Fade as if the player stood at `point`, until unwatch().
+static func watch(point: Vector3) -> void:
+	watch_point = point
+	watching = true
+
+
+static func unwatch() -> void:
+	watching = false
+
+
 func _process(_delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_player = _resolve_player()
 		if _player == null:
 			return
-	var now := _contains(_player.global_position)
+	var now := _contains(watch_point if watching else _player.global_position)
 	if not _established:
 		# The player node readies after us, so snap to the right state (no fade) once.
 		_established = true

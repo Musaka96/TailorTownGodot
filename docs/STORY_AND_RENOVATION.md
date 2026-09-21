@@ -79,6 +79,11 @@ Existing upgrades get re-themed for free: `cut_sharp` = *sharpen grandpa's shear
 Tier thresholds and prices must be set in "days of profit" per ECONOMY.md once the
 projects exist; the table above is only the order.
 
+> **2026-09-22, owner's call:** reputation no longer gates renovation at all; money is the
+> only obstacle, and the `needs` chain keeps the story order. The "Rep tier" column is now
+> the tier a player *tends* to have reached by then, which the prices are balanced against
+> (§6.13).
+
 ### Two kinds of work
 
 1. **Cleanup — hands-on, free, costs day time.** Sweep rubble, pull dust sheets, tear
@@ -86,11 +91,12 @@ projects exist; the table above is only the order.
    progress ring (later maybe a tiny minigame per the comfort-minigame host). Gives the
    player something cozy to do in the quiet early days when customers are few, and makes
    progress possible at $0.
-2. **Building work — phone, money + reputation tier + days.** Roof, floors, plaster,
-   wiring, glazing, knocking through. New phone hub card **Builders** next to *Order
-   Textiles* / *Shop Upgrades*. Work takes 1–3 nights; the room is tarped meanwhile; it
-   completes on `shift_started` with the already-planned **dust-and-sound refit moment**
-   (SHOP_CUSTOMIZATION.md) and a short camera pan to the reveal.
+2. **Building work — phone, money only, done on the spot.** Roof, floors, plaster,
+   wiring, glazing, knocking through. Phone hub card **Builders** next to *Order
+   Textiles* / *Shop Upgrades*. Paying for a job starts the **builders' show** right away:
+   the camera flies to the room, dust and hammering for a few seconds, a cloud hides the
+   change and clears on the finished room (§6.13). (Until 2026-09-22 it took 1–3 nights
+   and needed a reputation tier.)
 
 A room usually needs *cleanup first, then building work*, so the two interleave.
 
@@ -440,8 +446,8 @@ for an ASCII map of each stage. It caught three things no screenshot had shown:
 2. **Next door is nearly empty** (one bench, one rack, one mannequin in ~50 m2). What else
    belongs there - a second cutting table, a fitting corner, a bigger display?
 3. **Give the three body-less stations a body in their own scenes?** (6.9)
-4. **Reputation tiers gate rooms** (workroom tier 1 ... next door tier 4) and costs are
-   placeholders - both need a balance pass against `docs/ECONOMY.md`.
+4. ~~Reputation tiers gate rooms~~ Answered 2026-09-22: no reputation gate, money only;
+   costs rebalanced in days of profit (§6.13).
 
 ## 6.10a Owner's round of 2026-09-20 (walls, dark rooms, the nook, the front)
 
@@ -557,6 +563,64 @@ a press mashed mid-job is ignored.
   could only be finished from the F3 panel. They are now pressed from the street.
 - Sounds are synthesised (`tools/build_renovation_audio.gd`), cute not foley.
 - Test: `tools/test_renovation_fx.gd`.
+
+## 6.13 Money only, and the builders do it on the spot (2026-09-22)
+
+Owner's call, after a look at how other games do it: Animal Crossing, Stardew Valley,
+Slime Rancher and Hades gate their building work on money plus an order of jobs; games that
+stack a rank gate on top of the price (Supermarket Simulator's store level) draw
+complaints. Overnight builds give Animal Crossing its "come back tomorrow" hook, but
+TailorTown's days already have their own hooks, so the waiting went and the reveal stayed.
+
+**No reputation gate.** `Renovation.ROOMS` has no tier and `tier_needed`/`tier_met` are
+gone; `available()` is "not done, not being built, `needs` met". Reputation still paces the
+game from behind: grandpa's customers spend up to the lower of the reputation tier and the
+shop's appeal tier (`Pricing.shop_tier_ceiling`), so income, and with it renovation,
+follows reputation without a lock on the Builders card. This also frees the hands-on
+cleanup in the back rooms (the workroom boards needed tier 1 before).
+
+**Prices, in days of profit** (ECONOMY.md §5 reference income, at the tier a player tends
+to be at by then):
+
+| Job | Cost | ≈ days |
+| --- | --- | --- |
+| front_window / front_lights | $180 / $220 | ~1 each at Unknown ($180/day) |
+| front_paper / facade_paint | $380 / $560 | ~2 / ~2 at Unknown–Apprentice |
+| workroom_build | $750 | ~2.5 at Apprentice ($300/day) |
+| cloth_build | $1,200 | ~2.5 at Local Name ($480/day) |
+| nook_build | $1,500 | ~2 at City Favourite ($700/day) |
+| next_buy + next_knock + next_build | $2,400 + $900 + $2,600 | ~8 at City Favourite–Master |
+
+About $10,700 in all (it was $16,100, with the workshop roof alone at $6,000). Still
+provisional until a playtest.
+
+**The builders' show** (`scenes/world/grandpa/builder_show.gd`, a `RenovationFx` subclass,
+owned by the director). `Renovation.order()` pays, marks the job building and emits
+`build_started(id)`; the director closes the phone, locks input, stops the day's clock
+(`DayNight.running`) and plays:
+
+| t (room job, 6 s) | Beat |
+| --- | --- |
+| 0.0 | `reno_knock`; the camera glides to the job (`CameraRig.focus`, 85% of the usual distance); every roof fader judges "inside" by the job, not the player (`RoofManager.watch`), so walls and the divider fade |
+| 0.7 | the room's builders' kit (`Wip_<room>`) pops in; a dust puff |
+| 1.0–3.6 | every 0.55 s a knock somewhere in the room: chips, a puff and `reno_hammer` / `reno_saw` / `reno_drill` (`reno_roller` for papering and the paintwork) |
+| 3.6 | a big dust cloud fills the job; `reno_poof` |
+| 4.0 | `Renovation.finish_build(id)` under the cloud: stations move, wear fades, the kit goes |
+| 4.3 | a gold burst and motes through the thinning cloud, `reno_reveal`, the "room is ready" toast |
+| ~5.0 | the cloud has cleared: a second to look at the finished room |
+| 6.0 | the camera goes back to the player; input and the clock resume |
+
+Jobs that open or enter a room, or cost $1,000 or more, get the 6 s show; the rest a 4.5 s
+one (same beats, a shorter spell of work). The window and the paintwork play along the street front (a 1.6 m strip), the rest over
+their room's floor. After the first show of a session, interact skips to the cloud and
+reveal. With no director listening (Mr. Hemming's shop, headless tests) `order()` finishes
+the job at once. A save made mid-show, or an old save with builders "out overnight",
+restores those jobs as done.
+
+Sounds: hammer, saw, drill, roller, knock and the reveal jingle are Stable Audio Open takes
+(three per sound; the unused ones are in `.dev/reno_audio_alts/` to audition), trimmed and
+normalised; the poof is synthesised. Frames: `tools/shot_builder_show.gd` →
+`.dev/builder_show/`.
 
 ## 7. Build order
 

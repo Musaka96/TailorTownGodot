@@ -99,6 +99,14 @@ const LIB := {
 	"reno_tick": "reno_tick.wav",
 	"reno_done": "reno_done.wav",
 	"reno_open": "reno_open.wav",
+	# the builders' show (BuilderShow): Stable Audio Open takes, trimmed; the poof is synthesised
+	"reno_knock": "reno_knock.wav",
+	"reno_hammer": "reno_hammer.wav",
+	"reno_saw": "reno_saw.wav",
+	"reno_drill": "reno_drill.wav",
+	"reno_roller": "reno_roller.wav",
+	"reno_poof": "reno_poof.wav",
+	"reno_reveal": "reno_reveal.wav",
 	# world stingers & ambience
 	"new_order_ping": "new_order_ping.wav",
 	"order_complete": "order_complete.wav",

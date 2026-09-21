@@ -396,28 +396,36 @@ func _restart_guide() -> void:
 	_note("guide: %s" % Guide.current_id())
 
 
-## Skip to dawn for every project currently under way (nights_left > 0), and nothing else.
+## Finish every building job the builders are at right now (a show cut short), nothing else.
 func _finish_building_now() -> void:
 	var state: Dictionary = Renovation.save_state()
-	var done: Array = state.get("done", [])
-	var building: Dictionary = state.get("building", {})
-	var spots: Dictionary = state.get("spots", {})
-	var finished: Array[String] = []
-	for id: String in building.keys():
-		if int(building[id]) > 0:
-			finished.append(id)
-	for id in finished:
-		done.append(id)
-		building.erase(id)
-		spots.erase(id)
-	state["done"] = done
-	state["building"] = building
-	state["spots"] = spots
-	Renovation.restore(state)
-	if finished.is_empty():
-		_note("no builders are out tonight")
+	var building: Array = state.get("building", [])
+	for id: String in building:
+		Renovation.finish_build(id)
+	if building.is_empty():
+		_note("the builders aren't at anything")
 	else:
-		_note("builders finished %d job(s)" % finished.size())
+		_note("builders finished %d job(s)" % building.size())
+
+
+## Play the builders' show for `id` again: everything it needs is done, it and everything
+## after it undone, its price put in the till, the panel shut, and the job ordered.
+func _watch_build(id: String) -> void:
+	if Renovation.build_started.get_connections().is_empty():
+		_note("the builders only work at grandpa's shop")
+		return
+	var undo := _dependents(id)
+	undo.append(id)
+	_undo_ids(undo)
+	var needs: Array[String] = []
+	for need: Variant in Renovation.data(id).get("needs", []):
+		needs.append(str(need))
+	_finish_ids(_with_needs(needs))
+	GameState.money += int(Renovation.data(id).get("cost", 0))
+	if _layer.visible:
+		_toggle()
+	if not Renovation.order(id):
+		_note("couldn't order %s" % id)
 
 
 ## Finish every project of `room`, and every project those depend on (through `needs`),
@@ -461,7 +469,7 @@ func _refresh_renovation() -> void:
 func _finish_ids(ids: Array[String]) -> void:
 	var state: Dictionary = Renovation.save_state()
 	var done: Array = state.get("done", [])
-	var building: Dictionary = state.get("building", {})
+	var building: Array = state.get("building", [])
 	var spots: Dictionary = state.get("spots", {})
 	for id: String in ids:
 		if not done.has(id):
@@ -715,7 +723,7 @@ func _build() -> void:
 	reno.add_child(_reno_status)
 	var rn_row1 := _row(reno)
 	_button(rn_row1, "Finish next job", _finish_next_job)
-	_button(rn_row1, "Builders finish tonight's work", _finish_building_now)
+	_button(rn_row1, "Builders finish now", _finish_building_now)
 	var rn_row2 := _row(reno)
 	_button(rn_row2, "Renovate everything", _renovate_everything)
 	_button(rn_row2, "…and own the room upgrades", _renovate_everything_and_upgrades)
@@ -732,6 +740,15 @@ func _build() -> void:
 		var target := rn_rooms1 if rn_i < 2 else rn_rooms2
 		_button(target, "Open %s" % room_name, _open_room.bind(room))
 		rn_i += 1
+
+	var watch := _section(box, "Watch the builders")
+	var watch_row := _row(watch)
+	for id: String in Renovation.PROJECTS:
+		if int(Renovation.data(id).get("kind", -1)) != Renovation.Kind.BUILD:
+			continue
+		if watch_row.get_child_count() >= 2:
+			watch_row = _row(watch)
+		_button(watch_row, str(Renovation.data(id).get("name", id)), _watch_build.bind(id))
 
 	var guide := _section(box, "Guide")
 	var gd_row := _row(guide)

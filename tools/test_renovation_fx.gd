@@ -118,16 +118,9 @@ func _doorway_boards_open_the_room() -> void:
 	while not _reno.is_done("front_boards") and guard < 10:
 		_reno.clear_spot("front_boards")
 		guard += 1
-	var rep := root.get_node("Reputation")
-	rep.points = int(rep.TIERS[1]["at"])  # the workroom waits for a name
 	var blocker := _shell.get_node("Blockers/Blocker_workroom") as Node3D
 	var why := (
-		"done=%s tier=%s needs=%s"
-		% [
-			_reno.is_done("workroom_boards"),
-			_reno.tier_met("workroom_boards"),
-			_reno.needs_met("workroom_boards"),
-		]
+		"done=%s needs=%s" % [_reno.is_done("workroom_boards"), _reno.needs_met("workroom_boards")]
 	)
 	_check(_reno.available("workroom_boards"), "the workroom boards can come off (%s)" % why)
 	await _press(blocker)

@@ -488,7 +488,7 @@ func _show_upgrade_preview(id: String) -> void:
 
 
 ## Right-hand detail for the highlighted renovation project: its blurb, room, and either
-## its progress, its lock reason, or its price and how long the builders will need.
+## its progress, its lock reason, or its price.
 func _show_builder_preview(id: String) -> void:
 	var d := Renovation.data(id)
 	_name_label.text = str(d.get("name", "?"))
@@ -499,18 +499,15 @@ func _show_builder_preview(id: String) -> void:
 	if Renovation.is_done(id):
 		line = "Done"
 		col = Style.FOREST
-	elif Renovation.nights_left(id) > 0:
-		line = "Builders in — %s left" % _nights_text(Renovation.nights_left(id))
+	elif Renovation.is_building(id):
+		line = "The builders are at it"
 		col = Style.AMBER
-	elif not Renovation.tier_met(id):
-		line = "Needs %s" % _tier_name(Renovation.tier_needed(id))
-		col = Style.CLAY
 	elif _builder_blocker(id) != "":
 		line = _blocker_text(_builder_blocker(id))
 		col = Style.CLAY
 	else:
 		var cost := int(d.get("cost", 0))
-		line = "$%d  ·  The builders need %s" % [cost, _nights_text(int(d.get("nights", 1)))]
+		line = "$%d  ·  The builders come round straight away" % cost
 		col = Style.FOREST if GameState.can_afford(cost) else Style.CLAY
 	_price_label.text = "%s\n%s%s" % [room_name, line, _status]
 	_price_label.add_theme_color_override("font_color", col)
@@ -666,11 +663,8 @@ func _make_builder_row(id: String, selected: bool) -> Control:
 func _builder_status(id: String, d: Dictionary) -> Label:
 	if Renovation.is_done(id):
 		return _status_label("Done", Style.FOREST)
-	var nights := Renovation.nights_left(id)
-	if nights > 0:
-		return _status_label("Builders in — %s left" % _nights_text(nights), Style.AMBER)
-	if not Renovation.tier_met(id):
-		return _status_label("Needs %s" % _tier_name(Renovation.tier_needed(id)), Style.CLAY)
+	if Renovation.is_building(id):
+		return _status_label("The builders are at it", Style.AMBER)
 	var blocker := _builder_blocker(id)
 	if blocker != "":
 		var name: String = str(Renovation.data(blocker).get("name", blocker))
@@ -702,10 +696,6 @@ func _blocker_text(blocker_id: String) -> String:
 
 func _room_name(room: String) -> String:
 	return str(Renovation.ROOMS.get(room, {}).get("name", room))
-
-
-func _nights_text(n: int) -> String:
-	return "%d night%s" % [n, "" if n == 1 else "s"]
 
 
 ## BUILD project ids only, grouped by room in ROOMS order (cleanup is done by hand, not
@@ -983,18 +973,16 @@ func _needs(id: String) -> String:
 
 
 ## Book a BUILD project's renovation work: the same refusal feedback as _buy_upgrade
-## (a status line, nothing spent) when it can't be ordered, else pay, start the nights,
-## and toast it like a purchase.
+## (a status line, nothing spent) when it can't be ordered, else pay and let the builders
+## get straight to it.
 func _order_builder() -> void:
 	if _build_ids.is_empty():
 		return
 	var id: String = _build_ids[_row]
 	if Renovation.is_done(id):
 		_status = "  (already done)"
-	elif Renovation.nights_left(id) > 0:
+	elif Renovation.is_building(id):
 		_status = "  (the builders are already on it)"
-	elif not Renovation.tier_met(id):
-		_status = "  (need more reputation)"
 	elif _builder_blocker(id) != "":
 		var name: String = str(Renovation.data(_builder_blocker(id)).get("name", ""))
 		_status = "  (finish %s first)" % name
@@ -1002,9 +990,11 @@ func _order_builder() -> void:
 		_status = "  (not enough money)"
 	elif Renovation.order(id):
 		Sfx.play("coins")
-		var nights := int(Renovation.data(id).get("nights", 1))
-		UI.toast("Builders booked — done in %s" % _nights_text(nights))
-		_status = "  — booked!"
+		# At grandpa's the phone has closed by now and the builders are at work in front
+		# of the player (RenovationDirector); with nobody to show it, the job is just done.
+		if not visible:
+			return
+		_status = "  — done!"
 	_refresh()
 
 

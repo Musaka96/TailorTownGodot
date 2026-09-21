@@ -147,6 +147,10 @@ const SHELF_VERB := "Grandpa's shelf"
 const CHEVAL_SOLID := Vector3(1.0, 1.4, 0.55)
 ## The front of the shop: grimy and weedy until it is repainted.
 const FACADE_JOB := "facade_paint"
+const WINDOW_JOB := "front_window"
+const STREET_STRIP := 1.6  # how deep the builders' strip along the street front is
+## Building work this dear gets the long show even when it doesn't open a room.
+const BIG_JOB_COST := 1000
 ## How far out from the front wall the shop's own forecourt reaches. Anything small of the
 ## plot's standing in there is the shop's dressing, not the street's.
 const FORECOURT_DEPTH := 2.3
@@ -211,6 +215,7 @@ var _sheets_released := false  # the sheeted stations have been handed back for 
 var _sheet_order: Array = SHEETED.duplicate()
 var _working := false  # a job is playing out; another press waits for it
 var _fx: RenovationFx
+var _builders: BuilderShow
 
 
 func _ready() -> void:
@@ -237,10 +242,14 @@ func _ready() -> void:
 	_fx = RenovationFx.new()
 	_fx.name = "Fx"
 	add_child(_fx)
+	_builders = BuilderShow.new()
+	_builders.name = "Builders"
+	add_child(_builders)
 	Upgrades.changed.connect(_apply)
 	Story.changed.connect(_apply_keepsakes)
 	Renovation.changed.connect(_apply)
 	Renovation.project_finished.connect(_on_project_finished)
+	Renovation.build_started.connect(_on_build_started)
 	_apply()
 
 
@@ -328,7 +337,7 @@ func _on_project_finished(id: String) -> void:
 	if opened != "":
 		UI.toast(str(Renovation.ROOMS[opened].get("ready", "A room is ready")))
 	elif int(d.get("kind", Renovation.Kind.BUILD)) == Renovation.Kind.BUILD:
-		UI.toast("The builders have finished: %s" % str(d.get("name", id)).to_lower())
+		UI.toast("The builders are done: %s" % str(d.get("name", id)).to_lower())
 	else:
 		UI.toast("Done: %s" % str(d.get("name", id)).to_lower())
 
@@ -351,9 +360,6 @@ func work_prompt(project: String, verb: String) -> String:
 		return "The party wall — that's a job for the builders"
 	if Renovation.available(project):
 		return verb
-	if not Renovation.tier_met(project):
-		var tier := Renovation.tier_needed(project)
-		return "Not yet — earn a name first (%s)" % _tier_name(tier)
 	if not Renovation.needs_met(project):
 		return "Not yet — %s first" % _first_need(project)
 	return ""
@@ -382,6 +388,47 @@ func do_work(project: String, verb := "", host: Node3D = null) -> void:
 		await get_tree().create_timer(RenovationFx.PAYOFF).timeout
 	GameState.input_locked = false
 	_working = false
+
+
+## Building work was bought from the phone: the builders do it now, in front of the
+## player, who waits (and the day's clock with them) until the dust settles.
+func _on_build_started(id: String) -> void:
+	if UI != null:
+		UI.close_all_menus()
+	_working = true
+	GameState.input_locked = true
+	var clock_ran := DayNight.running
+	DayNight.running = false
+	var d := Renovation.data(id)
+	var big := d.has("opens") or d.has("enters") or int(d.get("cost", 0)) >= BIG_JOB_COST
+	var kit := _shell.get_node_or_null("Wip_" + str(d.get("room", ""))) as Node3D
+	await _builders.perform(id, _job_box(id), kit, big)
+	DayNight.running = clock_ran
+	GameState.input_locked = false
+	_working = false
+
+
+## Where the builders' job happens, in world space: its room's floor (up to the ceiling),
+## or a strip along the street front for the shop window and the paintwork outside.
+func _job_box(id: String) -> AABB:
+	var room := str(Renovation.data(id).get("room", "front"))
+	var box := _floor_box(room)
+	if id == FACADE_JOB or id == WINDOW_JOB:
+		box = box.merge(_floor_box("nook"))
+		var front := box.end.z
+		var from := front if id == FACADE_JOB else front - STREET_STRIP
+		return AABB(
+			Vector3(box.position.x, box.position.y, from), Vector3(box.size.x, 2.6, STREET_STRIP)
+		)
+	box.size.y = 2.6
+	return box
+
+
+func _floor_box(room: String) -> AABB:
+	var floor_mesh := _shell.get_node_or_null("Body/Floor_" + room) as MeshInstance3D
+	if floor_mesh == null:
+		return AABB(global_position - Vector3(2, 0, 2), Vector3(4, 2.6, 4))
+	return floor_mesh.global_transform * floor_mesh.get_aabb()
 
 
 func _kind_of(project: String, host: Node3D) -> RenovationFx.Kind:
@@ -1080,7 +1127,7 @@ func _blocker(room: String) -> Node3D:
 
 func _room_under_way(room: String) -> bool:
 	for id: String in Renovation.all_ids():
-		if str(Renovation.data(id).get("room", "")) == room and Renovation.nights_left(id) > 0:
+		if str(Renovation.data(id).get("room", "")) == room and Renovation.is_building(id):
 			return true
 	return false
 
@@ -1090,12 +1137,6 @@ func _first_need(project: String) -> String:
 		if not Renovation.is_done(other):
 			return str(Renovation.data(other).get("name", other)).to_lower()
 	return "something else"
-
-
-func _tier_name(tier: int) -> String:
-	if Reputation == null or tier >= Reputation.TIERS.size():
-		return "tier %d" % tier
-	return str(Reputation.TIERS[tier].get("name", "tier %d" % tier))
 
 
 func _write_label(room: String, state: int) -> void:

@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Frames for a GIF of grandpa's shop being brought back, start to finish, by the real
 ## procedure: every cleanup spot cleared one by one, every building job ordered (the
-## builders' clutter appears) and then finished at dawn, and at the end the room upgrades.
+## builders' clutter appears) and let finish on its own, and at the end the room upgrades.
 ## NOT headless. Writes .dev/reno_gif/frame_NNN.png + manifest.json (file, caption, ms);
 ## tools/make_renovation_gif.py turns those into the GIF.
 ##   godot --path . --script res://tools/shot_renovation_gif.gd
@@ -18,7 +18,6 @@ var _reno: Node
 var _main: Node
 var _camera: Camera3D
 var _frames: Array = []
-var _day := 1
 
 
 func _initialize() -> void:
@@ -59,13 +58,9 @@ func _run() -> void:
 			if not _reno.order(id):
 				push_error("could not order %s" % id)
 				continue
-			var nights := int(_reno.nights_left(id))
-			await _shoot(
-				"%s — builders in (%d night%s)" % [title, nights, "" if nights == 1 else "s"], 900
-			)
-			for _n in nights:
-				_day += 1
-				root.get_node("EventBus").day_began.emit(_day)
+			await _shoot("%s — builders in" % title, 900)
+			while not _reno.is_done(id):
+				await process_frame
 			await _shoot("%s — done" % title, 1300)
 		else:
 			var spots := int(d.get("spots", 1))
