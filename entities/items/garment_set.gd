@@ -11,13 +11,13 @@ extends Node3D
 
 ## How the parts layer on the one hanger: shirt at the back, trousers, jacket in front.
 const LAYER := {
-	Enums.GarmentType.SHIRT: Vector3(0.0, 0.0, -0.05),
-	Enums.GarmentType.PANTS: Vector3(0.0, -0.02, 0.0),
-	Enums.GarmentType.JACKET: Vector3(0.0, 0.0, 0.05),
+	Enums.GarmentType.SHIRT: Vector3(0.0, 0.0, -0.035),
+	Enums.GarmentType.PANTS: Vector3(0.0, 0.0, -0.07),
+	Enums.GarmentType.JACKET: Vector3.ZERO,
 }
-## Where the paper ticket hangs, from the hook: above the rail and toward the room, so the
-## rail never hides it.
-const TICKET_AT := Vector3(0.0, 0.42, 0.22)
+## Where the paper ticket hangs, from the hook: above the rail and toward the room (the
+## hanger's +x, see ClothingRack.HOOK_TURN), so the rail never hides it.
+const TICKET_AT := Vector3(0.22, 0.42, 0.0)
 
 ## The order every part on this hanger was made for.
 var order_id := 0
@@ -32,8 +32,10 @@ func _init() -> void:
 	for t: int in LAYER:
 		var anchor := Node3D.new()
 		anchor.position = LAYER[t]
+		anchor.set_meta(GarmentPiece.HOOK_META, false)  # the parts share the set's hanger
 		add_child(anchor)
 		_anchors[t] = anchor
+	add_child(HangingModel.make_hanger())
 	_ticket = Label3D.new()
 	_ticket.position = TICKET_AT
 	_ticket.billboard = BaseMaterial3D.BILLBOARD_ENABLED

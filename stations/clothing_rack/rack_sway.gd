@@ -34,6 +34,14 @@ func _process(delta: float) -> void:
 			_swing(hook as Marker3D, delta, brush)
 
 
+## Forget every hook's resting pose (after the rack has moved its hooks about), so each is
+## measured afresh the next frame and nothing swings back to where it used to be.
+func reset() -> void:
+	_rest.clear()
+	_angle.clear()
+	_speed.clear()
+
+
 ## Set a hook swinging (index into the hooks' root), e.g. as something is hung on it.
 func kick(index: int, strength := 1.0) -> void:
 	var list := hooks.get_children() if hooks != null else []

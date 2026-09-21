@@ -14,6 +14,8 @@ extends Node3D
 ## GarmentType(int) -> { material, quality, size, style }
 var parts := {}
 
+var _model: Node3D
+
 @onready var _mesh: MeshInstance3D = $Mesh
 @onready var _interactable: Interactable = $Interactable
 
@@ -67,24 +69,42 @@ func interact(actor) -> void:
 func set_pickable(enabled: bool) -> void:
 	if _interactable:
 		_interactable.set_enabled(enabled)
+	_lie_down(enabled)  # pickable = set down loose on the floor
+
+
+## On a hook or in the hand the suit hangs from its hanger; set down loose it lies flat on
+## its back, a little above the floor it was dropped over.
+func _lie_down(flat: bool) -> void:
+	if _model == null:
+		return
+	if flat:
+		_model.transform = Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0.0, -0.1, 0.1))
+	else:
+		_model.transform = Transform3D.IDENTITY
 
 
 func _sit_at(new_parent: Node3D) -> void:
 	reparent(new_parent)
 	transform = Transform3D.IDENTITY
+	_lie_down(false)
 
 
+## The whole suit on one hanger, each part in its own cloth. A suit made with no parts
+## (a test one) is a jacket and trousers in its flat primary colour.
 func _apply_visual() -> void:
-	if _mesh == null:
-		return
-	# Use the jacket's cloth if this suit was assembled from parts; otherwise fall
-	# back to a flat primary colour (e.g. placed test suits with no parts).
-	var jacket_mat: MaterialType = null
-	if parts.has(Enums.GarmentType.JACKET):
-		jacket_mat = parts[Enums.GarmentType.JACKET].get("material")
-	if jacket_mat != null:
-		_mesh.material_override = ClothMaterial.build(jacket_mat, 2.5)
-	else:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = primary_color
-		_mesh.material_override = mat
+	if _mesh != null:
+		_mesh.visible = false  # the old stand-in block
+	if _model != null:
+		_model.queue_free()
+	var cloths := {}
+	for t: int in parts:
+		var mat: Variant = parts[t].get("material")
+		if mat != null:
+			cloths[t] = mat
+	if cloths.is_empty():
+		var plain := StandardMaterial3D.new()
+		plain.albedo_color = primary_color
+		cloths = {Enums.GarmentType.JACKET: plain, Enums.GarmentType.PANTS: plain}
+	_model = HangingModel.make(cloths)
+	add_child(_model)
+	_lie_down(_interactable != null and _interactable.monitorable)

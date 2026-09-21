@@ -18,6 +18,18 @@ extends Node3D
 
 ## How well a spare must suit a new order for the rack to offer it unasked.
 const SPARE_FIT := 0.75
+## The rack's look, built in code over the scene's placeholder blocks (kept for collision):
+## wooden uprights on splayed feet, a brass rail at RAIL_Y with finials, a low stretcher.
+## Garments hang side-on, face to face along the rail like on a real rack: each hook is
+## turned a quarter so a hanger lies across the rail. Hooks sit HOOK_STEP apart round the
+## middle of the rail, closer when there are more of them than RAIL_USE can hold.
+const RAIL_Y := 1.55
+const POST_X := 0.72
+const RAIL_USE := 0.56
+const HOOK_STEP := 0.14
+const HOOK_Y := RAIL_Y - HangingModel.RAIL_ABOVE
+## Hanger frame: its +x (the ticket's side) faces the room, its front (+z) runs along the rail.
+const HOOK_TURN := -PI * 0.5
 
 var stored: Array[Node] = []
 var _slots: Array[Node3D] = []
@@ -36,6 +48,7 @@ func _ready() -> void:
 	_base_slots = _slots.size()
 	_sway.hooks = _slots_root
 	add_child(_sway)
+	_dress()
 	_apply_extra_hooks()
 	if Upgrades != null:
 		Upgrades.changed.connect(_apply_extra_hooks)
@@ -43,15 +56,33 @@ func _ready() -> void:
 	EventBus.order_created.connect(_on_order_created)
 
 
-## The Extra Hooks upgrade adds slots by extending the rail's spacing past the last hook.
+## The Extra Hooks upgrade adds slots: every hook is then spread out again along the rail,
+## so the extra ones never hang past the uprights.
 func _apply_extra_hooks() -> void:
 	var want := _base_slots + (Upgrades.extra_rack_slots() if Upgrades != null else 0)
-	while _slots.size() < want and _slots.size() >= 2:
-		var step: Vector3 = _slots[-1].position - _slots[-2].position
+	while _slots.size() < want:
 		var hook := Marker3D.new()
-		hook.position = _slots[-1].position + step
 		_slots_root.add_child(hook)
 		_slots.append(hook)
+	var n := _slots.size()
+	var step := HOOK_STEP if n < 2 else minf(HOOK_STEP, RAIL_USE * 2.0 / float(n - 1))
+	for i in n:
+		var hook := _slots[i]
+		hook.set_meta(GarmentPiece.HOOK_META, true)
+		var x := (float(i) - float(n - 1) * 0.5) * step
+		hook.transform = Transform3D(Basis(Vector3.UP, HOOK_TURN), Vector3(x, HOOK_Y, 0.0))
+	_sway.reset()
+
+
+## Swap the scene's grey blocks for the rack's real look (the collision stays).
+func _dress() -> void:
+	var body := get_node_or_null("Body")
+	if body != null:
+		for child in body.get_children():
+			if child is MeshInstance3D:
+				child.visible = false
+	if get_node_or_null("RackModel") == null:
+		add_child(RackModel.build(POST_X, RAIL_Y))
 
 
 func capacity() -> int:

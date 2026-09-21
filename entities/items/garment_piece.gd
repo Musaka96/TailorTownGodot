@@ -8,6 +8,9 @@ extends Node3D
 ## Child node names inside the model, NOT display text: _apply_visual() shows the one
 ## whose node name matches. The player-facing word is Enums.garment_type_name(), which
 ## says "Trousers"; renaming this would need the node in garment_piece.tscn renamed too.
+## A marker carrying this meta is a rack hook: a piece placed on it hangs, on a hanger of
+## its own when the meta is true (a GarmentSet's layers pass false: the set has one).
+const HOOK_META := &"rack_hook"
 const MODEL_NAME := {
 	Enums.GarmentType.SHIRT: "Shirt",
 	Enums.GarmentType.PANTS: "Pants",
@@ -25,6 +28,8 @@ const MODEL_NAME := {
 ## The order number this piece was checked off against when sewn (0 = not matched to
 ## any order — a speculative/spare piece).
 @export var order_id: int = 0
+
+var _hanging: Node3D
 
 @onready var _models: Node3D = $Models
 @onready var _interactable: Interactable = $Interactable
@@ -44,10 +49,26 @@ func get_interaction_prompt(_actor) -> String:
 func attach_to(point: Node3D) -> void:
 	_sit_at(point)
 	set_pickable(false)
+	_show_hanging(false, false)
 
 
 func place_on(marker: Node3D) -> void:
 	attach_to(marker)
+	if marker.has_meta(HOOK_META):
+		_show_hanging(true, bool(marker.get_meta(HOOK_META)))
+
+
+## On a rack the piece hangs as the garment it will be; anywhere else it is the flat,
+## folded piece.
+func _show_hanging(on: bool, with_hanger: bool) -> void:
+	if _hanging != null:
+		_hanging.queue_free()
+		_hanging = null
+	if _models != null:
+		_models.visible = not on
+	if on:
+		_hanging = HangingModel.make({int(garment_type): material}, with_hanger)
+		add_child(_hanging)
 
 
 func interact(actor) -> void:
