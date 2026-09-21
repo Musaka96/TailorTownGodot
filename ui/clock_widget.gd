@@ -26,6 +26,11 @@ func _ready() -> void:
 	EventBus.shift_ended.connect(func() -> void: _ended = true)
 
 
+## Show (or clear) the CLOSED state without the bell — for a day loaded after hours.
+func show_closed(closed: bool) -> void:
+	_ended = closed
+
+
 func _process(delta: float) -> void:
 	if _ended:
 		_flash += delta

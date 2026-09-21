@@ -229,7 +229,7 @@ func _show_load() -> void:
 	_target = _view(VIEW_LOAD)
 	_clear()
 	_set_page("Load a save")
-	for info: Dictionary in SaveManager.slot_infos():
+	for info: Dictionary in SaveManager.load_infos():
 		var slot: Variant = info["slot"]
 		if bool(info.get("exists", false)):
 			_buttons.add_child(MenuKit.slot_row(info, func() -> void: _load(slot)))

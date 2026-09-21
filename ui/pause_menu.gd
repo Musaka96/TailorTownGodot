@@ -90,7 +90,7 @@ func _show_main() -> void:
 	_box.add_child(MenuKit.button("Controls", _show_controls))
 	_box.add_child(MenuKit.button("Settings", _show_settings))
 	_box.add_child(MenuKit.button("Main Menu", _to_menu))
-	_box.add_child(MenuKit.button("Quit to Desktop", func() -> void: get_tree().quit()))
+	_box.add_child(MenuKit.button("Quit to Desktop", _quit))
 	_focus_first()
 
 
@@ -129,7 +129,8 @@ func _show_slots(saving: bool) -> void:
 	_clear()
 	_clear_meta()
 	_head.title.text = "Save to a slot" if saving else "Load a save"
-	for info: Dictionary in SaveManager.slot_infos():
+	var infos: Array = SaveManager.slot_infos() if saving else SaveManager.load_infos()
+	for info: Dictionary in infos:
 		var slot: Variant = info["slot"]
 		if saving:
 			_box.add_child(MenuKit.slot_row(info, func() -> void: _save(slot)))
@@ -156,6 +157,12 @@ func _load(slot: Variant) -> void:
 	set_process_unhandled_input(false)  # stop reacting while the scene swaps
 	GameState.is_paused = false
 	SaveManager.load_from(slot)
+
+
+## Keep the day as it stood (Continue comes back to it), then leave.
+func _quit() -> void:
+	SaveManager.autosave()
+	get_tree().quit()
 
 
 func _to_menu() -> void:

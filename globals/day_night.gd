@@ -80,6 +80,15 @@ func hold_morning() -> void:
 	_drive()
 
 
+## Stop the clock at closing time: a day loaded after the bell has rung.
+func hold_evening() -> void:
+	_elapsed = _shift_seconds()
+	hour = end_hour()
+	running = false
+	_locate()
+	_drive()
+
+
 ## 0..1 across the whole shift.
 func progress() -> float:
 	return clampf(_elapsed / _shift_seconds(), 0.0, 1.0)

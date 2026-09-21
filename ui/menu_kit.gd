@@ -33,7 +33,8 @@ static func slot_row(info: Dictionary, cb: Callable) -> Button:
 
 
 static func _slot_text(info: Dictionary) -> String:
-	var label := "Slot %s" % str(info.get("slot", "?"))
+	var slot := str(info.get("slot", "?"))
+	var label := "Autosave" if slot == "auto" else "Slot %s" % slot
 	if not bool(info.get("exists", false)):
 		return "%s  —  empty" % label
 	return (

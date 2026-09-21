@@ -36,7 +36,7 @@ var _pending: Dictionary = {}
 ## Where in the saved day to resume the clock (0..1); set while applying a load.
 var _resume_progress := 0.0
 var _resume_day_money := 0
-var _resume_morning := false
+var _resume_phase := 1  # Shift.Phase the save was made in (OPEN for old saves)
 ## Covers the screen from the scene swap until the fresh shop has settled.
 var _curtain: LoadingCurtain
 ## True from the moment the curtain starts falling until the game scene is swapped in, so a
@@ -48,6 +48,13 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_dir()
 	EventBus.shift_ended.connect(_on_shift_ended)
+	EventBus.day_began.connect(func(_day: int) -> void: autosave())
+
+
+## Closing the window is leaving too: keep the day as it stood.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		autosave()
 
 
 # --- Menu-facing API -------------------------------------------------------
@@ -82,6 +89,18 @@ func save_to(slot: Variant, save_name := "") -> bool:
 	return _write(slot, capture(save_name))
 
 
+## Write the autosave from the live shop, if a game is running and may be saved. Called
+## every morning, and whenever the player leaves (main menu, quit, closing the window),
+## so Continue always picks up where they actually were. Returns whether it wrote.
+func autosave() -> bool:
+	if not can_save() or _mode != "" or _entering or Shift == null:
+		return false
+	var here := get_tree().current_scene if is_inside_tree() else null
+	if here == null or here.scene_file_path == MENU_SCENE:
+		return false
+	return _write(AUTO_SLOT, capture("Autosave — day %d" % Shift.day))
+
+
 ## False during the apprenticeship at Mr. Hemming's: his shop isn't the player's to save.
 func can_save() -> bool:
 	return not _apprentice
@@ -96,6 +115,7 @@ func kept_indoors() -> bool:
 func to_menu() -> void:
 	if _entering:
 		return
+	autosave()  # before anything is torn down: Continue comes back to this moment
 	_mode = "menu"
 	_pending = {}
 	_apprentice = false
@@ -113,6 +133,16 @@ func slot_infos() -> Array:
 ## Metadata for any one slot, numbered or the autosave ({exists: false} if it's empty).
 func info(slot: Variant) -> Dictionary:
 	return _info(slot)
+
+
+## What a Load list offers: the autosave first (when there is one), then the slots.
+func load_infos() -> Array:
+	var out: Array = []
+	var auto := _info(AUTO_SLOT)
+	if bool(auto.get("exists", false)):
+		out.append(auto)
+	out.append_array(slot_infos())
+	return out
 
 
 ## The most recently written slot id (numbered or autosave), or null if none.
@@ -152,10 +182,14 @@ func notify_game_ready() -> void:
 	match mode:
 		"load":
 			await _apply_pending()
-			if _resume_morning:
-				Shift.begin_morning()  # saved before the sign was flipped
-			else:
-				DayNight.start_shift(_resume_progress)  # resume the day where it was saved
+			# Back into the same part of the day the save was made in.
+			match _resume_phase:
+				Shift.Phase.MORNING:
+					Shift.begin_morning()  # before the sign was flipped
+				Shift.Phase.AFTER_HOURS:
+					Shift.resume_after_hours()  # the bell had rung; the sign ends the day
+				_:
+					DayNight.start_shift(_resume_progress)  # mid-day, where it was
 			if Shift != null:
 				Shift.set_day_baseline(_resume_day_money)
 			get_tree().paused = false
@@ -311,6 +345,7 @@ func capture(save_name := "") -> Dictionary:
 		"guide": Guide.save_state() if Guide != null else {},
 		"clock": DayNight.progress() if DayNight != null else 0.0,
 		"morning": Shift != null and Shift.phase == Shift.Phase.MORNING,
+		"phase": Shift.phase if Shift != null else 1,
 		"day_start_money": Shift.day_start_money() if Shift != null else GameState.money,
 		"news_seen": News.seen_snapshot() if News != null else {},
 		"news_spotted": News.spotted_snapshot() if News != null else {},
@@ -365,7 +400,9 @@ func _apply_pending() -> void:
 	if FrontDesk != null:
 		FrontDesk.restore(d.get("front_desk", {}))
 	Shift.reset_to(int(d.get("day", 1)))
-	_resume_morning = bool(d.get("morning", false))
+	# Older saves only knew "morning or not"; they resume open.
+	var fallback: int = Shift.Phase.MORNING if bool(d.get("morning", false)) else Shift.Phase.OPEN
+	_resume_phase = int(d.get("phase", fallback))
 	Reputation.points = int(d.get("reputation", 0))
 	if Upgrades != null:
 		Upgrades.restore(d.get("upgrades", {}))

@@ -77,6 +77,17 @@ func begin_morning() -> void:
 		UI.toast("Take your time — flip the sign by the door when you're ready to open.")
 
 
+## A save made after the closing bell: the clock stands at closing time, the shop is
+## shut, and the sign offers to finish the day. Quiet — the bell already rang that day.
+func resume_after_hours() -> void:
+	_dawned_day = day  # the morning (and its paper) already happened
+	DayNight.hold_evening()
+	phase = Phase.AFTER_HOURS
+	open = false
+	if UI != null and UI.clock != null and UI.clock.has_method("show_closed"):
+		UI.clock.show_closed(true)
+
+
 ## The sign was flipped to OPEN: start the clock (shift_started does the rest).
 func open_shop() -> void:
 	if phase != Phase.MORNING or _transitioning:
