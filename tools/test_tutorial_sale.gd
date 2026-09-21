@@ -52,6 +52,7 @@ func _run() -> void:
 	_tut.set("_recipe", _tut.call("_compute_recipe"))
 
 	_flow()
+	_locks()
 	var order: Resource = _take_order()
 	var jacket := _sew_jacket(order)
 	var rack := _ready_parts(order)
@@ -66,6 +67,21 @@ func _flow() -> void:
 	for step: Dictionary in _tut.get("STEPS"):
 		ids.append(step["id"])
 	_check(ids.slice(0, FLOW.size()) == FLOW, "customer first, then cloth, make, rack, collect")
+
+
+## The lesson's customer takes only the recipe, and the phone step only its jacket cloth.
+func _locks() -> void:
+	_goto("design")
+	var recipe: Dictionary = _tut.get("_recipe")
+	_check(_tut.call("recipe_reasons", recipe).is_empty(), "the recipe itself is accepted")
+	var other: Dictionary = recipe.duplicate(true)
+	other[JACKET]["color"] = (int(other[JACKET]["color"]) + 1) % 10
+	var said: Array = _tut.call("recipe_reasons", other)
+	_check(said.size() == 1 and "jacket" in str(said[0]), "another jacket is turned down")
+	_check(_tut.call("order_cloth").is_empty(), "outside the order step any bolt goes")
+	_goto("order")
+	_check(_tut.call("order_cloth") == recipe[JACKET], "the order step wants the jacket's cloth")
+	_check(_tut.call("recipe_reasons", other).is_empty(), "the fitting lock ends with its step")
 
 
 ## The design is confirmed at the mirror: that order is the one the lesson follows.

@@ -405,6 +405,33 @@ func is_active() -> bool:
 	return _active
 
 
+## The cloth the order step asks for (the jacket's), or {} outside that step: the phone
+## orders nothing else while it runs.
+func order_cloth() -> Dictionary:
+	if not first_bolt_free():
+		return {}
+	return _recipe.get(Enums.GarmentType.JACKET, {})
+
+
+## While the fitting step runs, what's wrong with `design` against the recipe, one line per
+## part that differs (empty = it's the suit we teach). The customer takes nothing else.
+func recipe_reasons(design: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	if not _active or str(STEPS[_step].get("id", "")) != "design":
+		return out
+	for t in [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]:
+		var want: Dictionary = _recipe.get(t, {})
+		var have: Dictionary = design.get(t, {})
+		if want.is_empty():
+			continue
+		for field in ["fabric", "color", "pattern"]:
+			if int(have.get(field, -1)) != int(want.get(field, -2)):
+				var part := Enums.garment_type_name(t).to_lower()
+				out.append("the %s should be %s" % [part, _part_desc(t)])
+				break
+	return out
+
+
 ## The first bolt (the tutorial's order step) is on the house.
 func first_bolt_free() -> bool:
 	return _active and str(STEPS[_step].get("id", "")) == "order"
@@ -761,7 +788,17 @@ func _sew_checks() -> Array:
 		return lines
 	lines.append(["Line up with A / D, then pedal", "bench:started", "Space / F", "Pedal"])
 	if not Upgrades.has("sew_clips"):
-		lines.append(["Pull each pin before the needle", "bench:pins", "E", "Pull the pin"])
+		# The E pill waits for the first pin to glow in reach, or it points at nothing.
+		lines.append(
+			[
+				"Pull each pin before the needle",
+				"bench:pins",
+				"E",
+				"Pull the pin",
+				"",
+				"bench:pin_near"
+			]
+		)
 	if not Upgrades.has("sew_autolock"):
 		lines.append(
 			[

@@ -889,6 +889,13 @@ func _snap_fabric_to_vendor() -> void:
 
 
 func _order_roll() -> void:
+	var lesson: Dictionary = Tutorial.order_cloth() if Tutorial != null else {}
+	if not lesson.is_empty() and not tutorial_cloth_ok(lesson):
+		# The lesson's bolt only: the recipe's jacket cloth, nothing else on the house.
+		_status = "     Mr. Hemming wants the jacket's cloth first"
+		Sfx.play("error")
+		_refresh()
+		return
 	var mat := MaterialFactory.make(_fabric, _pattern, _color, _length, _pattern_dye)
 	if mat == null:
 		return

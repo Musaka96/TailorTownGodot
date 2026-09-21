@@ -761,6 +761,11 @@ func _confirm() -> void:
 	# for a moment, then settle back to their normal face.
 	if not _awaiting:
 		var reaction: Dictionary = _pref.evaluate(_design)
+		var lesson: Array[String] = Tutorial.recipe_reasons(_design) if Tutorial != null else []
+		if not lesson.is_empty():
+			# Mr. Hemming's customer came for the suit he's teaching, and takes no other.
+			reaction["suitable"] = false
+			reaction["reasons"] = lesson
 		var suitable: bool = reaction.get("suitable", false)
 		if _customer != null and _customer.has_method("react"):
 			_customer.react(Customer.REACT_LIKE if suitable else Customer.REACT_DISLIKE)
