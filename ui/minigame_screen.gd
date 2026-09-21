@@ -31,14 +31,20 @@ const VERDICTS := [
 ]
 const FANFARE_NOTES := [0, 4, 7, 12, 16]  # semitones: up the major chord
 const FLAWLESS_HOLD := 2.2  # seconds a flawless finish lingers (others: STAMP_HOLD)
-## Semitones above the base note for each step of a perfect streak (major pentatonic, so
-## any run of them is a tune); past the last step it holds the top note.
-const STREAK_SCALE := [0, 2, 4, 7, 9, 12, 14, 16, 19]
+## The streak's tune: the first beats climb these notes (semitones over the base, a
+## major pentatonic kept in the middle register). After that single beats go quiet and the
+## streak is marked by ranks instead, so a long clean run never turns into a siren.
+const STREAK_SCALE := [0, 2, 4, 7, 9]
 const STREAK_SHOWN := 2  # the chip appears once a streak is this long
-const STREAK_WARM := 5  # ...turns brass here
-const STREAK_HOT := 10  # ...and forest here
+## Every RANK_EVERY beats the streak earns the next rank: a name on the chip, its own
+## colour, a low chord and a bigger burst. Past the last rank it stays there, chiming again
+## every RANK_EVERY beats.
+const RANK_EVERY := 5
+const RANKS := ["Steady", "In the zone", "Master's hand"]
+const RANK_CHORD := [0, 4, 7]  # a plain major triad on the base note: warm, never shrill
+const QUIET_SPARKS := 3  # the small puff for a beat past the tune
 const STREAK_MOURNED := 4  # breaking a streak this long gets the soft falling note
-const CHIP_SIZE := Vector2(108, 24)
+const CHIP_SIZE := Vector2(150, 24)  # wide enough for the longest rank
 const STAMP_HOLD := 1.3  # seconds a finished game lingers so the stamp can be read
 
 var _max_mistakes := 3
@@ -248,22 +254,52 @@ func _good_feedback(level := 0.5) -> void:
 
 
 ## One perfect stitch / stroke / stretch of line, made at `at` (play-surface pixels).
-## The streak grows, its note climbs the scale, sparks fly in `col`.
+## The first few climb a short tune; after that a beat is just a small puff of sparks,
+## and every RANK_EVERY beats the streak moves up a rank (see _rank_up).
 func _perfect_beat(at: Vector2, col: Color = Style.BRASS_LIGHT) -> void:
 	_streak += 1
 	_best_streak = maxi(_best_streak, _streak)
-	var step := mini(_streak - 1, STREAK_SCALE.size() - 1)
-	var pitch := pow(2.0, float(STREAK_SCALE[step]) / 12.0)
-	var top := step == STREAK_SCALE.size() - 1
-	Sfx.play("juice_top" if top else "juice_note", -9.0, pitch, pitch)
-	if _juice != null:
-		_juice.burst(at, col, 5 + mini(_streak, 6))
-	if _streak == STREAK_WARM or _streak == STREAK_HOT:
-		_good_feedback(1.0)
+	if _streak % RANK_EVERY == 0:
+		_rank_up(at)
+	elif _streak <= STREAK_SCALE.size():
+		var pitch := pow(2.0, float(STREAK_SCALE[_streak - 1]) / 12.0)
+		Sfx.play("juice_note", -10.0, pitch, pitch)
+		if _juice != null:
+			_juice.burst(at, col, 5)
+	elif _juice != null:
+		_juice.burst(at, col, QUIET_SPARKS)
 	if _chip != null:
 		_chip.queue_redraw()
-		if _streak >= STREAK_SHOWN:
+		if _streak == STREAK_SHOWN:
 			Craft.bump(_chip, 1.12)
+
+
+## Which rank a streak of `n` holds: -1 below the first, else an index into RANKS.
+func _rank_of(n: int) -> int:
+	return mini(floori(float(n) / RANK_EVERY), RANKS.size()) - 1
+
+
+## A new rank: the chip changes, the bench breathes, a low chord and a proper burst.
+func _rank_up(at: Vector2) -> void:
+	for i in RANK_CHORD.size():
+		var pitch := pow(2.0, float(RANK_CHORD[i]) / 12.0)
+		get_tree().create_timer(0.07 * i).timeout.connect(
+			func() -> void: Sfx.play("juice_note", -8.0, pitch, pitch)
+		)
+	_good_feedback(1.0)
+	if _juice != null:
+		_juice.burst(at, _rank_color(_rank_of(_streak)), 14)
+	if _chip != null:
+		Craft.bump(_chip, 1.2)
+
+
+func _rank_color(rank: int) -> Color:
+	match rank:
+		0:
+			return Style.BRASS
+		1:
+			return Style.FOREST
+	return Style.BRASS_LIGHT
 
 
 ## The run of perfects ended. Quiet on purpose: losing the tune is the penalty.
@@ -325,21 +361,33 @@ func _fanfare() -> void:
 func _paint_chip() -> void:
 	if _streak < STREAK_SHOWN:
 		return
+	var rank := _rank_of(_streak)
 	var fill := Style.CARD
 	var ink := Style.INK
-	if _streak >= STREAK_HOT:
-		fill = Style.FOREST
-		ink = Style.CHALK
-	elif _streak >= STREAK_WARM:
-		fill = Style.BRASS
+	if rank >= 0:
+		fill = _rank_color(rank)
+		ink = Style.CHALK if rank == 1 else Style.WALNUT
 	var poly := Craft.rounded(Rect2(Vector2.ZERO, _chip.size), 11.0)
 	Craft.card(_chip, poly, fill, Style.WALNUT, 2.0)
 	Craft.stitch(_chip, poly, Style.tint(ink, 0.45), 3.5, 1.0)
 	var font := Style.font_bold()
-	var text := "×%d Perfect" % _streak
+	var word := "Perfect" if rank < 0 else str(RANKS[rank])
+	var text := "×%d %s" % [_streak, word]
 	var text_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO).x
-	var base := Vector2((_chip.size.x - text_w) * 0.5, _chip.size.y * 0.5 + 4.5)
+	var left := (_chip.size.x - text_w) * 0.5
+	if rank >= RANKS.size() - 1:
+		left += 7.0  # room for the star
+		_chip_star(Vector2(left - 9.0, _chip.size.y * 0.5), ink)
+	var base := Vector2(left, _chip.size.y * 0.5 + 4.5)
 	_chip.draw_string(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO, ink)
+
+
+func _chip_star(at: Vector2, col: Color) -> void:
+	var pts := PackedVector2Array()
+	for i in 10:
+		var r := 6.0 if i % 2 == 0 else 2.7
+		pts.append(at + Vector2.from_angle(-PI * 0.5 + TAU * float(i) / 10.0) * r)
+	_chip.draw_colored_polygon(pts, col)
 
 
 ## Spend one job of coffee focus on this run, if there is any. Returns how much wider the

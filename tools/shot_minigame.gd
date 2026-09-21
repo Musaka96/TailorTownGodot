@@ -99,7 +99,8 @@ func _on_frame() -> void:
 	_count += 1
 	if _hold and _count == PRESS_AT:
 		Input.action_press("cut")
-	if _juice == "streak" and _count >= _frames - 14 and _count % 2 == 0 and _count < _frames:
+	# 15 beats: through all three ranks to "Master's hand".
+	if _juice == "streak" and _count >= _frames - 50 and _count % 2 == 0 and _count < _frames - 20:
 		_game.call("_perfect_beat", _game.get("_canvas").size * Vector2(0.5, 0.55))
 	if _juice == "stamp" and _count == _frames - 40:
 		_game.call("_stamp_verdict", 0.96)

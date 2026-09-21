@@ -122,7 +122,7 @@ const STRAIGHT_LOOK := 12  # outline points ahead (~18 cm) that must be straight
 const STRAIGHT_BEND := 1.2  # rad per unit: gentler than this counts as straight
 const WHEEL_AHEAD := 6  # Chalk Wheel: how many points before a turn its mark goes
 const REVEAL_TIME := 0.9
-const BEAT_LEN := 0.16  # shape units of perfect line per streak beat (~6 cm of cloth)
+const BEAT_LEN := 0.4  # shape units of perfect line per streak beat (~16 cm of cloth)
 
 ## How each cloth is drawn: [spacing, thread width (units), opacity, checked?].
 const SOLID_LOOK := [0.02, 0.002, 0.3, true]

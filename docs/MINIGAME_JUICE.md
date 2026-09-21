@@ -10,6 +10,11 @@
 > Verdicts (owner feedback, same day): **Flawless is 100% only** and gets the gold-foil
 > stamp with stars, rays, confetti, twinkles and a fanfare; 93-99% is **Exquisite**; then
 > Fine work / Good enough / Rough (`MinigameScreen.VERDICTS`, `JuiceLayer.Fanfare`).
+> Streak, second pass (owner: "×10 comes fast and the high note gets annoying"): beats
+> are rarer (`CutBench.BEAT_LEN` ~16 cm of line), only the first five climb a short
+> mid-register tune, later single beats are silent sparks, and every 5 beats the streak
+> earns a **rank** instead — ×5 Steady (brass), ×10 In the zone (forest), ×15 Master's
+> hand (gold, star) — with a low major chord and a bigger burst (`MinigameScreen.RANKS`).
 > Tiers 2-3 are still suggestions — pick what you like and it becomes a task.
 > Written after the 2026-09-19 playtest ("add more dopamine for when you do a line real nice").
 
