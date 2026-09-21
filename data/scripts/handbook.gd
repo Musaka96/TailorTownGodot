@@ -289,7 +289,10 @@ static func _rule_summary(occasion: int) -> String:
 			continue
 		lines.append("[b]%s[/b]: %s %s" % [Enums.style_name(style), _colors(rule), _patterns(rule)])
 	lines.append("")
-	lines.append("[b]The shirt[/b]: %s" % _shirt_rule(occasion))
+	lines.append("[b]The shirt[/b]")
+	for style in range(Enums.Style.size()):
+		lines.append("[b]%s[/b]: %s" % [Enums.style_name(style), _shirt_rule(occasion, style)])
+	lines.append("")
 	lines.append(
 		(
 			"[b]The trousers[/b]: the same cloth and colour as the jacket, and either the "
@@ -398,22 +401,20 @@ static func _family(cols: Array) -> String:
 	return "Very dark colours"
 
 
-## What the shirt may be for this occasion, from the DressCode tables.
-static func _shirt_rule(occasion: int) -> String:
+## What the shirt may be for this brief, from the DressCode tables.
+static func _shirt_rule(occasion: int, style: int) -> String:
 	var cols: Array[String] = []
-	for c: int in DressCode.SHIRT_COLORS.get(occasion, []):
+	for c: int in DressCode.shirt_colors(occasion, style):
 		cols.append(MaterialFactory.color_name(c).to_lower())
 	var pats: Array[String] = []
-	for p: int in DressCode.SHIRT_PATTERNS.get(occasion, []):
+	for p: int in DressCode.shirt_patterns(occasion, style):
 		pats.append(_pattern_word(p))
 	if cols.is_empty() and pats.is_empty():
 		return "anything they like."
-	var pale := "pale and sensible; %s" % _list(cols.slice(0, MAX_EXAMPLES))
-	if cols.is_empty():
-		pale = "any colour"
+	var colour := _sentence(_list(cols)) if not cols.is_empty() else "Any colour"
 	if pats.is_empty():
-		return "%s. Any pattern." % pale
-	return "%s. %s." % [pale, _sentence(_list(pats.slice(0, MAX_EXAMPLES)))]
+		return "%s. Any pattern." % colour
+	return "%s. %s." % [colour, _sentence(_list(pats))]
 
 
 ## "Solid" is the enum's word; "plain" is the one a person uses.

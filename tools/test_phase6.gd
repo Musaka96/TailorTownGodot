@@ -137,7 +137,11 @@ func _factory():
 
 func _suitable_design(pref) -> Dictionary:
 	var rule = root.get_node("Catalog").dress_code.rule_for(pref.occasion, pref.style)
-	var color := int(rule.allowed_colors[0]) if not rule.allowed_colors.is_empty() else 0
+	var color := 0
+	for c in rule.allowed_colors:
+		if int(c) != int(pref.dislikes_color):
+			color = int(c)
+			break
 	var pattern := int(rule.allowed_patterns[0]) if not rule.allowed_patterns.is_empty() else 0
 	if rule.require_pattern and pattern == 0:
 		for p in rule.allowed_patterns:
@@ -145,12 +149,23 @@ func _suitable_design(pref) -> Dictionary:
 				pattern = int(p)
 				break
 	var fabric := int(rule.allowed_fabrics[0]) if not rule.allowed_fabrics.is_empty() else 0
-	# Jacket + matching trousers, plus a white solid cotton shirt (fine for any brief).
+	# Jacket + matching trousers, plus a cotton shirt from the brief's own shirt row.
+	var dress: GDScript = load("res://data/scripts/dress_code.gd")
+	var shirt_cols: Array = dress.shirt_colors(pref.occasion, pref.style)
+	var shirt_pats: Array = dress.shirt_patterns(pref.occasion, pref.style)
+	var shirt_col := 10
+	for c in shirt_cols:
+		if int(c) != int(pref.dislikes_color):
+			shirt_col = int(c)
+			break
 	var d := {}
 	d[JACKET] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
 	d[PANTS] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
 	d[SHIRT] = {
-		"fabric": Enums.Fabric.COTTON, "color": 10, "pattern": Enums.Pattern.SOLID, "style_idx": 0
+		"fabric": Enums.Fabric.COTTON,
+		"color": shirt_col,
+		"pattern": int(shirt_pats[0]) if not shirt_pats.is_empty() else Enums.Pattern.SOLID,
+		"style_idx": 0,
 	}
 	return d
 

@@ -45,7 +45,7 @@ func _run() -> void:
 					continue
 				for c: int in rule.allowed_colors:
 					var verdict: Dictionary = code.evaluate(
-						occasion, style, _suit(c, p, occasion, dress), 100000
+						occasion, style, _suit(c, p, occasion, style, dress), 100000
 					)
 					if not verdict["suitable"]:
 						refused.append("%s c%d p%d: %s" % [where, c, p, verdict["reason"]])
@@ -56,18 +56,90 @@ func _run() -> void:
 	)
 
 	# Wedding · Classic: a stripe is refused, and the customer says what would do.
-	var no: Dictionary = code.evaluate(0, 1, _suit(0, 1, 0, dress), 100000)
+	var no: Dictionary = code.evaluate(0, 1, _suit(0, 1, 0, 1, dress), 100000)
 	_check(not no["suitable"], "Wedding · Classic turns down a pinstripe")
 	_check("herringbone" in str(no["reason"]), "and names what would do: %s" % no["reason"])
+	_shirts(code, dress, handbook)
+	_tastes(code, dress)
 	_finish()
 
 
+## Every shirt colour and pattern a brief takes is named in its Handbook chapter, and the
+## white shirt is no longer a pass everywhere: a modern wedding wants a colour.
+func _shirts(code: Resource, dress: GDScript, handbook: GDScript) -> void:
+	var unsaid: Array[String] = []
+	var white_ok := 0
+	for occasion in 4:
+		var summary: String = handbook.call("_rule_summary", occasion).to_lower()
+		for style in 4:
+			for c: int in dress.shirt_colors(occasion, style):
+				var name: String = load("res://data/scripts/material_factory.gd").color_name(c)
+				if not name.to_lower() in summary:
+					unsaid.append("%d·%d %s" % [occasion, style, name])
+			if 10 in dress.shirt_colors(occasion, style):
+				white_ok += 1
+	_check(unsaid.is_empty(), "every shirt colour is named in the Handbook %s" % str(unsaid))
+	_check(white_ok <= 8, "a white shirt suits at most half the briefs (%d/16)" % white_ok)
+	var suit := _suit(0, 0, 0, 2, dress)
+	suit[SHIRT]["color"] = 10
+	var no: Dictionary = code.evaluate(0, 2, suit, 100000)
+	_check(not no["suitable"], "Wedding · Modern turns down a white shirt")
+	_check("sky blue" in str(no["reason"]).to_lower(), "and names one: %s" % no["reason"])
+
+
+## Colour tastes: a like is always a colour the brief takes, a dislike always leaves one,
+## a suit in the disliked colour is refused, and one in the liked colour is noted.
+func _tastes(code: Resource, dress: GDScript) -> void:
+	var pref_script: GDScript = load("res://data/scripts/customer_preference.gd")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var bad: Array[String] = []
+	var said := 0
+	for i in 400:
+		var p: Resource = pref_script.new()
+		p.occasion = i % 4
+		p.style = (i / 4) % 4
+		p.budget = 100000
+		p.display_name = "Mr. Test%d" % i
+		p.roll_taste(rng)
+		if p.taste_line() != "":
+			said += 1
+		var rule: Resource = code.rule_for(p.occasion, p.style)
+		var shirt_cols: Array = dress.shirt_colors(p.occasion, p.style)
+		for c: int in [p.likes_color, p.dislikes_color]:
+			if c < 0:
+				continue
+			var pool: Array = shirt_cols if c >= 10 else Array(rule.allowed_colors)
+			if not c in pool:
+				bad.append("%s c%d not in the brief" % [p.display_name, c])
+			if c == p.dislikes_color and pool.size() < 2:
+				bad.append("%s dislikes the only colour" % p.display_name)
+	_check(bad.is_empty(), "tastes stay inside the brief %s" % str(bad.slice(0, 3)))
+	_check(said > 150 and said < 330, "a good share voice a colour (%d/400)" % said)
+
+	var fussy: Resource = pref_script.new()
+	fussy.occasion = 2
+	fussy.style = 1
+	fussy.budget = 100000
+	fussy.dislikes_color = 0  # navy
+	var navy := _suit(0, 0, 2, 1, dress)
+	var verdict: Dictionary = fussy.evaluate(navy)
+	_check(not verdict["suitable"], "a disliked navy suit is refused")
+	_check("navy" in str(verdict["reason"]), "and they say so: %s" % verdict["reason"])
+	_check(fussy.evaluate(_suit(1, 0, 2, 1, dress))["suitable"], "charcoal is fine")
+	fussy.dislikes_color = -1
+	fussy.likes_color = 2  # light grey
+	_check(fussy.evaluate(_suit(2, 0, 2, 1, dress))["liked"], "the liked colour is noticed")
+	_check(not fussy.evaluate(navy)["liked"], "and navy isn't it")
+	_check(fussy.evaluate(navy)["suitable"], "a like is not a must")
+
+
 ## A suit to the letter: the jacket in colour `c` and pattern `p`, matching trousers, and
-## the first shirt colour and pattern the occasion allows.
-func _suit(c: int, p: int, occasion: int, dress: GDScript) -> Dictionary:
+## the first shirt colour and pattern the brief allows.
+func _suit(c: int, p: int, occasion: int, style: int, dress: GDScript) -> Dictionary:
 	var jacket := {"fabric": 0, "color": c, "pattern": p, "style_idx": 0}
-	var shirt_cols: Array = dress.SHIRT_COLORS.get(occasion, [0])
-	var shirt_pats: Array = dress.SHIRT_PATTERNS.get(occasion, [0])
+	var shirt_cols: Array = dress.shirt_colors(occasion, style)
+	var shirt_pats: Array = dress.shirt_patterns(occasion, style)
 	# An empty list means the occasion takes any shirt.
 	var col: int = shirt_cols[0] if not shirt_cols.is_empty() else 0
 	var pat: int = shirt_pats[0] if not shirt_pats.is_empty() else 0

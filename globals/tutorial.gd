@@ -929,7 +929,7 @@ func _recipe_pattern(rule) -> int:
 ## A pale shirt colour the occasion allows, different from the builder's default shirting.
 func _recipe_shirt_color() -> int:
 	var def_color := int(MaterialFactory.colors_for(Enums.GarmentType.SHIRT)[0])
-	var allowed: Array = DressCode.SHIRT_COLORS.get(TUT_OCCASION, [])
+	var allowed: Array = DressCode.shirt_colors(TUT_OCCASION, TUT_STYLE)
 	return _diff_pick(allowed, def_color)
 
 

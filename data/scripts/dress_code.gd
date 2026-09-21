@@ -5,36 +5,101 @@ extends Resource
 ## res://data/dress_code.tres in the Inspector to tune what suits each brief, or
 ## regenerate the defaults with tools/build_dress_code.gd.
 
-## Occasion -> acceptable shirt colours (global MaterialFactory indices; the pale
-## shirtings are 10..17). Empty means anything goes. Shirts are judged in code (not
-## per-rule data) since they share one light palette across occasions.
-const SHIRT_COLORS := {
-	Enums.Occasion.WEDDING: [10, 11, 12, 13, 14],  # white, sky, pink, lavender, ecru
-	Enums.Occasion.FUNERAL: [10, 17],  # white, pale grey
-	Enums.Occasion.BUSINESS: [10, 11, 14, 17],  # white, sky, ecru, pale grey
-	Enums.Occasion.PARTY: [],  # anything goes
-}
-## Occasion -> acceptable shirt patterns. Empty means anything goes.
-const SHIRT_PATTERNS := {
+## Occasion -> style -> [shirt colours, shirt patterns]; an empty list means anything
+## goes. Colours are global MaterialFactory indices: 10 white, 11 sky, 12 pink,
+## 13 lavender, 14 ecru, 15 mint, 16 butter, 17 pale grey. White is for the sober briefs
+## (the old ways, business, mourning); a modern or fashion brief, and any party, wants
+## a colour, so the white shirt is a choice and not a default. Shirts are judged in code
+## rather than per-rule data since they share one light palette across occasions.
+const SHIRTS := {
 	Enums.Occasion.WEDDING:
-	[
-		Enums.Pattern.SOLID,
-		Enums.Pattern.BENGAL_STRIPE,
-		Enums.Pattern.UNIVERSITY_STRIPE,
-		Enums.Pattern.END_ON_END,
-	],
-	Enums.Occasion.FUNERAL: [Enums.Pattern.SOLID, Enums.Pattern.END_ON_END],
+	{
+		Enums.Style.OLDSCHOOL: [[10, 14], [Enums.Pattern.SOLID, Enums.Pattern.END_ON_END]],
+		Enums.Style.CLASSIC:
+		[
+			[10, 11, 12, 14],
+			[Enums.Pattern.SOLID, Enums.Pattern.BENGAL_STRIPE, Enums.Pattern.END_ON_END],
+		],
+		Enums.Style.MODERN:
+		[
+			[11, 12, 13, 15],
+			[Enums.Pattern.SOLID, Enums.Pattern.END_ON_END, Enums.Pattern.BENGAL_STRIPE],
+		],
+		Enums.Style.FASHION: [[12, 13, 15, 16], []],
+	},
+	Enums.Occasion.FUNERAL:
+	{
+		Enums.Style.OLDSCHOOL: [[10], [Enums.Pattern.SOLID]],
+		Enums.Style.CLASSIC: [[10, 17], [Enums.Pattern.SOLID, Enums.Pattern.END_ON_END]],
+		Enums.Style.MODERN: [[10, 17, 11], [Enums.Pattern.SOLID, Enums.Pattern.END_ON_END]],
+		Enums.Style.FASHION:
+		[
+			[17, 13, 11],
+			[Enums.Pattern.SOLID, Enums.Pattern.END_ON_END, Enums.Pattern.BENGAL_STRIPE],
+		],
+	},
 	Enums.Occasion.BUSINESS:
-	[
-		Enums.Pattern.SOLID,
-		Enums.Pattern.BENGAL_STRIPE,
-		Enums.Pattern.UNIVERSITY_STRIPE,
-		Enums.Pattern.END_ON_END,
-	],
-	Enums.Occasion.PARTY: [],
+	{
+		Enums.Style.OLDSCHOOL:
+		[
+			[10, 11],
+			[Enums.Pattern.SOLID, Enums.Pattern.BENGAL_STRIPE, Enums.Pattern.UNIVERSITY_STRIPE],
+		],
+		Enums.Style.CLASSIC:
+		[
+			[10, 11, 14, 17],
+			[
+				Enums.Pattern.SOLID,
+				Enums.Pattern.BENGAL_STRIPE,
+				Enums.Pattern.UNIVERSITY_STRIPE,
+				Enums.Pattern.END_ON_END,
+			],
+		],
+		Enums.Style.MODERN:
+		[
+			[11, 17, 13],
+			[Enums.Pattern.SOLID, Enums.Pattern.END_ON_END, Enums.Pattern.BENGAL_STRIPE],
+		],
+		Enums.Style.FASHION: [[12, 13, 15, 16], []],
+	},
+	Enums.Occasion.PARTY:
+	{
+		Enums.Style.OLDSCHOOL:
+		[
+			[14, 16, 11],
+			[Enums.Pattern.GINGHAM, Enums.Pattern.TATTERSALL, Enums.Pattern.UNIVERSITY_STRIPE],
+		],
+		Enums.Style.CLASSIC: [[11, 12, 14, 16], []],
+		Enums.Style.MODERN: [[12, 13, 15, 11], []],
+		Enums.Style.FASHION:
+		[
+			[12, 13, 15, 16],
+			[
+				Enums.Pattern.GINGHAM,
+				Enums.Pattern.TATTERSALL,
+				Enums.Pattern.BENGAL_STRIPE,
+				Enums.Pattern.UNIVERSITY_STRIPE,
+			],
+		],
+	},
 }
 
 @export var rules: Array[DressRule] = []
+
+
+## Shirt colours this brief takes (empty = any).
+static func shirt_colors(occasion: int, style: int) -> Array:
+	return _shirt_entry(occasion, style)[0]
+
+
+## Shirt patterns this brief takes (empty = any).
+static func shirt_patterns(occasion: int, style: int) -> Array:
+	return _shirt_entry(occasion, style)[1]
+
+
+static func _shirt_entry(occasion: int, style: int) -> Array:
+	var by_style: Dictionary = SHIRTS.get(occasion, {})
+	return by_style.get(style, [[], []])
 
 
 func rule_for(occasion: int, style: int) -> DressRule:
@@ -137,19 +202,23 @@ func _pants_reasons(style: int, jacket: Dictionary, pants: Dictionary) -> Array[
 	return reasons
 
 
-## The shirt should suit the occasion: a light, sensible colour and a pattern that
-## isn't too casual. Fashion looks get a free pass to be bold.
+## The shirt should suit the brief: a colour and a pattern from its row of SHIRTS. A
+## refusal says what would do, like the jacket's.
 func _shirt_reasons(occasion: int, style: int, shirt: Dictionary) -> Array[String]:
 	var reasons: Array[String] = []
-	if style == Enums.Style.FASHION:
-		return reasons
 	var occ := Enums.occasion_name(occasion).to_lower()
-	var cols: Array = SHIRT_COLORS.get(occasion, [])
-	var pats: Array = SHIRT_PATTERNS.get(occasion, [])
+	var cols := shirt_colors(occasion, style)
+	var pats := shirt_patterns(occasion, style)
 	if not _ok(cols, int(shirt.get("color", -1))):
-		reasons.append("that shirt colour is a bit much for a %s" % occ)
+		var names: Array[String] = []
+		for c: int in cols:
+			names.append(MaterialFactory.color_name(c).to_lower())
+		reasons.append("not that shirt for a %s. %s" % [occ, _would_do(names)])
 	if not _ok(pats, int(shirt.get("pattern", -1))):
-		reasons.append("that shirt pattern is too casual for a %s" % occ)
+		var words: Array[String] = []
+		for p: int in pats:
+			words.append("plain" if p == Enums.Pattern.SOLID else Enums.pattern_name(p).to_lower())
+		reasons.append("the shirt wants another pattern. %s" % _would_do(words))
 	return reasons
 
 
