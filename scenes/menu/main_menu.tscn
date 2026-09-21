@@ -1,13 +1,9 @@
 [gd_scene format=3 uid="uid://bag5qvvx5jbid"]
 
 [ext_resource type="Script" uid="uid://de37m2dly5lwx" path="res://ui/main_menu.gd" id="1_247la"]
-[ext_resource type="PackedScene" uid="uid://cf88wtft1fjxt" path="res://scenes/world/shop_room.tscn" id="2_kiqgm"]
 [node name="MainMenu" type="Node3D" unique_id=604309672]
 process_mode = 3
 script = ExtResource("1_247la")
-
-[node name="Shop" parent="." unique_id=1507661624 instance=ExtResource("2_kiqgm")]
-process_mode = 1
 
 [node name="Camera" type="Camera3D" parent="." unique_id=508923697]
 transform = Transform3D(0.56795787811279, -0.26279297471046, 0.77997666597366, 0.0, 0.94765734672546, 0.31928870081902, -0.82305759191513, -0.18134252727032, 0.53822952508926, 16.5, 8.0, 25.0)

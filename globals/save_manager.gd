@@ -164,6 +164,26 @@ func has_any_save() -> bool:
 	return latest_slot() != null
 
 
+## For the main menu's backdrop: put grandpa's shop as the newest save left it into the
+## Renovation and Upgrades autoloads (boarded up and untouched when there is no save). Only
+## the look: starting or loading a game sets both again (new games reset them).
+func apply_menu_backdrop() -> void:
+	var slot: Variant = latest_slot()
+	var data := _read(slot) if slot != null else {}
+	var reno: Dictionary = data.get("renovation", {})
+	var ups: Dictionary = data.get("upgrades", {})
+	if Renovation != null:
+		if reno.is_empty():
+			Renovation.reset()
+		else:
+			Renovation.restore(reno)
+	if Upgrades != null:
+		if ups.is_empty():
+			Upgrades.reset()
+		else:
+			Upgrades.restore(ups)
+
+
 # --- Game-scene lifecycle --------------------------------------------------
 
 

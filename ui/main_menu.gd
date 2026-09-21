@@ -1,18 +1,19 @@
 extends Node3D
 
-## The game's front door — the boot scene (project.godot run/main_scene). The 3D side is
-## a scene (the starting shop as a backdrop, a Camera that eases between Marker3D
-## "Viewpoints") and is edited by hand. The 2D side is built here: the shop's hanging
-## fascia sign with the wordmark, a slim column of sewn-label buttons under it (or, on
-## the Load / Settings pages, a cream plate with a title block), and a footer with the
-## version and key prompts. It pauses the tree so the autoloaded sim stays frozen behind
-## the menu, and runs anyway (PROCESS_MODE_ALWAYS). New/Load hand off to SaveManager.
+## The game's front door — the boot scene (project.godot run/main_scene). The 3D side is a scene (a
+## Camera that eases between Marker3D "Viewpoints") edited by hand, with grandpa's shop added as the
+## backdrop in code (_build_backdrop). The 2D side is built here: the shop's hanging fascia sign
+## with the wordmark, a slim column of sewn-label buttons under it (or, on the Load / Settings
+## pages, a cream plate with a title block), and a footer with the version and key prompts. It
+## pauses the tree so the autoloaded sim stays frozen behind the menu, and runs anyway
+## (PROCESS_MODE_ALWAYS). New/Load hand off to SaveManager.
 
 ## How fast the camera eases toward the active viewpoint (higher = snappier).
 const CAM_SPEED := 3.2
 ## How far (metres, sideways / up) the idle camera drifts around its viewpoint.
 const DRIFT := Vector2(0.45, 0.15)
 ## Which viewpoint marker each page frames.
+const BACKDROP := "res://scenes/world/grandpa/grandpa_shop_room.tscn"
 const VIEW_MAIN := "View_Main"
 const VIEW_LOAD := "View_Load"
 const VIEW_SETTINGS := "View_Settings"
@@ -44,6 +45,7 @@ var _controls: ControlsScreen = null  # the controls sheet, while it is up
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().paused = true
+	_build_backdrop()
 	# The in-game HUD/newspaper autoload draws above the scene — hide it behind the
 	# menu (SaveManager shows it again once a game is running).
 	if UI != null:
@@ -59,6 +61,22 @@ func _ready() -> void:
 
 
 # --- Layout ----------------------------------------------------------------
+
+
+## Grandpa's shop behind the menu, as the newest save left it: boarded up for a new
+## player, reglazed and swept for one who has been at it. Built here, after the state is
+## set, so the renovation shows as it stands rather than fading in. The tree is paused
+## behind the menu; the director may still run, so its fades finish.
+func _build_backdrop() -> void:
+	SaveManager.apply_menu_backdrop()
+	var shop := (load(BACKDROP) as PackedScene).instantiate()
+	shop.name = "Shop"
+	shop.process_mode = Node.PROCESS_MODE_PAUSABLE
+	var director := shop.get_node_or_null("RenovationDirector")
+	if director != null:
+		director.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(shop)
+	move_child(shop, 0)
 
 
 ## The shop's name on a walnut fascia, hung on chains from the top of the screen.
