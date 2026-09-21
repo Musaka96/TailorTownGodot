@@ -22,6 +22,8 @@ const SEL_GROW := 1.04
 var _actor = null
 var _sel := 0
 var _tick := 0.0
+## What the board last drew; the periodic check only rebuilds when this changes.
+var _shown := ""
 var _decor_built := false
 var _head: TitleBlock
 var _count_meta: Label
@@ -71,7 +73,24 @@ func _process(delta: float) -> void:
 	_tick += delta
 	if _tick >= 0.5:
 		_tick = 0.0
-		_refresh()
+		if _signature() != _shown:
+			_refresh()
+
+
+## Everything the board shows, in one string: rebuilding when nothing has changed made the
+## day tickets blink (the old ones linger a frame beside the new ones).
+func _signature() -> String:
+	var parts: Array = [Shift.day, _sel, FrontDesk.booked, FrontDesk.calendar(5)]
+	for order: SuitOrder in Orders.active:
+		parts.append([order.id, order.state, order.filled.keys(), order.days_left_ceil()])
+	return var_to_str(parts)
+
+
+## Empty a box at once: queue_free alone leaves the old children in the layout a frame.
+func _clear(box: Node) -> void:
+	for child in box.get_children():
+		box.remove_child(child)
+		child.queue_free()
 
 
 func _style() -> void:
@@ -118,8 +137,7 @@ func _build_decor_once() -> void:
 func _refresh_calendar() -> void:
 	if _calendar == null:
 		return
-	for c in _calendar.get_children():
-		c.queue_free()
+	_clear(_calendar)
 	var first := true
 	for d: Dictionary in FrontDesk.calendar(5):
 		var left := int(d["day"]) - Shift.day + 1
@@ -151,21 +169,20 @@ func _refresh_calendar() -> void:
 
 
 func _refresh() -> void:
+	_shown = _signature()
 	_refresh_calendar()
 	var orders: Array = Orders.active
 	_title.text = "Orders"
 	_count_meta.text = "%d open" % orders.size()
 	_sel = clampi(_sel, 0, maxi(orders.size() - 1, 0))
 
-	for child in _list.get_children():
-		child.queue_free()
+	_clear(_list)
 	if orders.is_empty():
 		_list.add_child(_line("No open orders.", Style.T_BODY, Style.INK_SOFT))
 	for i in orders.size():
 		_list.add_child(_make_list_card(orders[i], i == _sel, i))
 
-	for child in _detail.get_children():
-		child.queue_free()
+	_clear(_detail)
 	if orders.is_empty():
 		_detail.add_child(
 			_line(
@@ -293,7 +310,7 @@ func _status_line(order) -> Control:
 	if order.state == SuitOrder.State.READY:
 		return _line("Ready for pickup — order #%d" % order.id, Style.T_BODY, Style.FOREST)
 	if order.is_complete():
-		return _line("Pieces made — assemble at the mannequin", Style.T_BODY, Style.BRASS)
+		return _line("All parts sewn — hang them together on one rack", Style.T_BODY, Style.BRASS)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 0)
 	row.add_child(_line("In progress — due ", Style.T_BODY, Style.INK_SOFT))
@@ -307,7 +324,7 @@ func _status_label(order) -> Label:
 	if order.state == SuitOrder.State.READY:
 		return _line("READY", Style.T_CAPTION, Style.FOREST, true)
 	if order.is_complete():
-		return _line("ASSEMBLE", Style.T_CAPTION, Style.BRASS, true)
+		return _line("TO THE RACK", Style.T_CAPTION, Style.BRASS, true)
 	var left: int = order.days_left_ceil()
 	return _line(Style.due_text(left), Style.T_CAPTION, Style.due_color(left), true)
 
