@@ -26,6 +26,7 @@ const BRIEF_ASIDE := 2.8  # metres the brief shots look to the client's right
 ## clip; each can also be named alone.
 const EXTRA_SHOTS := [
 	"cute",
+	"reaction",
 	"clips",
 	"clip_shop",
 	"clip_mirror",
@@ -160,6 +161,7 @@ func _run() -> void:
 	await _shot_overview()
 	await _shot_greeting()
 	await _shot_suit_builder()
+	await _shot_reaction()
 	await _shot_cutting()
 	await _shot_sewing()
 	await _shot_shelf()
@@ -241,6 +243,46 @@ func _shot_suit_builder() -> void:
 	_ui.close_all_menus()
 	_rig.unfocus()
 	await _clear_customers()
+
+
+## Asking the client at the mirror (opt-in, for review): a Wedding · Classic brief turns
+## down a pinstripe jacket in a bubble at the shoulder, then says yes to a plain one.
+func _shot_reaction() -> void:
+	if not _want("reaction"):
+		return
+	await _clear_customers()
+	_place_player(_by_mirror(), PI * 0.5)
+	var cust: Node = await _seat_customer()
+	cust.preference.occasion = 0  # Wedding
+	cust.preference.style = 1  # Classic
+	cust.preference.budget = 5000
+	_ui.open_suit_builder(_mirror, _player)
+	var builder: Node = _ui.suit_builder
+	await _wait(60)
+	builder._adjust(1)  # to the jacket: the close framing the answer eases out of
+	await _wait(150)
+	_save("reaction_before")
+	_dress_for_reaction(builder, 1)  # pinstripe: refused
+	builder._confirm()
+	await _wait(150)
+	_save("reaction_no")
+	_dress_for_reaction(builder, 0)  # plain: accepted
+	builder._confirm()
+	await _wait(70)
+	_save("reaction_yes")
+	_ui.close_all_menus()
+	_rig.unfocus()
+	await _clear_customers()
+
+
+## Navy jacket and trousers in `pattern`, and a white shirt.
+func _dress_for_reaction(builder: Node, pattern: int) -> void:
+	var suit := {"fabric": 0, "color": 0, "pattern": pattern, "style_idx": 0}
+	builder._design[2] = suit.duplicate()
+	builder._design[1] = suit.duplicate()
+	builder._design[0] = {"fabric": 5, "color": 10, "pattern": 0, "style_idx": 0}
+	builder._awaiting = false
+	builder._apply_to_customer()
 
 
 ## The cutting minigame, a moment after the lead-in.

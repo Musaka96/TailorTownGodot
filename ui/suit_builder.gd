@@ -34,6 +34,13 @@ const PART_FRAME := {
 	Enums.GarmentType.PANTS: Vector2(0.22, 0.72),
 }
 const DEFAULT_BODY_HEIGHT := 2.25
+## Asking the customer: the camera eases out to head and shoulders (centre, span as
+## fractions of their height) so you see their face as they answer, holds for
+## REACTION_HOLD seconds (or until you change something), then eases back to the part.
+const REACTION_FRAME := Vector2(0.62, 1.0)
+const REACTION_HOLD := 2.6
+const HEAD_AT := 0.9  # the bubble points at this fraction of the customer's height
+const REACTION_LINES := 3  # most complaints the bubble lists at once
 const CAMERA_BLOCK_MASK := 1  # world geometry (walls, furniture)
 const CAMERA_WALL_MARGIN := 0.3
 # Yaw offsets (degrees) tried in order when the straight-on view is blocked.
@@ -47,6 +54,8 @@ var _actor = null
 var _customer = null
 var _pref = null  # CustomerPreference when fitting a real customer, else null
 var _awaiting := false  # customer loved it; next E finalises the order
+var _reaction_t := 0.0  # > 0 while the camera is out on the customer's face
+var _bubble: ReactionBubble
 var _rig = null
 var _part_sel := -1  # -1 = overview, else index into PARTS
 var _row := 0
@@ -79,10 +88,14 @@ func _ready() -> void:
 	_build_preview()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# Re-solve every frame: the panel's layout settles after opening and the window can
 	# be resized, and the target must track both to stay exactly centred.
 	if visible:
+		if _reaction_t > 0.0:
+			_reaction_t -= delta
+			if _reaction_t <= 0.0:
+				_end_reaction()
 		_update_camera()
 
 
@@ -117,6 +130,7 @@ func open(mirror, actor) -> void:
 
 
 func close() -> void:
+	_end_reaction()
 	visible = false
 	GameState.input_locked = false
 	if _actor != null:
@@ -428,7 +442,10 @@ func _update_camera() -> void:
 	var height := _height
 	var centre := 0.5
 	var span := height / OVERVIEW_FILL
-	if _part_sel >= 0:
+	if _reaction_t > 0.0:
+		centre = REACTION_FRAME.x
+		span = height * REACTION_FRAME.y
+	elif _part_sel >= 0:
 		var pf: Vector2 = PART_FRAME.get(_type(), Vector2(0.5, 0.5))
 		centre = pf.x
 		span = height * pf.y
@@ -643,6 +660,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _move_row(delta: int) -> void:
+	_end_reaction()
 	_status = ""
 	var n := _active_rows().size()
 	_row = (_row + delta + n) % n
@@ -650,6 +668,7 @@ func _move_row(delta: int) -> void:
 
 
 func _adjust(dir: int) -> void:
+	_end_reaction()
 	_status = ""
 	_awaiting = false
 	var row: int = _active_rows()[_row]
@@ -740,12 +759,45 @@ func _confirm() -> void:
 		var suitable: bool = reaction.get("suitable", false)
 		if _customer != null and _customer.has_method("react"):
 			_customer.react(Customer.REACT_LIKE if suitable else Customer.REACT_DISLIKE)
-		_status = "     %s: %s" % [_pref.display_name, reaction["reason"]]
+		var verdict := "happy: E to take the order" if suitable else "not quite"
+		_status = "     %s is %s" % [_pref.display_name, verdict]
 		_awaiting = suitable
+		_start_reaction(suitable, reaction.get("reasons", []))
 		_refresh()
 		return
 	# Second E finalises: create the order and send the customer on their way.
 	_finalize()
+
+
+## Ease the camera out to the customer's face and let them answer in a bubble.
+func _start_reaction(suitable: bool, reasons: Array) -> void:
+	_end_reaction()
+	if _customer == null or not is_instance_valid(_customer):
+		return
+	var lines := PackedStringArray()
+	if suitable:
+		lines.append("Perfect. I'll take it!")
+		lines.append("Press E to agree the order.")
+	else:
+		lines.append("Not quite.")
+		for r: String in reasons.slice(0, REACTION_LINES):
+			lines.append(r.substr(0, 1).to_upper() + r.substr(1))
+	_reaction_t = REACTION_HOLD
+	_bubble = ReactionBubble.show_for(self, _customer, _height * HEAD_AT, suitable, lines)
+	var vp := get_viewport_rect()
+	_bubble.bounds = Rect2(
+		Vector2(_left_reserve(), 0.0),
+		Vector2(_panel.get_global_rect().position.x - _left_reserve(), vp.size.y)
+	)
+	Sfx.play("menu_open", -8.0)
+
+
+## Back to the part being edited (the rig eases the camera there).
+func _end_reaction() -> void:
+	_reaction_t = 0.0
+	if _bubble != null and is_instance_valid(_bubble):
+		_bubble.dismiss()
+	_bubble = null
 
 
 ## Create the order for the current design and send the customer off happy.
