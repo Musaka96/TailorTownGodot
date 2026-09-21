@@ -752,7 +752,10 @@ func _build_wear() -> void:
 	var shop := get_node_or_null(shop_path)
 	if shop != null:  # the shell of the shop takes the wear; people and furniture don't
 		for node in shop.find_children("*", "VisualInstance3D", true, false):
-			(node as VisualInstance3D).layers |= WEAR_LAYER
+			# Not the roof tiles: the street front's dirt reaches up to the sign, and the
+			# eave hangs out over it.
+			if not node.name.contains("_roof_"):
+				(node as VisualInstance3D).layers |= WEAR_LAYER
 	for room: String in Renovation.ROOMS:
 		var floor_mesh := _shell.get_node_or_null("Body/Floor_" + room) as MeshInstance3D
 		if floor_mesh == null:
