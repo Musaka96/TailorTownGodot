@@ -24,6 +24,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	EventBus.shift_started.connect(func(_h: float) -> void: _ended = false)
 	EventBus.shift_ended.connect(func() -> void: _ended = true)
+	# A new morning: the hands stand at opening time, not at last night's CLOSED.
+	EventBus.day_began.connect(func(_d: int) -> void: _ended = false)
 
 
 ## Show (or clear) the CLOSED state without the bell — for a day loaded after hours.

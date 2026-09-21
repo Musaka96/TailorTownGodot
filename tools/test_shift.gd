@@ -42,6 +42,12 @@ func _run() -> void:
 	_check(shift.day == 2, "locking up advances to day 2")
 	_check(shift.phase == 0 and not shift.is_open(), "the new day dawns closed (morning)")
 	_check(not day_night.running, "the clock waits for the sign")
+	_check(
+		is_equal_approx(day_night.hour, day_night.start_hour()),
+		"the morning clock stands at opening time, not last night's close"
+	)
+	var clock: Control = root.get_node("UI").clock
+	_check(not clock.get("_ended"), "the morning clock no longer reads CLOSED")
 	var paper: Control = root.get_node("UI").newspaper
 	_check(not paper.visible, "the morning is the player's own — no paper at dawn")
 	_check("open the shop" in sign.get_interaction_prompt(null), "morning: the sign opens the shop")
