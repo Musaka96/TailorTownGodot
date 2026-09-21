@@ -122,6 +122,9 @@ func open(mirror, actor) -> void:
 		_actor.visible = false
 	GameState.input_locked = true
 	visible = true
+	# The fitting is framed from inside the shop: no see-through or missing walls.
+	WallCutaway.hold_solid(true)
+	RoofManager.hold_walls(true)
 	_style()
 	_apply_to_customer()
 	_height = _body_height() if _customer != null else DEFAULT_BODY_HEIGHT
@@ -131,6 +134,8 @@ func open(mirror, actor) -> void:
 
 func close() -> void:
 	_end_reaction()
+	WallCutaway.hold_solid(false)
+	RoofManager.hold_walls(false)
 	visible = false
 	GameState.input_locked = false
 	if _actor != null:

@@ -18,6 +18,12 @@ extends Node3D
 
 const SHADER := preload("res://materials/wall_cutaway.gdshader")
 
+## While true, every cutaway grows its walls back solid, wherever the player stands — for
+## views framed from inside the shop that have no use for seeing past a wall (the fitting
+## mirror). The pieces hidden outright (the roof and caps) stay hidden, so the room's
+## light doesn't change. Set through hold_solid().
+static var held := false
+
 ## The wall group to cut (a glTF group node, e.g. `..._Roof` or `..._Divider`).
 @export_node_path("Node3D") var walls_path: NodePath
 ## Pieces whose name contains one of these are hidden outright rather than cut — the
@@ -96,6 +102,11 @@ func _check_reach() -> void:
 		push_warning("WallCutaway: %s — these walls will vanish entirely." % lo)
 
 
+## Hold every cutaway's walls solid (true) or let them cut again (false).
+static func hold_solid(on: bool) -> void:
+	held = on
+
+
 func _process(_delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_player = _resolve_player()
@@ -104,7 +115,7 @@ func _process(_delta: float) -> void:
 	# The dip follows the player every frame; the cut height only moves on a crossing.
 	for mat in _cut_mats:
 		mat.set_shader_parameter("player_pos", _player.global_position)
-	var now := _contains(_player.global_position) == cut_when_inside
+	var now := _contains(_player.global_position) == cut_when_inside and not held
 	if not _established:
 		# The player node readies after us, so snap to the right state (no slide) once.
 		_established = true
@@ -234,7 +245,7 @@ func _contains(world_pos: Vector3) -> bool:
 
 func _apply_instant(cut: bool) -> void:
 	_set_cut(cut_height if cut else up_height)
-	_show_plain(not cut)
+	_show_plain(not cut and not held)
 
 
 func _slide_to(cut: bool) -> void:
@@ -248,7 +259,7 @@ func _slide_to(cut: bool) -> void:
 	var to := cut_height if cut else up_height
 	_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tween.tween_method(_set_cut, from, to, fade_time)
-	if not cut:
+	if not cut and not held:  # a hold brings the walls back, never the roof
 		_tween.tween_callback(_show_plain.bind(true))
 
 

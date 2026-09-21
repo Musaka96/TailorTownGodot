@@ -10,6 +10,12 @@ extends Node3D
 ## so the gizmo shows roughly where "inside" begins. Detection just polls the player's
 ## position — no collision layers or trigger wiring needed.
 
+## While true, the WALL pieces of a roof group (the upper halves of cut street fronts,
+## named by `wall_prefixes`) stand back up while the player is inside; the roof proper,
+## gables, caps and cornices stay away. For views framed from inside the shop (the
+## fitting mirror). Set through hold_walls(); WallCutaway.hold_solid does the lower halves.
+static var walls_held := false
+
 ## The roof to fade (a MeshInstance3D or a parent holding the roof meshes).
 @export_node_path("Node3D") var roof_path: NodePath
 ## The player to track. Leave empty to grab the first node in the "player" group.
@@ -18,6 +24,8 @@ extends Node3D
 @export var interior_extents := Vector3(3.6, 1.8, 5.9)
 ## Seconds the fade takes in each direction.
 @export var fade_time := 0.45
+## Pieces of the roof group that are really walls (see walls_held).
+@export var wall_prefixes := PackedStringArray(["_hi", "int_curtains"])
 
 var _roof: Node3D
 var _player: Node3D
@@ -26,6 +34,7 @@ var _mats: Array[BaseMaterial3D] = []
 var _inside := false
 var _established := false
 var _fade: Tween
+var _walls_up := false  # the held walls are showing
 
 
 func _ready() -> void:
@@ -36,6 +45,11 @@ func _ready() -> void:
 		return
 	_collect_meshes(_roof)
 	_prime_materials()
+
+
+## Stand the walls of every roof group back up (true), or let them go again (false).
+static func hold_walls(on: bool) -> void:
+	walls_held = on
 
 
 func _process(_delta: float) -> void:
@@ -53,6 +67,44 @@ func _process(_delta: float) -> void:
 	if now != _inside:
 		_inside = now
 		_fade_to(1.0 if now else 0.0)
+	var want := walls_held and _inside
+	if want != _walls_up:
+		_walls_up = want
+		_stand_walls(want)
+
+
+## Bring the wall pieces back (solid, fading in) with the rest of the roof group left
+## hidden — or put everything back as the roof normally is.
+func _stand_walls(on: bool) -> void:
+	if _fade != null and _fade.is_valid():
+		_fade.kill()
+	if not on:
+		for gi in _meshes:
+			gi.visible = true
+		_apply_instant(1.0 if _inside else 0.0)
+		return
+	_roof.visible = true
+	_set_fadable(true)
+	var walls: Array[GeometryInstance3D] = []
+	for gi in _meshes:
+		var is_wall := _is_wall(gi.name)
+		gi.visible = is_wall
+		if is_wall:
+			gi.transparency = 1.0
+			walls.append(gi)
+	if walls.is_empty():
+		return
+	_fade = create_tween().set_parallel(true)
+	for gi in walls:
+		_fade.tween_property(gi, "transparency", 0.0, fade_time)
+	_fade.chain().tween_callback(_set_fadable.bind(false))
+
+
+func _is_wall(piece: String) -> bool:
+	for p in wall_prefixes:
+		if piece.contains(p):
+			return true
+	return false
 
 
 func _resolve_player() -> Node3D:
