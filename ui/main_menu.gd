@@ -18,6 +18,7 @@ const VIEW_LOAD := "View_Load"
 const VIEW_SETTINGS := "View_Settings"
 const EDGE := 48.0  # gap from the screen's left edge to the sign
 const SIGN_TOP := 44.0
+const CAPTION_ROOM := 16  # px the Continue label grows for its day / money line
 const COLUMN_W := 300.0  # the main page's button column
 const PLATE_W := 480.0  # the Load / Settings plate
 const HINTS_W := 460.0
@@ -192,8 +193,7 @@ func _show_main() -> void:
 	_clear()
 	_set_page("")
 	if SaveManager.has_any_save():
-		_buttons.add_child(MenuKit.button("Continue", _continue))
-		_buttons.add_child(_latest_caption())
+		_buttons.add_child(_continue_button())
 	_buttons.add_child(MenuKit.button("New Game", _new_game))
 	_buttons.add_child(MenuKit.button("Load Game", _show_load))
 	_buttons.add_child(MenuKit.button("Controls", _show_controls))
@@ -241,19 +241,36 @@ func _show_load() -> void:
 	_focus_first()
 
 
-## "Day 12 · $1,840" under Continue, so the player knows what they are continuing.
-func _latest_caption() -> Control:
-	var latest: Variant = SaveManager.latest_slot()
-	var text := ""
-	for info: Dictionary in SaveManager.slot_infos():
-		if str(info.get("slot")) == str(latest) and bool(info.get("exists", false)):
-			text = "Day %d  ·  $%d" % [int(info.get("day", 1)), int(info.get("money", 0))]
-	var lbl := TitleBlock.meta_label(text, true)
+## Continue, with "Day 12 · $1,840" as a small second line inside the label, so the
+## player knows what they are continuing without it taking a row of its own.
+func _continue_button() -> Button:
+	var button := MenuKit.button("Continue", _continue)
+	var text := _latest_text()
+	if text == "":
+		return button
+	button.custom_minimum_size.y = MenuKit.BTN_WIDE.y + CAPTION_ROOM
+	for state in ["normal", "hover", "pressed", "focus", "disabled", "hover_pressed"]:
+		var sb := button.get_theme_stylebox(state)
+		sb.content_margin_bottom += CAPTION_ROOM
+	var lbl := TitleBlock.meta_label(text, false)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_color_override("font_color", Style.CHALK)
-	lbl.add_theme_color_override("font_shadow_color", Style.SHADOW)
-	lbl.visible = text != ""
-	return lbl
+	lbl.add_theme_color_override("font_color", Style.INK_SOFT)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	lbl.offset_top = -CAPTION_ROOM - Style.S2
+	lbl.offset_bottom = -Style.S2
+	button.add_child(lbl)
+	return button
+
+
+func _latest_text() -> String:
+	var latest: Variant = SaveManager.latest_slot()
+	if latest == null:
+		return ""
+	var info := SaveManager.info(latest)  # the autosave too, not only the numbered slots
+	if not bool(info.get("exists", false)):
+		return ""
+	return "Day %d  ·  $%d" % [int(info.get("day", 1)), int(info.get("money", 0))]
 
 
 func _new_game() -> void:

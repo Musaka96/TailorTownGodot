@@ -110,6 +110,11 @@ func slot_infos() -> Array:
 	return out
 
 
+## Metadata for any one slot, numbered or the autosave ({exists: false} if it's empty).
+func info(slot: Variant) -> Dictionary:
+	return _info(slot)
+
+
 ## The most recently written slot id (numbered or autosave), or null if none.
 func latest_slot() -> Variant:
 	var best: Variant = null

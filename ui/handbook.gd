@@ -13,6 +13,11 @@ signal closed
 ## scrolls within it (index on the left, preview + article on the right).
 const BOOK_SIZE := Vector2(780, 600)
 const KICKER := "Handbook"
+## W/S read the article first: a press scrolls it this far, and only once it is read to
+## the end (or back to the top) does it turn to the next (previous) topic.
+const READ_STEP := 120.0
+const STICK_SPEED := 900.0  # px/s the right stick scrolls the article at full tilt
+const STICK_DEAD := 0.25
 
 var _actor = null
 var _chapters: Array = []
@@ -20,6 +25,8 @@ var _chapter := 0
 var _topic := 0
 var _decor_built := false
 var _index_scroll: ScrollContainer
+var _art_scroll: ScrollContainer
+var _read_tween: Tween
 var _was_paused := false
 ## The handbook can be opened over another screen (the fitting mirror does it), so it puts
 ## the input lock back the way it found it rather than clearing it outright — otherwise
@@ -122,6 +129,8 @@ func _build_decor_once() -> void:
 	pages.move_child(art_scroll, rpos)
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", Style.S3)
+	_art_scroll = art_scroll
+	_body.mouse_filter = Control.MOUSE_FILTER_PASS  # let the wheel reach the scroll
 
 	# The preview takes no space when a topic has none, and never stretches its art.
 	_preview.custom_minimum_size = Vector2.ZERO
@@ -129,7 +138,7 @@ func _build_decor_once() -> void:
 	_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	_hint.visible = false
-	var bar := Style.hint_bar([["A/D", "Chapter"], ["W/S", "Topic"], ["Esc", "Close"]])
+	var bar := Style.hint_bar([["A/D", "Chapter"], ["W/S", "Read · Topic"], ["Esc", "Close"]])
 	_hint.get_parent().add_child(bar)
 
 
@@ -164,6 +173,34 @@ func _refresh() -> void:
 	if not preview.is_empty():
 		_preview.add_child(_make_preview(preview))
 	_body.text = "[b]%s[/b]\n\n%s" % [entry["title"], entry["body"]]
+	if _art_scroll != null:
+		_art_scroll.scroll_vertical = 0  # a new topic starts at its top
+
+
+## Scroll the article by `delta` px, eased. Returns false when there was no room to move
+## (already at that end), so the caller can turn the page instead.
+func _read(delta: float) -> bool:
+	if _art_scroll == null:
+		return false
+	var bar := _art_scroll.get_v_scroll_bar()
+	var bottom := maxf(0.0, bar.max_value - bar.page)
+	var from := float(_art_scroll.scroll_vertical)
+	var to := clampf(from + delta, 0.0, bottom)
+	if absf(to - from) < 1.0:
+		return false
+	if _read_tween != null:
+		_read_tween.kill()
+	_read_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_read_tween.tween_property(_art_scroll, "scroll_vertical", int(to), 0.14)
+	return true
+
+
+func _process(delta: float) -> void:
+	if not visible or _art_scroll == null:
+		return
+	var tilt := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
+	if absf(tilt) > STICK_DEAD:
+		_art_scroll.scroll_vertical += int(tilt * STICK_SPEED * delta)
 
 
 ## Scroll `card` into view after a frame, so the freshly rebuilt list has been laid
@@ -245,6 +282,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	var count: int = _chapters[_chapter]["entries"].size()
+	var down := (
+		event.is_action_pressed("move_back", true) or event.is_action_pressed("ui_down", true)
+	)
+	var up := (
+		event.is_action_pressed("move_forward", true) or event.is_action_pressed("ui_up", true)
+	)
+	# Read on first; a held key only ever scrolls, so holding S can't flick past a topic.
+	if (down or up) and (_read(READ_STEP if down else -READ_STEP) or event.is_echo()):
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("move_right"):
 		_chapter = wrapi(_chapter + 1, 0, _chapters.size())
 		_topic = 0
