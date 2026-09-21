@@ -16,16 +16,20 @@ extends RefCounted
 ##   HangingModel.make({Enums.GarmentType.JACKET: material, ...})
 
 const RAIL_ABOVE := 0.25
+## Everything below the hanger's crown — the arms, the bar and the cloth — is drawn at this
+## size, grown down from the crown so the crown and the brass curl stay on the rail. The
+## outlines below are in the unscaled units.
+const SIZE := 1.6
 const TOP_Y := 0.155  # the hanger's crown, just above a neckline
 const ARM_TIP := Vector2(0.12, 0.11)  # where each arm ends, inside the shoulder
 const BAR_Y := 0.0  # the hanger's lower bar, which trousers fold over
 const BAR_HALF := 0.1
 const CLOTH_SCALE := 3.0  # fabric repeats per metre
-## How the parts layer on one hanger, front to back (z), when several share it.
+## How the parts layer on one hanger, front to back (z, true size), when several share it.
 const LAYER := {
 	Enums.GarmentType.JACKET: 0.0,
-	Enums.GarmentType.SHIRT: -0.04,
-	Enums.GarmentType.PANTS: -0.08,
+	Enums.GarmentType.SHIRT: -0.04 * SIZE,
+	Enums.GarmentType.PANTS: -0.08 * SIZE,
 }
 ## The cushion: half-thickness in the middle, what's left at the rim, and how far in from
 ## the rim the roll reaches (m); SMOOTH passes of corner rounding on each outline.
@@ -101,11 +105,11 @@ static func make(parts: Dictionary, hanger := true) -> Node3D:
 	return root
 
 
-## One garment's cloth (no hanger), at z = 0.
+## One garment's cloth (no hanger), at z = 0, at SIZE.
 static func garment(garment_type: int, cloth: Variant) -> Node3D:
 	var mat := _cloth(cloth)
 	var puff: float = PUFF.get(garment_type, 0.018)
-	var node := Node3D.new()
+	var node := _grown()
 	match garment_type:
 		Enums.GarmentType.JACKET:
 			node.add_child(_cushion(JACKET, puff, mat))
@@ -136,17 +140,20 @@ static func make_hanger(bar_z: float = NAN) -> Node3D:
 	var brass := _flat(Style.BRASS, 0.5, 0.35)
 	var h := Node3D.new()
 	h.name = "Hanger"
+	var body := _grown()  # the wooden part grows with the cloth; the brass stays at the rail
+	h.add_child(body)
+	bar_z /= SIZE
 	var top := Vector3(0.0, TOP_Y, 0.0)
 	for side: float in [-1.0, 1.0]:
 		var tip := Vector3(ARM_TIP.x * side, ARM_TIP.y, 0.0)
-		h.add_child(_rod(top, tip, 0.01, wood))
+		body.add_child(_rod(top, tip, 0.01, wood))
 		# The side struts only when the bar shares the arms' plane (trousers alone): behind a
 		# shirt they would cross it, and the bar sits hidden in the trousers' fold anyway.
 		if not is_nan(bar_z) and is_zero_approx(bar_z):
-			h.add_child(_rod(tip, Vector3(BAR_HALF * side, BAR_Y, bar_z), 0.006, wood))
+			body.add_child(_rod(tip, Vector3(BAR_HALF * side, BAR_Y, bar_z), 0.006, wood))
 	if not is_nan(bar_z):
 		var a := Vector3(-BAR_HALF, BAR_Y, bar_z)
-		h.add_child(_rod(a, Vector3(BAR_HALF, BAR_Y, bar_z), 0.006, wood))
+		body.add_child(_rod(a, Vector3(BAR_HALF, BAR_Y, bar_z), 0.006, wood))
 	h.add_child(_rod(top, Vector3(0.0, RAIL_ABOVE - 0.03, 0.0), 0.005, brass))
 	var curl := MeshInstance3D.new()
 	var ring := TorusMesh.new()
@@ -163,6 +170,15 @@ static func make_hanger(bar_z: float = NAN) -> Node3D:
 
 
 # --- Building blocks ---------------------------------------------------------
+
+
+## A node that draws its children at SIZE, grown down from the hanger's crown (which stays
+## where it is, just under the hook).
+static func _grown() -> Node3D:
+	var node := Node3D.new()
+	node.scale = Vector3.ONE * SIZE
+	node.position.y = TOP_Y * (1.0 - SIZE)
+	return node
 
 
 ## The outline, rounded off and puffed: the middle (the outline pulled in by `roll`) is
@@ -338,7 +354,8 @@ static func _ball(at: Vector3, radius: float, mat: Material) -> MeshInstance3D:
 
 static func _cloth(cloth: Variant) -> Material:
 	if cloth is MaterialType:
-		return ClothMaterial.build_triplanar(cloth, CLOTH_SCALE, true)
+		# Projected in the grown node's space: scale up so the weave keeps its real size.
+		return ClothMaterial.build_triplanar(cloth, CLOTH_SCALE * SIZE, true)
 	if cloth is Material:
 		return cloth
 	return _flat(Style.LINEN)

@@ -75,10 +75,10 @@ func _run() -> void:
 
 func _frame(main: Node, rack: Node3D) -> void:
 	var player := main.find_child("Player", true, false) as Node3D
-	player.global_position = rack.to_global(Vector3(1.6, 0.0, 1.6))
+	player.global_position = rack.to_global(Vector3(-1.8, 0.0, 1.4))
 	var rig: Node = get_first_node_in_group("camera_rig")
-	var eye := rack.to_global(Vector3(1.1, 1.65, 1.5))
-	rig.focus(eye, rack.to_global(Vector3(0.0, 1.0, 0.0)))
+	var eye := rack.to_global(Vector3(1.4, 1.75, 2.1))
+	rig.focus(eye, rack.to_global(Vector3(0.0, 0.9, 0.0)))
 	process_frame.connect(_on_frame)
 
 
