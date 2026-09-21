@@ -36,10 +36,12 @@ const TUT_BUDGET := 1000
 ## character — see docs/WRITING_STYLE_GUIDE.md §3.4. Bold marks a key or a station the
 ## player must find on screen, never a concept.
 const M_PROMPT := (
-	"Thimble's grandchild. He wrote to me.\n\n"
-	+ "I'm [b]Hemming[/b]. I had six years at your grandfather's bench and his temper for "
-	+ "every one of them. You can't sew. Nobody can, starting out. We'll use my shop, since "
-	+ "yours isn't fit to stand up in. Watch, and touch nothing until I say."
+	"So you're the one who wants to open old Barnaby Thimble's shop again. Your grandfather "
+	+ "wrote and told me you'd be coming.\n\n"
+	+ "I'm [b]Hemming[/b]. I learned the trade at his bench, six years of it, before I had a "
+	+ "shop of my own. He says you've never sewn a stitch. Well, nobody's born knowing how. "
+	+ "We'll start here in my shop, since his isn't fit to stand up in. Watch, and touch "
+	+ "nothing until I say."
 )
 const M_ORDER := (
 	"Order's taken. Their ticket sits up at the top there; look at it often.\n\n"
@@ -82,7 +84,7 @@ const M_SEW_LOCK := (
 )
 const M_SEW_CUT := "Then [b]E[/b] for the thread."
 const M_GREET := (
-	"Bell. That one's yours.\n\n"
+	"Ah, here comes a customer. This one's yours; I'll keep out of it.\n\n"
 	+ "They come in with something in mind already. Let them say what it is before you go "
 	+ "guessing for them, then take them to the [b]fitting mirror[/b]."
 )
@@ -150,12 +152,12 @@ const M_BYE := (
 ## there next). It names the three things the renovation asks of the player, then hands the
 ## argument to Pops — whose first letter answers this about the benches.
 const M_SEND_OFF := (
-	"His shop's stood shut a good while, so don't expect it to look like this one. Pull "
-	+ "the [b]dust sheets[/b] "
-	+ "off, clear what you can carry by hand, and ring the [b]builders[/b] for the rest. A "
-	+ "room at a time.\n\n"
-	+ "And when you get into the workroom: his benches were in the wrong place. Tell him I "
-	+ "said so."
+	"Now, your grandfather's shop. It's been shut up since he retired to the coast, and "
+	+ "nobody's so much as swept it since, so don't expect it to look like this one. Pull "
+	+ "the [b]dust sheets[/b] off, clear what you can carry by hand, and ring the "
+	+ "[b]builders[/b] for the rest. One room at a time.\n\n"
+	+ "There's a workroom at the back. When you get into it you'll find his benches in the "
+	+ "wrong place. Tell him I said so."
 )
 
 ## The parts the mentor runs up for the tutorial order are sewn to its design at this
