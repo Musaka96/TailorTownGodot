@@ -27,6 +27,13 @@ const WINDOWS := [Vector2(0.05, 0.3), Vector2(0.4, 0.55), Vector2(0.62, 0.86)]
 ## When the shop opens with an empty order book there is nothing to do but wait, so the
 ## first walk-in is pulled forward into this window instead of anywhere in the morning one.
 const OPENING_BELL := Vector2(0.01, 0.05)
+## With nothing left to make, the shop may stand idle this long (shift fraction, about
+## half a minute) before the next customer is sent in early; if the day's plan is used up,
+## one extra comes, once a day, as long as it isn't nearly closing time.
+const IDLE_WAIT := 0.08
+const LAST_CALL := 0.8
+## Opening week: a second walk-in while the bench has room for it.
+const OPENING_ROOM := 0.5
 ## Load above which nobody new walks in (appointments still come).
 const SWAMPED := 1.0
 ## Load below which a city event sends one more customer than usual.
@@ -53,6 +60,8 @@ var appointments: Array[Dictionary] = []
 var _plan: Array[float] = []  # today's walk-in times (shift fraction), ascending
 var _plan_day := -1
 var _last_handover := -1.0
+var _last_arrival := -1.0  # shift fraction the last walk-in was sent in (-1 = none today)
+var _idle_bonus_day := -1  # the day the idle extra was used
 var _favour_used_day := -1
 var _rng := RandomNumberGenerator.new()
 
@@ -117,6 +126,7 @@ func plan_day() -> void:
 	_plan.clear()
 	_plan_day = _today()
 	_last_handover = -1.0
+	_last_arrival = -1.0
 	var count := planned_walk_ins()
 	var times: Array[float] = []
 	for i in count:
@@ -146,6 +156,8 @@ func planned_walk_ins() -> int:
 	var lf := load_factor()
 	var count := 1
 	match stage():
+		0:
+			count = 1 + (1 if lf < OPENING_ROOM else 0)
 		1:
 			count = 1 + (1 if lf < 0.4 else 0)
 		2:
@@ -188,7 +200,10 @@ func next_arrival() -> Dictionary:
 	if not _walk_ins_allowed(now):
 		return {}
 	var kind := _walk_in_kind(now)
-	return {} if kind == "" else {"kind": kind}
+	if kind == "":
+		return {}
+	_last_arrival = now
+	return {"kind": kind}
 
 
 ## A passer-by was talked into coming in (StreetPitch): that uses up one of today's
@@ -219,11 +234,40 @@ func _walk_in_kind(now: float) -> String:
 	elif not _plan.is_empty() and _plan[0] <= now:
 		_plan.remove_at(0)
 		kind = "walk_in"
+	elif _idle_too_long(now):
+		# Nothing to make and nobody coming soon: send the next one now rather than leave
+		# the player standing in an empty shop (the plan's next walk-in, or today's extra).
+		if _plan.is_empty():
+			_idle_bonus_day = _today()
+		else:
+			_plan.remove_at(0)
+		kind = "walk_in"
 	elif _favour_ready(now):
 		_favour_used_day = _today()
 		rival_goodwill -= 1
 		kind = "referral"
 	return kind
+
+
+## True when the shop has had nothing to make for IDLE_WAIT and someone could come:
+## the plan still has a walk-in to bring forward, or today's idle extra is unused.
+func _idle_too_long(now: float) -> bool:
+	if not _nothing_to_make():
+		return false
+	var since := now - maxf(maxf(_last_arrival, _last_handover), 0.0)
+	if since < IDLE_WAIT:
+		return false
+	if not _plan.is_empty():
+		return true
+	return _idle_bonus_day != _today() and now < LAST_CALL
+
+
+## Every open order is made (waiting to be collected) or there are none: the bench is idle.
+func _nothing_to_make() -> bool:
+	for order: SuitOrder in Orders.active:
+		if order.state == SuitOrder.State.OPEN:
+			return false
+	return true
 
 
 ## Flavour a fresh walk-in's brief for the current stage: rush orders and picky clients.

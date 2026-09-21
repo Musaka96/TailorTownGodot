@@ -40,6 +40,7 @@ func _run() -> void:
 	_clock.set("_elapsed", 0.0)
 
 	_workload()
+	_idle_shop()
 	_due_days()
 	_holds()
 	_saying_no()
@@ -59,7 +60,7 @@ func _suit() -> Dictionary:
 func _workload() -> void:
 	_check(is_zero_approx(_desk.load_factor()), "an empty order book is idle")
 	_check(_desk.stage() == 0, "day 1 at tier 0 is the opening week")
-	_check(_desk.planned_walk_ins() == 1, "opening week plans one walk-in a day")
+	_check(_desk.planned_walk_ins() == 2, "an idle opening week plans two walk-ins")
 	_desk.plan_day()
 	var first: float = _desk.get("_plan")[0]
 	var bell: Vector2 = _desk.OPENING_BELL
@@ -69,12 +70,55 @@ func _workload() -> void:
 	)
 	_orders.create_order("A", _suit(), 250, Color.WHITE)
 	_orders.create_order("B", _suit(), 250, Color.WHITE)
+	# A seven-minute shift fits well over one suit, so two queued are most of two shifts
+	# and four are more than the bench can take.
 	var lf: float = _desk.load_factor()
-	_check(lf > 0.8 and lf < 1.0, "two suits queued ≈ two shifts of work (%.2f)" % lf)
+	_check(lf > 0.5 and lf < 0.8, "two suits queued: most of two shifts of work (%.2f)" % lf)
+	_check(_desk.planned_walk_ins() == 1, "a loaded opening week plans just one")
 	_orders.create_order("C", _suit(), 250, Color.WHITE)
-	_check(_desk.load_factor() >= 1.0, "three suits queued = swamped")
+	_orders.create_order("D", _suit(), 250, Color.WHITE)
+	_check(_desk.load_factor() >= 1.0, "four suits queued = swamped")
 	_check(_desk.planned_walk_ins() == 0, "no walk-ins planned while swamped")
 	_check(_desk.next_arrival().is_empty(), "nobody walks in while swamped")
+
+
+## The playtest: day one's only suit was done by the afternoon and nobody came until the
+## end of day two. With nothing to make, the next walk-in is sent in early.
+func _idle_shop() -> void:
+	_orders.active.clear()
+	_clock.set("_elapsed", 0.0)
+	_desk.plan_day()
+	var planned: int = (_desk.get("_plan") as Array).size()
+	var order: Resource = _orders.create_order("Ready", _suit(), 250, Color.WHITE)
+	var busy: Resource = _orders.create_order("Busy", _suit(), 250, Color.WHITE)
+	_orders.debug_make_ready(order)
+	var shift_s: float = _clock.call("_shift_seconds")
+	# Mid-morning, before anyone is due: with a suit still to make, nobody is hurried in.
+	(_desk.get("_plan") as Array).assign([0.6])
+	_clock.set("_elapsed", shift_s * 0.2)
+	_check(_desk.next_arrival().is_empty(), "work on the bench: the plan keeps its time")
+	# Only the finished suit left: the 0.6 walk-in comes now.
+	_orders.active.erase(busy)
+	_check(_desk.call("_nothing_to_make"), "(setup) nothing left to make")
+	var sent: Dictionary = _desk.next_arrival()
+	_check(sent.get("kind", "") == "walk_in", "idle: the next walk-in is sent early")
+	_check((_desk.get("_plan") as Array).is_empty(), "taken from the day's plan")
+	# ...and straight after, not another: the shop gets a moment to deal with them.
+	_check(_desk.next_arrival().is_empty(), "not a second one straight after")
+	# Plan used up, idle a while longer: one extra comes, once.
+	_clock.set("_elapsed", shift_s * 0.35)
+	_check(_desk.next_arrival().get("kind", "") == "walk_in", "plan used up: one idle extra")
+	_clock.set("_elapsed", shift_s * 0.55)
+	_check(_desk.next_arrival().is_empty(), "but only one extra a day")
+	# Near closing time nobody is sent for the idle extra.
+	_desk.plan_day()
+	_desk.set("_idle_bonus_day", -1)
+	(_desk.get("_plan") as Array).clear()
+	_clock.set("_elapsed", shift_s * 0.9)
+	_check(_desk.next_arrival().is_empty(), "not so near closing time")
+	_check(planned >= 1, "(setup) the day had a plan")
+	_orders.active.clear()
+	_clock.set("_elapsed", 0.0)
 
 
 func _due_days() -> void:

@@ -38,6 +38,14 @@ the front desk watches **how busy you are** and paces arrivals to match.
 - **The rival's favour:** on a quiet afternoon, once a day, if you've referred someone to
   Pinch & Pleat, they send a customer back.
 
+## When the shop stands idle
+If there is nothing left to make (every order is made and waiting to be collected, or
+there are none) and nobody has come in for `IDLE_WAIT` (8% of the shift, about half a
+minute), the next planned walk-in is sent now instead of at its time. If the day's plan
+is used up, one extra walk-in comes, once a day, unless it is past `LAST_CALL` (80% of
+the shift). Opening week plans two walk-ins a day while the bench is under
+`OPENING_ROOM` load, one otherwise.
+
 ## One at a time
 The shop serves exactly one customer from the greeting to the goodbye. While someone holds
 that slot — walking in, waiting to be greeted, on their way to the mirror, at it, or on
