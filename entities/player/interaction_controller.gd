@@ -113,7 +113,15 @@ func _highlight(interactable: Object, on: bool) -> void:
 	var root: Node = interactable.target if interactable.target != null else interactable
 	if not is_instance_valid(root):
 		return
-	for node in root.find_children("*", "MeshInstance3D", true, false):
+	# A target that is only a handler (a renovation job) names the thing to outline.
+	if root.has_method("outline_root"):
+		root = root.outline_root()
+		if not is_instance_valid(root):
+			return
+	var meshes := root.find_children("*", "MeshInstance3D", true, false)
+	if root is MeshInstance3D:
+		meshes.append(root)  # a dust sheet is its own mesh
+	for node in meshes:
 		var mesh := node as MeshInstance3D
 		mesh.material_overlay = _outline if on else null
 
