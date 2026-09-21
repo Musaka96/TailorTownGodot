@@ -115,7 +115,10 @@ func _process(delta: float) -> void:
 	_update_armed()
 	_time += delta
 	_steer = move_toward(_steer, Input.get_axis("move_left", "move_right"), STEER_RAMP * delta)
-	if _pivot_t > 0.0:
+	if _rescue_t > 0.0:
+		_steer = 0.0
+		_tick_rescue(delta)
+	elif _pivot_t > 0.0:
 		_tick_pivot(delta)
 	else:
 		_moving = _armed and _cut_held()
@@ -123,6 +126,8 @@ func _process(delta: float) -> void:
 			_glide_sound()  # let go mid-glide: the hiss stops with you
 		if _moving and _state == State.READY:
 			_state = State.RUNNING
+		if _moving:
+			_caught = false
 		# You can turn the shears standing still, too — lining up before you push on.
 		_heading += _steer * _turn * delta
 		if _moving:
@@ -189,8 +194,28 @@ func _advance(delta: float) -> void:
 			_register_mistake(_p)
 	else:
 		_nick_run = maxf(0.0, _nick_run - step * 0.5)
+		_clear_slip_run()
 	if _seg >= last and _state == State.RUNNING:
 		_succeed()
+
+
+## Two slips in one dive: the shears stop, back out along the slit and settle on the
+## chalk, pointing down the line. Let go of Cut and carry on from there.
+func _catch() -> void:
+	_moving = false
+	_nick_run = 0.0
+	_glide = 1.0
+	_glide_sound()
+	var on_line := _p - _seg_normal(_seg) * _offset(_seg, _p)
+	_start_rescue(_way_back(_p, on_line), _heading, _seg_dir(_seg).angle())
+
+
+func _place_tool(p_at: Vector2, heading_to: float) -> void:
+	_p = p_at
+	_heading = heading_to
+	if _rescue_t <= 0.0:
+		_trail.append(_p)
+		_trail_zone.append(Zone.PERFECT)
 
 
 ## Rotary Cutter: the rule lies along the chalk, so the wheel is drawn onto the line and
@@ -290,6 +315,9 @@ func _update_status() -> void:
 		return
 	var pct := int(_cum[mini(_seg, _cum.size() - 1)] / _total * 100.0)
 	var tip := "%d%% cut" % pct
+	if _caught:
+		_set_status("%s   ·   %s" % [_caught_word(), tip], Style.AMBER)
+		return
 	var col := Style.INK_SOFT
 	if _moving and _pivot_t <= 0.0 and WARNINGS.has(_zone):
 		tip = "%s   ·   %s" % [WARNINGS[_zone], tip]

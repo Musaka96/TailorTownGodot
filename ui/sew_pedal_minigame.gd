@@ -290,12 +290,19 @@ func _process(delta: float) -> void:
 	_steer = move_toward(_steer, Input.get_axis("move_left", "move_right"), STEER_RAMP * delta)
 	_pedal = _read_pedal()
 	_reversing = Input.is_action_pressed("move_back")
+	if _rescue_t > 0.0:
+		_steer = 0.0
+		_pedal = 0.0
+		_tick_rescue(delta)
 	if _pedal > 0.0 and _state == State.READY:
 		_state = State.RUNNING
 	_drive_motor(delta)
-	_aim(delta)
-	if _motor > 0.001:
+	if _rescue_t <= 0.0:
+		_aim(delta)
+	if _motor > 0.001 and _rescue_t <= 0.0:
 		_feed(delta)
+	if _pedal > 0.0 and _rescue_t <= 0.0:
+		_caught = false  # pressed again after being set back
 	if _armed and Input.is_action_just_pressed("interact"):
 		_action()
 	if _state > State.RUNNING:
@@ -436,12 +443,33 @@ func _lay_trail() -> void:
 func _check_edge(step: float) -> void:
 	if not _off_cloth:
 		_off_run = 0.0
+		_clear_slip_run()
 		return
 	_off_run += step
 	if _off_run >= OFF_LEN:
 		_off_run = 0.0
 		_motor = 0.0
 		_register_mistake(_p)
+
+
+## Two slips in a row sewing off the edge: the machine stops, the foot lifts and the
+## cloth is set back with the needle on the seam line. Let go of the pedal, then go on.
+func _catch() -> void:
+	_motor = 0.0
+	_off_cloth = false
+	_off_run = 0.0
+	var on_line := _p - _seg_normal(_seg) * _offset(_seg, _p)
+	_start_rescue(PackedVector2Array([_p, on_line]), _heading, _seg_dir(_seg).angle())
+
+
+func _place_tool(p_at: Vector2, heading_to: float) -> void:
+	_p = p_at
+	_heading = heading_to
+	_track()
+
+
+func _caught_word() -> String:
+	return "Caught it: the needle is back on the seam line. Let go, then carry on"
 
 
 ## The needle reaching a pin still in: a bent needle — unless it's a clip.
@@ -603,6 +631,9 @@ func _update_status() -> void:
 		_set_status(tip, Style.AMBER)
 		return
 	var tip := "%d%% sewn" % int(clampf(_arc() / _total, 0.0, 1.0) * 100.0)
+	if _caught:
+		_set_status("%s   ·   %s" % [_caught_word(), tip], Style.AMBER)
+		return
 	var msg := _situation()
 	var col := Style.AMBER
 	if msg == "" and _off_cloth:

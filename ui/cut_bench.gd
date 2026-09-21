@@ -23,6 +23,10 @@ const SLIP_COST := 0.1
 ## The one-word verdict shown when the piece is done: [lowest quality, word].
 const FINE_WORK := 0.85
 const MAX_MISTAKES := 3
+## Slips in a row before the bench steps in: it stops the tool and sets it back on the
+## line, so one fast dive into the piece can never spoil it on its own (see _catch).
+const RESCUE_AFTER := 2
+const RESCUE_TIME := 0.5
 const CORNER_DEG := 35.0  # a turn sharper than this is a corner the shears pivot at
 const STEP := 0.015  # outline spacing, in shape units (1 unit ≈ 40 cm of cloth)
 const CURVE_SAMPLES := 24
@@ -168,6 +172,11 @@ var _score_sum := 0.0
 var _score_len := 0.0
 var _nicks := PackedVector2Array()
 var _perfect_run := 0.0  # line kept perfect since the last streak beat
+var _slips_in_row := 0  # slips since the tool was last out of trouble
+var _rescue_t := 0.0  # > 0 while the bench is drawing the tool back to the line
+var _rescue_route := PackedVector2Array()
+var _rescue_turn := Vector2.ZERO  # heading from (x) and to (y)
+var _caught := false  # just set back on the line: the status says so until you go on
 
 var _cloth := Style.LINEN
 var _accent := Style.WALNUT
@@ -549,6 +558,80 @@ func _register_mistake(at: Vector2) -> void:
 	_slip_feedback()
 	if _mistakes >= _max_mistakes:
 		_fail()
+		return
+	_slips_in_row += 1
+	if _slips_in_row >= RESCUE_AFTER:
+		_slips_in_row = 0
+		_catch()
+
+
+# --- Safeguard: two slips in a row -----------------------------------------
+
+
+## The tool is out of trouble again (back on the line, or in the allowance): the next slip
+## starts a fresh run.
+func _clear_slip_run() -> void:
+	_slips_in_row = 0
+
+
+## Overridden by the steered variants: stop the tool and set it back on the line (via
+## _start_rescue). A variant with separate strokes can't run away, so it does nothing.
+func _catch() -> void:
+	pass
+
+
+## Overridden: put the tool at `p`, pointing along `heading` (shape space).
+func _place_tool(_p_at: Vector2, _heading_to: float) -> void:
+	pass
+
+
+## The words for "caught you" — the variant knows whether it's shears or a needle.
+func _caught_word() -> String:
+	return "Caught it: the shears are back on the chalk. Let go, then carry on"
+
+
+## Draw the tool along `route` over RESCUE_TIME, turning it from `from_heading` to
+## `to_heading`. It then waits for the player to let go of the button before going on.
+func _start_rescue(route: PackedVector2Array, from_heading: float, to_heading: float) -> void:
+	_rescue_route = route
+	_rescue_turn = Vector2(from_heading, to_heading)
+	_rescue_t = RESCUE_TIME
+	_armed = false
+	_caught = true
+	_perfect_run = 0.0
+	Sfx.play("cloth_rustle", -4.0)
+
+
+func _tick_rescue(delta: float) -> void:
+	_rescue_t = maxf(0.0, _rescue_t - delta)
+	var t := smoothstep(0.0, 1.0, 1.0 - _rescue_t / RESCUE_TIME)
+	_place_tool(_along(_rescue_route, t), lerp_angle(_rescue_turn.x, _rescue_turn.y, t))
+
+
+## Back out of a dive into the piece: along the cut to where it went in (so the retrace
+## sits on the slit already made), then across onto the chalk at `on_line`.
+func _way_back(from: Vector2, on_line: Vector2) -> PackedVector2Array:
+	var i := _trail.size() - 1
+	while i > 0 and _trail_zone[i] == Zone.NICK:
+		i -= 1
+	var entry := _trail[i]
+	_trail.append(entry)
+	_trail_zone.append(Zone.NICK)
+	return PackedVector2Array([from, entry, on_line])
+
+
+## The point `t` (0..1) of the way along a polyline, by length.
+static func _along(route: PackedVector2Array, t: float) -> Vector2:
+	var total := 0.0
+	for i in range(1, route.size()):
+		total += route[i - 1].distance_to(route[i])
+	var want := total * clampf(t, 0.0, 1.0)
+	for i in range(1, route.size()):
+		var leg := route[i - 1].distance_to(route[i])
+		if want <= leg and leg > 0.0:
+			return route[i - 1].lerp(route[i], want / leg)
+		want -= leg
+	return route[route.size() - 1]
 
 
 ## Overridden: silence any loop the variant keeps running.
