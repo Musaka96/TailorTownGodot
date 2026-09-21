@@ -455,7 +455,8 @@ func _build_focus() -> void:
 	hud.add_child(widget)
 
 
-## "Handbook" key pill, bottom-left of the HUD — click it (or press its key) to read.
+## The Newspaper / Orders / Handbook key pills, bottom-left of the HUD — click one (or
+## press its key) to open it.
 func _build_handbook_pill() -> void:
 	var widget := Control.new()
 	widget.name = "HandbookPill"
