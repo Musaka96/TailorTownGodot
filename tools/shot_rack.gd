@@ -65,6 +65,7 @@ func _run() -> void:
 	# 3. Spares: a tweed jacket and a sky shirt.
 	rack.hang(_piece(JACKET, tweed, 0))
 	rack.hang(_piece(SHIRT, oxford, 0))
+	rack.hang(_piece(PANTS, tweed, 0))
 	var kinds: Array[String] = []
 	for hung: Node in rack.stored:
 		kinds.append(String(hung.name))

@@ -26,7 +26,7 @@ const SPARE_FIT := 0.75
 const RAIL_Y := 1.55
 const POST_X := 0.72
 const RAIL_USE := 0.56
-const HOOK_STEP := 0.14
+const HOOK_STEP := 0.16
 const HOOK_Y := RAIL_Y - HangingModel.RAIL_ABOVE
 ## Hanger frame: its +x (the ticket's side) faces the room, its front (+z) runs along the rail.
 const HOOK_TURN := -PI * 0.5

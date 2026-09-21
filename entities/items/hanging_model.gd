@@ -3,25 +3,40 @@ extends RefCounted
 
 ## Garments as they hang on a clothing rack: a wooden hanger with a brass hook, and cloth
 ## cut to each garment's silhouette — a jacket with its sleeves, lapels and buttons, a
-## shirt with its collar, trousers folded over the hanger's bar — built from flat outlines
-## given a little depth, in the order's own cloth (projected, so the weave and pattern sit
-## true on any shape). Simple and cute on purpose; everything is built in code.
+## shirt with its collar, trousers folded over the hanger's bar — in the order's own cloth
+## (projected, so the weave and pattern sit true on any shape). Each outline is rounded
+## off and puffed up like a little cushion: full in the middle, rolling to a soft edge,
+## smooth-shaded. Simple and cute on purpose; everything is built in code.
 ##
 ## The origin is the hook: hung on a rack hook marker, the brass curl sits round a rail
 ## RAIL_ABOVE over it (ClothingRack's rail, RackSway's pivot). The rail runs through the
-## garment front to back (local z), so on a rack they hang side-on, face to face.
+## garment front to back (local z), so on a rack they hang side-on, face to face. The
+## hanger stays inside the cloth: its arms end within the shoulders, and its trouser bar
+## is only there when trousers are, at their layer.
 ##   HangingModel.make({Enums.GarmentType.JACKET: material, ...})
 
 const RAIL_ABOVE := 0.25
-const SHOULDER_Y := 0.13  # where the hanger's arms meet the garment
+const TOP_Y := 0.155  # the hanger's crown, just above a neckline
+const ARM_TIP := Vector2(0.12, 0.11)  # where each arm ends, inside the shoulder
 const BAR_Y := 0.0  # the hanger's lower bar, which trousers fold over
+const BAR_HALF := 0.1
 const CLOTH_SCALE := 3.0  # fabric repeats per metre
-## How the parts layer on one hanger, front to back (z).
+## How the parts layer on one hanger, front to back (z), when several share it.
 const LAYER := {
 	Enums.GarmentType.JACKET: 0.0,
-	Enums.GarmentType.SHIRT: -0.035,
-	Enums.GarmentType.PANTS: -0.07,
+	Enums.GarmentType.SHIRT: -0.04,
+	Enums.GarmentType.PANTS: -0.08,
 }
+## The cushion: half-thickness in the middle, what's left at the rim, and how far in from
+## the rim the roll reaches (m); SMOOTH passes of corner rounding on each outline.
+const PUFF := {
+	Enums.GarmentType.JACKET: 0.022,
+	Enums.GarmentType.SHIRT: 0.017,
+	Enums.GarmentType.PANTS: 0.018,
+}
+const RIM_SHARE := 0.25
+const ROLL := 0.016
+const SMOOTH := 2
 
 ## Outlines (x across, y up, metres; the hook is the origin).
 const JACKET := [
@@ -62,21 +77,26 @@ const PANTS := [
 	Vector2(-0.025, -0.5),
 	Vector2(-0.13, -0.5),
 ]
-const LAPEL_L := [Vector2(-0.045, 0.14), Vector2(0.0, -0.1), Vector2(-0.075, 0.0)]
-const COLLAR_L := [Vector2(-0.05, 0.15), Vector2(0.0, 0.1), Vector2(-0.06, 0.06)]
+const LAPEL_L := [Vector2(-0.045, 0.135), Vector2(-0.004, -0.09), Vector2(-0.07, 0.0)]
+const COLLAR_L := [Vector2(-0.05, 0.148), Vector2(-0.004, 0.1), Vector2(-0.06, 0.065)]
 
 
-## A hanger carrying `parts` (GarmentType -> MaterialType, or a plain Material), each at
-## its layer. `hanger` false leaves the hanger out (a GarmentSet draws its own).
+## A hanger carrying `parts` (GarmentType -> MaterialType, or a plain Material). Several
+## parts layer front to back; one alone hangs square on its hanger. `hanger` false leaves
+## the hanger out (a GarmentSet draws its own).
 static func make(parts: Dictionary, hanger := true) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Hanging"
+	var layered := parts.size() > 1
 	if hanger:
-		root.add_child(make_hanger())
+		var bar := NAN
+		if parts.has(Enums.GarmentType.PANTS):
+			bar = LAYER[Enums.GarmentType.PANTS] if layered else 0.0
+		root.add_child(make_hanger(bar))
 	for t: int in [Enums.GarmentType.PANTS, Enums.GarmentType.SHIRT, Enums.GarmentType.JACKET]:
 		if parts.has(t):
 			var g := garment(t, parts[t])
-			g.position.z = LAYER[t]
+			g.position.z = LAYER[t] if layered else 0.0
 			root.add_child(g)
 	return root
 
@@ -84,42 +104,49 @@ static func make(parts: Dictionary, hanger := true) -> Node3D:
 ## One garment's cloth (no hanger), at z = 0.
 static func garment(garment_type: int, cloth: Variant) -> Node3D:
 	var mat := _cloth(cloth)
+	var puff: float = PUFF.get(garment_type, 0.018)
 	var node := Node3D.new()
 	match garment_type:
 		Enums.GarmentType.JACKET:
-			node.add_child(_slab(JACKET, 0.06, mat))
+			node.add_child(_cushion(JACKET, puff, mat))
 			for side: float in [-1.0, 1.0]:
-				var lapel := _slab(_mirror(LAPEL_L, side), 0.012, mat)
-				lapel.position.z = 0.034
+				var lapel := _cushion(_mirror(LAPEL_L, side), 0.005, mat, 0.006)
+				lapel.position.z = puff * 0.8
 				node.add_child(lapel)
 			for y: float in [-0.19, -0.28]:
-				node.add_child(_ball(Vector3(0.022, y, 0.033), 0.011, _flat(Style.WALNUT)))
+				node.add_child(_ball(Vector3(0.022, y, puff + 0.002), 0.01, _flat(Style.WALNUT)))
 		Enums.GarmentType.SHIRT:
-			node.add_child(_slab(SHIRT, 0.05, mat))
+			node.add_child(_cushion(SHIRT, puff, mat))
 			for side: float in [-1.0, 1.0]:
-				var collar := _slab(_mirror(COLLAR_L, side), 0.012, mat)
-				collar.position.z = 0.03
+				var collar := _cushion(_mirror(COLLAR_L, side), 0.005, mat, 0.006)
+				collar.position.z = puff * 0.8
 				node.add_child(collar)
 			for y: float in [0.02, -0.1, -0.22, -0.34]:
-				node.add_child(_ball(Vector3(0.0, y, 0.027), 0.007, _flat(Style.CREAM)))
+				node.add_child(_ball(Vector3(0.0, y, puff + 0.001), 0.006, _flat(Style.CREAM)))
 		_:
-			node.add_child(_slab(PANTS, 0.05, mat))
+			node.add_child(_cushion(PANTS, puff, mat))
 	return node
 
 
-## The hanger: two sloping wooden arms, the lower bar trousers fold over, and a brass hook
-## whose curl sits round the rail above.
-static func make_hanger() -> Node3D:
+## The hanger: two sloping wooden arms that end inside the shoulders, a brass stem and a
+## curl that sits round the rail. With `bar_z` (not NAN) it also has the lower bar that
+## trousers fold over, at that layer, joined to the arms.
+static func make_hanger(bar_z: float = NAN) -> Node3D:
 	var wood := _flat(Style.BROWN)
 	var brass := _flat(Style.BRASS, 0.5, 0.35)
 	var h := Node3D.new()
 	h.name = "Hanger"
-	var top := Vector3(0.0, SHOULDER_Y + 0.02, 0.0)
+	var top := Vector3(0.0, TOP_Y, 0.0)
 	for side: float in [-1.0, 1.0]:
-		var tip := Vector3(0.17 * side, SHOULDER_Y - 0.03, 0.0)
-		h.add_child(_rod(top, tip, 0.012, wood))
-		h.add_child(_rod(tip, Vector3(0.15 * side, BAR_Y, 0.0), 0.007, wood))
-	h.add_child(_rod(Vector3(-0.15, BAR_Y, 0.0), Vector3(0.15, BAR_Y, 0.0), 0.006, wood))
+		var tip := Vector3(ARM_TIP.x * side, ARM_TIP.y, 0.0)
+		h.add_child(_rod(top, tip, 0.01, wood))
+		# The side struts only when the bar shares the arms' plane (trousers alone): behind a
+		# shirt they would cross it, and the bar sits hidden in the trousers' fold anyway.
+		if not is_nan(bar_z) and is_zero_approx(bar_z):
+			h.add_child(_rod(tip, Vector3(BAR_HALF * side, BAR_Y, bar_z), 0.006, wood))
+	if not is_nan(bar_z):
+		var a := Vector3(-BAR_HALF, BAR_Y, bar_z)
+		h.add_child(_rod(a, Vector3(BAR_HALF, BAR_Y, bar_z), 0.006, wood))
 	h.add_child(_rod(top, Vector3(0.0, RAIL_ABOVE - 0.03, 0.0), 0.005, brass))
 	var curl := MeshInstance3D.new()
 	var ring := TorusMesh.new()
@@ -138,54 +165,128 @@ static func make_hanger() -> Node3D:
 # --- Building blocks ---------------------------------------------------------
 
 
-## A flat outline given `depth`, centred on z = 0: front, back and edge walls. Triangles
-## are wound so their fronts face out, whatever way round the outline was drawn.
-static func _slab(outline: Array, depth: float, mat: Material) -> MeshInstance3D:
-	var pts := PackedVector2Array(outline)
-	if _area(pts) < 0.0:
-		pts.reverse()
+## The outline, rounded off and puffed: the middle (the outline pulled in by `roll`) is
+## `puff` thick either side, rolling down to a rim `puff * RIM_SHARE` thick at the edge.
+## Shared vertices and generated normals make it read as soft cloth, not a cut board.
+static func _cushion(outline: Array, puff: float, mat: Material, roll := ROLL) -> MeshInstance3D:
+	var outer := _rounded(PackedVector2Array(outline))
+	if _area(outer) < 0.0:
+		outer.reverse()
+	var inner := _inset(outer, roll)
+	var tris := Geometry2D.triangulate_polygon(inner)
+	if tris.is_empty():  # too slim to roll: a plain rounded slab
+		inner = outer
+		tris = Geometry2D.triangulate_polygon(outer)
+	var rim := puff * RIM_SHARE
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var hz := depth * 0.5
-	var tris := Geometry2D.triangulate_polygon(pts)
-	for i in range(0, tris.size(), 3):
-		var a := pts[tris[i]]
-		var b := pts[tris[i + 1]]
-		var c := pts[tris[i + 2]]
-		for z: float in [hz, -hz]:
+	var n := outer.size()
+	for face: float in [1.0, -1.0]:
+		var zc := puff * face
+		var zr := rim * face
+		for i in range(0, tris.size(), 3):
 			_tri(
 				st,
-				Vector3(a.x, a.y, z),
-				Vector3(b.x, b.y, z),
-				Vector3(c.x, c.y, z),
-				Vector3(0, 0, signf(z))
+				_v(inner[tris[i]], zc),
+				_v(inner[tris[i + 1]], zc),
+				_v(inner[tris[i + 2]], zc),
+				face
 			)
-	for i in pts.size():
-		var a := pts[i]
-		var b := pts[(i + 1) % pts.size()]
-		var out := Vector3(b.y - a.y, a.x - b.x, 0.0).normalized()
-		var af := Vector3(a.x, a.y, hz)
-		var bf := Vector3(b.x, b.y, hz)
-		var ab := Vector3(a.x, a.y, -hz)
-		var bb := Vector3(b.x, b.y, -hz)
-		_tri(st, af, bf, bb, out)
-		_tri(st, af, bb, ab, out)
+		for i in n:
+			var j := (i + 1) % n
+			var o1 := _v(outer[i], zr)
+			var o2 := _v(outer[j], zr)
+			var i1 := _v(inner[i], zc)
+			var i2 := _v(inner[j], zc)
+			_quad(st, o1, o2, i2, i1, _out(outer[i], outer[j]), face)
+	for i in n:
+		var j := (i + 1) % n
+		var out := _out(outer[i], outer[j])
+		_quad(
+			st,
+			_v(outer[i], rim),
+			_v(outer[j], rim),
+			_v(outer[j], -rim),
+			_v(outer[i], -rim),
+			out,
+			0.0
+		)
+	st.index()
+	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = mat
 	return mi
 
 
-## Add a triangle facing along `normal` (Godot's fronts are clockwise seen from outside).
-static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, normal: Vector3) -> void:
-	if (b - a).cross(c - a).dot(normal) > 0.0:
+static func _v(p: Vector2, z: float) -> Vector3:
+	return Vector3(p.x, p.y, z)
+
+
+## The outward normal of edge a→b of a counter-clockwise outline.
+static func _out(a: Vector2, b: Vector2) -> Vector2:
+	return Vector2(b.y - a.y, a.x - b.x).normalized()
+
+
+## A quad a-b-c-d facing roughly `out` sideways and `face` towards ±z.
+static func _quad(
+	st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vector2, face: float
+) -> void:
+	var toward := Vector3(out.x, out.y, face).normalized()
+	_tri_toward(st, a, b, c, toward)
+	_tri_toward(st, a, c, d, toward)
+
+
+static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, face: float) -> void:
+	_tri_toward(st, a, b, c, Vector3(0.0, 0.0, face))
+
+
+## Add a triangle whose front faces along `toward` (Godot's fronts are clockwise seen from
+## outside). No normals are set: they're generated smooth once the mesh is indexed.
+static func _tri_toward(
+	st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, toward: Vector3
+) -> void:
+	if (b - a).cross(c - a).dot(toward) > 0.0:
 		var swap := b
 		b = c
 		c = swap
 	for v: Vector3 in [a, b, c]:
-		st.set_normal(normal)
 		st.set_uv(Vector2(v.x, -v.y))
 		st.add_vertex(v)
+
+
+## Round every corner (Chaikin's corner cutting), SMOOTH times.
+static func _rounded(pts: PackedVector2Array) -> PackedVector2Array:
+	var out := pts
+	for _pass in SMOOTH:
+		var next := PackedVector2Array()
+		for i in out.size():
+			var a := out[i]
+			var b := out[(i + 1) % out.size()]
+			next.append(a.lerp(b, 0.25))
+			next.append(a.lerp(b, 0.75))
+		out = next
+	return out
+
+
+## The outline pulled in by `d` along each corner's bisector (one point for each point, so
+## the roll between the two can be stitched). Sharp inside corners are held back so the
+## pulled-in outline never folds over itself.
+static func _inset(pts: PackedVector2Array, d: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var n := pts.size()
+	for i in n:
+		var prev := pts[(i - 1 + n) % n]
+		var cur := pts[i]
+		var next := pts[(i + 1) % n]
+		var n1 := -_out(prev, cur)
+		var n2 := -_out(cur, next)
+		var bis := (n1 + n2).normalized()
+		if bis == Vector2.ZERO:
+			bis = n1
+		var miter := d / maxf(bis.dot(n1), 0.5)
+		out.append(cur + bis * miter)
+	return out
 
 
 static func _area(pts: PackedVector2Array) -> float:

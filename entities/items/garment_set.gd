@@ -11,8 +11,8 @@ extends Node3D
 
 ## How the parts layer on the one hanger: shirt at the back, trousers, jacket in front.
 const LAYER := {
-	Enums.GarmentType.SHIRT: Vector3(0.0, 0.0, -0.035),
-	Enums.GarmentType.PANTS: Vector3(0.0, 0.0, -0.07),
+	Enums.GarmentType.SHIRT: Vector3(0.0, 0.0, HangingModel.LAYER[Enums.GarmentType.SHIRT]),
+	Enums.GarmentType.PANTS: Vector3(0.0, 0.0, HangingModel.LAYER[Enums.GarmentType.PANTS]),
 	Enums.GarmentType.JACKET: Vector3.ZERO,
 }
 ## Where the paper ticket hangs, from the hook: above the rail and toward the room (the
@@ -35,7 +35,8 @@ func _init() -> void:
 		anchor.set_meta(GarmentPiece.HOOK_META, false)  # the parts share the set's hanger
 		add_child(anchor)
 		_anchors[t] = anchor
-	add_child(HangingModel.make_hanger())
+	# One hanger for the lot, with its trouser bar at the trousers' layer.
+	add_child(HangingModel.make_hanger(LAYER[Enums.GarmentType.PANTS].z))
 	_ticket = Label3D.new()
 	_ticket.position = TICKET_AT
 	_ticket.billboard = BaseMaterial3D.BILLBOARD_ENABLED
