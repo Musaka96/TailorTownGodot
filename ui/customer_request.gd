@@ -141,6 +141,9 @@ func _fill() -> void:
 	else:
 		_title.text = pref.display_name
 		var lines := PackedStringArray([pref.describe(), "Budget: $%d" % pref.budget])
+		var taste: String = pref.taste_line()
+		if taste != "":
+			lines.append('"%s"' % taste)
 		lines.append_array(pref.tags())
 		var reason: String = FrontDesk.infeasible_reason(pref)
 		if reason != "":

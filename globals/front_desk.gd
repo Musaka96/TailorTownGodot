@@ -278,6 +278,7 @@ func season_brief(pref: CustomerPreference) -> void:
 	elif _rng.randf() < PICKY_CHANCE[st]:
 		pref.picky = true
 		pref.budget = int(round(pref.budget * 0.85 / 5.0)) * 5
+	pref.roll_taste(_rng)  # last: the brief is final, and the taste picks from what it allows
 
 
 ## A due day the shop can realistically meet for an order of `parts` pieces.
@@ -321,6 +322,8 @@ func book_appointment(cust: Node) -> int:
 				"budget": pref.budget,
 				"rush": pref.rush,
 				"picky": pref.picky,
+				"likes": pref.likes_color,
+				"dislikes": pref.dislikes_color,
 			}
 		)
 	)

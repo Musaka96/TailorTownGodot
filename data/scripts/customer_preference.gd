@@ -7,6 +7,30 @@ extends Resource
 ## fixed colour/pattern the customer names outright. Generated at runtime by the
 ## CustomerManager.
 
+## How many customers voice a colour, and of those, how many as a like.
+const TASTE_CHANCE := 0.6
+const LIKE_SHARE := 0.5
+## How many voiced tastes are about the shirt rather than the suit.
+const SHIRT_TASTE := 0.35
+## The colours nearly everyone makes by default: a dislike lands on one of them more
+## often than not (navy, charcoal; the white shirt).
+const USUAL_SUIT := [0, 1]
+const USUAL_SHIRT := [10]
+const USUAL_DISLIKE := 0.7
+## What they say about a colour, by kind; one is picked per customer by their name.
+const SAY_SUIT_LIKE := [
+	"I've always fancied a %s suit.",
+	"%s, if you can manage it.",
+	"Something in %s. My brother has one.",
+]
+const SAY_SUIT_DISLIKE := [
+	"Anything but %s.",
+	"No %s. I've three already.",
+	"Not %s. I look like a bus conductor in it.",
+]
+const SAY_SHIRT_LIKE := ["A %s shirt, I thought.", "Could the shirt be %s?"]
+const SAY_SHIRT_DISLIKE := ["No %s shirts. I wear them all week.", "Not a %s shirt, please."]
+
 const FIRST_NAMES := [
 	"Mr. Ellison",
 	"Ms. Portobello",
@@ -53,6 +77,13 @@ const FIRST_NAMES := [
 @export var picky := false
 ## How they came in: "" walk-in, "appointment", "referral" (sent by the rival tailor).
 @export var arrival := ""
+## A colour they ask for (global MaterialFactory index), or -1. Not required: they
+## take a suit without it, but they tip for it (Config liked_tip_share).
+@export var likes_color := -1
+## A colour they won't wear whatever the occasion allows, or -1. A suit or shirt in it
+## is refused. Suit colours (below SUIT_COLOR_COUNT) mean the jacket and trousers;
+## shirtings mean the shirt.
+@export var dislikes_color := -1
 
 
 ## A random shopper's brief: an occasion, a style, and a budget for the shop's current
@@ -68,6 +99,105 @@ static func random_pref(rng: RandomNumberGenerator, regular := "") -> CustomerPr
 		p.regular_level = Clientele.loyalty(regular)
 		p.budget = int(round(p.budget * Clientele.budget_mult(regular) / 5.0)) * 5
 	return p
+
+
+## Give them a colour to voice, or none. Call it once the brief is final (after any
+## event or season has changed the occasion), since it picks from what the brief allows:
+## a like is always a colour the dress code takes, and a dislike always leaves another.
+func roll_taste(rng: RandomNumberGenerator) -> void:
+	likes_color = -1
+	dislikes_color = -1
+	if rng.randf() >= TASTE_CHANCE:
+		return
+	var shirt := rng.randf() < SHIRT_TASTE
+	var pool := _taste_pool(shirt)
+	if pool.is_empty():
+		return
+	var usual: Array = USUAL_SHIRT if shirt else USUAL_SUIT
+	if rng.randf() < LIKE_SHARE or pool.size() < 2:
+		# A like steers away from the usual, when the brief leaves any room to.
+		var fresh := pool.filter(func(c: int) -> bool: return not c in usual)
+		var from: Array = fresh if not fresh.is_empty() else pool
+		likes_color = int(from[rng.randi() % from.size()])
+		return
+	var common := pool.filter(func(c: int) -> bool: return c in usual)
+	var from: Array = common if not common.is_empty() and rng.randf() < USUAL_DISLIKE else pool
+	dislikes_color = int(from[rng.randi() % from.size()])
+
+
+## The colours the brief takes for the suit (the jacket's rule) or the shirt.
+func _taste_pool(shirt: bool) -> Array:
+	var pool: Array = []
+	if shirt:
+		pool = DressCode.shirt_colors(occasion, style).duplicate()
+		if pool.is_empty():
+			pool = Array(MaterialFactory.colors_for(Enums.GarmentType.SHIRT))
+	else:
+		var rule: DressRule = (
+			Catalog.dress_code.rule_for(occasion, style) if Catalog.dress_code != null else null
+		)
+		if rule != null:
+			pool = rule.allowed_colors.duplicate()
+		if pool.is_empty():
+			pool = Array(MaterialFactory.colors_for(Enums.GarmentType.JACKET))
+	return pool
+
+
+## Whether a colour index is a shirting (else a suiting).
+static func is_shirting(color: int) -> bool:
+	return color >= MaterialFactory.SUIT_COLOR_COUNT
+
+
+## What they say about colour at the counter, or "".
+func taste_line() -> String:
+	var color := likes_color if likes_color >= 0 else dislikes_color
+	if color < 0:
+		return ""
+	var shirt := is_shirting(color)
+	var says: Array = SAY_SUIT_LIKE
+	if likes_color >= 0:
+		says = SAY_SHIRT_LIKE if shirt else SAY_SUIT_LIKE
+	else:
+		says = SAY_SHIRT_DISLIKE if shirt else SAY_SUIT_DISLIKE
+	var line: String = says[absi(display_name.hash()) % says.size()]
+	var word := MaterialFactory.color_name(color).to_lower()
+	line = line % word
+	return line.substr(0, 1).to_upper() + line.substr(1)
+
+
+## The taste in a few words for the design screen: "wants burgundy", "no navy shirt".
+func taste_short() -> String:
+	var color := likes_color if likes_color >= 0 else dislikes_color
+	if color < 0:
+		return ""
+	var word := MaterialFactory.color_name(color).to_lower()
+	var what := " shirt" if is_shirting(color) else ""
+	if likes_color >= 0:
+		return "Would like %s%s" % [word, what]
+	return "No %s%s" % [word, what]
+
+
+## Their dislike broken by this design: what they say, or "".
+func taste_reason(design: Dictionary) -> String:
+	if dislikes_color < 0:
+		return ""
+	var parts: Array = [Enums.GarmentType.SHIRT]
+	if not is_shirting(dislikes_color):
+		parts = [Enums.GarmentType.JACKET, Enums.GarmentType.PANTS]
+	for t: int in parts:
+		var spec: Dictionary = design.get(t, {})
+		if int(spec.get("color", -1)) == dislikes_color:
+			return "not %s. I did say." % MaterialFactory.color_name(dislikes_color).to_lower()
+	return ""
+
+
+## Whether the design gives them the colour they asked for.
+func likes_met(design: Dictionary) -> bool:
+	if likes_color < 0:
+		return false
+	var part := Enums.GarmentType.SHIRT if is_shirting(likes_color) else Enums.GarmentType.JACKET
+	var spec: Dictionary = design.get(part, {})
+	return int(spec.get("color", -1)) == likes_color
 
 
 static func _fresh_name(rng: RandomNumberGenerator) -> String:
@@ -114,8 +244,20 @@ func hint() -> String:
 	return ""
 
 
-## Judge a proposed design against the brief + budget (delegates to DressCode).
+## Judge a proposed design against the brief + budget (DressCode), then against their
+## own taste: a disliked colour is the first thing they mention. "liked" says whether the
+## colour they asked for is in it.
 func evaluate(design: Dictionary) -> Dictionary:
+	var out := {"suitable": false, "quote": Pricing.suit_quote(design), "reason": "…"}
+	out["reasons"] = [] as Array[String]
 	if Catalog.dress_code != null:
-		return Catalog.dress_code.evaluate(occasion, style, design, budget)
-	return {"suitable": false, "quote": Pricing.suit_quote(design), "reason": "…", "reasons": []}
+		out = Catalog.dress_code.evaluate(occasion, style, design, budget)
+	var reasons: Array[String] = out.get("reasons", [] as Array[String])
+	var dislike := taste_reason(design)
+	if dislike != "":
+		reasons.push_front(dislike)
+		out["suitable"] = false
+		out["reason"] = "Not quite: " + dislike
+	out["reasons"] = reasons
+	out["liked"] = likes_met(design)
+	return out

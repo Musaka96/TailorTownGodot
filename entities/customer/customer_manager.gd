@@ -362,6 +362,8 @@ func _pref_from_appointment(a: Dictionary) -> CustomerPreference:
 	p.budget = int(a.get("budget", 400))
 	p.rush = bool(a.get("rush", false))
 	p.picky = bool(a.get("picky", false))
+	p.likes_color = int(a.get("likes", -1))
+	p.dislikes_color = int(a.get("dislikes", -1))
 	p.regular_level = Clientele.loyalty(p.display_name) if Clientele != null else 0
 	p.arrival = "appointment"
 	return p

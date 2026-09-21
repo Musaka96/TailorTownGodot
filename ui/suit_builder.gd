@@ -542,9 +542,9 @@ func _refresh() -> void:
 		var rush := ""
 		if _pref.rush:
 			rush = "  + rush $%d" % _rush_extra(int(q["total"]))
-		_brief_label.text = (
-			"For: %s   ·   Budget $%d%s" % [_pref.describe(), _pref.budget, _status]
-		)
+		var taste: String = _pref.taste_short()
+		var brief: String = _pref.describe() + ("   ·   " + taste if taste != "" else "")
+		_brief_label.text = "For: %s   ·   Budget $%d%s" % [brief, _pref.budget, _status]
 		var working := "Cloth $%d + Craft $%d%s" % [q["cloth"], q["craft"], rush]
 		_show_total(working, int(q["total"]), over)
 	else:
@@ -767,7 +767,7 @@ func _confirm() -> void:
 		var verdict := "happy: E to take the order" if suitable else "not quite"
 		_status = "     %s is %s" % [_pref.display_name, verdict]
 		_awaiting = suitable
-		_start_reaction(suitable, reaction.get("reasons", []))
+		_start_reaction(suitable, reaction.get("reasons", []), reaction.get("liked", false))
 		_refresh()
 		return
 	# Second E finalises: create the order and send the customer on their way.
@@ -775,12 +775,15 @@ func _confirm() -> void:
 
 
 ## Ease the camera out to the customer's face and let them answer in a bubble.
-func _start_reaction(suitable: bool, reasons: Array) -> void:
+func _start_reaction(suitable: bool, reasons: Array, liked := false) -> void:
 	_end_reaction()
 	if _customer == null or not is_instance_valid(_customer):
 		return
 	var lines := PackedStringArray()
-	if suitable:
+	if suitable and liked:
+		lines.append("%s! Just as I asked." % MaterialFactory.color_name(_pref.likes_color))
+		lines.append("Press E to agree the order.")
+	elif suitable:
 		lines.append("Perfect. I'll take it!")
 		lines.append("Press E to agree the order.")
 	else:
@@ -814,6 +817,7 @@ func _finalize() -> void:
 	var hair: int = _customer.hair_index if _customer != null else 0
 	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
 	var flags := {"rush": _pref.rush, "picky": _pref.picky, "occasion": int(_pref.occasion)}
+	flags["liked"] = _pref.likes_met(_design)
 	if _customer != null:
 		flags["coffee"] = float(_customer.get("coffee"))  # welcomed with a cup
 	var order := Orders.create_order(
@@ -863,7 +867,7 @@ func _acceptable_design() -> Dictionary:
 		rule = Catalog.dress_code.rule_for(_pref.occasion, _pref.style)
 	if rule != null:
 		if not rule.allowed_colors.is_empty():
-			color = int(rule.allowed_colors[0])
+			color = _taste_pick(rule.allowed_colors, color)
 		fabric = _cheapest_fabric(rule.allowed_fabrics)
 		if rule.require_pattern:
 			for p in rule.allowed_patterns:
@@ -874,18 +878,32 @@ func _acceptable_design() -> Dictionary:
 			pattern = int(rule.allowed_patterns[0])
 	var design := {}
 	for t in PARTS:
-		# The brief only judges the jacket, so give the shirt a sensible shirting
-		# default rather than forcing a suiting fabric/colour onto it.
+		# The shirt from its own row of the dress code, never a suiting cloth or colour.
 		if t == Enums.GarmentType.SHIRT:
+			var cols := DressCode.shirt_colors(_pref.occasion, _pref.style)
+			var pats := DressCode.shirt_patterns(_pref.occasion, _pref.style)
+			if cols.is_empty():
+				cols = Array(MaterialFactory.colors_for(t))
 			design[t] = {
 				"fabric": _available_fabrics(t)[0],
-				"color": MaterialFactory.colors_for(t)[0],
-				"pattern": Enums.patterns_for(t)[0],
+				"color": _taste_pick(cols, int(cols[0])),
+				"pattern": int(pats[0]) if not pats.is_empty() else Enums.patterns_for(t)[0],
 				"style_idx": 0,
 			}
 		else:
 			design[t] = {"fabric": fabric, "color": color, "pattern": pattern, "style_idx": 0}
 	return design
+
+
+## From `allowed`: the colour the customer asked for if it's there, else the first one
+## they haven't turned down.
+func _taste_pick(allowed: Array, fallback: int) -> int:
+	if _pref.likes_color in allowed:
+		return _pref.likes_color
+	for c in allowed:
+		if int(c) != _pref.dislikes_color:
+			return int(c)
+	return fallback
 
 
 ## Cheapest fabric among `allowed` (or all fabrics if unrestricted), restricted to what

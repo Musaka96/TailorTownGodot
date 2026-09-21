@@ -73,6 +73,8 @@ extends Resource
 ## earns a little standing. Kept waiting with one, their patience starts over and drains
 ## at this rate, and a stranger is this much likelier to agree to call tomorrow.
 @export var coffee_tip_share: float = 0.06
+## Extra tip (share of the price) when the suit is in the colour the customer asked for.
+@export var liked_tip_share: float = 0.08
 @export var coffee_rep: int = 2
 @export var coffee_patience_drain: float = 0.5
 @export var coffee_goodwill: float = 0.25

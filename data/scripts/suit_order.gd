@@ -40,6 +40,8 @@ const COLOR_TOLERANCE := 0.14
 @export var rush := false
 ## A picky client: full pay only for near-perfect work, but double tips.
 @export var picky := false
+## Made in the colour they asked for (CustomerPreference.likes_color): a bigger tip.
+@export var liked := false
 ## The city event (NewsEvent id) this suit is meant to be worn at, "" if none. Set when
 ## the order is taken during an event's run-up for its occasion; the due day is capped
 ## at the event, and the collected suit is judged for the paper's "best suit spotted".
@@ -163,6 +165,8 @@ func payout_breakdown() -> Dictionary:
 	# Welcomed with a coffee: a small thank-you, however the suit turned out.
 	var thanks: float = Config.data.coffee_tip_share if Config.data != null else 0.06
 	tip += price * thanks * coffee
+	if liked:
+		tip += price * (Config.data.liked_tip_share if Config.data != null else 0.08)
 	if late:
 		var share: float = Config.data.late_pay if Config.data != null else 0.75
 		base *= share

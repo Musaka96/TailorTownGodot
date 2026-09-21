@@ -73,6 +73,7 @@ func create_order(
 	order.hair_color = hair_color
 	order.rush = bool(flags.get("rush", false))
 	order.picky = bool(flags.get("picky", false))
+	order.liked = bool(flags.get("liked", false))
 	order.coffee = float(flags.get("coffee", 0.0))
 	if FrontDesk != null:
 		# A due day the shop can realistically meet (rush orders: tomorrow).
@@ -265,6 +266,7 @@ func save_state() -> Array:
 					"late": order.late,
 					"rush": order.rush,
 					"picky": order.picky,
+					"liked": order.liked,
 					"coffee": order.coffee,
 					"event_id": order.event_id,
 					"state": order.state,
@@ -299,6 +301,7 @@ func restore(saved: Array) -> void:
 		order.late = bool(d.get("late", false))
 		order.rush = bool(d.get("rush", false))
 		order.picky = bool(d.get("picky", false))
+		order.liked = bool(d.get("liked", false))
 		order.coffee = float(d.get("coffee", 0.0))
 		order.event_id = str(d.get("event_id", ""))
 		order.state = int(d.get("state", SuitOrder.State.OPEN))
