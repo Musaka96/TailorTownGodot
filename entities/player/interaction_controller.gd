@@ -5,6 +5,12 @@ extends Area3D
 ## EventBus), and triggers it on the "interact" action.
 
 const OUTLINE_SHADER := preload("res://assets/shaders/interact_outline.gdshader")
+## Line of sight is checked this high off the floor: over counters, tables and benches,
+## into the walls. A wall between you and a station means you can't reach it.
+const SIGHT_HEIGHT := 1.2
+const WORLD_MASK := 1  # walls sit on layer 1 (with floors and furniture; see _is_wall)
+const SIGHT_HITS := 6  # furniture the sight line looks past before giving up
+const SIGHT_SHORT := 0.4  # the sight line ends this far short of the target (m)
 
 @export var player_path: NodePath
 
@@ -43,10 +49,53 @@ func _find_nearest() -> Interactable:
 			if Tutorial != null and Tutorial.blocks(area.target):
 				continue
 			var d := global_position.distance_squared_to(area.global_position)
-			if d < best_dist:
+			if d < best_dist and _in_sight(area):
 				best_dist = d
 				best = area
 	return best
+
+
+## True unless something solid (a wall, most often) stands between the player and `area`
+## at chest height — so nothing inside the shop can be used from the pavement outside.
+func _in_sight(area: Interactable) -> bool:
+	var body := _player as Node3D
+	if body == null:
+		return true
+	var from := body.global_position
+	from.y += SIGHT_HEIGHT
+	var to := area.global_position
+	to.y = from.y
+	var gap := from.distance_to(to)
+	if gap <= SIGHT_SHORT:
+		return true
+	# Stop just short: a thing set down against a wall has its middle inside the wall's
+	# thick collider, and must still be reachable from the room side.
+	to = from.move_toward(to, gap - SIGHT_SHORT)
+	var query := PhysicsRayQueryParameters3D.create(from, to, WORLD_MASK)
+	var skip: Array[RID] = []
+	if body is CollisionObject3D:
+		skip.append((body as CollisionObject3D).get_rid())
+	var space := get_world_3d().direct_space_state
+	# Look past furniture (up to a few pieces) for a wall behind it.
+	for _i in SIGHT_HITS:
+		query.exclude = skip
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			return true
+		if _is_wall(hit["collider"] as Node):
+			return false
+		skip.append(hit["rid"])
+	return true
+
+
+## Only the building's shell blocks: the shops' wall bodies ("Walls", "Wall…") and the bar
+## across the door. Furniture, stations, rubble and customers never do, so you can always
+## reach over a counter or round your own shelf.
+func _is_wall(node: Node) -> bool:
+	if node == null:
+		return false
+	var nm := String(node.name)
+	return nm.begins_with("Wall") or nm == "DoorBar"
 
 
 func _set_current(interactable: Interactable) -> void:
