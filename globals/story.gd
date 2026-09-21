@@ -108,16 +108,17 @@ const LETTERS := {
 		"title": "A letter, arrived before you did",
 		"note":
 		(
-			"It was on the mat when you turned the key, so he must have posted it the day you "
-			+ "wrote to him."
+			"It was on the mat when you turned the key. He must have posted it while you were "
+			+ "still at Hemming's."
 		),
 		"body":
 		(
 			"My dear one. So you are going to open it up again. I will not pretend I am not "
 			+ "pleased, but I will not pretend it is a kindness either: that shop is damp, the "
 			+ "roof went in the year I left, and the workroom is nailed shut for a reason.\n\n"
-			+ "Go and see Hemming on the Row before you touch anything. He learned at my bench "
-			+ "and he owes me nothing, which is exactly why he will teach you properly.\n\n"
+			+ "Hemming will have shown you the trade by now. He learned it at my bench and owes "
+			+ "me nothing, which is why he will have shown you properly. Whatever he said about "
+			+ "my benches, pay it no mind.\n\n"
 			+ "Start with the front room. A shop that can take one order is a shop.\n\n"
 			+ "— Pops"
 		),
