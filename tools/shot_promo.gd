@@ -266,6 +266,14 @@ func _shot_reaction() -> void:
 	builder._confirm()
 	await _wait(150)
 	_save("reaction_no")
+	# The same bubble with no room at either shoulder: it sits over the head instead.
+	var bubble: Control = builder._bubble
+	if bubble != null:
+		var vp: Vector2 = bubble.get_viewport_rect().size
+		bubble.bounds = Rect2(Vector2(vp.x * 0.12, 0.0), Vector2(vp.x * 0.4, vp.y))
+		builder._reaction_t = 10.0
+		await _wait(20)
+		_save("reaction_above")
 	_dress_for_reaction(builder, 0)  # plain: accepted
 	builder._confirm()
 	await _wait(70)

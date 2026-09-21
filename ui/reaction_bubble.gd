@@ -12,6 +12,7 @@ const BADGE := 46.0
 const GAP := 70.0  # px from the head to the bubble's near edge
 const CLEAR := 36.0  # the bubble's near edge never comes closer to the head's centre
 const EDGE := 16.0  # keep this far inside the screen / the panel
+const TAIL_DROP := 18.0  # how far the tail hangs below a bubble sat over the head
 
 var target: Node3D
 var head_height := 1.8
@@ -110,7 +111,7 @@ func _follow() -> void:
 	if at.x < head.x + CLEAR:
 		at.x = head.x - GAP - box.x
 		if at.x < area.position.x + EDGE:
-			at = Vector2(head.x - box.x * 0.5, head.y - box.y - GAP)
+			at = Vector2(head.x - box.x * 0.5, head.y - box.y - TAIL_DROP - 6.0)
 	at.x = clampf(at.x, area.position.x + EDGE, maxf(area.position.x, area.end.x - box.x - EDGE))
 	at.y = clampf(at.y, area.position.y + EDGE, maxf(area.position.y, area.end.y - box.y - EDGE))
 	global_position = at
@@ -125,18 +126,22 @@ func _draw_tail() -> void:
 		return
 	var head: Vector2 = _tail.get_meta("head") - global_position
 	var pts := PackedVector2Array()
-	if head.y > size.y and head.x > 0.0 and head.x < size.x:
-		# Sitting above the head: the wedge hangs from the bottom edge.
-		var root := Vector2(clampf(head.x, 24.0, size.x - 24.0), size.y)
-		pts = PackedVector2Array(
-			[root + Vector2(-12, 0), root.lerp(head, 0.5), root + Vector2(12, 0)]
-		)
+	if head.y > size.y * 0.5 and head.x > 0.0 and head.x < size.x:
+		# Sitting over the head: a classic tail hangs from the bottom edge, leaning to it.
+		var root := Vector2(clampf(head.x, 28.0, size.x - 28.0), size.y - 2.0)
+		var lean := clampf((head.x - root.x) * 0.5, -10.0, 10.0)
+		var tip := root + Vector2(lean, TAIL_DROP)
+		pts = PackedVector2Array([root + Vector2(-12, 0), tip, root + Vector2(12, 0)])
 	else:
-		var x := 0.0 if head.x < size.x * 0.5 else size.x
+		var x := 2.0 if head.x < size.x * 0.5 else size.x - 2.0  # tucked under the border
 		var root := Vector2(x, clampf(head.y, 24.0, size.y - 24.0))
 		pts = PackedVector2Array(
 			[root + Vector2(0, -12), root.lerp(head, 0.55), root + Vector2(0, 12)]
 		)
+	# Worked out in the bubble's space; the tail node itself sits inside the panel's padding,
+	# so shift into its space (else the wedge floats a padding's width off the bubble).
+	for i in pts.size():
+		pts[i] -= _tail.position
 	_tail.draw_colored_polygon(pts, Style.CREAM)
 	_tail.draw_polyline(pts, Style.BROWN, 2.0, true)
 
