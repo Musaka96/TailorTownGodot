@@ -5,9 +5,9 @@ extends Node
 ## every piece is done → collected and paid when the customer returns on the
 ## deadline day (or expired if the deadline passes unfinished).
 ##
-## Kept decoupled: the suit-builder calls create_order(); the mannequin calls
-## submit() when a suit is packaged, and each piece is matched against the open
-## orders; the CustomerManager listens for order_due to send the customer back,
+## Kept decoupled: the suit-builder calls create_order(); each sewn piece is matched
+## against the open orders, and a clothing rack calls assemble() once an order's parts
+## have gathered into a suit; the CustomerManager listens for order_due to send the customer back,
 ## then calls collect() or expire(). The HUD reacts to EventBus signals.
 
 ## A made piece must match an order's slot at least this well to be checked off —
@@ -19,6 +19,9 @@ const DAYS_MAX := 4
 ## When during the due day's shift (fraction of the shift) the customer may walk in.
 const ARRIVE_MIN := 0.15
 const ARRIVE_MAX := 0.6
+## A suit ready early brings its customer in sooner: later today when at least this share
+## of the shift is still to run, otherwise the next day.
+const EARLY_LEAD := 0.3
 
 var active: Array[SuitOrder] = []
 
@@ -114,6 +117,12 @@ func register_piece(piece: Node, min_match := PIECE_MIN) -> SuitOrder:
 	return order
 
 
+## Whether an open order would take this sewn piece (without stamping it).
+func can_place(piece: Node, min_match := PIECE_MIN) -> bool:
+	var part := {"material": piece.get("material"), "quality": float(piece.get("quality"))}
+	return _first_open_for(int(piece.get("garment_type")), part, min_match) != null
+
+
 ## Check a piece made *for* a particular order (the apprentice's work) off that order,
 ## if it still needs one; otherwise it falls back to the first order it fits.
 func register_piece_for(piece: Node, order: SuitOrder) -> SuitOrder:
@@ -126,8 +135,8 @@ func register_piece_for(piece: Node, order: SuitOrder) -> SuitOrder:
 	return register_piece(piece)
 
 
-## Assemble the order with this number: mark it READY (the suit has been built at the
-## mannequin) so the customer can return to collect it. Returns the order, or null if
+## Assemble the order with this number: mark it READY (its parts have come together on
+## a clothing rack) so the customer can return to collect it. Returns the order, or null if
 ## the id isn't an open order whose pieces are all made.
 func assemble(order_id: int) -> SuitOrder:
 	if order_id <= 0:
@@ -136,8 +145,35 @@ func assemble(order_id: int) -> SuitOrder:
 		if order.id == order_id and order.state == SuitOrder.State.OPEN and order.is_complete():
 			order.state = SuitOrder.State.READY
 			EventBus.order_ready.emit(order)
+			_bring_forward(order)
 			return order
 	return null
+
+
+## The shop sends word that the suit is ready, so its customer calls in sooner than the
+## day they were booked for: later today if the shift has room, otherwise tomorrow. Never
+## later than they were already coming.
+func _bring_forward(order: SuitOrder) -> void:
+	if order.due_fired or Shift == null or DayNight == null:
+		return
+	if Tutorial != null and Tutorial.is_active():
+		return
+	var today := _today()
+	var day := today + 1
+	var at := _rng.randf_range(ARRIVE_MIN, ARRIVE_MAX)
+	var now := DayNight.progress()
+	if Shift.phase == Shift.Phase.MORNING:
+		day = today
+	elif Shift.is_open() and now + EARLY_LEAD < 1.0:
+		day = today
+		at = now + _rng.randf_range(EARLY_LEAD * 0.4, EARLY_LEAD)
+	if day > order.due_day or (day == order.due_day and at >= order.arrive_at):
+		return
+	order.due_day = day
+	order.arrive_at = at
+	if UI != null:
+		var when := "later today" if day == today else "tomorrow"
+		UI.toast("You send word to %s: they'll call in %s." % [order.customer_name, when])
 
 
 ## The open order with this number, or null.
@@ -356,8 +392,8 @@ func _fill(order: SuitOrder, garment_type: int, part: Dictionary) -> void:
 	var quality := clampf(float(part.get("quality", 1.0)), 0.0, 1.0)
 	order.fill_part(garment_type, score, quality)
 	EventBus.order_part_filled.emit(order, garment_type)
-	# All pieces made — but NOT ready yet: the player must assemble them into a suit at
-	# the mannequin, which is what flips the order to READY (see assemble()).
+	# All pieces made — but NOT ready yet: the parts must gather into a suit on
+	# one clothing rack, which is what flips the order to READY (see assemble()).
 	if order.is_complete():
 		EventBus.order_pieces_ready.emit(order)
 

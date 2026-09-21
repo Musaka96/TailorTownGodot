@@ -63,8 +63,11 @@ func finish_sew(success: bool, quality: float) -> void:
 	_item.stage = Enums.Stage.SEWN
 	# Check the finished piece off the first open order that needs it (stamps its order #),
 	# so the order card fills in as you work. A spare piece just matches nothing.
-	if Orders != null:
-		Orders.register_piece(_item)
+	if Orders != null and Orders.register_piece(_item) == null and UI != null:
+		var what := Enums.garment_type_name(_item.garment_type).to_lower()
+		var mat: MaterialType = _item.material
+		var cloth := mat.display_name.to_lower() if mat != null else "this cloth"
+		UI.toast("No order asks for a %s in %s. It'll hang as a spare." % [what, cloth])
 	EventBus.piece_sewn.emit(_item)
 
 

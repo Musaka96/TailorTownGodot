@@ -277,8 +277,17 @@ func _name_of(item) -> String:
 	if item is Suit:
 		return "Finished Suit"
 	if item is GarmentPiece:
-		return Enums.garment_type_name(item.garment_type)
+		return "%s  ·  %s" % [Enums.garment_type_name(item.garment_type), _piece_state(item)]
 	return "Item"
+
+
+## Why a part hangs alone: not sewn yet, made for an order, or a spare that fits none.
+func _piece_state(item) -> String:
+	if item.stage != Enums.Stage.SEWN:
+		return "not sewn yet"
+	if int(item.order_id) > 0:
+		return "order #%d" % int(item.order_id)
+	return "spare"
 
 
 func _detail_of(item) -> String:

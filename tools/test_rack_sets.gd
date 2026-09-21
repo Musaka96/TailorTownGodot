@@ -61,6 +61,25 @@ func _gathering(rack: Node) -> void:
 	_check(rack.stored.size() == 1 and _is(rack.stored[0], "Suit"), "the last part makes the suit")
 	_check(int(rack.stored[0].order_id) == order.id, "the suit is stamped with its order")
 	_check(order.state == 1, "and the order is ready for its customer")
+	var shift: Node = root.get_node("Shift")
+	_check(
+		order.due_day == shift.day and order.arrive_at > root.get_node("DayNight").progress(),
+		"ready early, the customer calls in later today"
+	)
+	_clear(rack)
+	_spare_notes(rack)
+
+
+## A part that won't gather says why: an unsewn one, and a sewn one no order wants.
+func _spare_notes(rack: Node) -> void:
+	_orders.active.clear()
+	var cut := _spare(PANTS)
+	cut.stage = SEWN - 1
+	_give(cut)
+	_check("not sewn yet" in rack.get_interaction_prompt(_player), "an unsewn part says so")
+	_clear(rack)
+	_give(_spare(SHIRT))
+	_check("fits no order" in rack.get_interaction_prompt(_player), "a spare says it fits none")
 	_clear(rack)
 
 

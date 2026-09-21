@@ -94,12 +94,25 @@ func get_interaction_prompt(actor) -> String:
 	if held is GarmentPiece or held is Suit:
 		if _group_for(held) != null:
 			return "Hang with order #%d" % int(held.order_id)
-		return "Hang up" if stored.size() < _slots.size() else "Rack full"
+		if stored.size() >= _slots.size():
+			return "Rack full"
+		return "Hang up" + _hang_note(held)
 	if held != null:
 		return "Rack holds garments and suits"
 	if stored.size() > 0:
 		return "Browse rack  (%d)" % stored.size()
 	return "Clothing rack"
+
+
+## Why a part won't gather with its order here: it isn't sewn yet, or it's for no order.
+func _hang_note(held: Node) -> String:
+	if not (held is GarmentPiece):
+		return ""
+	if held.stage != Enums.Stage.SEWN:
+		return "  (not sewn yet)"
+	if int(held.order_id) <= 0 and not Orders.can_place(held):
+		return "  (spare: fits no order)"
+	return ""
 
 
 func interact(actor) -> void:

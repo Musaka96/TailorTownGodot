@@ -214,7 +214,7 @@ func _update_days(ticket: Dictionary) -> void:
 		state.text = "READY FOR PICKUP"
 		state.add_theme_color_override("font_color", Style.FOREST)
 	elif order.is_complete():
-		state.text = "ASSEMBLE AT MANNEQUIN"
+		state.text = "HANG ON ONE RACK"
 		state.add_theme_color_override("font_color", Style.BRASS)
 	else:
 		state.text = ""
