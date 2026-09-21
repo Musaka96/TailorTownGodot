@@ -69,7 +69,7 @@ const PROJECTS := {
 		"cost": 150,
 		"nights": 1,
 		"needs": ["front_boards"],
-		"desc": "Boards off, new glass in. Let the street see you're open.",
+		"desc": "The old panes are cracked and grey with grime. New glass lets the street see in.",
 		"appeal": 2,
 	},
 	"front_lights":

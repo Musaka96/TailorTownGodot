@@ -17,6 +17,9 @@ extends Node3D
 ## point it at the glTF group, size the interior box.
 
 const SHADER := preload("res://materials/wall_cutaway.gdshader")
+## The fading band is see-through, so its pieces are sorted: these keep that order fixed.
+const SORT_STEP := 0.0002
+const FIRST_PRIORITY := -100
 
 ## While true, every cutaway grows its walls back solid, wherever the player stands — for
 ## views framed from inside the shop that have no use for seeing past a wall (the fitting
@@ -149,6 +152,10 @@ func _convert(root: Node, skip: PackedStringArray, only: PackedStringArray) -> v
 			mi.set_surface_override_material(s, _material_for(src))
 			if not _faded.has(mi):
 				_faded.append(mi)
+				# A tie-break for the transparent sort: pieces at the same spot (a wall, its
+				# wainscot, its window) otherwise swap order from frame to frame and the
+				# fading band flickers.
+				mi.sorting_offset = SORT_STEP * _faded.size()
 
 
 func _matches(piece: String, prefixes: PackedStringArray) -> bool:
@@ -166,6 +173,9 @@ func _material_for(src: BaseMaterial3D) -> ShaderMaterial:
 		return _by_src[src]
 	var mat := ShaderMaterial.new()
 	mat.shader = SHADER
+	# Each material its own place in the transparent order (and all before the glass), so
+	# the surfaces of one piece never trade places either.
+	mat.render_priority = clampi(FIRST_PRIORITY + _by_src.size(), -128, -1)
 	# Read through get_texture, not the typed properties: a glTF with a
 	# metallicRoughness map imports as ORMMaterial3D, which is a SIBLING of
 	# StandardMaterial3D, not a subclass — casting to the latter silently skipped every

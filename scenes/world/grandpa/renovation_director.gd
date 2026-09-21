@@ -110,7 +110,7 @@ const PUDDLES := {
 ## boards come off. Inset from the walls so the boards themselves stay lit.
 const DARK := Color(0.015, 0.015, 0.02)
 const DARK_ALPHA := 0.93
-const DARK_INSET := 0.2
+const DARK_INSET := 0.23  # 0.2 put its faces in the door reveals' plane (z-fighting)
 const DARK_FADE := 0.7
 ## The wall between the front room and the nook: fitting out the nook takes it away, so the
 ## nook becomes part of the shop with no doorway between them.
