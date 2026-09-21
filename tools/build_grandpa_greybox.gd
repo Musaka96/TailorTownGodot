@@ -19,11 +19,11 @@ const SHOW_SHELL := false
 
 # Footprint (metres), on the town kit's 2 m grid so the Blender-built shop can use the kit's
 # wall pieces (docs 6.11): kit x + 0.65 = x here, 8.34 - kit y = z here. Front room 8 x 6,
-# nook 4 x 6, workroom 8 x 4, cloth store 4 x 4, the neighbouring unit 6 x 10.
+# nook 4 x 6, workroom 8 x 4, cloth store 4 x 4, grandpa's workshop down the side 6 x 10.
 const X0 := -4.35  # west wall (kit x -5)
 const XM := 3.65  # front room | nook, workroom | cloth store (kit x 3)
-const X1 := 7.65  # east wall of grandpa's building, the party wall to next door (kit x 7)
-const X2 := 13.65  # east wall of the neighbouring unit (kit x 13)
+const X1 := 7.65  # east wall of grandpa's building, the wall to his workshop (kit x 7)
+const X2 := 13.65  # east wall of the workshop (kit x 13)
 const ZB := -1.66  # back wall (kit y 10)
 const ZM := 2.34  # front rooms | back rooms (kit y 6)
 const ZF := 8.34  # street front (kit y 0): where Mr. Hemming's door stands in his shop
@@ -155,7 +155,9 @@ func _dressing() -> void:
 				_litter(spot, dice)
 			elif project == "yard_weeds":
 				for k in 3:
-					var root := Vector3(dice.randf_range(-0.4, 0.4), 0, dice.randf_range(-0.35, 0.35))
+					var root := Vector3(
+						dice.randf_range(-0.4, 0.4), 0, dice.randf_range(-0.35, 0.35)
+					)
 					_weed_clump(spot, "Clump%d" % k, root, dice, 1.4)
 			else:
 				_rubble_heap(spot, dice)
@@ -175,7 +177,7 @@ func _dressing() -> void:
 	_label("workroom", "Workroom\n(locked)", Vector3((X0 + XM) / 2, 0.06, (ZB + ZM) / 2))
 	_label("cloth", "Cloth store\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZB + ZM) / 2))
 	_label("nook", "Nook\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZM + ZF) / 2))
-	_label("nextdoor", "Next door\n(not yours)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZF) / 2))
+	_label("nextdoor", "Workshop\n(locked)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZF) / 2))
 
 
 ## The three shop windows on the street, boarded over. Their own spots, so the player pulls

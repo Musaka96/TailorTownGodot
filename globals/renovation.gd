@@ -26,7 +26,8 @@ const ROOMS := {
 	{"name": "Workroom", "tier": 1, "ready": "The workroom is ready: the benches move in"},
 	"cloth": {"name": "Cloth store", "tier": 2, "ready": "The cloth store is ready"},
 	"nook": {"name": "Nook", "tier": 3, "ready": "The nook is ready"},
-	"nextdoor": {"name": "Next door", "tier": 4, "ready": "Next door is fitted out"},
+	"nextdoor":
+	{"name": "Workshop", "tier": 4, "ready": "The workshop is ready: room for an apprentice"},
 }
 
 ## PROVISIONAL costs and nights: they put the projects in the right order of size, but have
@@ -226,47 +227,47 @@ const PROJECTS := {
 	},
 	"next_buy":
 	{
-		"name": "Buy the unit next door",
+		"name": "Make the workshop roof sound",
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
 		"cost": 6000,
 		"nights": 1,
 		"needs": ["nook_build"],
-		"desc": "It has stood empty as long as grandpa's. The agent will take an offer.",
+		"desc": "Grandpa's old workshop, down the side. The felt is off and the rain gets in.",
 		"appeal": 2,
 	},
 	"next_knock":
 	{
-		"name": "Knock through the party wall",
+		"name": "Unbrick the door to the workshop",
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
 		"cost": 1500,
 		"nights": 2,
 		"needs": ["next_buy"],
 		"enters": "nextdoor",
-		"desc": "One shop out of two. Mind the dust.",
+		"desc": "Grandpa bricked it up the winter the damp came in. Mind the dust.",
 		"appeal": 2,
 	},
 	"next_clear":
 	{
-		"name": "Clear out next door",
+		"name": "Clear out the workshop",
 		"room": "nextdoor",
 		"kind": Kind.CLEANUP,
 		"spots": 4,
 		"needs": ["next_knock"],
-		"desc": "Whatever the last tenant sold, they left the boxes.",
+		"desc": "Forty years of offcuts, and a bicycle with no wheels.",
 		"appeal": 1,
 	},
 	"next_build":
 	{
-		"name": "Fit out next door",
+		"name": "Fit out the workshop",
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
 		"cost": 3000,
 		"nights": 3,
 		"needs": ["next_clear"],
 		"opens": "nextdoor",
-		"desc": "A second workroom and a window on the street for your best work.",
+		"desc": "Light, a stove and a proper bench. Room enough to take on an apprentice.",
 		"appeal": 6,
 	},
 }

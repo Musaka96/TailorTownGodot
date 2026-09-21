@@ -70,6 +70,12 @@ Existing upgrades get re-themed for free: `cut_sharp` = *sharpen grandpa's shear
 | 5 Comforts | + **nook** | 3 | coffee / pressing corner; facade repaint + name the sign |
 | 6 Knock-through | + **neighbouring unit** | 4 | expansion: apprentice bench, display window/mannequin; grandpa's visit |
 
+> **2026-09-21, owner's call:** the neighbouring unit is now **grandpa's own old workshop**,
+> a timber-clad side building (same 6 x 10 footprint, room id `nextdoor`, project ids
+> unchanged for saves). Its jobs read: make the workshop roof sound, unbrick the door to the
+> workshop, clear it out, fit it out, which is where the apprentice works. Where this
+> document says "next door" or "the unit", read "the workshop".
+
 Tier thresholds and prices must be set in "days of profit" per ECONOMY.md once the
 projects exist; the table above is only the order.
 
