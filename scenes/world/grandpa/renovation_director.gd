@@ -1019,8 +1019,8 @@ func _decal(
 	decal.name = "Wear_%s_%s" % [room, kind]
 	decal.texture_albedo = tex
 	decal.size = size
-	decal.upper_fade = 0.0
-	decal.lower_fade = 0.0
+	decal.upper_fade = ContactShadow.NO_FADE
+	decal.lower_fade = ContactShadow.NO_FADE
 	decal.normal_fade = 0.3
 	if get_node_or_null(shop_path) != null:
 		decal.cull_mask = WEAR_LAYER

@@ -9,6 +9,11 @@ extends Decal
 const RADIUS := 0.42
 const DEPTH := 0.24
 const DARKNESS := 0.8
+## Use this, never 0.0, for a decal's upper/lower fade. Godot fades by pow(1 - |y|, fade):
+## at 0 a pixel lying exactly on the box's top or bottom face works out pow(0, 0) = NaN,
+## and glow blows that one pixel up into a white ball for a frame (the "blinking light"
+## the shop-front grime decals gave off across the window glass). This looks the same.
+const NO_FADE := 0.001
 
 static var _blob: GradientTexture2D
 static var _dot: GradientTexture2D
@@ -24,8 +29,8 @@ static func attach(body: Node3D, radius := RADIUS) -> ContactShadow:
 
 func _init() -> void:
 	texture_albedo = _texture()
-	upper_fade = 0.0
-	lower_fade = 0.0
+	upper_fade = NO_FADE
+	lower_fade = NO_FADE
 	normal_fade = 0.0
 
 
