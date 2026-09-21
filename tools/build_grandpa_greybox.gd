@@ -19,7 +19,8 @@ const SHOW_SHELL := false
 
 # Footprint (metres), on the town kit's 2 m grid so the Blender-built shop can use the kit's
 # wall pieces (docs 6.11): kit x + 0.65 = x here, 8.34 - kit y = z here. Front room 8 x 6,
-# nook 4 x 6, workroom 8 x 4, cloth store 4 x 4, grandpa's workshop down the side 6 x 10.
+# nook 4 x 6, workroom 8 x 4, cloth store 4 x 4, grandpa's workshop down the side 6 x 8
+# (from the back wall, stopping 2 m short of the street).
 const X0 := -4.35  # west wall (kit x -5)
 const XM := 3.65  # front room | nook, workroom | cloth store (kit x 3)
 const X1 := 7.65  # east wall of grandpa's building, the wall to his workshop (kit x 7)
@@ -27,6 +28,7 @@ const X2 := 13.65  # east wall of the workshop (kit x 13)
 const ZB := -1.66  # back wall (kit y 10)
 const ZM := 2.34  # front rooms | back rooms (kit y 6)
 const ZF := 8.34  # street front (kit y 0): where Mr. Hemming's door stands in his shop
+const ZW := 6.34  # the workshop's front, set back 2 m from the street (kit y 2)
 const T := 0.2  # wall thickness
 const H := 3.0  # wall height (the kit's)
 const LOW := 1.1  # what stays of a cut-away wall when the rest fades with the roof
@@ -72,7 +74,7 @@ func _floors() -> void:
 	_floor("Floor_nook", XM, X1, ZM, ZF, "floor_locked")
 	_floor("Floor_workroom", X0, XM, ZB, ZM, "floor_locked")
 	_floor("Floor_cloth", XM, X1, ZB, ZM, "floor_locked")
-	_floor("Floor_nextdoor", X1, X2, ZB, ZF, "floor_other")
+	_floor("Floor_nextdoor", X1, X2, ZB, ZW, "floor_other")
 	_slab(
 		"RoofSlab",
 		_roof,
@@ -88,12 +90,13 @@ func _shell() -> void:
 	_wall_z("West", X0, ZB, ZF, [], false)
 	_wall_z("Mid", XM, ZB, ZF, [DOOR_CLOTH, DOOR_NOOK], true)
 	_wall_z("Party", X1, ZB, ZF, [DOOR_NEXT], true)
-	_wall_z("East", X2, ZB, ZF, [], false)
+	_wall_z("East", X2, ZB, ZW, [], false)
 	# Left-right walls: low part stays, the rest fades with the roof. The back wall is
 	# behind everything, so it may stay whole.
 	_wall_x("Back", ZB, X0, X2, [], false)
 	_wall_x("Divide", ZM, X0, X1, [DOOR_WORKROOM], true)
-	_wall_x("Front", ZF, X0, X2, [DOOR_STREET], true)
+	_wall_x("Front", ZF, X0, X1, [DOOR_STREET], true)
+	_wall_x("WorkshopFront", ZW, X1, X2, [], true)
 	_blocker("workroom", Vector3(_mid(DOOR_WORKROOM), 0, ZM), Vector3(_len(DOOR_WORKROOM), H, T))
 	_blocker("nook", Vector3(XM, 0, _mid(DOOR_NOOK)), Vector3(T, H, _len(DOOR_NOOK)))
 	_blocker("cloth", Vector3(XM, 0, _mid(DOOR_CLOTH)), Vector3(T, H, _len(DOOR_CLOTH)))
@@ -121,7 +124,7 @@ func _dressing() -> void:
 			Vector3(9.0, 0, -0.4),
 			Vector3(12.2, 0, 1.2),
 			Vector3(9.6, 0, 4.2),
-			Vector3(12.0, 0, 6.6),
+			Vector3(12.0, 0, 5.2),
 		],
 		# Outside (IMPORT/town_kit/build_v8_town.py lays the lot): rubbish on the brick
 		# forecourt, clear of the door's path, and weeds in the front of the side garden.
@@ -177,7 +180,7 @@ func _dressing() -> void:
 	_label("workroom", "Workroom\n(locked)", Vector3((X0 + XM) / 2, 0.06, (ZB + ZM) / 2))
 	_label("cloth", "Cloth store\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZB + ZM) / 2))
 	_label("nook", "Nook\n(locked)", Vector3((XM + X1) / 2, 0.06, (ZM + ZF) / 2))
-	_label("nextdoor", "Workshop\n(locked)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZF) / 2))
+	_label("nextdoor", "Workshop\n(locked)", Vector3((X1 + X2) / 2, 0.06, (ZB + ZW) / 2))
 
 
 ## The three shop windows on the street, boarded over. Their own spots, so the player pulls

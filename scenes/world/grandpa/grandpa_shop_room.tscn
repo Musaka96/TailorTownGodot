@@ -102,7 +102,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 2.7)
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 4.5)
 
 [node name="Mannequin" parent="." unique_id=1760003643 instance=ExtResource("13_ckdgv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 0, 6.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 0, 4.9)
 
 [node name="Mirror" parent="." unique_id=270766224 instance=ExtResource("15_walcy")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 6.95)
