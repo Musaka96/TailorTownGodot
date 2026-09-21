@@ -49,6 +49,12 @@ uniform vec4 section_color : source_color = vec4(0.937, 0.882, 0.804, 1.0);
 uniform vec3 player_pos = vec3(0.0, -999.0, 0.0);
 uniform float dip : hint_range(0.0, 1.5) = 0.0;
 uniform float dip_radius : hint_range(0.2, 8.0) = 1.8;
+// Back faces are drawn (for the plaster section above), which means the hidden back of
+// every sill, frame and plinth sitting flush on a wall now shares that wall's plane and
+// fights it for the pixel. They are pushed this much further away (a share of the
+// reverse-Z depth, about a centimetre at the camera's distance) so a back face only ever
+// shows where nothing else is in front of it.
+uniform float back_depth_bias = 0.0007;
 
 varying vec3 world_pos;
 
@@ -99,7 +105,9 @@ void fragment() {
 			NORMAL_MAP = texture(normal_tex, uv).rgb;
 			NORMAL_MAP_DEPTH = normal_strength;
 		}
+		DEPTH = FRAGCOORD.z;
 	} else {
+		DEPTH = FRAGCOORD.z * (1.0 - back_depth_bias);
 		// Looking down into the open top of the slab: plaster, not a dark hollow.
 		ALBEDO = mix(section_color.rgb, haze_color.rgb, (1.0 - a) * haze);
 		ROUGHNESS = 1.0;

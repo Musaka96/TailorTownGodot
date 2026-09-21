@@ -460,7 +460,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.23479, 0, 0)
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2137816016]
 transform = Transform3D(1, 0, 0, 0, 0.7751285, 0.63180363, 0, -0.63180363, 0.7751285, 0, 0, 0)
 light_color = Color(1, 0.96, 0.9, 1)
-light_angular_distance = 3.0
+light_angular_distance = 0.6
 shadow_enabled = true
 shadow_opacity = 0.9
 shadow_blur = 1.5
