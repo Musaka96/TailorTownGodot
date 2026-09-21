@@ -82,15 +82,40 @@ func _jacket_reasons(rule: DressRule, occasion: int, jacket: Dictionary) -> Arra
 	var reasons: Array[String] = []
 	var occ := Enums.occasion_name(occasion).to_lower()
 	if not _ok(rule.allowed_colors, int(jacket.get("color", -1))):
-		reasons.append("the jacket colour isn't right for a %s" % occ)
+		var cols: Array[String] = []
+		for c: int in rule.allowed_colors:
+			cols.append(MaterialFactory.color_name(c).to_lower())
+		reasons.append("the jacket colour isn't right for a %s. %s" % [occ, _would_do(cols)])
 	var pattern := int(jacket.get("pattern", -1))
+	var pats := _pattern_words(rule)
 	if rule.require_pattern and pattern == Enums.Pattern.SOLID:
-		reasons.append("the jacket needs a bolder pattern")
+		reasons.append("the jacket needs a bolder pattern. %s" % _would_do(pats))
 	elif not _ok(rule.allowed_patterns, pattern):
-		reasons.append("that jacket pattern doesn't suit the style")
+		reasons.append("not that pattern for the jacket. %s" % _would_do(pats))
 	if not _ok(rule.allowed_fabrics, int(jacket.get("fabric", -1))):
 		reasons.append("try a different cloth for the jacket")
 	return reasons
+
+
+## "Plain, herringbone or sharkskin would do." — what the customer would take instead,
+## so a no always says what a yes looks like.
+static func _would_do(names: Array[String]) -> String:
+	if names.is_empty():
+		return ""
+	var said := names[0]
+	if names.size() > 1:
+		said = "%s or %s" % [", ".join(names.slice(0, names.size() - 1)), names[-1]]
+	return "%s would do." % (said.substr(0, 1).to_upper() + said.substr(1))
+
+
+static func _pattern_words(rule: DressRule) -> Array[String]:
+	var out: Array[String] = []
+	for p: int in rule.allowed_patterns:
+		if rule.require_pattern and p == Enums.Pattern.SOLID:
+			continue
+		var word := "plain" if p == Enums.Pattern.SOLID else Enums.pattern_name(p).to_lower()
+		out.append(word)
+	return out
 
 
 ## The trousers should read as a matched suit with the jacket: the same cloth and

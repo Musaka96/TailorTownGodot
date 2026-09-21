@@ -19,105 +19,133 @@ class_name Handbook
 const FABRICS := [
 	[
 		"Worsted Wool",
-		"The everyday suit cloth. The wool is combed straight before it is spun, so the "
-		+ "yarn comes out smooth and hard and the cloth holds a press.\n\n"
-		+ "You will see it graded by a [b]Super[/b] number. Super 100s, 120s, 150s. The "
-		+ "higher the number the finer and softer it gets, and the sooner it wears through "
-		+ "at the elbow. Super 100s is enough for most people.\n\n"
-		+ "Use it for anything. When you cannot decide, this is the answer.",
+		(
+			"The everyday suit cloth. The wool is combed straight before it is spun, so the "
+			+ "yarn comes out smooth and hard and the cloth holds a press.\n\n"
+			+ "You will see it graded by a [b]Super[/b] number. Super 100s, 120s, 150s. The "
+			+ "higher the number the finer and softer it gets, and the sooner it wears through "
+			+ "at the elbow. Super 100s is enough for most people.\n\n"
+			+ "Use it for anything. When you cannot decide, this is the answer."
+		),
 	],
 	[
 		"Flannel",
-		"Wool with the top side brushed up until the weave goes soft and fuzzy. It does not "
-		+ "shine, and it keeps a body warm.\n\n"
-		+ "Grey flannel was the office uniform for most of my working life. I have cut "
-		+ "hundreds of them and I never once got tired of it.\n\n"
-		+ "Autumn and winter. Too hot for July.",
+		(
+			"Wool with the top side brushed up until the weave goes soft and fuzzy. It does not "
+			+ "shine, and it keeps a body warm.\n\n"
+			+ "Grey flannel was the office uniform for most of my working life. I have cut "
+			+ "hundreds of them and I never once got tired of it.\n\n"
+			+ "Autumn and winter. Too hot for July."
+		),
 	],
 	[
 		"Tweed",
-		"Scottish hill cloth, made to keep a shepherd dry. The rich took it up for shooting "
-		+ "weekends and it has been country wear ever since.\n\n"
-		+ "Thick, hairy, warm, rough on the hands. Browns and greens and greys, usually with "
-		+ "a herringbone or a check woven into it.\n\n"
-		+ "Nobody has ever looked sad in tweed, which is why I would keep it out of a "
-		+ "funeral and out of an office.",
+		(
+			"Scottish hill cloth, made to keep a shepherd dry. The rich took it up for shooting "
+			+ "weekends and it has been country wear ever since.\n\n"
+			+ "Thick, hairy, warm, rough on the hands. Browns and greens and greys, usually with "
+			+ "a herringbone or a check woven into it.\n\n"
+			+ "Nobody has ever looked sad in tweed, which is why I would keep it out of a "
+			+ "funeral and out of an office."
+		),
 	],
 	[
 		"Mohair Blend",
-		"Goat hair spun in with the wool: light, springs back out of a crease, and carries a "
-		+ "faint shine.\n\n"
-		+ "Summer and evening. The shine is the point of it, so do not put it on somebody "
-		+ "who wants to go unnoticed.",
+		(
+			"Goat hair spun in with the wool: light, springs back out of a crease, and carries a "
+			+ "faint shine.\n\n"
+			+ "Summer and evening. The shine is the point of it, so do not put it on somebody "
+			+ "who wants to go unnoticed."
+		),
 	],
 	[
 		"Linen",
-		"Made from the flax plant. It creases if you look at it, it creases worse after an "
-		+ "hour of wearing, and there is nothing to be done about that.\n\n"
-		+ "Mrs. Auld came back to complain about the creasing. I had told her at the mirror "
-		+ "and I told her again at the door.\n\n"
-		+ "Cool as a cellar in August. Tan and natural, nothing darker than sand.",
+		(
+			"Made from the flax plant. It creases if you look at it, it creases worse after an "
+			+ "hour of wearing, and there is nothing to be done about that.\n\n"
+			+ "Mrs. Auld came back to complain about the creasing. I had told her at the mirror "
+			+ "and I told her again at the door.\n\n"
+			+ "Cool as a cellar in August. Tan and natural, nothing darker than sand."
+		),
 	],
 ]
 
 const PATTERNS := [
 	[
 		"Solid",
-		"No pattern at all, which is the safest thing you can put on a body and the one to "
-		+ "reach for when the day is a serious one.",
+		(
+			"No pattern at all, which is the safest thing you can put on a body and the one to "
+			+ "reach for when the day is a serious one."
+		),
 	],
 	[
 		"Pinstripe",
-		"Thin straight lines running up and down a dark cloth, woven in rather than "
-		+ "printed. A chalk stripe is the same idea, softer and wider.\n\n"
-		+ "Bankers wore it in the twenties and have not stopped since. It makes a person "
-		+ "look taller, which is most of why anyone wears it.\n\n"
-		+ "I have never cut a brown one and I do not intend to start.",
+		(
+			"Thin straight lines running up and down a dark cloth, woven in rather than "
+			+ "printed. A chalk stripe is the same idea, softer and wider.\n\n"
+			+ "Bankers wore it in the twenties and have not stopped since. It makes a person "
+			+ "look taller, which is most of why anyone wears it.\n\n"
+			+ "I have never cut a brown one and I do not intend to start."
+		),
 	],
 	[
 		"Herringbone",
-		"A zig-zag texture laid in rows, like the bones of a fish. That is where the name "
-		+ "comes from.\n\n"
-		+ "Quiet from a distance and interesting up close, which is a rare combination and "
-		+ "the reason you find it in so much tweed. Safe nearly anywhere.",
+		(
+			"A zig-zag texture laid in rows, like the bones of a fish. That is where the name "
+			+ "comes from.\n\n"
+			+ "Quiet from a distance and interesting up close, which is a rare combination and "
+			+ "the reason you find it in so much tweed. Safe nearly anywhere."
+		),
 	],
 	[
 		"Houndstooth",
-		"Broken checks with little points on them, usually black and white. Shepherds in "
-		+ "the Scottish Lowlands wove it first.\n\n"
-		+ "It shouts. The small version is called puppytooth, and that one can be worn to "
-		+ "work without anybody minding.",
+		(
+			"Broken checks with little points on them, usually black and white. Shepherds in "
+			+ "the Scottish Lowlands wove it first.\n\n"
+			+ "It shouts. The small version is called puppytooth, and that one can be worn to "
+			+ "work without anybody minding."
+		),
 	],
 	[
 		"Windowpane",
-		"Lines crossing into large squares, like the panes of a window.\n\n"
-		+ "It reads from across a street, which is either the point or the problem. I made "
-		+ "one for a bookmaker in 1931 and he was delighted with himself for a year.\n\n"
-		+ "One piece of it in a suit. Never two.",
+		(
+			"Lines crossing into large squares, like the panes of a window.\n\n"
+			+ "It reads from across a street, which is either the point or the problem. I made "
+			+ "one for a bookmaker in 1931 and he was delighted with himself for a year.\n\n"
+			+ "One piece of it in a suit. Never two."
+		),
 	],
 	[
 		"Glen Check",
-		"Small checks and large checks woven over one another, sometimes with a faint "
-		+ "coloured line running through. Some call it Prince of Wales check.\n\n"
-		+ "Edward VIII wore it and half the country followed him about. Smart without being "
-		+ "stiff.",
+		(
+			"Small checks and large checks woven over one another, sometimes with a faint "
+			+ "coloured line running through. Some call it Prince of Wales check.\n\n"
+			+ "Edward VIII wore it and half the country followed him about. Smart without being "
+			+ "stiff."
+		),
 	],
 	[
 		"Birdseye",
-		"Tiny dots, each one a speck of the colour underneath showing through.\n\n"
-		+ "From across a room it passes for plain, and up close it does not. Good for "
-		+ "business, and good for the customer who tells you they dislike pattern.",
+		(
+			"Tiny dots, each one a speck of the colour underneath showing through.\n\n"
+			+ "From across a room it passes for plain, and up close it does not. Good for "
+			+ "business, and good for the customer who tells you they dislike pattern."
+		),
 	],
 	[
 		"Sharkskin",
-		"Two colours of yarn woven together so the cloth shifts shade as the wearer turns. "
-		+ "Navy and grey, mostly.\n\n"
-		+ "It looks expensive. That is the whole idea, and there is no shame in it.",
+		(
+			"Two colours of yarn woven together so the cloth shifts shade as the wearer turns. "
+			+ "Navy and grey, mostly.\n\n"
+			+ "It looks expensive. That is the whole idea, and there is no shame in it."
+		),
 	],
 	[
 		"Nailhead",
-		"Dots the size of a nail head scattered on plain cloth. A step up from plain, and "
-		+ "nobody notices unless they are standing close enough to smell your breakfast.",
+		(
+			"Dots the size of a nail head scattered on plain cloth. A step up from plain, and "
+			+ "nobody notices unless they are standing close enough to smell your breakfast."
+		),
 	],
 ]
 
@@ -125,29 +153,37 @@ const PATTERNS := [
 const STYLES := [
 	[
 		"Old-School",
-		"The way it was cut before the war. Heavy shoulders, a long jacket, dark cloth, and "
-		+ "a waistcoat more often than not.\n\n"
-		+ "Check and herringbone. Nothing invented after 1930.",
+		(
+			"The way it was cut before the war. Heavy shoulders, a long jacket, dark cloth, and "
+			+ "a waistcoat more often than not.\n\n"
+			+ "Check and herringbone. Nothing invented after 1930."
+		),
 		"res://assets/handbook/styles/oldschool.jpg",
 	],
 	[
 		"Classic",
-		"Navy or grey, clean lines, and a pattern you have to look for. It belongs to no "
-		+ "particular year, so it never goes out.\n\n"
-		+ "When a customer cannot tell you what they want, cut them this.",
+		(
+			"Navy or grey, clean lines, and a pattern you have to look for. It belongs to no "
+			+ "particular year, so it never goes out.\n\n"
+			+ "When a customer cannot tell you what they want, cut them this."
+		),
 		"res://assets/handbook/styles/classic.jpg",
 	],
 	[
 		"Modern",
-		"A trimmer cut with fresher colour and a pointed lapel, made to look like this year "
-		+ "rather than any other.",
+		(
+			"A trimmer cut with fresher colour and a pointed lapel, made to look like this year "
+			+ "rather than any other."
+		),
 		"res://assets/handbook/styles/modern.jpg",
 	],
 	[
 		"Fashion",
-		"Loud on purpose. Big patterns, colours you would not put on a banker, and the "
-		+ "jacket need not match the trousers.\n\n"
-		+ "This is the one brief where plain cloth will disappoint.",
+		(
+			"Loud on purpose. Big patterns, colours you would not put on a banker, and the "
+			+ "jacket need not match the trousers.\n\n"
+			+ "This is the one brief where plain cloth will disappoint."
+		),
 		"res://assets/handbook/styles/fashion.jpg",
 	],
 ]
@@ -157,33 +193,41 @@ const OCCASIONS := [
 	[
 		Enums.Occasion.WEDDING,
 		"Weddings",
-		"You are dressing a guest and not the groom. Nothing that pulls an eye off the "
-		+ "couple, and nothing so dark that you are mistaken for the other sort of "
-		+ "gathering. Old-School is the only cut I would let go black.",
+		(
+			"You are dressing a guest and not the groom. Nothing that pulls an eye off the "
+			+ "couple, and nothing so dark that you are mistaken for the other sort of "
+			+ "gathering. Old-School is the only cut I would let go black."
+		),
 	],
 	[
 		Enums.Occasion.FUNERAL,
 		"Funerals",
-		"Black, or charcoal if they cannot run to black. Nobody at a funeral should be "
-		+ "looking at a suit, and it is your job to see that they do not.\n\n"
-		+ "The younger houses have started sending people out in deep colours and a bit of "
-		+ "texture. The table below says what the family will stand for now. I am only "
-		+ "telling you what I would have done.",
+		(
+			"Black, or charcoal if they cannot run to black. Nobody at a funeral should be "
+			+ "looking at a suit, and it is your job to see that they do not.\n\n"
+			+ "The younger houses have started sending people out in deep colours and a bit of "
+			+ "texture. The table below says what the family will stand for now. I am only "
+			+ "telling you what I would have done."
+		),
 	],
 	[
 		Enums.Occasion.BUSINESS,
 		"Business",
-		"A plain dark suit is the workhorse of this trade. You will cut more of these than "
-		+ "everything else put together.\n\n"
-		+ "Navy or charcoal. A quiet texture in the cloth is money without saying so. Keep "
-		+ "the pattern small enough that it disappears at ten paces.",
+		(
+			"A plain dark suit is the workhorse of this trade. You will cut more of these than "
+			+ "everything else put together.\n\n"
+			+ "Navy or charcoal. A quiet texture in the cloth is money without saying so. Keep "
+			+ "the pattern small enough that it disappears at ten paces."
+		),
 	],
 	[
 		Enums.Occasion.PARTY,
 		"Parties",
-		"Here a person may enjoy themselves.\n\n"
-		+ "Deeper colours, bigger patterns, cloth with something going on in it. If they "
-		+ "ask you for something quiet, give it to them, but do not steer them there.",
+		(
+			"Here a person may enjoy themselves.\n\n"
+			+ "Deeper colours, bigger patterns, cloth with something going on in it. If they "
+			+ "ask you for something quiet, give it to them, but do not steer them there."
+		),
 	],
 ]
 
@@ -243,9 +287,7 @@ static func _rule_summary(occasion: int) -> String:
 		var rule: DressRule = Catalog.dress_code.rule_for(occasion, style)
 		if rule == null:
 			continue
-		lines.append(
-			"[b]%s[/b]: %s %s" % [Enums.style_name(style), _colors(rule), _patterns(rule)]
-		)
+		lines.append("[b]%s[/b]: %s %s" % [Enums.style_name(style), _colors(rule), _patterns(rule)])
 	lines.append("")
 	lines.append("[b]The shirt[/b]: %s" % _shirt_rule(occasion))
 	lines.append(
@@ -293,30 +335,40 @@ static func _spread(cols: Array) -> Array:
 	return out.slice(0, MAX_EXAMPLES)
 
 
-## How loud the pattern may go. Named outright when the brief demands one, so the player
-## is never told "it must have a pattern" without being told which.
+## How loud the pattern may go, then exactly which patterns will do. Named outright when
+## the brief demands one, so the player is never told "it must have a pattern" without
+## being told which.
 static func _patterns(rule: DressRule) -> String:
 	var pats: Array = rule.allowed_patterns
 	if rule.require_pattern:
-		var bold: Array[String] = []
+		var named: Array[String] = []
+		var all_bold := true
 		for p: int in pats:
-			if p in BOLD_PATTERNS:
-				bold.append(_pattern_word(p))
-		if bold.is_empty():
+			if p == Enums.Pattern.SOLID:
+				continue
+			named.append(_pattern_word(p))
+			all_bold = all_bold and p in BOLD_PATTERNS
+		if named.is_empty():
 			return "It must carry a pattern; plain cloth will not do."
-		return "It must carry a bold pattern: %s." % _list(bold)
+		var kind := "a bold pattern" if all_bold else "a pattern"
+		return "It must carry %s: %s." % [kind, _list(named)]
 	if pats.is_empty():
 		return "Any pattern."
-	for p: int in pats:
-		if p in BOLD_PATTERNS:
-			return "A little pattern is welcome."
+	# The feel first, then every pattern that will do, named: the player has to be able to
+	# pick one off this line and have the customer agree.
+	var feel := "Nothing that shouts"
 	var all_quiet := true
 	for p: int in pats:
+		if p in BOLD_PATTERNS:
+			feel = "A little pattern is welcome"
 		if not (p in QUIET_PATTERNS):
 			all_quiet = false
-	if all_quiet:
-		return "Keep the pattern so quiet you have to look for it."
-	return "Nothing louder than a stripe or a herringbone."
+	if all_quiet and feel == "Nothing that shouts":
+		feel = "Keep the pattern so quiet you have to look for it"
+	var names: Array[String] = []
+	for p: int in pats:
+		names.append(_pattern_word(p))
+	return "%s: %s." % [feel, _list(names)]
 
 
 ## Which family the allowed colours belong to, said before they are named. Kept short on
