@@ -440,7 +440,7 @@ func _build_reputation() -> Control:
 	widget.name = "Reputation"
 	widget.set_script(load("res://ui/reputation_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	widget.position = Vector2(20, 164)
+	widget.position = Vector2(20, 126)
 	hud.add_child(widget)
 	return widget
 
@@ -451,7 +451,7 @@ func _build_focus() -> void:
 	widget.name = "Focus"
 	widget.set_script(load("res://ui/focus_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	widget.position = Vector2(152, 164)
+	widget.position = Vector2(152, 126)
 	hud.add_child(widget)
 
 
