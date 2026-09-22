@@ -3,9 +3,10 @@ extends Node3D
 
 ## Ordering station. Opens the phone menu. Ordered bolts are *on the way* for a while
 ## (GameConfig.delivery_hours of shop time; the Courier Account upgrade makes it minutes)
-## and then turn up at the delivery spot beside the phone with a door chime. An order
-## that would land after closing arrives first thing next morning. The tutorial's bolts
-## come at once so the lesson never stalls. Pending deliveries save with the station.
+## and then turn up at the delivery spot beside the phone with a door chime, each in a
+## postal box that unpacks itself. An order that would land after closing arrives first
+## thing next morning. The tutorial's bolts come at once so the lesson never stalls.
+## Pending deliveries save with the station.
 
 const ROLL_SCENE := preload("res://entities/items/material_roll.tscn")
 
@@ -73,6 +74,7 @@ func deliver_roll(mat: MaterialType, length: float) -> Node:
 	# Small jitter so stacked deliveries don't perfectly overlap.
 	var base := _delivery.global_position
 	roll.global_position = base + Vector3(randf_range(-0.25, 0.25), 0.13, randf_range(-0.25, 0.25))
+	DeliveryBox.wrap(roll as Node3D)
 	EventBus.order_delivered.emit(roll)
 	return roll
 
