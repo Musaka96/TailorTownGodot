@@ -1,13 +1,14 @@
 TAILORTOWN - PLAYTEST GUIDE
 ===========================
 
-Thanks for testing. It takes about an hour, and the game keeps notes as you play.
+Thanks for testing. The game keeps notes as you play, so all you need to do is play
+and answer a few questions at the end.
 
 
 1. PLAY
 -------
 - Start a New Game and play through the tutorial with Mr. Hemming.
-- Then run your own shop for at least three in-game days. More is welcome.
+- Then run your own shop for as long as you like.
 - Play the way you normally would. Going broke or losing customers is useful to
   see too. There is no wrong way to play.
 - Save and quit from the pause menu (Esc) when you stop.
@@ -36,42 +37,37 @@ that folder.
 
 3. ANSWER WHAT YOU CAN
 ----------------------
-Short answers are fine. Skip any question you have no opinion on.
+Short answers are fine. Skip anything you have no opinion on.
 
-The tutorial
-- Did Mr. Hemming explain things in the right order?
-- Was there a step where you didn't know what to do next?
-- Too long, too short, or about right?
+1. The tutorial: was there a step where you didn't know what to do, or a part
+   that went on too long?
 
-The minigames (cutting, sewing, ironing, coffee)
-- Which one did you enjoy most, and which least?
-- Were any too hard, too easy, or unclear about what counted as good work?
-- Did any start to feel repetitive by day three?
+2. The minigames (cutting, sewing, ironing, coffee): which did you like most and
+   least, and were any too hard, too easy, unclear or repetitive?
 
-Customers
-- Did a customer ever turn down a suit in a way that felt unfair?
-- Did the dress codes (what suits a wedding, a funeral, and so on) make sense?
+3. Customers and dress codes: did the briefs make sense, and did a customer ever
+   turn down a suit in a way that felt unfair?
 
-Money and cloth
-- Did you ever run short of money? When?
-- Did cloth prices and suit prices feel fair?
-- Did you end up buying cloth you never used?
+4. Money and pacing: did prices feel fair, did you run short of money, and when
+   were you bored or rushed?
 
-Pacing
-- When were you bored, and when were you rushed?
+5. Menus and controls: was anything hard to read, hard to find, too small or
+   awkward to use (keyboard or gamepad)?
 
-Menus and controls
-- Was any menu hard to read or find your way around?
-- Did any control feel awkward? Keyboard or gamepad?
-- Was anything on screen too small, too crowded, or easy to miss?
+6. The look: what did you think of the art style, and of the suits on the
+   customers? Could you tell the fabrics and patterns apart?
 
-The look
-- What did you think of the art style overall?
-- How did the finished suits look on the customers?
-- Could you tell the fabrics and patterns apart?
-- Anything that looked broken, flickered, or seemed out of place?
+7. Bugs: what were you doing, and what happened? A screenshot helps.
 
-Bugs
-- What you were doing, and what happened. A screenshot helps.
 
-Last one: what's the first thing you'd change?
+4. YOUR OWN TAKE
+----------------
+
+8. Which part did you enjoy more: fixing up and renovating the shop, or designing
+   and making suits? Would you play the game for one without the other?
+
+9. What would you most like to see added, and what's the first thing you'd
+   change?
+
+10. What games does this remind you of, and what kind of game would you want it
+    to become?
