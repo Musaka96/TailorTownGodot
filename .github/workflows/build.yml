@@ -1,0 +1,72 @@
+# Builds the Windows export on every push, on the self-hosted runner on the
+# dev PC (the art in IMPORT/ is not in git, so a GitHub-hosted machine can't
+# build the game). Setup and security notes: docs/CI.md.
+#
+# Every build is kept on disk under BUILD_STORE. The ~900 MB exe is uploaded to
+# GitHub only for version tags (v*) or a manual run with "upload" ticked.
+
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: Upload the exe to GitHub as a downloadable artifact
+        type: boolean
+        default: true
+
+# One runner: a newer push to the same branch replaces a queued or running build.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_STORE: E:\Chewdlaka\Dev\TailorTown-builds
+  KEEP_BUILDS: 15
+
+jobs:
+  windows:
+    runs-on: [self-hosted, windows, tailortown]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      # clean: false keeps IMPORT/ and .godot/ (both gitignored) between builds,
+      # so the art sync and the asset import only redo what changed.
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Remove stray tracked-tree files
+        run: git clean -ffd
+
+      - name: Name the build
+        id: name
+        run: |
+          $version = (Select-String -Path project.godot -Pattern 'config/version="(.+)"').Matches[0].Groups[1].Value
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          $branch = "${{ github.ref_name }}" -replace '[^A-Za-z0-9._-]', '-'
+          "name=TailorTown-$version-$branch-$sha" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        run: ./tools/ci/build.ps1 -OutDir "$env:BUILD_STORE\${{ steps.name.outputs.name }}"
+
+      - name: Keep the newest builds
+        run: |
+          Get-ChildItem $env:BUILD_STORE -Directory |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -Skip $env:KEEP_BUILDS |
+            Remove-Item -Recurse -Force
+
+      - name: Upload
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.upload)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: ${{ env.BUILD_STORE }}\${{ steps.name.outputs.name }}\TailorTown.exe
+          retention-days: 30
+          compression-level: 6
