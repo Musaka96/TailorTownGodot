@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/edging_v8.gltf" id="50_edging"]
 [ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/plot_v8.gltf" id="60_plot6"]
 [ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/town_v8.gltf" id="61_town6"]
+[ext_resource type="Script" uid="uid://cotk4brjs3qed" path="res://scenes/world/street_bounds.gd" id="71_bounds"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
@@ -124,6 +125,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -4.3085938)
 shape = SubResource("BoxShape3D_y34p1")
 
 [node name="Storefront" type="Node3D" parent="." unique_id=7638284]
+
+[node name="StreetBounds" type="Node3D" parent="." unique_id=1877310522]
+script = ExtResource("71_bounds")
 
 [node name="Waypoints" type="Node3D" parent="." unique_id=1591188085]
 
