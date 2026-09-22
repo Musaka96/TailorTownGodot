@@ -1,0 +1,110 @@
+{
+  "worktable": {
+    "cut_weights": {
+      "show": [
+        "Upg_cut_weights"
+      ]
+    },
+    "cut_chalk_wheel": {
+      "show": [
+        "Upg_cut_chalk"
+      ]
+    },
+    "cut_sharp": {
+      "show": [
+        "Upg_cut_sharp"
+      ],
+      "hide": [
+        "Base_scissors"
+      ]
+    },
+    "cut_master": {
+      "show": [
+        "Upg_cut_master"
+      ]
+    },
+    "cut_pinking": {
+      "show": [
+        "Upg_cut_pinking"
+      ]
+    },
+    "cut_fold": {
+      "show": [
+        "Upg_cut_fold"
+      ]
+    },
+    "cut_rotary": {
+      "show": [
+        "Upg_cut_rotary"
+      ]
+    },
+    "shop_lamp": {
+      "show": [
+        "Upg_shop_lamp"
+      ]
+    }
+  },
+  "sewing": {
+    "sew_dial": {
+      "show": [
+        "Upg_sew_dial"
+      ]
+    },
+    "sew_oiled": {
+      "show": [
+        "Upg_sew_oiled"
+      ]
+    },
+    "sew_guide": {
+      "show": [
+        "Upg_sew_guide"
+      ]
+    },
+    "sew_needle_down": {
+      "show": [
+        "Upg_sew_needle_down"
+      ]
+    },
+    "sew_industrial": {
+      "show": [
+        "Upg_sew_industrial"
+      ],
+      "hide": [
+        "Base_treadle"
+      ]
+    },
+    "sew_walking_foot": {
+      "show": [
+        "Upg_sew_walking_foot"
+      ],
+      "hide": [
+        "Base_foot"
+      ]
+    },
+    "sew_knee": {
+      "show": [
+        "Upg_sew_knee"
+      ]
+    },
+    "sew_clips": {
+      "show": [
+        "Upg_sew_clips"
+      ]
+    },
+    "sew_roller": {
+      "show": [
+        "Upg_sew_roller"
+      ]
+    },
+    "sew_autolock": {
+      "show": [
+        "Upg_sew_autolock"
+      ]
+    },
+    "shop_lamp": {
+      "show": [
+        "Upg_shop_lamp"
+      ]
+    }
+  }
+}

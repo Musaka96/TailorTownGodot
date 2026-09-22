@@ -2,16 +2,11 @@
 
 [ext_resource type="Script" uid="uid://225ofjh6uwri" path="res://stations/sewing_machine/sewing_machine.gd" id="1_lp63i"]
 [ext_resource type="Script" uid="uid://dvfh4yjr6xhqm" path="res://entities/scripts/interactable.gd" id="2_2vebb"]
-[ext_resource type="PackedScene" uid="uid://b3maxj8ppuitm" path="res://IMPORT/MasinaZaSivenje.glb" id="3_2vebb"]
+[ext_resource type="PackedScene" path="res://assets/models/stations/sewing_v1.glb" id="3_ci6qi"]
+[ext_resource type="Script" path="res://entities/scripts/upgrade_parts.gd" id="4_t3ibc"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_g7ajy"]
-size = Vector3(1.5, 0.9, 0.8)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5iiqe"]
-albedo_color = Color(0.2, 0.22, 0.26, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_rhhoe"]
-size = Vector3(0.1, 0.22, 0.1)
+size = Vector3(1.4, 0.9, 0.72)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_73p8g"]
 size = Vector3(1.7, 1.6, 1.5)
@@ -22,13 +17,8 @@ script = ExtResource("1_lp63i")
 [node name="Body" type="StaticBody3D" parent="." unique_id=122581036]
 
 [node name="TableCol" type="CollisionShape3D" parent="Body" unique_id=418814371]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0.45, 0.3)
 shape = SubResource("BoxShape3D_g7ajy")
-
-[node name="Arm" type="MeshInstance3D" parent="Body" unique_id=464611449]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 1.15, -0.05)
-material_override = SubResource("StandardMaterial3D_5iiqe")
-mesh = SubResource("BoxMesh_rhhoe")
 
 [node name="Slot" type="Marker3D" parent="." unique_id=808005647]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, 0.95, 0.22)
@@ -44,5 +34,9 @@ target = NodePath("..")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.6)
 shape = SubResource("BoxShape3D_73p8g")
 
-[node name="MasinaZaSivenje" parent="." unique_id=1700084758 instance=ExtResource("3_2vebb")]
-transform = Transform3D(3.31, 0, 0, 0, 2.505, 0, 0, 0, 2.655, -16.811691, 0, 9.450606)
+[node name="Model" type="Node3D" parent="." unique_id=735173215 instance=ExtResource("3_ci6qi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0, 0.3)
+
+[node name="UpgradeParts" type="Node" parent="." unique_id=988555097]
+script = ExtResource("4_t3ibc")
+manifest_key = "sewing"
