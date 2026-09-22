@@ -75,9 +75,9 @@ func _build() -> void:
 	_list.add_theme_constant_override("separation", Style.S2)
 	_scroll.add_child(_list)
 
-	box.add_child(
-		Style.hint_bar([["W/S", "Select"], ["E", "Give him this part"], ["Esc", "Close"]])
-	)
+	var bar := Style.hint_bar([["W/S", "Select"], ["E", "Give him this part"], ["Esc", "Close"]])
+	MousePick.wire_hint(bar, -1, _click_close)
+	box.add_child(bar)
 
 
 func _line(parent: Control, size_px: int, col: Color) -> Label:
@@ -113,8 +113,10 @@ func _rebuild() -> void:
 		_list.add_child(EmptyNote.make("No open orders need a part right now."))
 	for i in _jobs.size():
 		var card := _make_card(_jobs[i], i == _index)
+		MousePick.wire(card, _pick.bind(i), _click.bind(i))
 		_list.add_child(card)
 		_cards.append(card)
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
 func _make_card(job: Dictionary, selected: bool) -> Control:
@@ -171,11 +173,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		_move(-1)
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_give()
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## The Esc pill clicked: close, as Esc does.
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
+
+
+## A part pointed at: the same step as W/S landing on it.
+func _pick(index: int) -> void:
+	if not visible or index == _index or index >= _jobs.size():
+		return
+	Sfx.ui_move()
+	_move(index - _index)
+
+
+## A part clicked: select it and give it to him, like E.
+func _click(index: int) -> void:
+	if not visible or index >= _jobs.size():
+		return
+	_pick(index)
+	Sfx.ui_confirm()
+	_give()
 
 
 func _move(delta: int) -> void:

@@ -107,7 +107,9 @@ func _build_decor_once() -> void:
 	row.add_theme_constant_override("h_separation", Style.S2)
 	row.add_child(_prompt("W/S", "Choose"))
 	row.add_child(_prompt("E", "Confirm"))
-	row.add_child(_prompt("Esc", "Later"))
+	var later := _prompt("Esc", "Later")
+	MousePick.wire(later, Callable(), _click_close)
+	row.add_child(later)
 	_hint.get_parent().add_child(row)
 
 
@@ -255,8 +257,10 @@ func _draw_options(pref) -> void:
 		lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 		lbl.add_theme_color_override("font_color", Style.INK)
 		card.add_child(lbl)
+		MousePick.wire(card, _pick.bind(i), _click.bind(i))
 		_choices.add_child(card)
 		_cards.append(card)
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
 func _highlight() -> void:
@@ -294,11 +298,40 @@ func _unhandled_input(event: InputEvent) -> void:
 		_highlight()
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_choose(_options[_sel] if _sel < _options.size() else "take")
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## The Esc pill clicked: "later", as Esc does.
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
+
+
+## A choice pointed at: the same step as W/S landing on it.
+func _pick(index: int) -> void:
+	if not visible or index == _sel or index >= _options.size():
+		return
+	Sfx.ui_move()
+	_sel = index
+	_highlight()
+
+
+## A choice clicked: select it and answer with it, like E.
+func _click(index: int) -> void:
+	if not visible or index >= _options.size():
+		return
+	_pick(index)
+	Sfx.ui_confirm()
+	_choose(_options[_sel])
 
 
 func _choose(opt: String) -> void:

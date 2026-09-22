@@ -98,24 +98,19 @@ func _build_decor_once() -> void:
 		return
 	_decor_built = true
 	_hint.visible = false
-	(
-		_hint
-		. get_parent()
-		. add_child(
-			(
-				Style
-				. hint_bar(
-					[
-						["W/S", "Select"],
-						["A/D", "Change"],
-						["E", "Start cutting"],
-						["F", "Take back"],
-						["Esc", "Cancel"],
-					]
-				)
-			)
-		)
-	)
+	var pairs := [
+		["W/S", "Select"],
+		["A/D", "Change"],
+		["E", "Start cutting"],
+		["F", "Take back"],
+		["Esc", "Cancel"],
+	]
+	var bar := Style.hint_bar(pairs)
+	_hint.get_parent().add_child(bar)
+	# The one-shot keys double as buttons: start cutting, take the cloth back, cancel.
+	MousePick.wire_hint(bar, 2, _click_start)
+	MousePick.wire_hint(bar, 3, _click_take_back)
+	MousePick.wire_hint(bar, 4, _click_close)
 
 
 func _styles() -> PackedStringArray:
@@ -146,14 +141,19 @@ func _refresh() -> void:
 		child.queue_free()
 	for i in 3:
 		_rows.add_child(_make_row(i, i == _row))
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
+## A config row. E starts cutting from any row, so a click here only selects it; a click
+## on the "‹ value ›" steps it like A/D.
 func _make_row(row: int, selected: bool) -> Control:
 	var card := CraftPanel.option(selected, Style.ACC_WORK)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
-	Style.field_row(hbox, ROW_NAME[row], _value_text(row), selected)
+	var value := Style.field_row(hbox, ROW_NAME[row], _value_text(row), selected)
+	MousePick.wire(card, _pick.bind(row))
+	MousePick.wire_stepper(value, _step.bind(row))
 	return card
 
 
@@ -172,16 +172,66 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_start_cutting()
 	elif event.is_action_pressed("cut"):
-		# Changed your mind: pick the cloth back up off the table.
-		if _worktable != null and _worktable.take_back(_actor):
-			Sfx.play("pickup")
-			close()
+		if _take_back():
 			return
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+	_refresh()
+
+
+## Changed your mind: pick the cloth back up off the table (closes on success).
+func _take_back() -> bool:
+	if _worktable != null and _worktable.take_back(_actor):
+		Sfx.play("pickup")
+		close()
+		return true
+	return false
+
+
+func _click_start() -> void:
+	if visible and _config.visible:
+		Sfx.ui_confirm()
+		_start_cutting()
+		_refresh()
+
+
+func _click_take_back() -> void:
+	if visible and _config.visible:
+		Sfx.ui_confirm()
+		if not _take_back():
+			_refresh()
+
+
+func _click_close() -> void:
+	if visible and _config.visible:
+		Sfx.ui_cancel()
+		close()
+
+
+## A row pointed at: the same step as W/S landing on it.
+func _pick(row: int) -> void:
+	if not visible or not _config.visible or row == _row:
+		return
+	Sfx.ui_move()
+	_row = row
+	_refresh()
+
+
+## A click on the left (dir -1) / right (dir 1) of `row`'s value: select it, then A / D.
+## (`dir` comes first: the stepper passes it, the row is bound after.)
+func _step(dir: int, row: int) -> void:
+	if not visible or not _config.visible:
+		return
+	_pick(row)
+	Sfx.ui_move()
+	_adjust(dir)
 	_refresh()
 
 

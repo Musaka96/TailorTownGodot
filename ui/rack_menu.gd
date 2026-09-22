@@ -83,6 +83,7 @@ func _build() -> void:
 	_scroll.add_child(_list)
 
 	_hints = Style.hint_bar(_hint_pairs())
+	MousePick.wire_hint(_hints, -1, _click_close)
 	box.add_child(_hints)
 
 
@@ -96,9 +97,11 @@ func _refresh_hints() -> void:
 	if _hints == null:
 		return
 	var fresh := Style.hint_bar(_hint_pairs())
+	MousePick.wire_hint(fresh, -1, _click_close)
 	_hints.add_sibling(fresh)
 	_hints.queue_free()
 	_hints = fresh
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
 func _selected() -> Node:
@@ -124,6 +127,7 @@ func _rebuild_list() -> void:
 		)
 	for i in items.size():
 		var card := _make_card(items[i], i)
+		MousePick.wire(card, _pick.bind(i), _click.bind(i))
 		_list.add_child(card)
 		_cards.append(card)
 	_hung_meta.text = "%d hung" % items.size()
@@ -335,11 +339,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		_move(-1)
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_take()
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## The Esc pill clicked: close, as Esc does.
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
+
+
+## An item pointed at: the same step as W/S landing on it.
+func _pick(index: int) -> void:
+	if not visible or _rack == null or index == _index or index >= _rack.stored.size():
+		return
+	Sfx.ui_move()
+	_move(index - _index)
+
+
+## An item clicked: select it and take it (or take the set apart), like E.
+func _click(index: int) -> void:
+	if not visible or _rack == null or index >= _rack.stored.size():
+		return
+	_pick(index)
+	Sfx.ui_confirm()
+	_take()
 
 
 func _move(delta: int) -> void:

@@ -561,7 +561,9 @@ func _refresh() -> void:
 		_rows.remove_child(child)  # gone now — old + new rows together would jolt the layout
 		child.queue_free()
 	for i in rows.size():
-		_rows.add_child(_make_row(rows[i], i == _row))
+		_rows.add_child(_make_row(rows[i], i == _row, i))
+	_wire_total()
+	MousePick.release(self)  # a right click on the panel reaches _unhandled_input as Esc
 	_keep_row_in_view.call_deferred()
 
 
@@ -595,7 +597,12 @@ func _rebuild_hint_bar() -> void:
 	if OS.is_debug_build():
 		pairs.append(["F2", "Auto-fit"])
 	pairs.append(["Esc", "Close"])
-	_hint_bar.add_child(Style.hint_bar(pairs))
+	var bar := Style.hint_bar(pairs)
+	_hint_bar.add_child(bar)
+	# The one-shot keys double as buttons: confirm, the handbook, close.
+	MousePick.wire_hint(bar, 2, _click_confirm)
+	MousePick.wire_hint(bar, 3, _click_handbook)
+	MousePick.wire_hint(bar, -1, _click_close)
 
 
 ## The key the Handbook is bound to, for the hint bar — the player may have rebound it.
@@ -607,15 +614,23 @@ func _key_name(action: String) -> String:
 	return action.to_upper()
 
 
-func _make_row(row: int, selected: bool) -> Control:
+## A design row. E asks the customer from any row, so a click here only selects it (the
+## footer's quote is what a click asks from); a click on the "‹ value ›" steps it like
+## A/D, and a click on one of the part tabs turns to that part.
+func _make_row(row: int, selected: bool, index: int) -> Control:
 	if row == Row.PART:
 		# Not one more value row: the part switcher is its own strip of drawn tabs.
-		return PartTabs.make(PARTS, _part_sel, selected, _parts_on_target())
+		var strip := PartTabs.make(PARTS, _part_sel, selected, _parts_on_target())
+		MousePick.wire(strip, _pick_row.bind(index))
+		strip.gui_input.connect(_on_tabs_input.bind(strip, index))
+		return strip
 	var card := CraftPanel.option(selected, Style.ACC_MIRROR)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
-	Style.field_row(hbox, ROW_NAME[row], _value_text(row), selected)
+	var value := Style.field_row(hbox, ROW_NAME[row], _value_text(row), selected)
+	MousePick.wire(card, _pick_row.bind(index))
+	MousePick.wire_stepper(value, _step_row.bind(index))
 	if _row_on_target(row):
 		# The tutorial's "that's right": a tick on every row already set to the recipe.
 		var tick := Label.new()
@@ -657,11 +672,78 @@ func _unhandled_input(event: InputEvent) -> void:
 		UI.open_handbook(_actor)
 	elif OS.is_debug_build() and event.is_action_pressed("debug"):
 		_debug_autocomplete()
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## A row pointed at: the same step as W/S landing on it.
+func _pick_row(index: int) -> void:
+	if not visible or index == _row or index >= _active_rows().size():
+		return
+	Sfx.ui_move()
+	_move_row(index - _row)
+
+
+## A click on the left (dir -1) / right (dir 1) of row `index`'s value: select it, then A / D.
+## (`dir` comes first: the stepper passes it, the row index is bound after.)
+func _step_row(dir: int, index: int) -> void:
+	if not visible:
+		return
+	_pick_row(index)
+	Sfx.ui_move()
+	_adjust(dir)
+
+
+## A click on a part tab: select the strip and turn to that part; a click out on its
+## ‹ › chevrons steps it, as A/D would.
+func _on_tabs_input(event: InputEvent, strip: PartTabs, index: int) -> void:
+	if not MousePick.is_left_press(event):
+		return
+	var at := (event as InputEventMouseButton).position
+	var part := strip.part_at(at)
+	if part > -2:
+		_pick_part.call_deferred(index, part)
+	elif strip.chevron_at(at) != 0:
+		_step_row.call_deferred(strip.chevron_at(at), index)
+
+
+func _pick_part(index: int, part: int) -> void:
+	if not visible or part == _part_sel:
+		return
+	_pick_row(index)
+	Sfx.ui_move()
+	_adjust(part - _part_sel)
+
+
+## The footer's quote asks the customer (and then confirms) when clicked, like E.
+func _wire_total() -> void:
+	for bar in _total_slot.get_children():
+		MousePick.wire(bar, Callable(), _click_confirm)
+
+
+func _click_confirm() -> void:
+	if not visible:
+		return
+	Sfx.ui_confirm()
+	_confirm()
+
+
+func _click_handbook() -> void:
+	if visible:
+		UI.open_handbook(_actor)  # the same as the key: the book opens over the mirror
+
+
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
 
 
 func _move_row(delta: int) -> void:

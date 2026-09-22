@@ -28,6 +28,15 @@ func set_value(metres: float) -> void:
 	_tween.tween_property(self, "value", metres, 0.12)
 
 
+## The length (metres) at local x — the inverse of where _draw puts it.
+func metres_at(x: float) -> float:
+	var r := _tape_rect()
+	return clampf((x - r.position.x) / maxf(r.size.x, 1.0), 0.0, 1.0) * max_m
+
+
 func _draw() -> void:
-	var r := Rect2(Vector2(4, 24), Vector2(size.x - 8, 20))
-	Craft.tape(self, r, max_m, marks, value)
+	Craft.tape(self, _tape_rect(), max_m, marks, value)
+
+
+func _tape_rect() -> Rect2:
+	return Rect2(Vector2(4, 24), Vector2(size.x - 8, 20))

@@ -129,7 +129,9 @@ func _build_decor_once() -> void:
 	var box := _head.get_parent()
 	box.add_child(_calendar)
 	box.move_child(_calendar, _head.get_index() + 1)
-	_hint.get_parent().add_child(Style.hint_bar([["W/S", "Select"], ["Esc", "Close"]]))
+	var bar := Style.hint_bar([["W/S", "Select"], ["Esc", "Close"]])
+	_hint.get_parent().add_child(bar)
+	MousePick.wire_hint(bar, -1, _click_close)
 
 
 ## One little ticket per upcoming day: "Today · 2 pickups · 1 fitting", coloured like the
@@ -180,7 +182,9 @@ func _refresh() -> void:
 	if orders.is_empty():
 		_list.add_child(_line("No open orders.", Style.T_BODY, Style.INK_SOFT))
 	for i in orders.size():
-		_list.add_child(_make_list_card(orders[i], i == _sel, i))
+		var card := _make_list_card(orders[i], i == _sel, i)
+		MousePick.wire(card, _pick.bind(i))  # read-only: pointing or clicking only selects
+		_list.add_child(card)
 
 	_clear(_detail)
 	if orders.is_empty():
@@ -191,6 +195,7 @@ func _refresh() -> void:
 		)
 	else:
 		_fill_detail(orders[_sel])
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
 # --- Left page: the order list ---------------------------------------------
@@ -366,6 +371,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		event.is_action_pressed("orders")
 		or event.is_action_pressed("pause")
 		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
 	):
 		close()
 		get_viewport().set_input_as_handled()
@@ -374,3 +380,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	_refresh()
 	get_viewport().set_input_as_handled()
+
+
+## The Esc pill clicked: close, as Esc does.
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
+
+
+## A ticket pointed at or clicked: the same step as W/S landing on it.
+func _pick(index: int) -> void:
+	if not visible or index == _sel or index >= Orders.active.size():
+		return
+	Sfx.ui_move()
+	_sel = index
+	_refresh()

@@ -58,7 +58,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if Time.get_ticks_msec() / 1000.0 - _opened_at < OPEN_GUARD:
 		return
-	if event.is_action("ui_cancel") or event.is_action("interact") or event.is_action("pause"):
+	if (
+		event.is_action("ui_cancel")
+		or event.is_action("interact")
+		or event.is_action("pause")
+		or MousePick.is_back(event)
+	):
 		get_viewport().set_input_as_handled()
 		close()
 
@@ -141,3 +146,4 @@ func _build() -> void:
 	_hint.add_theme_color_override("font_color", Style.tint(Style.INK, 0.55))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	box.add_child(_hint)
+	MousePick.release(self)  # a right click reaches _unhandled_input as Esc

@@ -68,6 +68,10 @@ func close() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if MousePick.is_back(event):  # a right click is its Esc
+		get_viewport().set_input_as_handled()
+		close()
+		return
 	for action in ["pause", "ui_cancel", "interact", "ui_accept"]:
 		if event.is_action_pressed(action):
 			get_viewport().set_input_as_handled()
@@ -118,7 +122,10 @@ func _build() -> void:
 	for entry: Array in BENCH:
 		bench.add_child(_bench_column(entry[0], entry[1]))
 
-	outer.add_child(Style.hint_bar([["Esc", "Back"]]))
+	var bar := Style.hint_bar([["Esc", "Back"]])
+	MousePick.wire_hint(bar, -1, close)
+	outer.add_child(bar)
+	MousePick.release(self)  # a right click reaches _unhandled_input as Esc
 
 
 func _side(title: String, pic: Control, pad: bool) -> Control:

@@ -1031,6 +1031,12 @@ func _input(event: InputEvent) -> void:
 		_flags["adjusted"] = true
 
 
+## The shelf's cut length was set with the mouse on the tape: ticks like A/D does.
+func note_cut_adjusted() -> void:
+	if _active:
+		_flags["adjusted"] = true
+
+
 func _update_checks() -> void:
 	var menu := _open_menu()
 	if menu != null:

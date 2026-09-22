@@ -225,20 +225,22 @@ func play_single(key: String, volume_db := 0.0, pitch_min := 0.98, pitch_max := 
 
 
 ## Play the right navigation blip for a menu input event — call once at the top of a
-## menu's _unhandled_input. Directional actions tick, accept confirms, cancel backs out.
+## menu's _unhandled_input. Directional actions tick, accept confirms, cancel (or a right
+## click) backs out.
 func ui(event: InputEvent) -> void:
 	if (
 		event.is_action_pressed("interact")
 		or event.is_action_pressed("ui_accept")
 		or event.is_action_pressed("cut")
 	):
-		play("ui_confirm", -4.0)
+		ui_confirm()
 	elif (
 		event.is_action_pressed("pause")
 		or event.is_action_pressed("ui_cancel")
 		or event.is_action_pressed("orders")
+		or MousePick.is_back(event)
 	):
-		play("ui_cancel", -4.0)
+		ui_cancel()
 	elif (
 		event.is_action_pressed("move_left")
 		or event.is_action_pressed("move_right")
@@ -247,7 +249,21 @@ func ui(event: InputEvent) -> void:
 		or event.is_action_pressed("ui_up")
 		or event.is_action_pressed("ui_down")
 	):
-		play_single("ui_move", -7.0)
+		ui_move()
+
+
+## The blips Sfx.ui plays, for a menu the mouse drives (see MousePick): a hover that moves
+## the selection ticks, a click that confirms a row confirms.
+func ui_move() -> void:
+	play_single("ui_move", -7.0)
+
+
+func ui_confirm() -> void:
+	play("ui_confirm", -4.0)
+
+
+func ui_cancel() -> void:
+	play("ui_cancel", -4.0)
 
 
 ## The stream for `key` (a random variant for sets), for nodes that play it through

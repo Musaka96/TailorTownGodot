@@ -72,6 +72,9 @@ var _price_label: Label
 var _hint_bar: Control
 var _total_slot: VBoxContainer
 var _ledger: ClothLedger
+## The frame the mouse last moved the selection in: that refresh leaves the list's scroll
+## where it is (following the row would slide a new row under the pointer).
+var _mouse_frame := -1
 
 @onready var _panel: PanelContainer = $Center/Panel
 @onready var _dim: ColorRect = $Dim
@@ -161,10 +164,11 @@ func _fit_list() -> void:
 		var want := _list_pad.get_combined_minimum_size().y
 		var others := _panel.get_combined_minimum_size().y - _list_scroll.custom_minimum_size.y
 		_list_scroll.custom_minimum_size.y = clampf(want, 0.0, maxf(tallest - others, 120.0))
+	var follow := Engine.get_process_frames() != _mouse_frame
 	# Two frames: one for the new rows to lay out, one for the resized scroll area.
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if _selected_row == null or not is_instance_valid(_selected_row):
+	if not follow or _selected_row == null or not is_instance_valid(_selected_row):
 		return
 	var mid := LIST_PAD + _selected_row.position.y + _selected_row.size.y * 0.5
 	_list_scroll.scroll_vertical = int(mid - _list_scroll.size.y * 0.5)
@@ -253,6 +257,12 @@ func _set_hint(pairs: Array) -> void:
 		_hint_bar.queue_free()
 	_hint_bar = Style.hint_bar(pairs)
 	_hint.get_parent().add_child(_hint_bar)
+	# The one-shot keys double as buttons: E does the screen's thing, Esc steps back.
+	for i in pairs.size():
+		if pairs[i][0] == "E":
+			MousePick.wire_hint(_hint_bar, i, _click_confirm)
+		elif pairs[i][0] == "Esc":
+			MousePick.wire_hint(_hint_bar, i, _click_back)
 
 
 # --- Rendering -------------------------------------------------------------
@@ -282,6 +292,8 @@ func _refresh() -> void:
 			_refresh_upgrades()
 		Screen.BUILDERS:
 			_refresh_builders()
+	_total_mouse()
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 	_fit_list.call_deferred()
 
 
@@ -294,7 +306,7 @@ func _refresh_hub() -> void:
 	_hub_sel = _row
 	for i in opts.size():
 		var text := _hub_card_text(i)
-		_rows.add_child(_make_hub_card(text[0], text[1], i == _row))
+		_rows.add_child(_pickable(_make_hub_card(text[0], text[1], i == _row), i))
 	_set_hint([["W/S", "Select"], ["E", "Open"], ["Esc", "Hang up"]])
 
 
@@ -342,7 +354,7 @@ func _refresh_order() -> void:
 	_price_label.add_theme_color_override("font_color", Style.INK_SOFT)
 	_show_order_total(cost, afford)
 	for i in rows.size():
-		_rows.add_child(_make_cfg_row(rows[i], _row == i))
+		_rows.add_child(_make_cfg_row(rows[i], _row == i, i))
 	_set_hint([["W/S", "Select"], ["A/D", "Change"], ["E", "Order"], ["Esc", "Back"]])
 
 
@@ -398,7 +410,7 @@ func _refresh_upgrades() -> void:
 		if cat != last_cat:
 			last_cat = cat
 			_rows.add_child(Style.header(cat, Style.ACC_ORDER))
-		var card := _make_upgrade_row(id, _row == i)
+		var card := _pickable(_make_upgrade_row(id, _row == i), i)
 		if _row == i:
 			_selected_row = card
 		_rows.add_child(card)
@@ -424,7 +436,7 @@ func _refresh_builders() -> void:
 		if room != last_room:
 			last_room = room
 			_rows.add_child(Style.header(_room_name(room), Style.ACC_ORDER))
-		var card := _make_builder_row(id, _row == i)
+		var card := _pickable(_make_builder_row(id, _row == i), i)
 		if _row == i:
 			_selected_row = card
 		_rows.add_child(card)
@@ -436,7 +448,7 @@ func _build_contacts() -> void:
 		child.queue_free()
 	_contacts.add_child(Style.header("Contacts", Style.ACC_ORDER))
 	for i in Upgrades.VENDORS.size():
-		_contacts.add_child(_make_contact_card(i, i == _row))
+		_contacts.add_child(_pickable(_make_contact_card(i, i == _row), i))
 
 
 ## Right-hand detail for the highlighted supplier: what they stock, and whether it's open.
@@ -543,12 +555,16 @@ func _make_hub_card(title: String, desc: String, selected: bool) -> Control:
 	return card
 
 
-func _make_cfg_row(row: int, selected: bool) -> Control:
+## An order-form row. E orders from any row, so a click here only selects it (the
+## footer's total is what a click orders from); a click on the "‹ value ›" steps it.
+func _make_cfg_row(row: int, selected: bool, index: int) -> Control:
 	var card := _card_panel(selected)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", Style.S2)
 	card.add_child(hbox)
-	Style.field_row(hbox, OROW_NAME[row], _cfg_value(row), selected)
+	var value := Style.field_row(hbox, OROW_NAME[row], _cfg_value(row), selected)
+	MousePick.wire(card, _pick_row.bind(index))
+	MousePick.wire_stepper(value, _step_row.bind(index))
 	return card
 
 
@@ -727,11 +743,70 @@ func _unhandled_input(event: InputEvent) -> void:
 		_adjust(-1)
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_confirm()
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		_back()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Point at / click a card: row `index` of the current screen (a click also confirms it).
+func _pickable(card: Control, index: int) -> Control:
+	MousePick.wire(card, _pick_row.bind(index), _click_row.bind(index))
+	return card
+
+
+## The order form's footer total orders the bolt when clicked, like E.
+func _total_mouse() -> void:
+	if _screen != Screen.ORDER:
+		return
+	for bar in _total_slot.get_children():
+		MousePick.wire(bar, Callable(), _click_confirm)
+
+
+func _pick_row(index: int) -> void:
+	if not visible or index == _row or index >= _row_count():
+		return
+	Sfx.ui_move()
+	_mouse_frame = Engine.get_process_frames()
+	_move_row(index - _row)
+
+
+func _click_row(index: int) -> void:
+	if not visible or index >= _row_count():
+		return
+	_pick_row(index)
+	var screen := _screen
+	_click_confirm()
+	if _screen != screen:
+		_mouse_frame = -1  # a new screen follows its selection as usual
+
+
+func _click_confirm() -> void:
+	if not visible:
+		return
+	Sfx.ui_confirm()
+	_confirm()
+
+
+func _click_back() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		_back()
+
+
+## A click on the left (dir -1) / right (dir 1) of row `index`'s value: select it, then A / D.
+## (`dir` comes first: the stepper passes it, the row index is bound after.)
+func _step_row(dir: int, index: int) -> void:
+	if not visible or _screen != Screen.ORDER:
+		return
+	_pick_row(index)
+	Sfx.ui_move()
+	_adjust(dir)
 
 
 func _row_count() -> int:

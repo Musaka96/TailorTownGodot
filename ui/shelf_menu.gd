@@ -81,7 +81,12 @@ func _build_decor_once() -> void:
 		["E", "Take roll"],
 		["Esc", "Close"],
 	]
-	box.add_child(Style.hint_bar(pairs))
+	var bar := Style.hint_bar(pairs)
+	box.add_child(bar)
+	# The one-shot keys double as buttons: cut, take the roll, close.
+	MousePick.wire_hint(bar, 2, _click_key.bind(_do_cut))
+	MousePick.wire_hint(bar, 3, _click_key.bind(_take))
+	MousePick.wire_hint(bar, 4, _click_close)
 	# Roll count + current cut length: the one sanctioned home is the title's meta row.
 	_rolls_meta = TitleBlock.meta_label("", true)
 	_head.meta.add_child(_rolls_meta)
@@ -92,6 +97,10 @@ func _build_decor_once() -> void:
 	_tape = TapeMeasure.new()
 	box.add_child(_tape)
 	box.move_child(_tape, head_pos + 1)
+	# A click on the tape measures to that mark (A/D steps it by 0.1 m).
+	_tape.mouse_filter = Control.MOUSE_FILTER_PASS
+	_tape.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_tape.gui_input.connect(_on_tape_input)
 	_fits_label = Label.new()
 	_fits_label.add_theme_font_override("font", Style.font_bold())
 	_fits_label.add_theme_font_size_override("font_size", Style.T_BODY)
@@ -118,9 +127,11 @@ func _rebuild_list() -> void:
 		)
 	for i in rolls.size():
 		var card := _make_card(rolls[i], i == _index)
+		MousePick.wire(card, _pick.bind(i), _click.bind(i))
 		_list.add_child(card)
 		_cards.append(card)
 	_update_title()
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
 func _update_title() -> void:
@@ -246,11 +257,57 @@ func _unhandled_input(event: InputEvent) -> void:
 		_do_cut()
 	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
 		_take()
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## A roll pointed at: the same step as W/S landing on it.
+func _pick(index: int) -> void:
+	if not visible or index == _index or index >= _shelf.stored.size():
+		return
+	Sfx.ui_move()
+	_move(index - _index)
+
+
+## A roll clicked: select it and take it, like E.
+func _click(index: int) -> void:
+	if not visible or index >= _shelf.stored.size():
+		return
+	_pick(index)
+	Sfx.ui_confirm()
+	_take()
+
+
+func _click_key(action: Callable) -> void:
+	if visible:
+		Sfx.ui_confirm()
+		action.call()
+
+
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
+
+
+func _on_tape_input(event: InputEvent) -> void:
+	if not MousePick.is_left_press(event):
+		return
+	_tape.accept_event()
+	var at := snappedf(_tape.metres_at((event as InputEventMouseButton).position.x), CUT_STEP)
+	if absf(at - _cut_length) < 0.001:
+		return
+	Sfx.ui_move()
+	_adjust_cut(at - _cut_length)
+	if Tutorial != null:
+		Tutorial.note_cut_adjusted()
 
 
 func _move(delta: int) -> void:

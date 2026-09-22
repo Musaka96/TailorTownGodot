@@ -347,6 +347,7 @@ func _fill() -> void:
 	_fashion_body.text = _fashion_text()
 	_events_body.text = _events_text(day)
 	_scroll.scroll_vertical = 0
+	MousePick.release(self)  # the wheel scrolls it; a right click reaches Esc's path
 
 
 ## Compose one article (optional kicker, headline, body) into `parent`.
@@ -471,6 +472,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		or event.is_action_pressed("pause")
 		or event.is_action_pressed("ui_cancel")
 		or event.is_action_pressed("interact")
+		or MousePick.is_back(event)
 	):
 		close()
 		get_viewport().set_input_as_handled()

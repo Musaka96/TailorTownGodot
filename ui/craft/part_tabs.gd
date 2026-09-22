@@ -33,8 +33,11 @@ static func make(
 	return strip
 
 
+func _init() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE  # (a menu may wire it for the mouse after)
+
+
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	custom_minimum_size = Vector2(0, HEIGHT)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
@@ -43,6 +46,25 @@ func _ready() -> void:
 func tab_rect(part_index: int) -> Rect2:
 	var local := _tab_rect(part_index + 1)
 	return Rect2(global_position + local.position, local.size)
+
+
+## The part under local point `at` (-1 = the overview tab), or -2 between / off the tabs.
+func part_at(at: Vector2) -> int:
+	for i in parts.size() + 1:
+		if _tab_rect(i).has_point(at):
+			return i - 1
+	return -2
+
+
+## -1 / 1 when `at` is out past the first / last tab (where the ‹ › chevrons sit), else 0.
+func chevron_at(at: Vector2) -> int:
+	if at.y < 0.0 or at.y > size.y:
+		return 0
+	if at.x < _tab_rect(0).position.x:
+		return -1
+	if at.x > _tab_rect(parts.size()).end.x:
+		return 1
+	return 0
 
 
 func _draw() -> void:
