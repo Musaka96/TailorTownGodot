@@ -30,12 +30,13 @@ func _ready() -> void:
 
 
 func _load_materials() -> void:
-	var dir := DirAccess.open(MATERIALS_DIR)
-	if dir == null:
-		push_warning("Catalog: no materials dir at %s" % MATERIALS_DIR)
+	# ResourceLoader, not DirAccess: in an export the .tres files are converted and
+	# only "<name>.tres.remap" stubs remain on disk, which DirAccess lists as-is.
+	var files := ResourceLoader.list_directory(MATERIALS_DIR)
+	if files.is_empty():
+		push_warning("Catalog: no materials in %s" % MATERIALS_DIR)
 		return
-	for file in dir.get_files():
-		# Godot exports .tres as .tres.remap/.res sometimes; accept both.
+	for file in files:
 		if not (file.ends_with(".tres") or file.ends_with(".res")):
 			continue
 		var res := load(MATERIALS_DIR.path_join(file))

@@ -87,3 +87,5 @@ $lines | Write-Host
 $scriptErrors = $lines | Where-Object { $_ -match 'SCRIPT ERROR|Parse Error|Failed to load' }
 if ($p.ExitCode -ne 0) { throw ("Exported game exited with code {0} (0x{0:X8})." -f $p.ExitCode) }
 if ($scriptErrors) { throw "Exported game logged script errors." }
+# Content folders listed at boot must not come up empty in the export.
+if ($lines -match 'Catalog: 0 materials|News: 0 articles') { throw "Exported game loaded no materials or news." }

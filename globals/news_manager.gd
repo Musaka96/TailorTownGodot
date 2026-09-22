@@ -51,6 +51,7 @@ var _suits_delivered := 0
 func _ready() -> void:
 	_rng.randomize()
 	_load()
+	print("News: %d articles." % _all.size())
 	EventBus.day_began.connect(_on_day_began)
 	EventBus.order_fulfilled.connect(_on_order_fulfilled)
 
@@ -201,10 +202,9 @@ func seen_snapshot() -> Dictionary:
 
 
 func _load() -> void:
-	var dir := DirAccess.open(DIR)
-	if dir == null:
-		return  # No news yet — run tools/build_news.gd.
-	for file in dir.get_files():
+	# ResourceLoader, not DirAccess: exports keep only "<name>.tres.remap" stubs on
+	# disk. Empty means no news yet: run tools/build_news.gd.
+	for file in ResourceLoader.list_directory(DIR):
 		if not (file.ends_with(".tres") or file.ends_with(".res")):
 			continue
 		var ev := load(DIR.path_join(file)) as NewsEvent
