@@ -324,6 +324,9 @@ func book_appointment(cust: Node) -> int:
 				"picky": pref.picky,
 				"likes": pref.likes_color,
 				"dislikes": pref.dislikes_color,
+				"quiet": pref.quiet_dislike,
+				"quiet_known": pref.quiet_known,
+				"town": pref.town_worn,
 			}
 		)
 	)
@@ -352,34 +355,16 @@ func decline(cust: Node) -> int:
 	return 0
 
 
-## Can the shop make this brief right now? False when the dress code only allows cloth
-## no unlocked supplier stocks, or even the cheapest suitable suit is over budget.
+## Can the shop make this brief right now? False when no suit the customer would take
+## (the dress code, less their dislikes and suits they already have from you) comes in a
+## cloth an unlocked supplier stocks, or even the cheapest of them is over budget.
 func brief_feasible(pref: CustomerPreference) -> bool:
-	var dc = Catalog.dress_code if Catalog != null else null
-	var rule = dc.rule_for(pref.occasion, pref.style) if dc != null else null
-	if rule == null:
+	if Catalog == null or Catalog.dress_code == null:
 		return true
-	var supplied := {}
-	for v in Upgrades.unlocked_vendors():
-		for f in v.get("fabrics", []):
-			supplied[int(f)] = true
-	var fabrics: Array = rule.allowed_fabrics
-	if fabrics.is_empty():
-		fabrics = Array(Enums.fabrics_for(Enums.GarmentType.JACKET))
-	var best := -1
-	var best_price := INF
-	for f in fabrics:
-		if supplied.has(int(f)) and Pricing.per_meter(int(f), 0) < best_price:
-			best = int(f)
-			best_price = Pricing.per_meter(int(f), 0)
-	if best < 0:
-		return false
-	var cheapest := {
-		Enums.GarmentType.JACKET: {"fabric": best, "pattern": 0},
-		Enums.GarmentType.PANTS: {"fabric": best, "pattern": 0},
-		Enums.GarmentType.SHIRT: {"fabric": Enums.Fabric.COTTON, "pattern": 0},
-	}
-	return Pricing.suit_quote(cheapest) <= pref.budget
+	if Catalog.dress_code.rule_for(pref.occasion, pref.style) == null:
+		return true
+	var quote := SuitTaste.cheapest_quote(pref)
+	return quote >= 0 and quote <= pref.budget
 
 
 ## Why the brief can't be made (for the greeting bubble), or "".

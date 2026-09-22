@@ -7,8 +7,14 @@ extends Node
 
 const MAX_LOYALTY := 5
 
-## name -> { look: Dictionary, loyalty: int, visits: int }
+## Collected suits kept in the town's memory this long (days), for worn_about_town().
+const WORN_MEMORY_DAYS := 30
+
+## name -> { look, loyalty, visits, last_day, dislike: { kind, value, known, said },
+## owned: [[colour, pattern], ...] }
 var _people: Dictionary = {}
+## Suits collected and now worn about town: [[jacket colour, day collected], ...]
+var _worn: Array = []
 var _rng := RandomNumberGenerator.new()
 
 
@@ -33,6 +39,7 @@ func note_customer(cust: Node) -> void:
 		"glasses": str(cust.get("glasses")),
 		"gender": int(cust.get("gender")),
 	}
+	_remember_taste(entry, cust.preference)
 	_people[nm] = entry
 
 
@@ -88,11 +95,42 @@ func dent_loyalty(nm: String) -> void:
 		entry["loyalty"] = maxi(int(entry.get("loyalty", 0)) - 1, 0)
 
 
+## The dislike a regular keeps from visit to visit: { kind, value, known, said } or {}.
+func kept_dislike(nm: String) -> Dictionary:
+	return _people.get(nm, {}).get("dislike", {})
+
+
+## A regular's past suits from you as [colour, pattern].
+func wardrobe(nm: String) -> Array:
+	return (_people.get(nm, {}).get("owned", []) as Array).duplicate(true)
+
+
+## Your suits being worn about town: jacket colour -> how many were collected in the
+## `window` days before `day` (not counting `day` itself: nobody has seen them yet).
+func worn_about_town(day: int, window: int) -> Dictionary:
+	var out := {}
+	for w: Array in _worn:
+		var d := int(w[1])
+		if d < day and day - d <= window:
+			out[int(w[0])] = int(out.get(int(w[0]), 0)) + 1
+	return out
+
+
 func _on_fulfilled(order: SuitOrder, _payout: int) -> void:
 	var entry: Dictionary = _people.get(order.customer_name, {"loyalty": 0, "visits": 0})
+	var today: int = Shift.day if Shift != null else 1
 	entry["visits"] = int(entry.get("visits", 0)) + 1
 	entry["loyalty"] = mini(int(entry.get("loyalty", 0)) + 1, MAX_LOYALTY)
-	entry["last_day"] = Shift.day if Shift != null else 1
+	entry["last_day"] = today
+	var jacket: Dictionary = order.design.get(Enums.GarmentType.JACKET, {})
+	if not jacket.is_empty():
+		var suit := [int(jacket.get("color", 0)), int(jacket.get("pattern", 0))]
+		var owned: Array = entry.get("owned", [])
+		if not suit in owned:
+			owned.append(suit)
+		entry["owned"] = owned
+		_worn.append([suit[0], today])
+		_worn = _worn.filter(func(w: Array) -> bool: return today - int(w[1]) <= WORN_MEMORY_DAYS)
 	_people[order.customer_name] = entry
 
 
@@ -106,12 +144,40 @@ func _on_expired(order: SuitOrder) -> void:
 
 
 func save_state() -> Dictionary:
-	return _people.duplicate(true)
+	return {"people": _people.duplicate(true), "worn": _worn.duplicate(true)}
 
 
 func restore(d: Variant) -> void:
-	_people = (d as Dictionary).duplicate(true) if d is Dictionary else {}
+	var data: Dictionary = d if d is Dictionary else {}
+	# Older saves were the people dictionary on its own.
+	var people: Variant = data.get("people", data if not data.has("worn") else {})
+	_people = (people as Dictionary).duplicate(true) if people is Dictionary else {}
+	_worn = (data.get("worn", []) as Array).duplicate(true)
+	for nm in _people:  # JSON turns the [colour, pattern] ints into floats
+		var entry: Dictionary = _people[nm]
+		var owned: Array = []
+		for o: Array in entry.get("owned", []):
+			owned.append([int(o[0]), int(o[1])])
+		entry["owned"] = owned
 
 
 func reset() -> void:
 	_people.clear()
+	_worn.clear()
+
+
+## Keep the first real dislike a customer shows (stated or quiet) for good; a quiet one
+## becomes known once they've said it. A town remark is about the town, not them.
+func _remember_taste(entry: Dictionary, pref: CustomerPreference) -> void:
+	if pref == null:
+		return
+	var kept: Dictionary = entry.get("dislike", {})
+	if kept.is_empty():
+		if not pref.quiet_dislike.is_empty():
+			kept = pref.quiet_dislike.duplicate()
+			kept["known"] = pref.quiet_known
+		elif pref.dislikes_color >= 0 and pref.town_worn == 0:
+			kept = {"kind": "color", "value": pref.dislikes_color, "known": true, "said": true}
+	elif pref.quiet_known and not bool(kept.get("said", false)):
+		kept["known"] = true
+	entry["dislike"] = kept

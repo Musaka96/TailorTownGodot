@@ -231,6 +231,30 @@ const OCCASIONS := [
 	],
 ]
 
+# [title, body]: what customers want beyond the dress code (SuitTaste, BriefDirector)
+const CUSTOMERS := [
+	[
+		"Taste",
+		(
+			"Tailors once kept a ledger of every customer's measurements, and in the margin "
+			+ "what they would not be seen dead in.\n\n"
+			+ "Some tell you at the counter. More keep it to themselves until you hold the cloth "
+			+ "up to them. When one says no, believe it and reach for the next bolt."
+		),
+	],
+	[
+		"Regulars",
+		(
+			"Never sell a regular the same suit twice. They remember what they bought from "
+			+ "you, and what they told you they can't abide, and they expect you to."
+		),
+	],
+	[
+		"About Town",
+		"Dress half the street in one colour and the next customer will want any other.",
+	],
+]
+
 # Colour families (MaterialFactory palette indices), used to say what a rule is *like*
 # before it says what it *is*.
 const DARK := [0, 1, 3]  # Navy, Charcoal, Black
@@ -250,7 +274,15 @@ static func chapters() -> Array:
 		{"name": "Fabrics", "entries": _swatch_entries(FABRICS, "fabric")},
 		{"name": "Patterns", "entries": _swatch_entries(PATTERNS, "pattern")},
 		{"name": "Styles", "entries": _style_entries()},
+		{"name": "Customers", "entries": _plain_entries(CUSTOMERS)},
 	]
+
+
+static func _plain_entries(data: Array) -> Array:
+	var out: Array = []
+	for e in data:
+		out.append({"title": e[0], "body": e[1], "preview": {}})
+	return out
 
 
 static func _style_entries() -> Array:

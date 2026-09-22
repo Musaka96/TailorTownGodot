@@ -151,6 +151,48 @@ a line, they stop and answer, and sometimes they turn for the door as a walk-in 
 pitching while someone is being served, Fully Booked is up, or the book is swamped — and a
 win uses one of the day's planned walk-ins (`FrontDesk.claim_walk_in`).
 
+## Taste
+Why: solid navy passes 9 of the 16 briefs, and a new shop starts with exactly navy
+worsted and white cotton, so every early customer ended up in the same suit. Taste gives
+customers reasons to say no to it, without forcing the player to buy cloth they can't
+afford. Designed with the owner on 2026-09-22 (a simulator of the rules was used to tune
+them). Code: `data/scripts/suit_taste.gd` (shared rules), `entities/customer/brief_director.gd`
+(shapes each walk-in after `FrontDesk.season_brief`), `Clientele` (memory), the mirror
+(`CustomerPreference.evaluate`). Test: `tools/test_suit_taste.gd`.
+
+- **Quiet dislike.** A newcomer with no stated dislike may keep one to themselves: a
+  colour or a pattern, and a cloth too from tier `cloth_dislike_from_tier`. It's taken
+  from what their brief allows and always leaves a suit. They say it the first time you
+  show it at the mirror ("Navy again? Half my wardrobe is navy."). After that the design
+  screen shows it. Chance by tier: `quiet_dislike_by_tier` (20% / 35% / 35% / 45% / 45%).
+  It leans on the safe answers (navy, charcoal, plain, worsted) by `safe_lean_by_tier`,
+  which is ×1 at tier 0 so a new shop's starter roll is rarely the one hit.
+- **Regulars remember.** The first dislike a customer shows (stated or quiet) is kept for
+  good and comes back on every visit, but only while the new brief still leaves them a
+  suit. They also won't take a colour and pattern they already bought from you ("I've
+  got that one from you already. Something new."). The occasion and style are new each
+  visit.
+- **Seen about town.** Clientele logs each collected suit's jacket colour and day. A
+  newcomer with no dislike of their own may turn down the colour most worn in the last
+  `town_window_days` (5), counting only suits collected on an earlier day. It needs
+  `town_min_worn` (2) of one colour, then `town_step` (20%) per suit past the first, up
+  to `town_cap` (50%). It's said up front at the counter ("I keep seeing your navy about
+  town. Something else."). It isn't a personal taste, so a regular doesn't keep it.
+- **Cash guard (always on).** A new quiet dislike or town remark is dropped if the shelf
+  can't serve the brief and the cheapest suitable cut (one suit's worth, 4 m) would leave
+  less than `taste_cash_reserve` (100) in the till. Broke shops still get customers, just
+  not pickier ones.
+- **Fresh-cloth nudge (opening week).** At tier 0, days 1 to `nudge_days` (3), a walk-in
+  whose brief the shelf could serve has a `nudge_chance` (35%) of being rerolled, or
+  `nudge_after_shelf` (75%) right after an order made from shelf cloth. It keeps trying
+  new occasions and styles until the shelf can't serve the brief but an affordable cut
+  can, and the budget covers it. If none turns up, the customer stays as they were.
+  Appointments, newspaper-event briefs and the tutorial are never nudged.
+- **`brief_feasible`** now finds the cheapest suit the customer would actually take
+  (after dislikes and past suits) from cloth an unlocked supplier sells.
+
+All numbers are in `GameConfig` → Economy → Customer taste.
+
 ## Ideas not built yet
 - Haggling.
 - Rush orders you can counter-offer ("the day after tomorrow?").

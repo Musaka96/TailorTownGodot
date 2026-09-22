@@ -909,8 +909,12 @@ func _acceptable_design() -> Dictionary:
 func _taste_pick(allowed: Array, fallback: int) -> int:
 	if _pref.likes_color in allowed:
 		return _pref.likes_color
+	var told: Dictionary = _pref.quiet_dislike if _pref.quiet_known else {}
 	for c in allowed:
-		if int(c) != _pref.dislikes_color:
+		var quiet_no: bool = (
+			told.get("kind", "") == "color" and int(told.get("value", -1)) == int(c)
+		)
+		if int(c) != _pref.dislikes_color and not quiet_no:
 			return int(c)
 	return fallback
 

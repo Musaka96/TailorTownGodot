@@ -47,6 +47,7 @@ var _served: Customer = null
 var _fitting: Customer = null
 var _alive := 0
 var _rng := RandomNumberGenerator.new()
+var _briefs := BriefDirector.new()  # taste on top of FrontDesk's brief
 
 
 func _ready() -> void:
@@ -210,8 +211,9 @@ func hold_for(cust: Customer) -> bool:
 ## bring them to the counter to be greeted.
 func invite_in(cust: Customer) -> void:
 	cust.preference = CustomerPreference.random_pref(_rng, "")
-	_apply_event_bias(cust.preference)
+	var biased := _apply_event_bias(cust.preference)
 	FrontDesk.season_brief(cust.preference)
+	_briefs.shape(cust.preference, _rng, "", biased)
 	cust.preference.arrival = "pitch"
 	FrontDesk.claim_walk_in()
 	_served = cust
@@ -316,8 +318,9 @@ func _spawn(pos: Vector3, with_pref: bool, arrival := {}) -> Customer:
 		else:
 			regular = _maybe_regular() if kind == "walk_in" else ""
 			cust.preference = CustomerPreference.random_pref(_rng, regular)
-			_apply_event_bias(cust.preference)
+			var biased := _apply_event_bias(cust.preference)
 			FrontDesk.season_brief(cust.preference)
+			_briefs.shape(cust.preference, _rng, regular, biased)
 			if kind == "referral":
 				cust.preference.arrival = "referral"
 				UI.toast("%s sent a customer your way!" % FrontDesk.RIVAL_NAME)
@@ -331,15 +334,16 @@ func _spawn(pos: Vector3, with_pref: bool, arrival := {}) -> Customer:
 
 ## A looming city event (from the paper) skews some briefs toward its occasion/style,
 ## so the player who read the paper and prepared is rewarded.
-func _apply_event_bias(pref: CustomerPreference) -> void:
+func _apply_event_bias(pref: CustomerPreference) -> bool:
 	if pref == null or News == null:
-		return
+		return false
 	var day: int = Shift.day if Shift != null else 1
 	var bias := News.event_bias(day, _rng)
 	if bias.has("occasion"):
 		pref.occasion = int(bias["occasion"])
 	if bias.has("style"):
 		pref.style = int(bias["style"])
+	return bias.has("occasion") or bias.has("style")
 
 
 ## One in `regular_chance` shoppers is a returning regular (once you have any) — more
@@ -364,6 +368,11 @@ func _pref_from_appointment(a: Dictionary) -> CustomerPreference:
 	p.picky = bool(a.get("picky", false))
 	p.likes_color = int(a.get("likes", -1))
 	p.dislikes_color = int(a.get("dislikes", -1))
+	p.quiet_dislike = (a.get("quiet", {}) as Dictionary).duplicate()
+	p.quiet_known = bool(a.get("quiet_known", false))
+	p.town_worn = int(a.get("town", 0))
+	if Clientele != null and Clientele.is_known(p.display_name):
+		p.owned_suits = Clientele.wardrobe(p.display_name)
 	p.regular_level = Clientele.loyalty(p.display_name) if Clientele != null else 0
 	p.arrival = "appointment"
 	return p

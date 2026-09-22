@@ -84,6 +84,15 @@ const FIRST_NAMES := [
 ## is refused. Suit colours (below SUIT_COLOR_COUNT) mean the jacket and trousers;
 ## shirtings mean the shirt.
 @export var dislikes_color := -1
+## A dislike they keep to themselves until you show it at the mirror (SuitTaste): a
+## colour, pattern or cloth, or {}. `quiet_known` once they've told you.
+@export var quiet_dislike: Dictionary = {}
+@export var quiet_known := false
+## > 0 when `dislikes_color` is the colour they've seen too much of about town (how many
+## of your suits in it are being worn), not a taste of their own.
+@export var town_worn := 0
+## A regular's past suits from you as [colour, pattern]; they want something new.
+@export var owned_suits: Array = []
 
 
 ## A random shopper's brief: an occasion, a style, and a budget for the shop's current
@@ -150,6 +159,8 @@ static func is_shirting(color: int) -> bool:
 
 ## What they say about colour at the counter, or "".
 func taste_line() -> String:
+	if town_worn > 0 and dislikes_color >= 0:
+		return SuitTaste.town_line(dislikes_color, town_worn)
 	var color := likes_color if likes_color >= 0 else dislikes_color
 	if color < 0:
 		return ""
@@ -165,16 +176,27 @@ func taste_line() -> String:
 	return line.substr(0, 1).to_upper() + line.substr(1)
 
 
-## The taste in a few words for the design screen: "wants burgundy", "no navy shirt".
+## The taste in a few words for the design screen: "Would like burgundy", "No navy
+## shirt", plus a quiet dislike once they've told you and a regular's past suits.
 func taste_short() -> String:
+	var parts := PackedStringArray()
 	var color := likes_color if likes_color >= 0 else dislikes_color
-	if color < 0:
-		return ""
-	var word := MaterialFactory.color_name(color).to_lower()
-	var what := " shirt" if is_shirting(color) else ""
-	if likes_color >= 0:
-		return "Would like %s%s" % [word, what]
-	return "No %s%s" % [word, what]
+	if color >= 0:
+		var word := MaterialFactory.color_name(color).to_lower()
+		var what := " shirt" if is_shirting(color) else ""
+		parts.append(("Would like %s%s" if likes_color >= 0 else "No %s%s") % [word, what])
+		if likes_color >= 0 and dislikes_color >= 0:
+			parts.append("No " + MaterialFactory.color_name(dislikes_color).to_lower())
+	if quiet_known and not quiet_dislike.is_empty():
+		var no := SuitTaste.short(quiet_dislike)
+		parts.append(no.substr(0, 1).to_upper() + no.substr(1))
+	if not owned_suits.is_empty():
+		var had := PackedStringArray()
+		for o: Array in owned_suits:
+			var c := SuitTaste.word({"kind": "color", "value": o[0]})
+			had.append(c + " " + SuitTaste.word({"kind": "pattern", "value": o[1]}))
+		parts.append("Has " + ", ".join(had))
+	return " · ".join(parts)
 
 
 ## Their dislike broken by this design: what they say, or "".
@@ -253,11 +275,22 @@ func evaluate(design: Dictionary) -> Dictionary:
 	if Catalog.dress_code != null:
 		out = Catalog.dress_code.evaluate(occasion, style, design, budget)
 	var reasons: Array[String] = out.get("reasons", [] as Array[String])
+	# Their own taste is the first thing they mention: a stated dislike, a suit they
+	# already have from you, then a quiet dislike (which they only now say out loud).
+	var taste: Array[String] = []
 	var dislike := taste_reason(design)
 	if dislike != "":
-		reasons.push_front(dislike)
+		taste.append(dislike)
+	if SuitTaste.owns(owned_suits, design):
+		taste.append(SuitTaste.OWNED_LINE)
+	if SuitTaste.hits(quiet_dislike, design):
+		quiet_known = true  # said now, and remembered on the design screen
+		taste.append(SuitTaste.line(quiet_dislike))
+	if not taste.is_empty():
+		taste.append_array(reasons)
+		reasons = taste
 		out["suitable"] = false
-		out["reason"] = "Not quite: " + dislike
+		out["reason"] = "Not quite: " + reasons[0]
 	out["reasons"] = reasons
 	out["liked"] = likes_met(design)
 	return out

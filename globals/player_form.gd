@@ -280,6 +280,10 @@ func _on_answered(choice: String, cust: Node) -> void:
 	var taste := pref.taste_short()
 	if taste != "":
 		extra = " · " + taste.to_lower()
+	if not pref.quiet_dislike.is_empty() and not pref.quiet_known:
+		extra += " · quietly " + SuitTaste.short(pref.quiet_dislike)
+	if pref.town_worn > 0:
+		extra += " (seen %d about town)" % pref.town_worn
 	_log("%s (%s%s): %s" % [who, pref.describe(), extra, _choice_word(choice)])
 
 

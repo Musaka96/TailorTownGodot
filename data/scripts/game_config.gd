@@ -45,6 +45,30 @@ extends Resource
 @export var loyalty_budget_step: float = 0.1
 @export var loyalty_budget_max: float = 0.5
 
+@export_subgroup("Customer taste")
+## Chance a new customer with no stated dislike keeps a quiet one, revealed only when you
+## show it to them at the mirror (by reputation tier 0..4).
+@export var quiet_dislike_by_tier: Array[float] = [0.2, 0.35, 0.35, 0.45, 0.45]
+## Extra weight a quiet dislike puts on the safe answers (navy, charcoal, plain), by tier.
+@export var safe_lean_by_tier: Array[float] = [1.0, 1.5, 1.5, 2.0, 2.0]
+## From this tier a quiet dislike can be a cloth ("no flannel") as well.
+@export var cloth_dislike_from_tier: int = 1
+## "I keep seeing your navy about town": counts suits collected on an earlier day within
+## this many days. It starts at `town_min_worn` suits of one colour, `town_step` chance per
+## suit past the first, up to `town_cap`.
+@export var town_window_days: int = 5
+@export var town_min_worn: int = 2
+@export var town_step: float = 0.2
+@export var town_cap: float = 0.5
+## Opening week (days 1..nudge_days at tier 0): the chance a walk-in's brief is steered
+## to cloth the shelf lacks but the till can pay for, and the higher chance right after
+## an order made from the shelf. Never forced: with no such brief the customer stays.
+@export var nudge_days: int = 3
+@export var nudge_chance: float = 0.35
+@export var nudge_after_shelf: float = 0.75
+## Cash a new dislike or a nudge must leave in hand after the cheapest cut it needs.
+@export var taste_cash_reserve: int = 100
+
 @export_subgroup("Payout")
 ## Match×quality at or above this pays the full price ("good enough").
 @export var full_pay_at: float = 0.6
