@@ -21,7 +21,7 @@ queue up and build when the runner comes back (the newest push per branch wins).
 2. Mirrors `IMPORT/` in from `E:\Chewdlaka\Dev\tailor-town\IMPORT`. It only reads that folder and copies what changed.
 3. `godot --headless --import`
 4. `tools/validate.gd`: every script and scene must load.
-5. Exports the `TailorTown` preset to `E:\Chewdlaka\Dev\TailorTown-builds\TailorTown-<version>-<branch>-<sha>\TailorTown.exe`. The newest 15 builds are kept.
+5. Exports the `TailorTown` preset as a debug build, the same as the editor's Export dialog with "Export With Debug" ticked. `build.ps1 -Mode release` builds a release instead. The exe goes to `E:\Chewdlaka\Dev\TailorTown-builds\TailorTown-<version>-<branch>-<sha>\TailorTown.exe`. The newest 15 builds are kept.
 6. Smoke test: boots the exported exe headless to the main menu and quits. Fails on a crash, a non-zero exit or a script error.
 7. Uploads the exe to GitHub only for a `v*` tag, or a manual run (Actions tab > Build > Run workflow). A regular push doesn't upload, because the exe is about 900 MB.
 

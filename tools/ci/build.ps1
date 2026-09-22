@@ -18,6 +18,9 @@ param(
     [string]$Godot = 'E:\SteamLibrary\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe',
     [string]$ImportSource = 'E:\Chewdlaka\Dev\tailor-town\IMPORT',
     [string]$Preset = 'TailorTown',
+    # Debug matches the editor's Export dialog default ("Export With Debug"),
+    # which is how playtest builds are made.
+    [ValidateSet('debug', 'release')][string]$Mode = 'debug',
     [Parameter(Mandatory = $true)][string]$OutDir
 )
 
@@ -67,7 +70,7 @@ Step 'Export'
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $exe = Join-Path (Resolve-Path $OutDir).Path 'TailorTown.exe'
 Remove-Item $exe -ErrorAction SilentlyContinue
-$code = Invoke-Godot 'export' @('--headless', '--export-release', "`"$Preset`"", "`"$exe`"")
+$code = Invoke-Godot 'export' @('--headless', "--export-$Mode","`"$Preset`"", "`"$exe`"")
 if ($code -ne 0 -or -not (Test-Path $exe)) { throw "Export failed ($code)." }
 Write-Host ("Exported {0} ({1:N0} MB)" -f $exe, ((Get-Item $exe).Length / 1MB))
 
