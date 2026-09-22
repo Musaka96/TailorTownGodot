@@ -1,0 +1,45 @@
+TAILORTOWN - PLAYTEST GUIDE
+===========================
+
+Thanks for testing. This takes about an hour, and the game keeps notes for you.
+
+
+1. PLAY
+-------
+- Start a New Game and play at least three in-game days. More is welcome.
+- Play the way you normally would. Skipping the tutorial, going broke or losing
+  customers are all useful to us. There is no wrong way to play.
+- Save and quit from the pause menu (Esc) when you stop.
+
+While you play, the game quietly records how each day went: customers, orders, cloth
+you bought, money, and how often customers said no at the mirror. It doesn't record
+anything about you or your computer beyond the graphics card and window size.
+
+
+2. SEND THE REPORT
+------------------
+When you're done:
+
+  Esc  ->  Playtest Report  ->  Copy to Clipboard
+
+Then paste it into your message to us. Or press "Open Folder" and attach the
+report_....txt file instead.
+
+The file is also here, if the game won't open:
+  %APPDATA%\Godot\app_userdata\TailorTown\playtest\
+(Paste that into the Windows Explorer address bar.)
+
+The report saves itself every minute, so after a crash just send whatever is in
+that folder.
+
+
+3. TELL US IN A FEW LINES
+-------------------------
+Short answers are fine. We read every one.
+
+- When were you bored, and when were you rushed?
+- Did a customer ever turn down a suit in a way that felt unfair?
+- Was there anything you couldn't work out how to do?
+- Any bugs: what you were doing, and what happened. A screenshot helps.
+
+And the one thing you'd change first.
