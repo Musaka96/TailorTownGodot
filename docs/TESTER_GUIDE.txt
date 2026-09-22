@@ -1,19 +1,20 @@
 TAILORTOWN - PLAYTEST GUIDE
 ===========================
 
-Thanks for testing. This takes about an hour, and the game keeps notes for you.
+Thanks for testing. It takes about an hour, and the game keeps notes as you play.
 
 
 1. PLAY
 -------
-- Start a New Game and play at least three in-game days. More is welcome.
-- Play the way you normally would. Skipping the tutorial, going broke or losing
-  customers are all useful to us. There is no wrong way to play.
+- Start a New Game and play through the tutorial with Mr. Hemming.
+- Then run your own shop for at least three in-game days. More is welcome.
+- Play the way you normally would. Going broke or losing customers is useful to
+  see too. There is no wrong way to play.
 - Save and quit from the pause menu (Esc) when you stop.
 
-While you play, the game quietly records how each day went: customers, orders, cloth
-you bought, money, and how often customers said no at the mirror. It doesn't record
-anything about you or your computer beyond the graphics card and window size.
+While you play, the game records how each day went: customers, orders, cloth
+bought, money, and how often customers said no at the mirror. Apart from that it
+only notes your graphics card and window size.
 
 
 2. SEND THE REPORT
@@ -22,8 +23,8 @@ When you're done:
 
   Esc  ->  Playtest Report  ->  Copy to Clipboard
 
-Then paste it into your message to us. Or press "Open Folder" and attach the
-report_....txt file instead.
+Paste it into your message. Or press "Open Folder" and attach the report_....txt
+file instead.
 
 The file is also here, if the game won't open:
   %APPDATA%\Godot\app_userdata\TailorTown\playtest\
@@ -33,13 +34,44 @@ The report saves itself every minute, so after a crash just send whatever is in
 that folder.
 
 
-3. TELL US IN A FEW LINES
--------------------------
-Short answers are fine. We read every one.
+3. ANSWER WHAT YOU CAN
+----------------------
+Short answers are fine. Skip any question you have no opinion on.
 
-- When were you bored, and when were you rushed?
+The tutorial
+- Did Mr. Hemming explain things in the right order?
+- Was there a step where you didn't know what to do next?
+- Too long, too short, or about right?
+
+The minigames (cutting, sewing, ironing, coffee)
+- Which one did you enjoy most, and which least?
+- Were any too hard, too easy, or unclear about what counted as good work?
+- Did any start to feel repetitive by day three?
+
+Customers
 - Did a customer ever turn down a suit in a way that felt unfair?
-- Was there anything you couldn't work out how to do?
-- Any bugs: what you were doing, and what happened. A screenshot helps.
+- Did the dress codes (what suits a wedding, a funeral, and so on) make sense?
 
-And the one thing you'd change first.
+Money and cloth
+- Did you ever run short of money? When?
+- Did cloth prices and suit prices feel fair?
+- Did you end up buying cloth you never used?
+
+Pacing
+- When were you bored, and when were you rushed?
+
+Menus and controls
+- Was any menu hard to read or find your way around?
+- Did any control feel awkward? Keyboard or gamepad?
+- Was anything on screen too small, too crowded, or easy to miss?
+
+The look
+- What did you think of the art style overall?
+- How did the finished suits look on the customers?
+- Could you tell the fabrics and patterns apart?
+- Anything that looked broken, flickered, or seemed out of place?
+
+Bugs
+- What you were doing, and what happened. A screenshot helps.
+
+Last one: what's the first thing you'd change?
