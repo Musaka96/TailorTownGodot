@@ -41,6 +41,7 @@ Guide="*res://globals/guide.gd"
 SaveManager="*res://globals/save_manager.gd"
 Tutorial="*res://globals/tutorial.gd"
 Debug="*res://globals/debug_menu.gd"
+PlayerForm="*res://globals/player_form.gd"
 McpBridgeGame="*res://mcp_bridge_game.gd"
 
 [display]

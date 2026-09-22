@@ -36,6 +36,10 @@ signal design_confirmed(design: Dictionary)
 signal customer_waiting(customer: Node)
 ## A greeted customer has been sent to the fitting mirror.
 signal customer_seated(customer: Node)
+## The player answered a walk-in's greeting: "take", "book", "refer" or "decline".
+signal customer_answered(choice: String, customer: Node)
+## A design was shown to the customer at the mirror; `reason` is their first objection.
+signal design_judged(suitable: bool, reason: String)
 ## A customer approved a design and left; an order now exists to make it.
 signal order_created(order: Resource)
 ## A made piece was checked off against an order (garment_type of Enums.GarmentType).

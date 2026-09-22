@@ -363,6 +363,7 @@ func capture(save_name := "") -> Dictionary:
 		"renovation": Renovation.save_state() if Renovation != null else {},
 		"story": Story.save_state() if Story != null else {},
 		"guide": Guide.save_state() if Guide != null else {},
+		"player_form": PlayerForm.save_state() if PlayerForm != null else {},
 		"clock": DayNight.progress() if DayNight != null else 0.0,
 		"morning": Shift != null and Shift.phase == Shift.Phase.MORNING,
 		"phase": Shift.phase if Shift != null else 1,
@@ -437,6 +438,8 @@ func _apply_pending() -> void:
 		News.restore_spotted(d.get("news_spotted", {}))
 		News.restore_season(d.get("news_season", {}))
 	Orders.restore(d.get("orders", []))
+	if PlayerForm != null:
+		PlayerForm.restore(d.get("player_form", {}))
 	if Guide != null:
 		Guide.restore(d.get("guide", {}))  # last: it reads the state restored above
 	# One frame so the freshly swapped-in scene's stations have run _ready.
@@ -512,6 +515,8 @@ func _reset_autoloads() -> void:
 		News.current_edition.clear()
 	if Guide != null:
 		Guide.restore({})
+	if PlayerForm != null:
+		PlayerForm.reset()
 
 
 ## Swap scenes. Every exit from a running game goes through here, so it first tells the

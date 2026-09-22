@@ -312,6 +312,8 @@ func _choose(opt: String) -> void:
 		if wait != null and is_instance_valid(wait):
 			wait.say_sorry()
 		return
+	if cust != null:
+		EventBus.customer_answered.emit(opt, cust)
 	if opt == "take" or cust == null:
 		_accept()
 		return

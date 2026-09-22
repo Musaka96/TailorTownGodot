@@ -89,6 +89,7 @@ func _show_main() -> void:
 	_box.add_child(MenuKit.button("Handbook", _open_handbook))
 	_box.add_child(MenuKit.button("Controls", _show_controls))
 	_box.add_child(MenuKit.button("Settings", _show_settings))
+	_box.add_child(MenuKit.button("Playtest Report", _show_report))
 	_box.add_child(MenuKit.button("Main Menu", _to_menu))
 	_box.add_child(MenuKit.button("Quit to Desktop", _quit))
 	_focus_first()
@@ -122,6 +123,44 @@ func _show_settings() -> void:
 	SettingsUI.build(_box)
 	_box.add_child(MenuKit.button("Back", _show_main))
 	_focus_first()
+
+
+## How this run is going, and the file a tester sends back (PlayerForm writes it).
+func _show_report() -> void:
+	_sub = true
+	_clear()
+	_clear_meta()
+	_head.title.text = "Playtest Report"
+	var r: Dictionary = PlayerForm.readings()
+	for row: Array in [
+		["Time", "time"],
+		["Craft", "craft"],
+		["Money", "money"],
+		["Clients", "clients"],
+	]:
+		var line := HBoxContainer.new()
+		var value := float(r[row[1]])
+		Style.field_row(line, row[0], "%s  %+.2f" % [PlayerForm.verdict(value), value])
+		_box.add_child(line)
+	var path := PlayerForm.write_report()
+	var where := ProjectSettings.globalize_path(path if path != "" else PlayerForm.DIR)
+	var note := Label.new()
+	note.text = "Send this file to the developer, or copy it into a message.\n" + where
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_font_override("font", Style.font_body())
+	note.add_theme_font_size_override("font_size", Style.T_CAPTION)
+	note.add_theme_color_override("font_color", Style.INK_SOFT)
+	_box.add_child(note)
+	_box.add_child(MenuKit.button("Copy to Clipboard", _copy_report))
+	_box.add_child(MenuKit.button("Open Folder", PlayerForm.open_folder))
+	_box.add_child(MenuKit.button("Back", _show_main))
+	_focus_first()
+
+
+func _copy_report() -> void:
+	PlayerForm.copy_report()
+	if UI != null:
+		UI.toast("Report copied. Paste it into your message.")
 
 
 func _show_slots(saving: bool) -> void:

@@ -767,6 +767,10 @@ func _confirm() -> void:
 			reaction["suitable"] = false
 			reaction["reasons"] = lesson
 		var suitable: bool = reaction.get("suitable", false)
+		var objections: Array = reaction.get("reasons", [])
+		EventBus.design_judged.emit(
+			suitable, str(objections[0]) if not objections.is_empty() else ""
+		)
 		if _customer != null and _customer.has_method("react"):
 			_customer.react(Customer.REACT_LIKE if suitable else Customer.REACT_DISLIKE)
 		var verdict := "happy: E to take the order" if suitable else "not quite"
