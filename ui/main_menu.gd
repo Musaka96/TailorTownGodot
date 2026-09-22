@@ -24,6 +24,8 @@ const COLUMN_W := 300.0  # the main page's button column
 const PLATE_W := 480.0  # the Load / Settings plate
 const HINTS_W := 460.0
 const FOOTER_H := 32.0
+## The community Discord (invite link), opened from the footer's bottom-right chip.
+const DISCORD_URL := "https://discord.gg/U9zPC8fRFY"
 
 var _sub := false  # true while the Load slot list is showing (Esc goes back)
 var _target: Node3D
@@ -120,9 +122,40 @@ func _build_footer() -> void:
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_pin_bottom(holder, 0.0, EDGE, EDGE + 200.0)
 	_root.add_child(holder)
+	_build_discord()
 	_hints = Style.hint_bar([["W/S", "Select"], ["E", "Choose"], ["Esc", "Back"]])
 	_pin_bottom(_hints, 0.5, -HINTS_W * 0.5, HINTS_W * 0.5)
 	_root.add_child(_hints)
+
+
+## Bottom right: a chip like the version one that opens the community Discord in the
+## browser. Mouse only, so it stays out of the W/S button column.
+func _build_discord() -> void:
+	var button := Button.new()
+	button.text = "Join the Discord"
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.add_theme_font_override("font", Style.font_medium())
+	button.add_theme_font_size_override("font_size", Style.T_CAPTION)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, Style.CHALK)
+	var looks := {
+		"normal": Style.tint(Style.WALNUT, 0.75),
+		"hover": Style.tint(Style.BRASS, 0.9),
+		"pressed": Style.tint(Style.WALNUT, 0.95),
+	}
+	for state: String in looks:
+		var sb := Style.bar(looks[state], Style.S2)
+		sb.content_margin_left = Style.S3
+		sb.content_margin_right = Style.S3
+		button.add_theme_stylebox_override(state, sb)
+	button.pressed.connect(func() -> void: OS.shell_open(DISCORD_URL))
+	var holder := HBoxContainer.new()
+	holder.alignment = BoxContainer.ALIGNMENT_END
+	holder.add_child(button)
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_pin_bottom(holder, 1.0, -EDGE - 260.0, -EDGE)
+	_root.add_child(holder)
 
 
 ## Anchor `c` to the bottom edge, FOOTER_H tall, between two x offsets from `anchor_x`.
