@@ -82,6 +82,8 @@ func _film(station: String) -> void:
 	_camera.look_at_from_position(host.global_position + GAME_EYE, host.to_global(LOOK))
 	var roofs: GDScript = load("res://scenes/world/roof_manager.gd")
 	roofs.watch(host.global_position)  # the roof goes as if the player stood at the station
+	for _i in 60:  # and let it finish fading first
+		await process_frame
 	_apply(model, rules, [])
 	await _shot(station, "90_game_base")
 	_apply(model, rules, rules.keys())
