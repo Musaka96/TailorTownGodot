@@ -5,6 +5,12 @@ extends Control
 ## Content comes from Handbook (real tailoring info + live dress-code rules).
 ## Reading freezes the game: the scene tree is paused while the book is open (the
 ## book itself keeps processing) so the clock, customers and orders all wait.
+##
+## Navigation: W/S move through the topics and A/D through the chapters, at once —
+## the index is a table of contents, not a reading order. A long article turns in
+## pages with E (a "Page 1 of 2" marker under it says where you are, and after the
+## last page E goes back to the top); the mouse wheel and the right stick scroll it
+## freely as well.
 
 ## The book was shut (the pause menu uses this to come back when it opened the book).
 signal closed
@@ -13,9 +19,9 @@ signal closed
 ## scrolls within it (index on the left, preview + article on the right).
 const BOOK_SIZE := Vector2(780, 600)
 const KICKER := "Handbook"
-## W/S read the article first: a press scrolls it this far, and only once it is read to
-## the end (or back to the top) does it turn to the next (previous) topic.
-const READ_STEP := 120.0
+## A page turn moves the article one page height less this overlap, so the line that
+## was cut off at the bottom of one page is the first whole line of the next.
+const PAGE_OVERLAP := 28.0
 const STICK_SPEED := 900.0  # px/s the right stick scrolls the article at full tilt
 const STICK_DEAD := 0.25
 
@@ -26,6 +32,8 @@ var _topic := 0
 var _decor_built := false
 var _index_scroll: ScrollContainer
 var _art_scroll: ScrollContainer
+var _pager: Label
+var _page_pill: Control
 var _read_tween: Tween
 var _was_paused := false
 ## The handbook can be opened over another screen (the fitting mirror does it), so it puts
@@ -94,8 +102,9 @@ func _style() -> void:
 
 
 ## One-time structure: wrap the index and the article each in a ScrollContainer
-## that fills the fixed panel and scrolls when its content is too tall, and add the
-## key-cap hint bar. Nothing here sets a fixed size — only the panel is fixed.
+## that fills the fixed panel and scrolls when its content is too tall, put the page
+## marker under the article, and add the key-cap hint bar. Nothing here sets a fixed
+## size — only the panel is fixed.
 func _build_decor_once() -> void:
 	if _decor_built:
 		return
@@ -116,21 +125,40 @@ func _build_decor_once() -> void:
 	_index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_index_scroll = idx_scroll
 
-	# Right page: the preview + article stacked in one column that scrolls when long.
+	# Right page: the preview + article stacked in one column that scrolls when long,
+	# with the page marker sitting under it (outside the scroll, so it never moves).
 	var right := _preview.get_parent()  # the Right VBox (Preview then Body)
 	var rpos := right.get_index()
+	var right_col := VBoxContainer.new()
+	right_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_col.add_theme_constant_override("separation", Style.S1)
 	var art_scroll := ScrollContainer.new()
 	art_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	art_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	art_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	pages.remove_child(right)
 	art_scroll.add_child(right)
-	pages.add_child(art_scroll)
-	pages.move_child(art_scroll, rpos)
+	right_col.add_child(art_scroll)
+	pages.add_child(right_col)
+	pages.move_child(right_col, rpos)
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", Style.S3)
 	_art_scroll = art_scroll
 	_body.mouse_filter = Control.MOUSE_FILTER_PASS  # let the wheel reach the scroll
+
+	# "Page 1 of 2" under the article — only there when the article has more than one
+	# page, so a short one reserves no room for it. A click on it turns the page too.
+	_pager = Label.new()
+	_pager.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_pager.add_theme_font_size_override("font_size", Style.T_CAPTION)
+	_pager.add_theme_color_override("font_color", Style.INK_SOFT)
+	_pager.visible = false
+	right_col.add_child(_pager)
+	MousePick.wire(_pager, Callable(), _click_page)
+	var bar := art_scroll.get_v_scroll_bar()
+	bar.value_changed.connect(func(_value: float) -> void: _update_pager())
+	bar.changed.connect(_update_pager)
 
 	# The preview takes no space when a topic has none, and never stretches its art.
 	_preview.custom_minimum_size = Vector2.ZERO
@@ -138,8 +166,13 @@ func _build_decor_once() -> void:
 	_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	_hint.visible = false
-	var bar := Style.hint_bar([["A/D", "Chapter"], ["W/S", "Read · Topic"], ["Esc", "Close"]])
-	_hint.get_parent().add_child(bar)
+	var hints := Style.hint_bar(
+		[["A/D", "Chapter"], ["W/S", "Topic"], ["E", "Next page"], ["Esc", "Close"]]
+	)
+	_hint.get_parent().add_child(hints)
+	_page_pill = hints.get_child(0).get_child(2)  # hint_bar: wrap > flow row > pills
+	MousePick.wire_hint(hints, 2, _click_page)
+	MousePick.wire_hint(hints, -1, _click_close)
 
 
 func _refresh() -> void:
@@ -147,7 +180,9 @@ func _refresh() -> void:
 	for child in _tabs.get_children():
 		child.queue_free()
 	for i in _chapters.size():
-		_tabs.add_child(_make_tab(_chapters[i]["name"], i == _chapter))
+		var tab := _make_tab(_chapters[i]["name"], i == _chapter)
+		MousePick.wire(tab, Callable(), _pick_chapter.bind(i))
+		_tabs.add_child(tab)
 
 	var entries: Array = _chapters[_chapter]["entries"]
 	_topic = clampi(_topic, 0, entries.size() - 1)
@@ -159,6 +194,7 @@ func _refresh() -> void:
 	var selected_card: Control = null
 	for i in entries.size():
 		var card := _make_card(entries[i]["title"], i == _topic, Style.T_BODY)
+		MousePick.wire(card, _pick_topic.bind(i))  # choosing a topic is all there is to do
 		_index.add_child(card)
 		if i == _topic:
 			selected_card = card
@@ -174,25 +210,70 @@ func _refresh() -> void:
 		_preview.add_child(_make_preview(preview))
 	_body.text = "[b]%s[/b]\n\n%s" % [entry["title"], entry["body"]]
 	if _art_scroll != null:
+		if _read_tween != null:
+			_read_tween.kill()
 		_art_scroll.scroll_vertical = 0  # a new topic starts at its top
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as Esc
 
 
-## Scroll the article by `delta` px, eased. Returns false when there was no room to move
-## (already at that end), so the caller can turn the page instead.
-func _read(delta: float) -> bool:
-	if _art_scroll == null:
-		return false
+# --- Article pages -------------------------------------------------------------------
+
+
+## How far one page turn moves the article.
+func _page_step() -> float:
+	return maxf(40.0, _art_scroll.get_v_scroll_bar().page - PAGE_OVERLAP)
+
+
+## The last scroll position: the article's length past the visible page (0 if it fits).
+func _page_bottom() -> float:
 	var bar := _art_scroll.get_v_scroll_bar()
-	var bottom := maxf(0.0, bar.max_value - bar.page)
+	return maxf(0.0, bar.max_value - bar.page)
+
+
+func _page_count() -> int:
+	var bottom := _page_bottom()
+	if bottom < 2.0:
+		return 1
+	return 1 + ceili(bottom / _page_step())
+
+
+## Which page (0-based) a scroll position is on: the page whose turn reached it.
+func _page_at(scroll: float) -> int:
+	return clampi(ceili((scroll - 1.0) / _page_step()), 0, _page_count() - 1)
+
+
+## E: turn to the next page of the article, eased; after the last, back to the top.
+func _turn_page() -> void:
+	if _art_scroll == null or _page_count() < 2:
+		return
 	var from := float(_art_scroll.scroll_vertical)
-	var to := clampf(from + delta, 0.0, bottom)
-	if absf(to - from) < 1.0:
-		return false
+	var to := 0.0
+	if from < _page_bottom() - 1.0:
+		to = minf((_page_at(from) + 1) * _page_step(), _page_bottom())
 	if _read_tween != null:
 		_read_tween.kill()
 	_read_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_read_tween.tween_property(_art_scroll, "scroll_vertical", int(to), 0.14)
-	return true
+	_read_tween.tween_property(_art_scroll, "scroll_vertical", int(to), 0.18)
+	Sfx.play_single("page_turn", -8.0)
+
+
+## The page marker and the E pill follow the article: shown only when it has more
+## than one page, the marker names the page the scroll is on, and on the last page
+## the pill says where E goes next.
+func _update_pager() -> void:
+	if _art_scroll == null or _pager == null:
+		return
+	var count := _page_count()
+	_pager.visible = count > 1
+	if _page_pill != null:
+		_page_pill.visible = count > 1
+	if count > 1:
+		var page := _page_at(float(_art_scroll.scroll_vertical)) + 1
+		_pager.text = "Page %d of %d" % [page, count]
+		if _page_pill != null:  # key_pill: pill > row > [keycap, verb]
+			var verb := _page_pill.get_child(0).get_child(1) as Label
+			if verb != null:
+				verb.text = "Back to top" if page == count else "Next page"
 
 
 func _process(delta: float) -> void:
@@ -281,32 +362,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		close()
 		get_viewport().set_input_as_handled()
 		return
+	# Held keys don't repeat (is_action_pressed drops echoes): a topic is a deliberate
+	# press, never a flick through the whole chapter.
 	var count: int = _chapters[_chapter]["entries"].size()
-	var down := (
-		event.is_action_pressed("move_back", true) or event.is_action_pressed("ui_down", true)
-	)
-	var up := (
-		event.is_action_pressed("move_forward", true) or event.is_action_pressed("ui_up", true)
-	)
-	# Read on first; a held key only ever scrolls, so holding S can't flick past a topic.
-	if (down or up) and (_read(READ_STEP if down else -READ_STEP) or event.is_echo()):
+	if event.is_action_pressed("move_right"):
+		_turn_chapter(wrapi(_chapter + 1, 0, _chapters.size()))
+	elif event.is_action_pressed("move_left"):
+		_turn_chapter(wrapi(_chapter - 1, 0, _chapters.size()))
+	elif event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
+		_turn_topic(wrapi(_topic + 1, 0, count))
+	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
+		_turn_topic(wrapi(_topic - 1, 0, count))
+	elif event.is_action_pressed("interact") or event.is_action_pressed("ui_accept"):
+		_turn_page()
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("move_right"):
-		_chapter = wrapi(_chapter + 1, 0, _chapters.size())
-		_topic = 0
-		Sfx.play_single("page_turn")
-	elif event.is_action_pressed("move_left"):
-		_chapter = wrapi(_chapter - 1, 0, _chapters.size())
-		_topic = 0
-		Sfx.play_single("page_turn")
-	elif event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
-		_topic = wrapi(_topic + 1, 0, count)
-		Sfx.play_single("page_turn", -8.0)
-	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
-		_topic = wrapi(_topic - 1, 0, count)
-		Sfx.play_single("page_turn", -8.0)
-	elif event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+	elif (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	):
 		close()
 		get_viewport().set_input_as_handled()
 		return
@@ -314,3 +389,41 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	_refresh()
 	get_viewport().set_input_as_handled()
+
+
+func _turn_chapter(chapter: int) -> void:
+	_chapter = chapter
+	_topic = 0
+	Sfx.play_single("page_turn")
+
+
+func _turn_topic(topic: int) -> void:
+	_topic = topic
+	Sfx.play_single("page_turn", -8.0)
+
+
+## The Esc pill clicked: close, as Esc does.
+func _click_close() -> void:
+	if visible:
+		Sfx.ui_cancel()
+		close()
+
+
+## The E pill or the page marker clicked: the next page, as E does.
+func _click_page() -> void:
+	if visible:
+		_turn_page()
+
+
+## A chapter tab clicked (pointing at one doesn't turn to it).
+func _pick_chapter(chapter: int) -> void:
+	if visible and chapter != _chapter:
+		_turn_chapter(chapter)
+		_refresh()
+
+
+## A topic pointed at or clicked: the same page turn as W/S landing on it.
+func _pick_topic(topic: int) -> void:
+	if visible and topic != _topic:
+		_turn_topic(topic)
+		_refresh()
