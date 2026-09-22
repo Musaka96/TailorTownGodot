@@ -19,24 +19,29 @@ const FACE_Z := Basis.IDENTITY
 const FACE_PX := Basis(Vector3(0, 0, -1), Vector3.UP, Vector3(1, 0, 0))  # on a west wall
 const FACE_NX := Basis(Vector3(0, 0, 1), Vector3.UP, Vector3(-1, 0, 0))  # on an east wall
 
-## Doorway boards: room -> the cleanup project that pulls them off ("" = builders' job).
+## Doorway boards: room -> what the prompt calls them. They stay up until the builders have
+## done the room, and come down under their dust cloud (owner, 2026-09-22).
 const BOARDS := {
-	"workroom": "workroom_boards",
-	"cloth": "cloth_boards",
-	"nook": "nook_boards",
-	"nextdoor": "",
+	"workroom": "Boarded up",
+	"cloth": "Boarded up",
+	"nook": "Boarded up",
+	"nextdoor": "The party wall",
 }
 ## Cleanup projects whose spots are mess piles built into the shell (Spots/<project>).
 const MESS_PROJECTS := [
 	"front_sweep",
 	"front_boards",
-	"workroom_clear",
-	"cloth_clear",
-	"nook_clear",
-	"next_clear",
 	"yard_rubbish",
 	"yard_weeds",
 ]
+## Rubble in the back rooms (Spots/<holder>): only seen through the doorway now, and carried
+## out by the builders with the rest of the room's job. holder -> room.
+const ROOM_MESS := {
+	"workroom_clear": "workroom",
+	"cloth_clear": "cloth",
+	"nook_clear": "nook",
+	"next_clear": "nextdoor",
+}
 ## Spots that are boards over a window rather than a heap: they are prised off, not scooped.
 const BOARDED_SPOTS := ["front_boards"]
 ## What the prompt says at a spot, when it isn't the heap's "Clear this away".
@@ -149,6 +154,9 @@ const CHEVAL_SOLID := Vector3(1.0, 1.4, 0.55)
 const FACADE_JOB := "facade_paint"
 const WINDOW_JOB := "front_window"
 const STREET_STRIP := 1.6  # how deep the builders' strip along the street front is
+const ROOM_TALL := 2.6  # how high the builders' dust and knocks reach
+const FRONT_AIM := 1.0  # the camera looks at the shop front this high up
+const WALL_STRIP := 0.45  # how far out from a wall the papering's dust hangs
 ## Building work this dear gets the long show even when it doesn't open a room.
 const BIG_JOB_COST := 1000
 ## How far out from the front wall the shop's own forecourt reaches. Anything small of the
@@ -216,6 +224,7 @@ var _sheet_order: Array = SHEETED.duplicate()
 var _working := false  # a job is playing out; another press waits for it
 var _fx: RenovationFx
 var _builders: BuilderShow
+var _fixtures: ShopFixtures
 
 
 func _ready() -> void:
@@ -245,6 +254,10 @@ func _ready() -> void:
 	_builders = BuilderShow.new()
 	_builders.name = "Builders"
 	add_child(_builders)
+	_fixtures = ShopFixtures.new()
+	_fixtures.name = "Fixtures"
+	add_child(_fixtures)
+	_fixtures.build(_window_boxes())
 	Upgrades.changed.connect(_apply)
 	Story.changed.connect(_apply_keepsakes)
 	Renovation.changed.connect(_apply)
@@ -263,12 +276,16 @@ func _apply() -> void:
 		if room == "front":
 			continue
 		var state := Renovation.room_state(room)
-		_set_solid(_blocker(room), state < Renovation.RoomState.ENTERED)
+		_set_solid(_blocker(room), state < Renovation.RoomState.DONE)
 		_write_label(room, state)
 		_show(_shell.get_node_or_null("Wip_" + room), _room_under_way(room))
 		_paint_floor(room, state)
 	for project: String in MESS_PROJECTS:
 		_apply_spots(project)
+	for holder: String in ROOM_MESS:
+		var done := Renovation.room_state(ROOM_MESS[holder]) == Renovation.RoomState.DONE
+		_show(_shell.get_node_or_null("Spots/" + holder), not done)
+	_fixtures.apply()
 	_apply_sheets()
 	_apply_stations()
 	_apply_wear()
@@ -357,7 +374,7 @@ func work_prompt(project: String, verb: String) -> String:
 	if verb == SHELF_VERB:
 		return shelf_prompt()
 	if project == "":
-		return "The party wall — that's a job for the builders"
+		return "%s — a job for the builders" % verb
 	if Renovation.available(project):
 		return verb
 	if not Renovation.needs_met(project):
@@ -402,26 +419,70 @@ func _on_build_started(id: String) -> void:
 	var d := Renovation.data(id)
 	var big := d.has("opens") or d.has("enters") or int(d.get("cost", 0)) >= BIG_JOB_COST
 	var kit := _shell.get_node_or_null("Wip_" + str(d.get("room", ""))) as Node3D
-	await _builders.perform(id, _job_box(id), kit, big)
+	var box := _job_box(id)
+	var aim := Vector3.INF
+	if id == FACADE_JOB or id == WINDOW_JOB:  # look at the shop front, held whole
+		aim = Vector3(box.get_center().x, FRONT_AIM, box.end.z)
+		_builders.hold_front = true
+	await _builders.perform(id, box, kit, big, _work_boxes(id), aim)
 	DayNight.running = clock_ran
 	GameState.input_locked = false
 	_working = false
 
 
 ## Where the builders' job happens, in world space: its room's floor (up to the ceiling),
-## or a strip along the street front for the shop window and the paintwork outside.
+## or for the window and the paintwork outside, a strip just inside the shop front: the roof
+## fades as if the player stood there, and the show holds the street walls whole, so the
+## front is seen complete (not cut down, not with a hole round the player).
 func _job_box(id: String) -> AABB:
 	var room := str(Renovation.data(id).get("room", "front"))
 	var box := _floor_box(room)
 	if id == FACADE_JOB or id == WINDOW_JOB:
 		box = box.merge(_floor_box("nook"))
-		var front := box.end.z
-		var from := front if id == FACADE_JOB else front - STREET_STRIP
-		return AABB(
-			Vector3(box.position.x, box.position.y, from), Vector3(box.size.x, 2.6, STREET_STRIP)
-		)
-	box.size.y = 2.6
+		var at := Vector3(box.position.x, box.position.y, box.end.z - STREET_STRIP)
+		return AABB(at, Vector3(box.size.x, ROOM_TALL, STREET_STRIP))
+	box.size.y = ROOM_TALL
 	return box
+
+
+## What exactly the builders work at, where it isn't the whole room: the walls they paper,
+## the windows they glaze, the lamps they wire (empty = the room).
+func _work_boxes(id: String) -> Array[AABB]:
+	if id == PAPER_JOB:
+		var room := _floor_box("front")
+		var walls: Array[AABB] = []
+		var p := room.position
+		walls.append(AABB(p, Vector3(WALL_STRIP, ROOM_TALL, room.size.z)))  # west
+		walls.append(AABB(p, Vector3(room.size.x, ROOM_TALL, WALL_STRIP)))  # back
+		var east := Vector3(room.end.x - WALL_STRIP, p.y, p.z)
+		walls.append(AABB(east, Vector3(WALL_STRIP, ROOM_TALL, room.size.z)))
+		return walls
+	if id == FACADE_JOB:  # the paintwork: out on the street, up the front
+		var front := _job_box(id)
+		front.position.z = front.end.z
+		var out: Array[AABB] = [front]
+		return out
+	return _fixtures.work_boxes(id)
+
+
+## The shop windows, as their boards' world boxes (the boards are off by the time the
+## window can be glazed, but they still say where each window is).
+func _window_boxes() -> Array[AABB]:
+	var out: Array[AABB] = []
+	var holder := _shell.get_node_or_null("Spots/front_boards")
+	if holder == null:
+		return out
+	for spot in holder.get_children():
+		var box := AABB()
+		var first := true
+		for mesh in spot.find_children("*", "MeshInstance3D", true, false):
+			var m := mesh as MeshInstance3D
+			var b := m.global_transform * m.get_aabb()
+			box = b if first else box.merge(b)
+			first = false
+		if not first:
+			out.append(box)
+	return out
 
 
 func _floor_box(room: String) -> AABB:
@@ -683,7 +744,7 @@ func _build_boards() -> void:
 		if blocker == null:
 			continue
 		var size := Vector3(1.6, 2.0, 1.6)
-		_add_work(blocker, str(BOARDS[room]), "Pull off the boards", size)
+		_add_work(blocker, "", str(BOARDS[room]), size)
 
 
 func _build_spots() -> void:
@@ -1029,7 +1090,9 @@ func _build_dark() -> void:
 func _apply_dark() -> void:
 	for room: String in _dark:
 		var hole: MeshInstance3D = _dark[room]
+		# the lights come on in a room the moment the builders start on it
 		var shut := Renovation.room_state(room) == Renovation.RoomState.SHUT
+		shut = shut and not _room_under_way(room)
 		if shut == hole.visible:
 			continue
 		if shut:

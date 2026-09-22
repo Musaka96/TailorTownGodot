@@ -4,10 +4,10 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_phone_builders.gd -- [out.png]
 ##
 ## Sets up a spread of every row state so the shot shows them all: a finished project
-## (front_window), one under way (front_lights), one orderable and affordable
-## (cloth_build... no, see below), one available but unaffordable (workroom_build),
-## one locked by reputation (nook_build / next_*), and one locked by an earlier job
-## (cloth_build, whose cloth_clear hasn't been done by hand).
+## (front_window), one under way (front_lights), one available but unaffordable
+## (workroom_build, once the front room is swept — the back rooms have no hand job of
+## their own any more), and one locked by an earlier job (cloth_build, which waits on
+## workroom_build).
 
 var _out := "res://.dev/phone_builders.png"
 var _frames := 0
@@ -45,10 +45,7 @@ func _run() -> void:
 		reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
 		reno.clear_spot(id)
-	rep.points = int(rep.TIERS[2]["at"])  # "Local Name" — meets front/workroom/cloth tiers
-	reno.clear_spot("workroom_boards")
-	for id: String in ["workroom_clear", "workroom_clear", "workroom_clear", "workroom_clear"]:
-		reno.clear_spot(id)
+	rep.points = int(rep.TIERS[2]["at"])  # "Local Name" — reputation gates nothing here now
 
 	game.money = 5000
 	reno.order("front_window")  # 1 night — finish it below, so one row reads "Done"

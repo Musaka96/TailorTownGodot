@@ -162,12 +162,7 @@ func _test_status_states() -> void:
 		_reno.clear_spot(id)
 	for id: String in ["front_sweep", "front_sweep", "front_sweep"]:
 		_reno.clear_spot(id)
-	for id: String in ["front_boards", "front_boards", "front_boards"]:
-		_reno.clear_spot(id)
-	_check(_reno.clear_spot("workroom_boards"), "setup: workroom boards cleared at 0 reputation")
-	for id: String in ["workroom_clear", "workroom_clear", "workroom_clear", "workroom_clear"]:
-		_reno.clear_spot(id)
-	_check(_reno.available("workroom_build"), "setup: workroom_build is now available")
+	_check(_reno.available("workroom_build"), "setup: workroom_build is available at 0 reputation")
 
 	# "$<price>" (orderable, can afford).
 	_game.money = 5000

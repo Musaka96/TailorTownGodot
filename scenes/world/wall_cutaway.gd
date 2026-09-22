@@ -116,9 +116,11 @@ func _process(_delta: float) -> void:
 		if _player == null:
 			return
 	# The dip follows the player every frame; the cut height only moves on a crossing.
+	# While RoofManager is watching somewhere else (the builders' show), so does this.
+	var at := RoofManager.watch_point if RoofManager.watching else _player.global_position
 	for mat in _cut_mats:
-		mat.set_shader_parameter("player_pos", _player.global_position)
-	var now := _contains(_player.global_position) == cut_when_inside and not held
+		mat.set_shader_parameter("player_pos", at)
+	var now := _contains(at) == cut_when_inside and not held
 	if not _established:
 		# The player node readies after us, so snap to the right state (no slide) once.
 		_established = true

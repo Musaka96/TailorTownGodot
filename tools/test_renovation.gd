@@ -78,6 +78,11 @@ func _fresh() -> void:
 	_check(is_zero_approx(_reno.appeal()), "fresh: appeal is 0")
 	_check(_solid("workroom"), "day 1: boards across the workroom door are solid")
 	_check(_solid("nextdoor"), "day 1: the party wall is solid")
+	var boards := _node("GrandpaShell/Blockers/Blocker_workroom").get_node("Work")
+	_check(
+		boards.get_interaction_prompt(null) == "Boarded up — a job for the builders",
+		"day 1: the doorway boards' own prompt"
+	)
 	_check(not _usable("Worktable"), "day 1: the worktable sleeps under a dust sheet")
 	_check(_node("Worktable/DustSheet").visible, "day 1: its sheet shows")
 	_check(not _node("Bookshelf").visible, "day 1: no bookshelf yet")
@@ -91,9 +96,9 @@ func _fresh() -> void:
 func _gating() -> void:
 	_check(_reno.available("front_sheets"), "dust sheets can be pulled off at once")
 	_check(not _reno.available("front_sweep"), "sweeping waits for the sheets (needs)")
-	_check(not _reno.available("workroom_boards"), "workroom boards wait for the front room")
-	_check(not _reno.needs_met("workroom_boards"), "…the front room is tidied first")
-	_check(not _reno.available("cloth_boards"), "the cloth store waits for the workroom")
+	_check(not _reno.available("workroom_build"), "workroom_build waits for the front room")
+	_check(not _reno.needs_met("workroom_build"), "…the front room is tidied first")
+	_check(not _reno.available("cloth_build"), "the cloth store waits for the workroom's build")
 	_check(not _reno.available("no_such_project"), "an unknown project is never available")
 	_check(not _reno.clear_spot("front_window"), "building work can't be done by hand")
 	_sections_ended += 1
@@ -121,21 +126,32 @@ func _by_hand() -> void:
 	for pile: Node3D in piles:
 		hidden += 0 if pile.visible else 1
 	_check(piles.size() == 3 and hidden == 1, "one of three dust piles has gone")
-	_check(not _reno.available("workroom_boards"), "half swept: the workroom still waits")
+	_check(not _reno.available("workroom_build"), "half swept: the workroom build still waits")
 	_reno.clear_spot("front_sweep")
 	_reno.clear_spot("front_sweep")
 	_check(
-		_reno.available("workroom_boards"),
-		"front room swept: now the boards can come off (no reputation needed)"
+		_reno.available("workroom_build"),
+		"front room swept: now the builders can be sent in (no reputation needed)"
 	)
 	_check(_reno.available("front_boards"), "…and the shop windows can be unboarded")
 	_check(not _reno.can_order("front_window"), "no glazier while the boards are still up")
 	for _i in 3:
 		_reno.clear_spot("front_boards")
 	_check(_reno.is_done("front_boards"), "all three windows unboarded")
+	_check(_reno.available("nook_build"), "the nook can also be tackled: the front room gates it")
+	_game.money = 100000
 	_check(
-		_reno.available("nook_boards"), "the nook door can also be tackled: the front room gates it"
+		_reno.can_order("workroom_build"),
+		"0 reputation, front room swept, money in hand: workroom_build can be ordered"
 	)
+	for id: String in _reno.all_ids():
+		var room := str(_reno.data(id).get("room", ""))
+		if room in ["workroom", "cloth", "nook", "nextdoor"]:
+			_check(
+				int(_reno.data(id).get("kind", -1)) == int(_reno.Kind.BUILD),
+				"%s: no hand job left in the back rooms" % id
+			)
+	_game.money = 0
 	_sections_ended += 1
 
 
@@ -231,20 +247,24 @@ func _ordering_and_building() -> void:
 func _rooms_and_stations() -> void:
 	var table := _node("Worktable")
 	var home: Vector3 = table.global_position
-	_reno.clear_spot("workroom_boards")
-	_check(_reno.room_state("workroom") == ENTERED, "boards off: the workroom can be entered")
-	_check(not _solid("workroom"), "…the doorway is really open (no body, not shown)")
-	for _i in 4:
-		_reno.clear_spot("workroom_clear")
-	_check(_reno.room_state("workroom") == CLEARED, "rubble out: the workroom is cleared")
+	_check(_reno.room_state("workroom") == SHUT, "before its build: the workroom stays shut")
+	_check(_solid("workroom"), "…the boards stay solid")
+	_check(
+		_node("GrandpaShell/Spots/workroom_clear").visible, "…and its rubble shows through the door"
+	)
 	_check(table.global_position.is_equal_approx(home), "the worktable has not moved yet")
 	_game.money = 5000
 	_check(_reno.order("workroom_build"), "the builders are booked for the workroom")
 	_check(_node("GrandpaShell/Wip_workroom").visible, "their clutter stands in the room")
-	_check(_reno.room_state("workroom") == CLEARED, "ordered but not finished: still just cleared")
+	_check(_reno.room_state("workroom") == SHUT, "ordered but not finished: still shut")
+	_check(_solid("workroom"), "…the boards are still up while they work")
 	_reno.finish_build("workroom_build")
 	_check(_reno.room_state("workroom") == DONE, "finish_build brings the room home")
+	_check(not _solid("workroom"), "…the boards come down")
 	_check(not _node("GrandpaShell/Wip_workroom").visible, "the builders have packed up")
+	_check(
+		not _node("GrandpaShell/Spots/workroom_clear").visible, "…and the rubble is gone with them"
+	)
 	# The floor label is a greybox aid: the real shop has none (the shell builder's SHOW_SHELL).
 	var label := _main.get_node_or_null("ShopRoom/GrandpaShell/Label_workroom") as Node3D
 	_check(label == null or not label.visible, "no 'locked' label on a finished room")
@@ -255,8 +275,8 @@ func _rooms_and_stations() -> void:
 	_check(_node("ClothingRack2").visible, "and a second rack")
 	_check(not _node("Shelf2").visible, "the cloth store is still not there")
 	# The cloth store is reached through the workroom; reputation gates nothing here.
-	_check(_reno.needs_met("cloth_boards"), "the workroom no longer holds the cloth store up")
-	_check(_reno.available("cloth_boards"), "…so its door can be tackled at once")
+	_check(_reno.needs_met("cloth_build"), "the workroom's build unlocks the cloth store's")
+	_check(_reno.available("cloth_build"), "…so it can be tackled at once")
 	_sections_ended += 1
 
 
@@ -268,8 +288,6 @@ func _upgrades_wait_for_rooms() -> void:
 	_upg.changed.emit()
 	_check(not _node("CoffeeMachine").visible, "even if owned, it waits for its room")
 	_upg.debug_set("shop_coffee", false)
-	for id: String in ["nook_boards", "nook_clear", "nook_clear", "nook_clear"]:
-		_reno.clear_spot(id)
 	_reno.order("nook_build")
 	_reno.finish_build("nook_build")
 	_check(_reno.room_state("nook") == DONE, "the nook is fitted out")
@@ -281,8 +299,7 @@ func _upgrades_wait_for_rooms() -> void:
 
 
 func _save_round_trip() -> void:
-	for id: String in ["cloth_boards", "cloth_clear", "cloth_clear", "cloth_clear"]:
-		_reno.clear_spot(id)
+	_game.money = 5000
 	_reno.clear_spot("yard_rubbish")  # one of three: left half-finished on purpose
 	_check(_reno.order("cloth_build"), "setup: cloth_build ordered")
 	_check(
@@ -340,7 +357,7 @@ func _sheets_ride_along() -> void:
 			pull += 1
 	_check(pull == 1, "day 1: the sheet over the worktable can itself be pulled off")
 	_check(not _usable("Worktable"), "…while the worktable under it can't be used")
-	_reno.restore({"done": ["workroom_boards", "workroom_clear", "workroom_build"]})
+	_reno.restore({"done": ["workroom_build"]})
 	var table := _node("Worktable")
 	_check(table.global_position.z < 2.34, "workroom done, sheets still on: the table moved in")
 	_check(sheet.visible, "…still under its sheet")
@@ -348,7 +365,7 @@ func _sheets_ride_along() -> void:
 		sheet.global_position.distance_to(table.global_position) < 1.0,
 		"…and the sheet moved with it (not left behind in the front room)"
 	)
-	_reno.restore({"done": ["front_sheets", "workroom_boards", "workroom_clear", "workroom_build"]})
+	_reno.restore({"done": ["front_sheets", "workroom_build"]})
 	_check(not sheet.visible and _usable("Worktable"), "sheets off: usable in the workroom")
 	_reno.reset()
 	_sections_ended += 1

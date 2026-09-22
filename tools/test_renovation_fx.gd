@@ -113,19 +113,23 @@ func _window_boards_come_off() -> void:
 	_sections_ended += 1
 
 
+## The doorway boards are a builders' job now, not a hand one: pressing them says so and
+## does nothing, and only finishing the room's build takes them down.
 func _doorway_boards_open_the_room() -> void:
-	var guard := 0
-	while not _reno.is_done("front_boards") and guard < 10:
-		_reno.clear_spot("front_boards")
-		guard += 1
 	var blocker := _shell.get_node("Blockers/Blocker_workroom") as Node3D
-	var why := (
-		"done=%s needs=%s" % [_reno.is_done("workroom_boards"), _reno.needs_met("workroom_boards")]
+	var work := _work(blocker)
+	_check(
+		work.get_interaction_prompt(null) == "Boarded up — a job for the builders",
+		"the workroom doorway boards say they're a job for the builders"
 	)
-	_check(_reno.available("workroom_boards"), "the workroom boards can come off (%s)" % why)
 	await _press(blocker)
-	_check(_reno.is_done("workroom_boards"), "pulling the doorway boards finishes the job")
-	_check(not blocker.visible, "…and the doorway is clear")
+	_check(blocker.visible, "…and pressing them does nothing")
+	_check(not _state.input_locked, "…nor does it lock the player")
+	_state.money = 5000
+	_check(_reno.order("workroom_build"), "ordering the builders is the only way in")
+	_reno.finish_build("workroom_build")
+	_check(_reno.room_state("workroom") == 3, "…and once they finish the room is DONE")
+	_check(not blocker.visible, "…the doorway boards come down with the rest of the job")
 	_sections_ended += 1
 
 

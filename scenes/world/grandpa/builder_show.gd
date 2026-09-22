@@ -37,6 +37,11 @@ const REVEAL_BURSTS := 4
 ## Set once a whole show has played this session: from then on a press may skip one.
 static var seen := false
 
+## Set before perform() for work on the shop front: the street walls stand whole while the
+## camera looks at them (the roof still out of the way), and nothing is cut or faded away
+## around the player. Cleared again when the show is over.
+var hold_front := false
+
 var _quad_cloud: QuadMesh
 var _playing := false
 var _skip := false
@@ -60,16 +65,24 @@ func _process(delta: float) -> void:
 
 ## Play the builders' job `id` over `box` (world space: where the work happens) and finish
 ## it. `kit` is the builders' clutter for that room, if it has any; `big` picks the long
-## show. Returns once the camera is on its way back.
-func perform(id: String, box: AABB, kit: Node3D, big: bool) -> void:
+## show. `spots` are what they work at when it isn't the whole room (the walls, the windows,
+## the lamps): the knocks and the cloud go there. `aim` is what the camera looks at, if not
+## the middle of the floor (the shop front, for work outside). Returns once the camera is on
+## its way back.
+func perform(
+	id: String, box: AABB, kit: Node3D, big: bool, spots: Array[AABB] = [], aim := Vector3.INF
+) -> void:
 	_playing = true
 	_skip = false
 	_elapsed = 0.0
 	var total := FULL if big else SHORT
 	var centre := box.get_center()
 	var ground := Vector3(centre.x, box.position.y, centre.z)
-	_frame(ground)
+	_frame(ground if aim == Vector3.INF else aim)
 	RoofManager.watch(ground)
+	if hold_front:
+		RoofManager.hold_walls(true)
+		WallCutaway.hold_solid(true)
 	_sfx("reno_knock", -4.0)
 	await _until(ARRIVE)
 	if not _skip:
@@ -82,11 +95,14 @@ func perform(id: String, box: AABB, kit: Node3D, big: bool) -> void:
 		await _until(at)
 		if _skip:
 			break
-		_knock(box, str(tools[knocks % tools.size()]))
+		_knock(box, spots, str(tools[knocks % tools.size()]))
 		knocks += 1
 		at += KNOCK_EVERY
 	await _until(total - CLOUD_BEFORE)
-	_cloud(box)
+	if spots.is_empty():
+		_cloud(box, false)
+	for spot in spots:
+		_cloud(spot, true)
 	_sfx("reno_poof", -3.0)
 	if _skip:
 		await _wait(SKIPPED_SWAP)
@@ -108,7 +124,7 @@ func perform(id: String, box: AABB, kit: Node3D, big: bool) -> void:
 
 
 ## Glide the camera over the job, a little nearer than usual.
-func _frame(ground: Vector3) -> void:
+func _frame(look: Vector3) -> void:
 	var rig := get_tree().get_first_node_in_group("camera_rig") as CameraRig
 	if rig == null:
 		return
@@ -116,11 +132,15 @@ func _frame(ground: Vector3) -> void:
 	if cam == null:
 		return
 	var off := cam.global_position - rig.global_position
-	rig.focus(ground + off * ZOOM, ground)
+	rig.focus(look + off * ZOOM, look)
 
 
 func _release() -> void:
 	RoofManager.unwatch()
+	if hold_front:
+		RoofManager.hold_walls(false)
+		WallCutaway.hold_solid(false)
+		hold_front = false
 	var rig := get_tree().get_first_node_in_group("camera_rig") as CameraRig
 	if rig != null:
 		rig.unfocus()
@@ -136,37 +156,51 @@ func _pop(kit: Node3D) -> void:
 	hop.set_ease(Tween.EASE_OUT)
 
 
-## One bit of work somewhere in the room: a knock (or a saw stroke, a whirr, a roll), a
-## few chips and a puff.
-func _knock(box: AABB, sound: String) -> void:
-	var inset := Vector3(0.4, 0, 0.4)
-	var lo := box.position + inset
-	var hi := box.end - inset
-	var at := Vector3(
-		randf_range(lo.x, maxf(lo.x, hi.x)),
-		box.position.y + randf_range(0.3, 1.3),
-		randf_range(lo.z, maxf(lo.z, hi.z)),
-	)
+## One bit of work somewhere in the room, or at one of `spots`: a knock (or a saw stroke,
+## a whirr, a roll), a few chips and a puff. In a room it happens low down, by the floor; on
+## a wall or a lamp, anywhere up it.
+func _knock(box: AABB, spots: Array[AABB], sound: String) -> void:
+	var at: Vector3
+	if spots.is_empty():
+		at = _inside(box, Vector3(0.4, 0, 0.4))
+		at.y = box.position.y + randf_range(0.3, 1.3)
+	else:
+		var spot: AABB = spots[randi() % spots.size()]
+		at = _inside(spot, Vector3(0.1, 0, 0.1))
+		at.y = randf_range(spot.position.y + 0.3, maxf(spot.position.y + 0.3, spot.end.y - 0.2))
 	_burst(at, _quad_chip, DUST.darkened(0.25), 8, 1.2, 2.2, 0.5, false, -9.0)
 	_motes(at, Vector3(0.25, 0.15, 0.25), DUST, 10, 0.9)
 	_sfx(sound, -5.0, 0.93, 1.08)
 
 
-## The big cloud: soft dust filling the whole job, thick enough to hide the change.
-func _cloud(box: AABB) -> void:
-	var floor_area := maxf(box.size.x * box.size.z, 1.0)
-	var p := _particles(
-		_quad_cloud, Color(CLOUD, 0.9), clampi(int(floor_area * 6.0), 40, 150), CLOUD_LIFE
+## A random point inside `box` (x and z), kept `inset` from its sides where it is big enough.
+func _inside(box: AABB, inset: Vector3) -> Vector3:
+	var lo := box.position + inset
+	var hi := box.end - inset
+	return Vector3(
+		randf_range(minf(lo.x, hi.x), maxf(lo.x, hi.x)),
+		box.position.y,
+		randf_range(minf(lo.z, hi.z), maxf(lo.z, hi.z)),
 	)
+
+
+## The big cloud: soft dust filling the job, thick enough to hide the change. A room's cloud
+## rolls along the floor; `tall` fills a wall, a window or a lamp from bottom to top.
+func _cloud(box: AABB, tall: bool) -> void:
+	var biggest := maxf(box.size.x, box.size.z)
+	var area := maxf(biggest * (box.size.y if tall else minf(box.size.x, box.size.z)), 1.0)
+	var count := clampi(int(area * (4.0 if tall else 6.0)), 14 if tall else 40, 150)
+	var p := _particles(_quad_cloud, Color(CLOUD, 0.9), count, CLOUD_LIFE)
 	var ramp := Gradient.new()
 	ramp.set_color(0, Color(1, 1, 1, 0))
 	ramp.set_color(1, Color(1, 1, 1, 0))
 	ramp.add_point(0.15, Color(1, 1, 1, 1))
 	ramp.add_point(0.45, Color(1, 1, 1, 1))
 	p.color_ramp = ramp
-	p.explosiveness = 1.0
+	p.explosiveness = 1.0  # < 1 left a late puff drawn solid for a frame (a white disc)
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	p.emission_box_extents = Vector3(box.size.x * 0.5, 0.6, box.size.z * 0.5)
+	var high := box.size.y * 0.45 if tall else 0.6
+	p.emission_box_extents = Vector3(box.size.x * 0.5, high, box.size.z * 0.5)
 	p.direction = Vector3.UP
 	p.spread = 80.0
 	p.initial_velocity_min = 0.2
@@ -176,7 +210,8 @@ func _cloud(box: AABB) -> void:
 	p.damping_max = 0.9
 	p.scale_amount_min = 0.8
 	p.scale_amount_max = 1.6
-	_launch(p, box.get_center() + Vector3(0, 0.9 - box.size.y / 2.0, 0))
+	var at := box.get_center() if tall else box.get_center() + Vector3(0, 0.9 - box.size.y / 2.0, 0)
+	_launch(p, at)
 
 
 ## The cloud clears on the finished job: a shower of gold and a little tune.

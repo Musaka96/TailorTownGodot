@@ -36,11 +36,12 @@ func _run() -> void:
 
 	_data_is_sound()
 	_finds_come_from_the_work()
+	_old_saves_carry_their_finds_over()
 	_the_shelf_fills()
 	_letters_wait_their_turn()
 	await _the_paper_queues_behind_the_letter()
 	_save_round_trip()
-	_check(_sections_ended == 6, "every section ran to its last line (%d of 6)" % _sections_ended)
+	_check(_sections_ended == 7, "every section ran to its last line (%d of 7)" % _sections_ended)
 	print("test_story: %s" % ("ALL PASS" if _fails == 0 else "%d FAILURE(S)" % _fails))
 	quit(1 if _fails > 0 else 0)
 
@@ -73,6 +74,19 @@ func _finds_come_from_the_work() -> void:
 	_check(_story.keepsake_count() == 1, "…exactly one thing")
 	_reno.restore({"done": ["front_sheets"]})
 	_check(_story.keepsake_count() == 1, "restoring the same state finds nothing twice")
+	_sections_ended += 1
+
+
+## An older save found "workroom_clear" (the hand-cleared rubble); the builders do that
+## room's whole job now, so an old find is carried over to "workroom_build" on load
+## (Story.MOVED_KEEPSAKES).
+func _old_saves_carry_their_finds_over() -> void:
+	_story.restore({"found": ["workroom_clear"]})
+	_check(not _story.has_found("workroom_clear"), "the old id itself is gone")
+	_check(_story.has_found("workroom_build"), "…mapped onto the builders' job that replaced it")
+	_check(_story.keepsake_count() == 1, "…exactly the one thing, not counted twice")
+	# Put back what _finds_come_from_the_work left behind, for the sections after this one.
+	_story.restore({"found": ["front_sheets"]})
 	_sections_ended += 1
 
 

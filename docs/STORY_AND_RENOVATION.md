@@ -617,6 +617,32 @@ reveal. With no director listening (Mr. Hemming's shop, headless tests) `order()
 the job at once. A save made mid-show, or an old save with builders "out overnight",
 restores those jobs as done.
 
+**Owner's feel pass, same day.**
+- **Back rooms stay boarded until they are built.** The hands-on jobs inside them are gone
+  (`*_boards`, `*_clear`, `next_clear`): each back room is one builders' job (`workroom_build`
+  needs `front_sweep`, `cloth_build` needs `workroom_build`, `nook_build` needs
+  `front_sweep`, the workshop is `next_buy` → `next_knock` → `next_build`). Rooms go SHUT →
+  DONE; the doorway boards stay solid ("Boarded up — a job for the builders") and the rubble
+  shows through them until the builders' cloud. The room's darkness lifts when its build
+  starts, so the show opens on the ruin. The three keepsakes that were found in the clearing
+  now come with the builds (`Story.MOVED_KEEPSAKES` carries older saves' finds over).
+- **The divider is a low wall, not a vanishing one.** While the player is in the back rooms
+  the `_Divider` group is cut down by a `WallCutaway` (`DividerFade` in grandpa_shop_room,
+  same cut height and fade as the street front) instead of a RoofManager hiding it whole.
+  (Bisecting it in Blender like the street front was tried first: the seam at 1.1 m showed
+  as a line on the whole wall.)
+- **The window and the paintwork are seen whole.** For those two the show watches a strip
+  just inside the shop front (the roof goes, as it does indoors) and holds the street walls
+  whole (`RoofManager.hold_walls`, `WallCutaway.hold_solid`). `WallCutaway` also follows the
+  show's watch point, so its dip around the player no longer cut a hole in the window.
+- **Jobs that had nothing to show** (`scenes/world/grandpa/shop_fixtures.gd`): grime and
+  cracks over the three shop windows until reglazed; three wall lamps on the front room's
+  west wall, dark grey and drooping (one without its shade) until the wiring is done, then
+  cream and brass, upright. Never lit: a glowing lamp in daylight looked silly.
+- **Papering happens on the walls.** Jobs can name what the builders work at
+  (`perform(..., spots)`): the three papered walls, the windows, the lamps, the street front.
+  The knocks go anywhere up those, and each gets its own dust cloud.
+
 Sounds: hammer, saw, drill, roller, knock and the reveal jingle are Stable Audio Open takes
 (three per sound; the unused ones are in `.dev/reno_audio_alts/` to audition), trimmed and
 normalised; the poof is synthesised. Frames: `tools/shot_builder_show.gd` →

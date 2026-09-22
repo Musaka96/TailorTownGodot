@@ -10,9 +10,12 @@ extends Node
 ##    six seconds) and calls finish_build() under the dust cloud. Where no director is
 ##    listening (Mr. Hemming's shop, a headless test), the job finishes at once.
 ##
-## A locked room goes SHUT -> ENTERED (boards off the door) -> CLEARED (mess gone) -> DONE
-## (rebuilt; its stations move in). This autoload only holds the data and the state; the
-## scene side (blockers, mess, stations) is RenovationDirector, which listens to `changed`.
+## A back room stays boarded up (SHUT) until the builders have done it (DONE): its boards,
+## its rubble and the rebuild are one builders' job, and the player first walks in when it is
+## finished (owner, 2026-09-22). ENTERED and CLEARED are left in RoomState for the scene
+## side's lookup tables; no project reaches them any more. This autoload only holds the
+## data and the state; the scene side (blockers, mess, stations) is RenovationDirector,
+## which listens to `changed`.
 ## Modelled on Upgrades: same save_state/restore/reset habits. Reputation gates nothing
 ## here: the shop's income is what paces it (a shabby shop draws humbler customers, and the
 ## reputation tier still caps what they spend: Pricing.shop_tier_ceiling).
@@ -128,58 +131,16 @@ const PROJECTS := {
 		"desc": "Weeds out, paintwork back, THIMBLE bright over the door again.",
 		"appeal": 4,
 	},
-	"workroom_boards":
-	{
-		"name": "Pull the boards off the workroom door",
-		"room": "workroom",
-		"kind": Kind.CLEANUP,
-		"spots": 1,
-		"needs": ["front_sweep"],  # the front room is tidied before any other room is begun
-		"enters": "workroom",
-		"desc": "Nailed shut after the roof went. Time to look inside.",
-		"appeal": 0,
-	},
-	"workroom_clear":
-	{
-		"name": "Clear the rubble in the workroom",
-		"room": "workroom",
-		"kind": Kind.CLEANUP,
-		"spots": 4,
-		"needs": ["workroom_boards"],
-		"desc": "Plaster, slates and a bucket that lost the fight. Carry it out.",
-		"appeal": 1,
-	},
 	"workroom_build":
 	{
 		"name": "Patch the roof, relay the floor",
 		"room": "workroom",
 		"kind": Kind.BUILD,
 		"cost": 750,
-		"needs": ["workroom_clear"],
+		"needs": ["front_sweep"],  # the front room is tidied before any other room is begun
 		"opens": "workroom",
-		"desc": "A dry, sound room at last. The benches move out of the front room.",
+		"desc": "Boards off, rubble out, roof patched, floor relaid. The benches move in there.",
 		"appeal": 4,
-	},
-	"cloth_boards":
-	{
-		"name": "Pull the boards off the cloth store",
-		"room": "cloth",
-		"kind": Kind.CLEANUP,
-		"spots": 1,
-		"needs": ["workroom_build"],
-		"enters": "cloth",
-		"desc": "It smells of damp in there. Better now than later.",
-		"appeal": 0,
-	},
-	"cloth_clear":
-	{
-		"name": "Scrub out the cloth store",
-		"room": "cloth",
-		"kind": Kind.CLEANUP,
-		"spots": 3,
-		"needs": ["cloth_boards"],
-		"desc": "Mouldy crates out, walls scrubbed down.",
-		"appeal": 1,
 	},
 	"cloth_build":
 	{
@@ -187,31 +148,10 @@ const PROJECTS := {
 		"room": "cloth",
 		"kind": Kind.BUILD,
 		"cost": 1200,
-		"needs": ["cloth_clear"],
+		"needs": ["workroom_build"],
 		"opens": "cloth",
-		"desc": "Two long walls of shelving and the delivery door working again.",
+		"desc": "Mouldy crates out, two long walls of shelving in, the delivery door working.",
 		"appeal": 4,
-	},
-	"nook_boards":
-	{
-		"name": "Clear the way into the nook",
-		"room": "nook",
-		"kind": Kind.CLEANUP,
-		"spots": 1,
-		"needs": ["front_sweep"],
-		"enters": "nook",
-		"desc": "Somebody stacked the doorway full of crates.",
-		"appeal": 0,
-	},
-	"nook_clear":
-	{
-		"name": "Empty the nook",
-		"room": "nook",
-		"kind": Kind.CLEANUP,
-		"spots": 3,
-		"needs": ["nook_boards"],
-		"desc": "Crates, a broken chair, and one very old newspaper.",
-		"appeal": 1,
 	},
 	"nook_build":
 	{
@@ -219,9 +159,9 @@ const PROJECTS := {
 		"room": "nook",
 		"kind": Kind.BUILD,
 		"cost": 1500,
-		"needs": ["nook_clear"],
+		"needs": ["front_sweep"],
 		"opens": "nook",
-		"desc": "Sockets, a counter and a bit of comfort: room for coffee and pressing.",
+		"desc": "Crates out, then sockets and a counter. Room for coffee and pressing.",
 		"appeal": 4,
 	},
 	"next_buy":
@@ -241,19 +181,8 @@ const PROJECTS := {
 		"kind": Kind.BUILD,
 		"cost": 900,
 		"needs": ["next_buy"],
-		"enters": "nextdoor",
 		"desc": "Grandpa bricked it up the winter the damp came in. Mind the dust.",
 		"appeal": 2,
-	},
-	"next_clear":
-	{
-		"name": "Clear out the workshop",
-		"room": "nextdoor",
-		"kind": Kind.CLEANUP,
-		"spots": 4,
-		"needs": ["next_knock"],
-		"desc": "Forty years of offcuts, and a bicycle with no wheels.",
-		"appeal": 1,
 	},
 	"next_build":
 	{
@@ -261,9 +190,9 @@ const PROJECTS := {
 		"room": "nextdoor",
 		"kind": Kind.BUILD,
 		"cost": 2600,
-		"needs": ["next_clear"],
+		"needs": ["next_knock"],
 		"opens": "nextdoor",
-		"desc": "Light, a stove and a proper bench. Room enough to take on an apprentice.",
+		"desc": "Forty years of offcuts out, then a stove and a proper bench for an apprentice.",
 		"appeal": 6,
 	},
 }

@@ -45,10 +45,11 @@ const STATIONS := [
 	"ClothingRack3",
 ]
 ## Stage name -> the last project finished ("" = the first morning, "*" = everything).
+## The back rooms have no hand job any more: "front room tidy" leaves them shut (the
+## builders' job untouched) and "workroom done" is the very next stage after their build.
 const STAGES := {
 	"day 1": "",
 	"front room tidy": "front_lights",
-	"workroom entered": "workroom_boards",
 	"workroom done": "workroom_build",
 	"cloth store done": "cloth_build",
 	"nook done": "nook_build",

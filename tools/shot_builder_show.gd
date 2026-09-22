@@ -10,7 +10,14 @@ const SCENE := "res://scenes/world/grandpa/main_grandpa.tscn"
 const OUT_DIR := "res://.dev/builder_show"
 const SIZE := Vector2i(640, 400)
 const FRAME_EVERY := 4  # rendered frames between captures (~15 fps at 60)
-const CLIPS := {"paper": 5.0, "workroom": 7.0}
+## In story order: each clip finishes everything before its job (Renovation.PROJECTS order).
+const CLIPS := {
+	"window": ["front_window", 5.0],
+	"lights": ["front_lights", 5.0],
+	"paper": ["front_paper", 5.0],
+	"paint": ["facade_paint", 5.0],
+	"workroom": ["workroom_build", 7.0],
+}
 
 var _main: Node
 var _reno: Node
@@ -36,14 +43,15 @@ func _run() -> void:
 	root.get_node("GameState").money = 99999
 	_reno = root.get_node("Renovation")
 	_reno.reset()
-	await _film("paper", "front_paper")
-	await _film("workroom", "workroom_build")
+	for clip: String in CLIPS:
+		await _film(clip, str(CLIPS[clip][0]), float(CLIPS[clip][1]))
+	await _inside_workroom()
 	print("shot_builder_show: done")
 	quit(0)
 
 
 ## Finish everything before `job`, let the camera settle, order it and capture the show.
-func _film(clip: String, job: String) -> void:
+func _film(clip: String, job: String, seconds: float) -> void:
 	while _reno.call("_debug_next") != job and _reno.call("_debug_next") != "":
 		_reno.debug_finish_next()
 	for _i in 60:
@@ -51,7 +59,7 @@ func _film(clip: String, job: String) -> void:
 	if not _reno.order(job):
 		push_error("shot_builder_show: could not order %s" % job)
 		return
-	var frames := int(CLIPS[clip] * 60.0 / FRAME_EVERY)
+	var frames := int(seconds * 60.0 / FRAME_EVERY)
 	for n in frames:
 		for _f in FRAME_EVERY:
 			await process_frame
@@ -59,3 +67,15 @@ func _film(clip: String, job: String) -> void:
 		var path := "%s/%s_%03d.png" % [OUT_DIR, clip, n]
 		root.get_texture().get_image().save_png(ProjectSettings.globalize_path(path))
 	print("shot_builder_show: %s done=%s" % [job, _reno.is_done(job)])
+
+
+## The player walks into the finished workroom: the divider behind them should stand as a
+## low wall (its upper half faded), not vanish.
+func _inside_workroom() -> void:
+	var player := get_first_node_in_group("player") as Node3D
+	player.global_position = Vector3(-1.5, player.global_position.y, 0.4)
+	for _i in 90:
+		await process_frame
+	await RenderingServer.frame_post_draw
+	var path := "%s/inside_workroom.png" % OUT_DIR
+	root.get_texture().get_image().save_png(ProjectSettings.globalize_path(path))

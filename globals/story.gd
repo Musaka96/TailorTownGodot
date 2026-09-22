@@ -17,6 +17,13 @@ signal changed
 signal letter_ready(id: String)
 
 const GRANDPA := 'Barnaby "Pops" Thimble'
+## Keepsakes that used to turn up in a back room's hand clearing, which the builders do now
+## (2026-09-22): an older save's finds carry over to the builders' job.
+const MOVED_KEEPSAKES := {
+	"workroom_clear": "workroom_build",
+	"cloth_clear": "cloth_build",
+	"nook_clear": "nook_build",
+}
 ## What each job turns up: project id -> what it is, and what the player makes of it.
 ## `prop` picks the little shape that stands on the shelf (RenovationDirector.KEEPSAKE_PROPS).
 const KEEPSAKES := {
@@ -64,18 +71,18 @@ const KEEPSAKES := {
 			+ "them again. You copied every one into the back of the notebook first."
 		),
 	},
-	"workroom_clear":
+	"workroom_build":
 	{
 		"name": "A tin of photographs",
 		"prop": "tin",
 		"text":
 		(
-			"Under a floorboard that gave when you shifted the rubble: a toffee tin, rusted "
-			+ "shut, full of photographs. Him at this bench. Him and a boy of about fifteen "
-			+ "at this bench. The boy has Mr. Hemming's ears."
+			"A foreman handed it over with the rubble cleared: a toffee tin from under the "
+			+ "floorboards, rusted shut, full of photographs. Him at this bench. Him and a boy "
+			+ "of about fifteen at this bench. The boy has Mr. Hemming's ears."
 		),
 	},
-	"cloth_clear":
+	"cloth_build":
 	{
 		"name": "The order ledger",
 		"prop": "ledger",
@@ -86,15 +93,15 @@ const KEEPSAKES := {
 			+ "collected, paid. Then half a page of nothing."
 		),
 	},
-	"nook_clear":
+	"nook_build":
 	{
 		"name": "The day's paper",
 		"prop": "paper",
 		"text":
 		(
-			"Folded into a crate to stop it rocking, yellow as weak tea. The date is the day "
-			+ "he opened. Three lines at the bottom of page five: a new tailor on the lane, "
-			+ "the neighbours wish him well."
+			"The builders found it folded under a crate to stop it rocking, yellow as weak "
+			+ "tea. The date is the day he opened. Three lines at the bottom of page five: "
+			+ "a new tailor on the lane, the neighbours wish him well."
 		),
 	},
 }
@@ -283,8 +290,9 @@ func restore(d: Variant) -> void:
 	reset()
 	if d is Dictionary:
 		for id: Variant in (d as Dictionary).get("found", []):
-			if KEEPSAKES.has(str(id)):
-				_found[str(id)] = true
+			var key: String = MOVED_KEEPSAKES.get(str(id), str(id))
+			if KEEPSAKES.has(key):
+				_found[key] = true
 		for id: Variant in (d as Dictionary).get("read", []):
 			if LETTERS.has(str(id)):
 				_read[str(id)] = true

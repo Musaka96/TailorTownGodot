@@ -70,8 +70,8 @@ func _hemming_is_safe() -> void:
 	_debug._reset_renovation()
 	_debug._finish_building_now()
 	_debug._open_room("workroom")
-	_debug._set_project(true, "workroom_boards")
-	_debug._set_project(false, "workroom_boards")
+	_debug._set_project(true, "workroom_build")
+	_debug._set_project(false, "workroom_build")
 	_debug._toggle_renovation()
 	_debug._toggle_renovation()
 	_debug._refresh_renovation()
@@ -153,17 +153,10 @@ func _reset_returns_to_day_one() -> void:
 func _open_room_finishes_chain() -> void:
 	_reno.reset()
 	_debug._open_room("cloth")
-	var chain := [
-		"workroom_boards",
-		"workroom_clear",
-		"workroom_build",
-		"cloth_boards",
-		"cloth_clear",
-		"cloth_build"
-	]
+	var chain := ["workroom_build", "cloth_build"]
 	for id: String in chain:
 		_check(_reno.is_done(id), "open cloth store: %s is done" % id)
-	_check(not _reno.is_done("nook_boards"), "open cloth store: the nook is left alone")
+	_check(not _reno.is_done("nook_build"), "open cloth store: the nook is left alone")
 	_check(_node("Bookshelf").visible, "open cloth store: the workroom's own stations arrived too")
 	_check_invariant("open cloth store")
 	_sections_ended += 1
@@ -172,10 +165,10 @@ func _open_room_finishes_chain() -> void:
 func _unticking_cascades() -> void:
 	# Continues from the state _open_room_finishes_chain left behind: the cloth store open.
 	_debug._set_project(false, "workroom_build")
-	for id: String in ["workroom_build", "cloth_boards", "cloth_clear", "cloth_build"]:
+	for id: String in ["workroom_build", "cloth_build"]:
 		_check(not _reno.is_done(id), "untick workroom_build: %s is undone" % id)
 	_check(
-		_reno.is_done("workroom_boards") and _reno.is_done("workroom_clear"),
+		_reno.is_done("front_sweep"),
 		"untick workroom_build: its own needs stay done (only dependents are undone)"
 	)
 	_check(not _node("Bookshelf").visible, "untick workroom_build: the bookshelf is hidden again")
@@ -197,8 +190,8 @@ func _builders_finish_only_underway() -> void:
 	_check(_reno.order("front_window"), "builders tonight: front_window ordered")
 	_check(_reno.order("front_lights"), "builders tonight: front_lights ordered")
 	_check(
-		_reno.available("workroom_boards") and not _reno.is_done("workroom_boards"),
-		"builders tonight: workroom_boards is only available, not under way"
+		_reno.available("workroom_build") and not _reno.is_done("workroom_build"),
+		"builders tonight: workroom_build is only available, not under way"
 	)
 	_debug._finish_building_now()
 	_check(
@@ -209,7 +202,7 @@ func _builders_finish_only_underway() -> void:
 		not _reno.is_building("front_window") and not _reno.is_building("front_lights"),
 		"builders tonight: neither is still building"
 	)
-	_check(not _reno.is_done("workroom_boards"), "builders tonight: workroom_boards untouched")
+	_check(not _reno.is_done("workroom_build"), "builders tonight: workroom_build untouched")
 	_check_invariant("builders finish tonight")
 	_sections_ended += 1
 
