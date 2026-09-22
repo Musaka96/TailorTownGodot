@@ -22,6 +22,8 @@ const ARRIVE_MAX := 0.6
 ## A suit ready early brings its customer in sooner: later today when at least this share
 ## of the shift is still to run, otherwise the next day.
 const EARLY_LEAD := 0.3
+## Seconds the pickup receipt stays up (a plain toast is gone in under two).
+const RECEIPT_HOLD := 4.5
 
 var active: Array[SuitOrder] = []
 
@@ -195,17 +197,33 @@ func collect(order: SuitOrder) -> int:
 	GameState.earn(payout)
 	var settled := GameState.settle_account()
 	if UI != null:
-		var note := "Order #%d paid: $%d" % [order.id, payout]
-		if int(bill["tip"]) > 0:
-			note += "  (incl. $%d tip — beautiful work!)" % int(bill["tip"])
-		elif order.late:
-			note += "  (late: part pay)"
-		if settled > 0:
-			note += "  · $%d cloth account settled" % settled
-		UI.toast(note)
+		UI.toast(_receipt(order, bill, settled), RECEIPT_HOLD)
 	active.erase(order)
 	EventBus.order_fulfilled.emit(order, payout)
 	return payout
+
+
+## The pickup receipt, so a payment over the agreed price never looks like a mistake:
+## "Order #3 · $250 agreed · +$67 for the work · +$15 for the coffee · paid $332".
+func _receipt(order: SuitOrder, bill: Dictionary, settled := 0) -> String:
+	var parts := PackedStringArray(["Order #%d" % order.id, "$%d agreed" % order.price])
+	var base := int(bill["base"])
+	if order.late:
+		parts.append("late, part pay $%d" % base)
+	elif base < order.price:
+		parts.append("-$%d for the work" % (order.price - base))
+	for item: Array in [
+		["tip_work", "for the work" + (", picky: tips double" if order.picky else "")],
+		["tip_coffee", "for the coffee"],
+		["tip_liked", "in their colour"]
+	]:
+		var amount := int(bill.get(item[0], 0))
+		if amount > 0:
+			parts.append("+$%d %s" % [amount, item[1]])
+	parts.append("paid $%d" % int(bill["total"]))
+	if settled > 0:
+		parts.append("$%d cloth account settled" % settled)
+	return "  ·  ".join(parts)
 
 
 ## The customer came on the due day but the suit wasn't ready. The first time they

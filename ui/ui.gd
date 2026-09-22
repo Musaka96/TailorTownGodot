@@ -272,7 +272,7 @@ func play_day_transition(old_day, new_day, earned, on_switch, on_done) -> void:
 
 ## Brief centred message near the top of the screen, on a walnut bar so it reads over
 ## any part of the shop (fades out on its own).
-func toast(text: String) -> void:
+func toast(text: String, hold := 1.6) -> void:
 	if _toast == null:
 		_toast_bar = PanelContainer.new()
 		var sb := Style.bar(Style.tint(Style.WALNUT, 0.88), Style.S3)
@@ -295,7 +295,7 @@ func toast(text: String) -> void:
 	if _toast_tween != null:
 		_toast_tween.kill()
 	_toast_tween = create_tween()
-	_toast_tween.tween_interval(1.6)
+	_toast_tween.tween_interval(hold)
 	_toast_tween.tween_property(_toast_bar, "modulate:a", 0.0, 0.6)
 
 

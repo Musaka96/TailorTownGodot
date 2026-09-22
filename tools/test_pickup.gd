@@ -36,6 +36,7 @@ func _run() -> void:
 
 	_apologies()
 	_coffee_on_the_bill()
+	_receipt()
 	await _left_standing()
 	await _finished_in_time()
 	_finish()
@@ -52,6 +53,25 @@ func _coffee_on_the_bill() -> void:
 	_check(extra == roundi(300 * _cfg.coffee_tip_share), "a welcome coffee tips on the bill")
 	_orders.active.erase(plain)
 	_orders.active.erase(treated)
+
+
+## The pickup receipt names every part of the bill, and the parts add up to what is paid:
+## a picky customer's doubled tip on excellent work, in the colour they asked for.
+func _receipt() -> void:
+	var order := _order("Ms. Picky")
+	order.picky = true
+	order.liked = true
+	order.fill_part(JACKET, 1.0, 0.98)
+	var bill: Dictionary = order.payout_breakdown()
+	var parts: int = bill["tip_work"] + bill["tip_coffee"] + bill["tip_liked"]
+	_check(parts == int(bill["tip"]), "the tip's parts add up to the tip")
+	_check(int(bill["total"]) > order.price, "excellent work pays over the agreed price")
+	var said: String = _orders.call("_receipt", order, bill, 0)
+	_check("$300 agreed" in said, "the receipt starts from the agreed price: " + said)
+	_check("picky: tips double" in said, "it says the tip is doubled for a picky client")
+	_check("in their colour" in said, "and what their colour added")
+	_check("paid $%d" % int(bill["total"]) in said, "and what was paid")
+	_orders.active.erase(order)
 
 
 func _order(who: String) -> Resource:

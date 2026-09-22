@@ -161,19 +161,34 @@ func payout_breakdown() -> Dictionary:
 	# A picky client judges as if the work were a notch worse — and tips twice as well.
 	var judged := score - 0.2 if picky else score
 	var base := price * Pricing.pay_share(judged)
-	var tip := price * Pricing.tip_share(score) * (2.0 if picky else 1.0)
+	var work := price * Pricing.tip_share(score) * (2.0 if picky else 1.0)
 	# Welcomed with a coffee: a small thank-you, however the suit turned out.
 	var thanks: float = Config.data.coffee_tip_share if Config.data != null else 0.06
-	tip += price * thanks * coffee
+	var cup := price * thanks * coffee
+	var colour := 0.0
 	if liked:
-		tip += price * (Config.data.liked_tip_share if Config.data != null else 0.08)
+		colour = price * (Config.data.liked_tip_share if Config.data != null else 0.08)
 	if late:
 		var share: float = Config.data.late_pay if Config.data != null else 0.75
 		base *= share
-		tip = 0.0
+		work = 0.0
+		cup = 0.0
+		colour = 0.0
 	var b := int(round(base))
-	var t := int(round(tip))
-	return {"base": b, "tip": t, "total": b + t, "score": score}
+	# The tip's parts, rounded so they add up to the tip exactly (the pickup receipt lists them).
+	var tw := int(round(work))
+	var tc := int(round(cup))
+	var tl := int(round(colour))
+	var t := tw + tc + tl
+	return {
+		"base": b,
+		"tip": t,
+		"total": b + t,
+		"score": score,
+		"tip_work": tw,
+		"tip_coffee": tc,
+		"tip_liked": tl,
+	}
 
 
 ## 0..1 — mean brief-match across the order's pieces (how right the cloth was).
