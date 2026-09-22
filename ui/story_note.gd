@@ -142,7 +142,7 @@ func _build() -> void:
 	_hint = Label.new()
 	_hint.text = "Esc — fold it away"
 	_hint.add_theme_font_override("font", Style.font_medium())
-	_hint.add_theme_font_size_override("font_size", 12)
+	_hint.add_theme_font_size_override("font_size", Style.T_MICRO)
 	_hint.add_theme_color_override("font_color", Style.tint(Style.INK, 0.55))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	box.add_child(_hint)
