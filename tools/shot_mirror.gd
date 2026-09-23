@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Screenshots the suit builder: whole-customer overview, then a part zoom.
+## Screenshots the suit builder: the suit tab, then the shirt tab (one camera for both).
 ## Also drops the three garment-part models in front so we can see them. NOT headless.
 ##   godot --path . --script res://tools/shot_mirror.gd
 
@@ -47,12 +47,12 @@ func _run() -> void:
 func _on_frame() -> void:
 	_frames += 1
 	if _phase == 0 and _frames >= 55:
-		_capture("res://.dev/mirror_overview.png")
-		_menu._adjust(1)  # select the first part -> zoom
+		_capture("res://.dev/mirror_suit.png")
+		_menu._adjust(1)  # to the shirt tab
 		_phase = 1
 		_frames = 0
 	elif _phase == 1 and _frames >= 55:
-		_capture("res://.dev/mirror_zoom.png")
+		_capture("res://.dev/mirror_shirt.png")
 		quit(0)
 
 

@@ -222,8 +222,8 @@ func _shot_greeting() -> void:
 	await _clear_customers()
 
 
-## Designing the client's suit at the fitting mirror: overview, then a part zoom
-## with the cloth changing on the customer in real time.
+## Designing the client's suit at the fitting mirror: the suit tab, then the shirt tab
+## with the cloth changing on the customer in real time (the camera holds one portrait).
 func _shot_suit_builder() -> void:
 	if not _want("mirror"):
 		return
@@ -234,10 +234,7 @@ func _shot_suit_builder() -> void:
 	var builder: Node = _ui.suit_builder
 	await _wait(120)
 	_save("03_suit_builder")
-	builder._adjust(1)  # Overview -> Jacket: the builder glides in on the part
-	# The jacket frame is tight enough to crop the face; a taller "measured height"
-	# makes the builder's own solver frame a bit more of the client.
-	builder._height *= 1.4
+	builder._adjust(1)  # Suit -> Shirt
 	await _wait(120)
 	_save("04_suit_builder_zoom")
 	_ui.close_all_menus()
@@ -258,8 +255,6 @@ func _shot_reaction() -> void:
 	cust.preference.budget = 5000
 	_ui.open_suit_builder(_mirror, _player)
 	var builder: Node = _ui.suit_builder
-	await _wait(60)
-	builder._adjust(1)  # to the jacket: the close framing the answer eases out of
 	await _wait(150)
 	_save("reaction_before")
 	_dress_for_reaction(builder, 1)  # pinstripe: refused
@@ -271,7 +266,6 @@ func _shot_reaction() -> void:
 	if bubble != null:
 		var vp: Vector2 = bubble.get_viewport_rect().size
 		bubble.bounds = Rect2(Vector2(vp.x * 0.12, 0.0), Vector2(vp.x * 0.4, vp.y))
-		builder._reaction_t = 10.0
 		await _wait(20)
 		_save("reaction_above")
 	_dress_for_reaction(builder, 0)  # plain: accepted
@@ -467,7 +461,7 @@ func _shot_storefront() -> void:
 
 
 ## The fitting mirror dressed in each CUTE_SUITS look, a fresh client per look:
-## whole-suit overview and the jacket zoom, into .dev/promo/cute/.
+## the fitting's one portrait shot, into .dev/promo/cute/.
 func _shot_cute_suits() -> void:
 	if not _want("cute"):
 		return
@@ -487,11 +481,7 @@ func _shot_cute_suits() -> void:
 		await _wait(10)
 		_dress_design(builder, CUTE_SUITS[look]["parts"])
 		await _wait(110)
-		_save("cute/%s_overview" % look)
-		builder._adjust(1)  # Overview -> Jacket
-		builder._height *= 1.4  # keep the face in the jacket frame
-		await _wait(120)
-		_save("cute/%s_jacket" % look)
+		_save("cute/%s" % look)
 		_ui.close_all_menus()
 		_rig.unfocus()
 	await _clear_customers()
@@ -791,7 +781,7 @@ func _clip_mirror() -> void:
 
 ## Drive the suit builder like a player: for each part select it on the Part row, then
 ## walk down Fabric / Colour / Pattern / Style pressing left/right the short way round
-## to each target value, then return to the whole-suit overview.
+## to each target value, then return to the suit tab.
 func _design_by_hand(builder: Node, parts: Array) -> void:
 	var enums: Script = load("res://data/scripts/enums.gd")
 	var factory: Script = load(FACTORY_PATH)
@@ -804,7 +794,7 @@ func _design_by_hand(builder: Node, parts: Array) -> void:
 		while builder._type() != t:
 			builder._adjust(1)
 			await _seconds(CLIP_PRESS)
-		await _seconds(CLIP_PRESS * 2.0)  # let the camera glide in on the part
+		await _seconds(CLIP_PRESS * 2.0)  # a beat on the new tab
 		var styles := PackedInt32Array()
 		for n in enums.styles_for(t).size():
 			if n < 2:  # skip "Shorts": the trouser model doesn't show them yet
@@ -827,7 +817,7 @@ func _design_by_hand(builder: Node, parts: Array) -> void:
 				builder._adjust(signi(steps))
 				await _seconds(CLIP_PRESS)
 	await _go_row(builder, 0)
-	while builder._part_sel != -1:
+	while builder._part_sel != 0:
 		builder._adjust(1)
 		await _seconds(CLIP_PRESS)
 

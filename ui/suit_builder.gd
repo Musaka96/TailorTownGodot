@@ -1,8 +1,8 @@
 extends Control
 
 ## The mirror's suit builder. A side panel (keeps the customer visible) where you
-## design each part of the suit. Selecting a part glides the camera to zoom onto
-## it; "Overview" frames the whole customer. E confirms the design.
+## design each part of the suit. The camera holds one portrait of the customer, head to
+## shin, the whole time: every part stays in view while you work. E confirms the design.
 
 enum Row { PART, FABRIC, COLOR, PATTERN, STYLE, TROUSERS }
 const KICKER := "Fitting room"
@@ -25,25 +25,15 @@ const LINKED_PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT]
 const LINK_KEYS := ["fabric", "color", "pattern"]
 # The design fields a row edits (the tutorial checks them against its recipe).
 const ROW_KEY := {Row.FABRIC: "fabric", Row.COLOR: "color", Row.PATTERN: "pattern"}
-# Camera framing. The subject (whole customer, or the selected part) is placed EXACTLY
-# at the centre of the free screen area left of the fitting panel, solved from the live
-# camera FOV, viewport aspect and panel width — so it can't drift on other resolutions.
-# FILL = fraction of the screen height the subject's span takes up.
-const OVERVIEW_FILL := 0.8
+# Camera framing. The subject is placed EXACTLY at the centre of the free screen area
+# between the fitting notepad and the panel, solved from the live camera FOV, viewport
+# aspect and panel width — so it can't drift on other resolutions.
 const PITCH_DEG := 8.0  # camera looks slightly down at the subject
-# Part shots: (centre height, visible screen-height span), both as fractions of the
-# customer's height (measured from their meshes, so every body frames the same).
-const PART_FRAME := {
-	Enums.GarmentType.JACKET: Vector2(0.42, 0.72),
-	Enums.GarmentType.SHIRT: Vector2(0.48, 0.56),
-	Enums.GarmentType.PANTS: Vector2(0.22, 0.72),
-}
+## The one shot, for every tab and for the customer's answer: (centre height, visible
+## screen-height span), both as fractions of the customer's height (measured from their
+## meshes, so every body frames the same). Air above the head down to mid-shin.
+const PORTRAIT := Vector2(0.67, 1.18)
 const DEFAULT_BODY_HEIGHT := 2.25
-## Asking the customer: the camera eases out to head and shoulders (centre, span as
-## fractions of their height) so you see their face as they answer, holds for
-## REACTION_HOLD seconds (or until you change something), then eases back to the part.
-const REACTION_FRAME := Vector2(0.62, 1.0)
-const REACTION_HOLD := 2.6
 const HEAD_AT := 0.9  # the bubble points at this fraction of the customer's height
 ## After an ask, E / a click does nothing for this long, so a double tap can't sell.
 const ASK_LOCK := 0.5
@@ -63,10 +53,9 @@ var _pref = null  # CustomerPreference when fitting a real customer, else null
 var _awaiting := false  # customer loved it; next E finalises the order
 var _ask_lock := 0.0  # > 0 just after an ask: E and clicks wait (see ASK_LOCK)
 var _linked := true  # the trousers follow the jacket's cloth (one "Suit" tab)
-var _reaction_t := 0.0  # > 0 while the camera is out on the customer's face
-var _bubble: ReactionBubble
+var _bubble: ReactionBubble  # the customer's answer, up until the design changes
 var _rig = null
-var _part_sel := -1  # -1 = overview, else index into PARTS
+var _part_sel := 0  # index into _parts()
 var _row := 0
 var _status := ""
 var _design := {}  # GarmentType -> { fabric, color, pattern, style_idx }
@@ -106,10 +95,6 @@ func _process(delta: float) -> void:
 	# be resized, and the target must track both to stay exactly centred.
 	if visible:
 		_ask_lock = maxf(_ask_lock - delta, 0.0)
-		if _reaction_t > 0.0:
-			_reaction_t -= delta
-			if _reaction_t <= 0.0:
-				_end_reaction()
 		_update_camera()
 
 
@@ -122,7 +107,7 @@ func open(mirror, actor) -> void:
 	_ask_lock = 0.0
 	_linked = true
 	_rig = get_tree().get_first_node_in_group("camera_rig")
-	_part_sel = -1
+	_part_sel = 0  # the Suit tab
 	_row = 0
 	_status = ""
 	_design = {}
@@ -371,7 +356,7 @@ func _field_name(row: int, value: int) -> String:
 
 ## Whether `row` already matches the tutorial's recipe (a Part row: the whole part does).
 func _row_on_target(row: int) -> bool:
-	if Tutorial == null or _part_sel < 0:
+	if Tutorial == null:
 		return false
 	var want: Dictionary = Tutorial.design_target(_type())
 	if want.is_empty():
@@ -398,7 +383,7 @@ func _trend() -> Dictionary:
 ## Whether `row`'s current value is the one the paper says is in fashion. Only the
 ## Fabric and Pattern rows can be: the trend never names a colour or a cut.
 func _in_style(row: int) -> bool:
-	if _part_sel < 0 or not (row == Row.FABRIC or row == Row.PATTERN):
+	if not (row == Row.FABRIC or row == Row.PATTERN):
 		return false
 	var want: int = _trend()[ROW_KEY[row]]
 	return want >= 0 and int(_cfg()[ROW_KEY[row]]) == want
@@ -440,7 +425,7 @@ func _parts() -> Array:
 
 
 func _type() -> int:
-	return _parts()[_part_sel] if _part_sel >= 0 else -1
+	return _parts()[clampi(_part_sel, 0, _parts().size() - 1)]
 
 
 ## A part's name on the page: the jacket is "Suit" while the trousers come with it.
@@ -463,26 +448,23 @@ func _sync_pants() -> void:
 
 
 func _cfg() -> Dictionary:
-	return _design[_type()] if _part_sel >= 0 else {}
+	return _design[_type()]
 
 
 func _active_rows() -> Array:
-	if _part_sel < 0:
-		return [Row.PART]
 	if _type() == Enums.GarmentType.JACKET:
 		return [Row.PART, Row.FABRIC, Row.COLOR, Row.PATTERN, Row.STYLE, Row.TROUSERS]
 	return [Row.PART, Row.FABRIC, Row.COLOR, Row.PATTERN, Row.STYLE]
 
 
 func _material() -> MaterialType:
-	var t := _type() if _part_sel >= 0 else int(Enums.GarmentType.JACKET)
-	var c: Dictionary = _design[t]
+	var c := _cfg()
 	return MaterialFactory.make(c["fabric"], c["pattern"], c["color"], 1.0)
 
 
 func _value_text(row: int) -> String:
 	if row == Row.PART:
-		return "Overview" if _part_sel < 0 else _part_name(_type())
+		return _part_name(_type())
 	if row == Row.TROUSERS:
 		return _link_text(_linked)
 	var c := _cfg()
@@ -510,17 +492,8 @@ func _update_camera() -> void:
 		return
 	front = front.normalized()
 	var base: Vector3 = _customer.global_position
-	var height := _height
-	var centre := 0.5
-	var span := height / OVERVIEW_FILL
-	if _reaction_t > 0.0:
-		centre = REACTION_FRAME.x
-		span = height * REACTION_FRAME.y
-	elif _part_sel >= 0:
-		var pf: Vector2 = PART_FRAME.get(_type(), Vector2(0.5, 0.5))
-		centre = pf.x
-		span = height * pf.y
-	var subject := base + Vector3(0.0, height * centre, 0.0)
+	var span := _height * PORTRAIT.y
+	var subject := base + Vector3(0.0, _height * PORTRAIT.x, 0.0)
 	# Prefer straight-on; if a wall is in the way, orbit to the nearest clear angle.
 	var pose := _frame_pose(cam, subject, front, span)
 	for deg: float in ORBIT_TRIES:
@@ -593,14 +566,9 @@ func _refresh() -> void:
 	_badges.show_for(_pref)
 	var mat := _material()
 	_swatch.setup(mat, mat.roll_length_m)
-	if _part_sel < 0:
-		_name_label.text = "Whole suit"
-		_sub_label.text = "Pick a part to design and zoom in."
-	else:
-		_name_label.text = mat.display_name
-		_sub_label.text = (
-			"%s  ·  %s" % [mat.summary(), Enums.styles_for(_type())[_cfg()["style_idx"]]]
-		)
+	_name_label.text = mat.display_name
+	var cut: String = Enums.styles_for(_type())[_cfg()["style_idx"]]
+	_sub_label.text = "%s  ·  %s" % [mat.summary(), cut]
 	if _pref != null:
 		# Live price readout: cloth + craft = quote, against the customer's budget.
 		var q := Pricing.quote_breakdown(_design)
@@ -797,7 +765,7 @@ func _on_tabs_input(event: InputEvent, strip: PartTabs, index: int) -> void:
 		return
 	var at := (event as InputEventMouseButton).position
 	var part := strip.part_at(at)
-	if part > -2:
+	if part >= 0:
 		_pick_part.call_deferred(index, part)
 	elif strip.chevron_at(at) != 0:
 		_step_row.call_deferred(strip.chevron_at(at), index)
@@ -849,8 +817,7 @@ func _adjust(dir: int) -> void:
 	_awaiting = false
 	var row: int = _active_rows()[_row]
 	if row == Row.PART:
-		_part_sel = wrapi(_part_sel + dir, -1, _parts().size())
-		_update_camera()
+		_part_sel = wrapi(_part_sel + dir, 0, _parts().size())
 	elif row == Row.TROUSERS:
 		# Unlinking leaves the trousers as they are (their own tab appears); relinking
 		# puts them back in the jacket's cloth.
@@ -911,7 +878,7 @@ func _cycle(options: PackedInt32Array, current: int, dir: int) -> int:
 func _update_stock() -> void:
 	if _stock_dot == null:
 		return
-	var c: Dictionary = _design[_type()] if _part_sel >= 0 else _design[Enums.GarmentType.JACKET]
+	var c := _cfg()
 	var have := _cloth_in_stock(int(c["fabric"]), int(c["pattern"]), int(c["color"]))
 	# Missing cloth is news, not an error: the designer only offers what a supplier on the
 	# phone sells, so it can always be ordered — say so, in the brass "note" tone.
@@ -970,13 +937,13 @@ func _ask() -> void:
 	_refresh()
 
 
-## Ease the camera out to the customer's face and let them answer in a bubble.
+## The customer answers in a bubble by their head. The camera stays put; the bubble stays
+## until the design or the tab changes, the next ask, or the fitting closes.
 func _start_reaction(suitable: bool, said: String) -> void:
 	_end_reaction()
 	if _customer == null or not is_instance_valid(_customer) or said == "":
 		return
 	var lines := PackedStringArray([said])
-	_reaction_t = REACTION_HOLD
 	_bubble = ReactionBubble.show_for(self, _customer, _height * HEAD_AT, suitable, lines)
 	var vp := get_viewport_rect()
 	_bubble.bounds = Rect2(
@@ -986,9 +953,8 @@ func _start_reaction(suitable: bool, said: String) -> void:
 	Sfx.play("menu_open", -8.0)
 
 
-## Back to the part being edited (the rig eases the camera there).
+## Put the answer away (the design moved on, or the fitting closed).
 func _end_reaction() -> void:
-	_reaction_t = 0.0
 	if _bubble != null and is_instance_valid(_bubble):
 		_bubble.dismiss()
 	_bubble = null

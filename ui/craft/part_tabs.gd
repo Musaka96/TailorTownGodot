@@ -1,16 +1,15 @@
 class_name PartTabs
 extends Control
 
-## The fitting room's part switcher: a strip of small icon tabs — an eye for the whole
-## suit, then each garment — instead of one more value row. The current tab is a brass label with a
-## stitched underline; when the strip itself is the selected row it gains a brass running
-## stitch and ‹ › chevrons, so A/D visibly belongs to it. Flat shapes from Style tokens,
-## each glyph drawn in a 0..1 box and scaled to its tab.
+## The fitting room's part switcher: a strip of small icon tabs, one per garment, instead
+## of one more value row. The current tab is a brass label with a stitched underline; when
+## the strip itself is the selected row it gains a brass running stitch and ‹ › chevrons,
+## so A/D visibly belongs to it. Flat shapes from Style tokens, each glyph drawn in a 0..1
+## box and scaled to its tab.
 ##   PartTabs.make(parts, current, focused, ticks, linked)
-## `parts` are GarmentTypes; tab 0 is always the overview, so `current` is -1 for it (the
-## suit builder's own convention) and `ticks` lists the parts that earn a ✓. `linked`:
-## the trousers come with the jacket, so the jacket tab is the whole suit (its glyph
-## shows the trousers peeking out below).
+## `parts` are GarmentTypes, `current` indexes them and `ticks` lists the parts that earn
+## a ✓. `linked`: the trousers come with the jacket, so the jacket tab is the whole suit
+## (its glyph shows the trousers peeking out below).
 
 const HEIGHT := 50.0
 const TAB_W := 52.0
@@ -21,7 +20,7 @@ const SUIT_PANTS := 0.72  # the linked suit tab: trouser glyph size, as a fracti
 const SUIT_SHIFT := 0.16  # ...and how far up-left the jacket moves to make room
 
 var parts: Array = []
-var current := -1
+var current := 0
 var focused := false
 var ticks: Array = []
 var linked := false
@@ -48,18 +47,18 @@ func _ready() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
-## The on-screen rect of the tab for `part` (-1 = overview) — the tutorial points at it.
+## The on-screen rect of the tab for `parts[part_index]` — the tutorial points at it.
 func tab_rect(part_index: int) -> Rect2:
-	var local := _tab_rect(part_index + 1)
+	var local := _tab_rect(part_index)
 	return Rect2(global_position + local.position, local.size)
 
 
-## The part under local point `at` (-1 = the overview tab), or -2 between / off the tabs.
+## The index of the part under local point `at`, or -1 between / off the tabs.
 func part_at(at: Vector2) -> int:
-	for i in parts.size() + 1:
+	for i in parts.size():
 		if _tab_rect(i).has_point(at):
-			return i - 1
-	return -2
+			return i
+	return -1
 
 
 ## -1 / 1 when `at` is out past the first / last tab (where the ‹ › chevrons sit), else 0.
@@ -68,13 +67,13 @@ func chevron_at(at: Vector2) -> int:
 		return 0
 	if at.x < _tab_rect(0).position.x:
 		return -1
-	if at.x > _tab_rect(parts.size()).end.x:
+	if at.x > _tab_rect(parts.size() - 1).end.x:
 		return 1
 	return 0
 
 
 func _draw() -> void:
-	var count := parts.size() + 1
+	var count := parts.size()
 	for i in count:
 		_draw_tab(i, _tab_rect(i))
 	if focused:
@@ -85,7 +84,7 @@ func _draw() -> void:
 
 func _tab_rect(i: int) -> Rect2:
 	# Fixed-width tabs, centred as a group (narrower only if the strip can't hold them).
-	var count := parts.size() + 1
+	var count := maxi(parts.size(), 1)
 	var room := (size.x - CHEVRON_W * 2.0 - GAP * float(count - 1)) / float(count)
 	var w := minf(TAB_W, room)
 	var total := w * float(count) + GAP * float(count - 1)
@@ -94,7 +93,7 @@ func _tab_rect(i: int) -> Rect2:
 
 
 func _draw_tab(i: int, rect: Rect2) -> void:
-	var on := i == current + 1
+	var on := i == current
 	var fill := Style.BRASS if on else Style.CARD
 	var line := Style.WALNUT if on else Style.CREAM_DARK
 	var poly := Craft.rounded(rect, 10.0)
@@ -103,7 +102,7 @@ func _draw_tab(i: int, rect: Rect2) -> void:
 		Craft.stitch(self, poly, Style.WALNUT, 4.0, 1.2)
 	var ink := Style.WALNUT if on else Style.INK_SOFT
 	var icon_at := rect.get_center() - Vector2(ICON, ICON) * 0.5
-	var kind := -1 if i == 0 else int(parts[i - 1])
+	var kind := int(parts[i])
 	if linked and kind == Enums.GarmentType.JACKET:
 		# The suit: the jacket, and the trousers in front of it, down and to the right —
 		# cut out of the jacket by a halo in the tab's colour so the two shapes stay apart.
@@ -124,7 +123,7 @@ func _draw_tab(i: int, rect: Rect2) -> void:
 		while x < rect.end.x - 10.0:
 			draw_line(Vector2(x, y), Vector2(minf(x + 7.0, rect.end.x - 10.0), y), Style.BRASS, 2.0)
 			x += 12.0
-	if i > 0 and ticks.has(parts[i - 1]):
+	if ticks.has(parts[i]):
 		var at := rect.position + Vector2(rect.size.x - 8.0, 8.0)
 		draw_circle(at, 6.0, Style.FOREST)
 		draw_polyline(
@@ -159,8 +158,6 @@ func _glyph(kind: int, box: Rect2, ink: Color, cut: Color) -> void:
 			_shirt(box, ink, cut)
 		Enums.GarmentType.PANTS:
 			_pants(box, ink, cut)
-		_:
-			_eye(box, ink, cut)
 
 
 func _poly(box: Rect2, pts: Array, col: Color) -> void:
@@ -234,18 +231,3 @@ func _pants(box: Rect2, ink: Color, cut: Color) -> void:
 		_poly(box, leg, ink)
 		_line(box, Vector2(0.5 + 0.17 * side, 0.26), Vector2(0.5 + 0.17 * side, 0.92), cut, 1.0)
 	_line(box, Vector2(0.22, 0.2), Vector2(0.78, 0.2), cut, 1.0)
-
-
-## The overview: an almond eye with an iris and a little catchlight.
-func _eye(box: Rect2, ink: Color, cut: Color) -> void:
-	var lid := []
-	for k in 13:
-		var t := float(k) / 12.0
-		lid.append(Vector2(0.04 + 0.92 * t, 0.5 - 0.30 * sin(t * PI)))
-	for k in range(1, 12):
-		var t := 1.0 - float(k) / 12.0
-		lid.append(Vector2(0.04 + 0.92 * t, 0.5 + 0.30 * sin(t * PI)))
-	_poly(box, lid, ink)
-	_dot(box, Vector2(0.5, 0.5), 0.20, cut)
-	_dot(box, Vector2(0.5, 0.5), 0.11, ink)
-	_dot(box, Vector2(0.56, 0.44), 0.04, cut)

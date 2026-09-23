@@ -200,17 +200,14 @@ func _test_suit_builder() -> void:
 	if strip == null:
 		menu.call("close")
 		return
-	await _click_at(strip.tab_rect(0).get_center())  # the suit (jacket) tab
-	_check(int(menu.get("_part_sel")) == 0, "clicking the suit tab turns to the jacket")
-	await _frames(2)
-	strip = rows.get_child(0) as PartTabs
+	_check(int(menu.get("_part_sel")) == 0, "the fitting opens on the suit (jacket) tab")
 	# Trousers linked to the jacket (the default): only the suit and shirt have tabs.
 	_check(strip.parts.size() == 2, "linked trousers have no tab of their own")
 	await _click_at(strip.tab_rect(1).get_center())  # the shirt tab
 	_check(int(menu.get("_part_sel")) == 1, "clicking the shirt tab turns to it")
 	await _frames(2)
 	strip = rows.get_child(0) as PartTabs
-	var first := strip.tab_rect(-1)  # (on screen already)
+	var first := strip.tab_rect(0)  # (on screen already)
 	var left := Vector2(first.position.x - 8.0, first.get_center().y)  # the ‹ chevron
 	await _click_at(left)
 	_check(int(menu.get("_part_sel")) == 0, "clicking the ‹ chevron steps back a part")
