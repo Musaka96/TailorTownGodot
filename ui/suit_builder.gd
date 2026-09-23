@@ -32,7 +32,7 @@ const PITCH_DEG := 8.0  # camera looks slightly down at the subject
 ## The one shot, for every tab and for the customer's answer: (centre height, visible
 ## screen-height span), both as fractions of the customer's height (measured from their
 ## meshes, so every body frames the same). Air above the head down to mid-shin.
-const PORTRAIT := Vector2(0.67, 1.18)
+const PORTRAIT := Vector2(0.65, 1.37)
 const DEFAULT_BODY_HEIGHT := 2.25
 const HEAD_AT := 0.9  # the bubble points at this fraction of the customer's height
 ## After an ask, E / a click does nothing for this long, so a double tap can't sell.
