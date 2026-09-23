@@ -71,7 +71,7 @@ func _draw() -> void:
 		Craft.outline(self, star, Style.WALNUT if fill >= 1.0 else STAR_OFF, 1.2)
 	if Reputation != null:
 		_label(Reputation.tier_name(), TEXT_Y, Style.font_bold(), Style.CHALK)
-		_label(_to_go(), NOTE_Y, Style.font_body(), Style.BRASS_LIGHT)
+		_label(_to_go(), NOTE_Y, Style.font_body(), Style.BRASS_LIGHT, true)
 
 
 ## 0..1, how full star `i` is: star i stands for rank i + 1, and fills over the points
@@ -96,12 +96,17 @@ func _to_go() -> String:
 	return "%d more for %s" % [left, str(Reputation.TIERS[next]["name"])]
 
 
-## One outlined line of text, readable over the floor or the walls.
-func _label(text: String, y: float, font: Font, col: Color) -> void:
+## One outlined line of text, readable over the floor or the walls. With `wrap` the line
+## breaks at the patch's width instead of running under the order tickets beside it.
+func _label(text: String, y: float, font: Font, col: Color, wrap := false) -> void:
 	var at := Vector2(4.0, y)
 	var ink := Style.WALNUT
-	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO, 4, ink)
-	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.T_MICRO, col)
+	var w := size.x + 12.0 if wrap else -1.0
+	var brk := TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND
+	draw_multiline_string_outline(
+		font, at, text, HORIZONTAL_ALIGNMENT_LEFT, w, Style.T_MICRO, -1, 4, ink, brk
+	)
+	draw_multiline_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, w, Style.T_MICRO, -1, col, brk)
 
 
 ## A five-pointed star polygon centred on `c`.

@@ -128,29 +128,32 @@ func _make_ticket(order) -> Dictionary:
 	var card := CraftPanel.new()
 	card.eyelet = true
 	card.string_len = 34.0
-	card.pad = Vector2(7, 7)
+	card.pad = Vector2(7, 4)  # the eyelet already claims room at the top
 	card.setup(CraftPanel.Shape.TICKET, Style.CARD, Style.due_color(order.days_left_ceil()))
 	card.stitch_color = Style.CREAM_DARK
 	card.line_width = 2.5
 	card.custom_minimum_size = Vector2(TICKET_W, 0)
 	card.rotation_degrees = 2.0 if _row.get_child_count() % 2 == 0 else -2.0
+	# Everything on the ticket is a centred stack: a small kicker line ("#1 · 3 days")
+	# under the eyelet, the customer as the headline, then the cloth and the rest.
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 3)
+	box.add_theme_constant_override("separation", 2)
 	card.add_child(box)
 
-	# Order number left, due date right: both short, so the head row never sets the width.
 	var head := HBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", Style.S1)
 	box.add_child(head)
-	var num := _label("#%d" % order.id, Style.T_CAPTION, Style.INK, HORIZONTAL_ALIGNMENT_LEFT, true)
-	num.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(num)
+	head.add_child(
+		_label("#%d" % order.id, Style.T_MICRO, Style.INK, HORIZONTAL_ALIGNMENT_CENTER, true)
+	)
+	head.add_child(_label("·", Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER))
 	# The due date, always bold (the bold rule: due dates are the thing you came to read).
-	var days := _label("", Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT, true)
+	var days := _label("", Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, true)
 	head.add_child(days)
-	# The customer on a line of their own; a long name trims with an ellipsis rather than
-	# stretching the card.
-	var who := _label(order.customer_name, Style.T_CAPTION, Style.INK, HORIZONTAL_ALIGNMENT_LEFT)
+	# The customer, centred; a long name trims with an ellipsis rather than stretching the
+	# card (the full name is in the tooltip).
+	var who := _label(order.customer_name, Style.T_CAPTION, Style.INK, HORIZONTAL_ALIGNMENT_CENTER)
 	who.clip_text = true
 	who.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	who.tooltip_text = order.customer_name
