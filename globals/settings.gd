@@ -16,6 +16,8 @@ const PATH := "user://settings.cfg"
 ## The interface size sliders' range (1.0 = as designed).
 const UI_SCALE_MIN := 0.6
 const UI_SCALE_MAX := 1.3
+## The owner's pick after playing with the sliders: 80% across the board.
+const UI_SCALE_DEFAULT := 0.8
 
 ## Window modes for the dropdown (index = stored value).
 const MODES := ["Windowed", "Fullscreen", "Borderless"]
@@ -77,8 +79,6 @@ var resolution := Vector2i(1280, 720)
 var vsync := true
 var antialiasing := 3  # index into ANTIALIASING
 ## Interface size per UiScale category (menus / hud / prompts / dialogue).
-## The owner's pick after playing with the sliders: 80% across the board.
-const UI_SCALE_DEFAULT := 0.8
 var ui_scale := {
 	"menus": UI_SCALE_DEFAULT,
 	"hud": UI_SCALE_DEFAULT,
