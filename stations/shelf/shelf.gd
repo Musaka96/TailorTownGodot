@@ -4,9 +4,11 @@ extends Node3D
 ## Storage station. Carrying a roll → place it in the next free slot. Empty-handed
 ## with rolls stored → open the browse menu to inspect and take one out.
 ##
-## The shelf model (RolneIzdeljene.glb) ships with a stand plus display roll meshes
-## (roll1, roll2, …). Those start hidden; storing a bolt keeps the real MaterialRoll
-## node internally (hidden) and lights up the next display mesh in the bolt's fabric.
+## The shelf model (assets/models/stations/shelf_v1.glb, built by the town kit's
+## build_shelf_v1.py) ships with a rack plus display roll meshes (roll1 … roll8, left to
+## right, top to bottom); the capacity is their count. Those start hidden; storing a bolt
+## keeps the real MaterialRoll node internally (hidden) and lights up the next display
+## mesh in the bolt's fabric.
 ## Taking the bolt back hides its display mesh again.
 
 const FABRIC_PIECE_SCENE := preload("res://entities/items/fabric_piece.tscn")
