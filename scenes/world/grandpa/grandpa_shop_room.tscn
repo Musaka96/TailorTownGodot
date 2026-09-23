@@ -24,6 +24,7 @@
 [ext_resource type="Script" uid="uid://c3abvyce80tcv" path="res://scenes/world/grandpa/renovation_director.gd" id="gp_director"]
 [ext_resource type="PackedScene" path="res://scenes/world/grandpa/grandpa_shell_greybox.tscn" id="gp_shell"]
 [ext_resource type="PackedScene" uid="uid://baknhmemyajlb" path="res://IMPORT/town_kit/export/v8/grandpa_shop_v8.gltf" id="gp_shop"]
+[ext_resource type="Script" path="res://scenes/world/outdoor_collision.gd" id="70_outcol"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
@@ -258,3 +259,7 @@ walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Body")
 skip_prefixes = PackedStringArray()
 cut_height = 0.96
 up_height = 3.4
+
+[node name="OutdoorCollision" type="Node" parent="." unique_id=1843061928]
+script = ExtResource("70_outcol")
+roots = Array[NodePath]([NodePath("../Town"), NodePath("../TailorPlot")])

@@ -1322,7 +1322,7 @@ func _coach_ready(check: Array) -> bool:
 
 
 func _move_hand(pos: Vector2) -> void:
-	if pos.x < 0.0:
+	if not pos.is_finite():
 		_hand.visible = false
 		return
 	_hand.point_at(pos)
@@ -1337,7 +1337,8 @@ func _find_key(menu: Control, key: String) -> Rect2:
 	return Rect2()
 
 
-## Screen position of the current step's station, or (-1,-1) if not shown.
+## Screen position of the current step's station, or INF if not shown. A point off the
+## screen is still returned: the pin parks on the edge and points the way.
 func _world_point() -> Vector2:
 	var step: Dictionary = STEPS[_step]
 	# Store step: point at the bolt the phone just delivered so the player finds it, then
@@ -1353,7 +1354,7 @@ func _world_point() -> Vector2:
 	if target == "":
 		target = step.get("point", "")
 	if target == "":
-		return Vector2(-1, -1)
+		return Vector2.INF
 	return _project(_station(target))
 
 
@@ -1367,14 +1368,14 @@ func _line_target() -> String:
 	return str(check[4]) if check.size() > 4 else ""
 
 
-## Project a Node3D's upper body to the screen; (-1,-1) if missing or behind the camera.
+## Project a Node3D's upper body to the screen; INF if missing or behind the camera.
 func _project(node: Node3D) -> Vector2:
 	var cam := get_viewport().get_camera_3d()
 	if node == null or cam == null or not is_instance_valid(node):
-		return Vector2(-1, -1)
+		return Vector2.INF
 	var world := node.global_position + Vector3(0, POINT_Y, 0)
 	if cam.is_position_behind(world):
-		return Vector2(-1, -1)
+		return Vector2.INF
 	return cam.unproject_position(world)
 
 

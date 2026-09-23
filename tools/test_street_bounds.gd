@@ -14,6 +14,8 @@ const STAND := 0.12  # how far above the ground the test capsule's foot sits
 ## every cell, then walkable cells are filled from where the player starts.
 const AREA := Rect2(-32.0, -16.0, 64.0, 44.0)
 const CELL := 0.4
+## How many cells either side of a FREE spot may stand in for it (props sit on pavements).
+const NEAR := 2
 ## Where the player must be able to stand: the pavement, the forecourt, the side garden,
 ## the back yard, the workshop's yard, and both ends of the pavement customers use.
 const FREE := {
@@ -62,7 +64,7 @@ func _run() -> void:
 	var seen := _flood(free, player.global_position)
 	_check(seen.size() > 200, "the player has somewhere to walk (%d cells)" % seen.size())
 	for what: String in FREE:
-		_check(seen.has(_cell(FREE[what])), "%s can be reached" % what)
+		_check(_near(seen, FREE[what]), "%s can be reached" % what)
 	for what: String in BLOCKED:
 		_check(not seen.has(_cell(BLOCKED[what])), "%s cannot be reached" % what)
 	_check(_checks == FREE.size() + BLOCKED.size() + 1, "every spot was checked")
@@ -98,6 +100,17 @@ func _free_cells() -> Dictionary:
 			if _space.intersect_shape(query, 1).is_empty():
 				free[row * _cols + col] = true
 	return free
+
+
+## Whether the fill reached `at` or a cell within NEAR of it: street furniture (a cafe
+## table, a barrow) may stand on the exact spot, and that is fine as long as the player
+## can get beside it.
+func _near(seen: Dictionary, at: Vector3) -> bool:
+	for dx in range(-NEAR, NEAR + 1):
+		for dz in range(-NEAR, NEAR + 1):
+			if seen.has(_cell(at + Vector3(dx * CELL, 0.0, dz * CELL))):
+				return true
+	return false
 
 
 ## Walk out from `from` through the free cells, four ways.

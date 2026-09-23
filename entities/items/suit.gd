@@ -49,8 +49,20 @@ static func from_pieces(pieces: Array, for_order: int) -> Node:
 
 func get_interaction_prompt(_actor) -> String:
 	if order_id > 0:
-		return "Pick up suit for order #%d  (Q %d%%)" % [order_id, roundi(quality * 100.0)]
+		var who := customer_name()
+		var whose := " for %s" % who if who != "" else " for order #%d" % order_id
+		return "Pick up suit%s  (Q %d%%)" % [whose, roundi(quality * 100.0)]
 	return "Pick up finished suit  (Q %d%%)" % roundi(quality * 100.0)
+
+
+## Who the suit's order is for ("" if it is speculative or the order has gone from the
+## books). Looked up untyped so the script compiles in headless tool runs too.
+func customer_name() -> String:
+	if order_id <= 0:
+		return ""
+	var orders := get_node_or_null("/root/Orders")
+	var order: Resource = orders.by_id(order_id) if orders != null else null
+	return order.customer_name if order != null else ""
 
 
 func attach_to(point: Node3D) -> void:

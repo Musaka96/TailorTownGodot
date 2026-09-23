@@ -10,6 +10,10 @@ extends Control
 ## amber tomorrow, green later — and while a station menu is open the tickets fold up
 ## into small numbered tabs so they never cover the work.
 
+## Every ticket is this wide, whatever the name says; text that would not fit trims or
+## wraps inside it, so the row stays tidy and every card reads the same.
+const TICKET_W := 132.0
+
 # GarmentType -> single-letter chip label.
 const CHIP := {
 	Enums.GarmentType.JACKET: "J",
@@ -63,7 +67,7 @@ func _apply_fold(ticket: Dictionary) -> void:
 	for node: Control in ticket["details"]:
 		node.visible = not _collapsed
 	var card: CraftPanel = ticket["card"]
-	card.custom_minimum_size.x = 0.0 if _collapsed else 116.0
+	card.custom_minimum_size.x = 0.0 if _collapsed else TICKET_W
 	card.string_len = 16.0 if _collapsed else 34.0
 	card.reset_size()
 	Craft.bump(card, 1.06)
@@ -128,26 +132,29 @@ func _make_ticket(order) -> Dictionary:
 	card.setup(CraftPanel.Shape.TICKET, Style.CARD, Style.due_color(order.days_left_ceil()))
 	card.stitch_color = Style.CREAM_DARK
 	card.line_width = 2.5
-	card.custom_minimum_size = Vector2(116, 0)
+	card.custom_minimum_size = Vector2(TICKET_W, 0)
 	card.rotation_degrees = 2.0 if _row.get_child_count() % 2 == 0 else -2.0
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
 	card.add_child(box)
 
+	# Order number left, due date right: both short, so the head row never sets the width.
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", Style.S1)
 	box.add_child(head)
-	var who := _label(
-		"#%d %s" % [order.id, order.customer_name],
-		Style.T_CAPTION,
-		Style.INK,
-		HORIZONTAL_ALIGNMENT_LEFT
-	)
-	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(who)
+	var num := _label("#%d" % order.id, Style.T_CAPTION, Style.INK, HORIZONTAL_ALIGNMENT_LEFT, true)
+	num.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(num)
 	# The due date, always bold (the bold rule: due dates are the thing you came to read).
 	var days := _label("", Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_RIGHT, true)
 	head.add_child(days)
+	# The customer on a line of their own; a long name trims with an ellipsis rather than
+	# stretching the card.
+	var who := _label(order.customer_name, Style.T_CAPTION, Style.INK, HORIZONTAL_ALIGNMENT_LEFT)
+	who.clip_text = true
+	who.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	who.tooltip_text = order.customer_name
+	box.add_child(who)
 
 	# Slim fabric-colour strip — the look at a glance, no roll/durability meter.
 	var mat: MaterialType = order.jacket_material()
@@ -161,7 +168,6 @@ func _make_ticket(order) -> Dictionary:
 
 	var spec := _label(order.describe(), Style.T_MICRO, Style.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
 	spec.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	spec.custom_minimum_size = Vector2(100, 0)
 	box.add_child(spec)
 
 	var chips := HBoxContainer.new()
@@ -170,6 +176,7 @@ func _make_ticket(order) -> Dictionary:
 	box.add_child(chips)
 
 	var state := _label("", Style.T_MICRO, Style.BRASS, HORIZONTAL_ALIGNMENT_CENTER, true)
+	state.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(state)
 	# Money is always bold.
 	var price := Style.money(order.price, Style.T_CAPTION, Style.FOREST)
@@ -181,7 +188,7 @@ func _make_ticket(order) -> Dictionary:
 		"days": days,
 		"chips": chips,
 		"order": order,
-		"details": [strip, spec, chips, state, price],
+		"details": [who, strip, spec, chips, state, price],
 		"state": state,
 	}
 	_apply_fold(ticket)

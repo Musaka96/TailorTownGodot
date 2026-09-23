@@ -278,8 +278,11 @@ func _name_of(item) -> String:
 	if item is GarmentSet:
 		var who: String = item.customer_name()
 		return "Order #%d" % item.order_id + ("  ·  %s" % who if who != "" else "")
-	if item is Suit:
+	if item is Suit and item.order_id <= 0:
 		return "Finished Suit"
+	if item is Suit:
+		var who: String = item.customer_name()
+		return "Suit for order #%d" % item.order_id + ("  ·  %s" % who if who != "" else "")
 	if item is GarmentPiece:
 		return "%s  ·  %s" % [Enums.garment_type_name(item.garment_type), _piece_state(item)]
 	return "Item"
