@@ -14,6 +14,7 @@ var _money_current := 0  # target balance
 var _money_shown := 0  # what the rolling counter currently reads
 var _money_started := false
 var _count_tween: Tween
+var _corners := {}  # pivot (fraction of the screen) -> its full-screen HUD layer
 
 @onready var _prompt: Label = $Prompt
 @onready var _money: Label = $Money
@@ -28,6 +29,23 @@ func _ready() -> void:
 	EventBus.money_changed.connect(_show_money)
 	_show_money(GameState.money)
 	_on_prompt_changed("")
+
+
+## A full-screen, click-through layer for the HUD widgets near one screen corner (`at` as a
+## fraction of the screen: Vector2.ZERO = top-left). The HUD interface size shrinks the
+## whole layer toward that corner, so widgets stacked there keep their spacing and their
+## own swings and pops.
+func corner(at: Vector2) -> Control:
+	if _corners.has(at):
+		return _corners[at]
+	var layer := Control.new()
+	layer.name = "Corner%d%d" % [roundi(at.x * 2.0), roundi(at.y * 2.0)]
+	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(layer)
+	UiScale.attach(layer, UiScale.HUD, at)
+	_corners[at] = layer
+	return layer
 
 
 ## The purse: a cream price tag hanging on a string top-right (coin badge + amount).
@@ -62,7 +80,7 @@ func _build_money_panel() -> void:
 	_money_value.add_theme_color_override("font_color", Style.INK)
 	_money_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_money_value)
-	add_child(_money_panel)
+	corner(Vector2(1.0, 0.0)).add_child(_money_panel)
 
 
 ## A little round brass coin with a "$" struck on it.
@@ -152,7 +170,7 @@ func _spawn_delta(delta: int) -> void:
 	lbl.offset_left = -150.0
 	lbl.offset_right = -18.0
 	lbl.offset_top = 66.0
-	add_child(lbl)
+	corner(Vector2(1.0, 0.0)).add_child(lbl)
 	var t := create_tween()
 	t.set_parallel(true)
 	t.tween_property(lbl, "offset_top", 48.0, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(
@@ -193,6 +211,7 @@ func _build_prompt_bar() -> void:
 	_prompt_verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_prompt_verb)
 	add_child(_prompt_bar)
+	UiScale.attach(_prompt_bar, UiScale.PROMPTS)  # bottom-centre, from its anchors
 	_prompt_bar.visible = false
 
 
@@ -217,7 +236,7 @@ func _build_booked_badge() -> void:
 	lbl.add_theme_font_size_override("font_size", Style.T_CAPTION)
 	lbl.add_theme_color_override("font_color", Style.CHALK)
 	_booked_badge.add_child(lbl)
-	add_child(_booked_badge)
+	corner(Vector2.ZERO).add_child(_booked_badge)
 	_booked_badge.visible = false
 
 

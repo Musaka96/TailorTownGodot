@@ -297,21 +297,32 @@ static func tape(
 # --- Motion ------------------------------------------------------------------
 
 
-## Pop a control in from slightly small with a springy overshoot.
+## Pop a control in from slightly small with a springy overshoot. A control attached to
+## an interface size (UiScale) settles at that size, around its own pivot.
 static func pop_in(c: Control, from := 0.88, time := 0.26) -> void:
 	if c == null:
 		return
-	c.pivot_offset = c.size * 0.5
-	c.scale = Vector2(from, from)
+	_centre_pivot(c)
+	var rest := UiScale.target_scale(c)
+	c.scale = rest * from
 	var tw := c.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(c, "scale", Vector2.ONE, time)
+	tw.tween_property(c, "scale", rest, time)
+
+
+## Pivot on the centre, unless an interface size owns the pivot (UiScale).
+static func _centre_pivot(c: Control) -> void:
+	if UiScale.is_attached(c):
+		UiScale.fit_pivot(c)
+	else:
+		c.pivot_offset = c.size * 0.5
 
 
 ## A quick side-to-side wiggle (rotation) that settles back to `rest_deg`.
 static func wiggle(c: Control, deg := 3.0, rest_deg := 0.0) -> void:
 	if c == null:
 		return
-	c.pivot_offset = Vector2(c.size.x * 0.5, 0.0)
+	if not UiScale.is_attached(c):  # moving a scaled control's pivot would shift it
+		c.pivot_offset = Vector2(c.size.x * 0.5, 0.0)
 	var tw := c.create_tween()
 	for d in [deg, -deg * 0.7, deg * 0.4, 0.0]:
 		tw.tween_property(c, "rotation_degrees", rest_deg + d, 0.07)
@@ -379,7 +390,8 @@ static func _play_flourish(c: Control, pick: int) -> void:
 static func bump(c: Control, amount := 1.12) -> void:
 	if c == null:
 		return
-	c.pivot_offset = c.size * 0.5
+	_centre_pivot(c)
+	var rest := UiScale.target_scale(c)
 	var tw := c.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(c, "scale", Vector2(amount, amount), 0.08)
-	tw.tween_property(c, "scale", Vector2.ONE, 0.18)
+	tw.tween_property(c, "scale", rest * amount, 0.08)
+	tw.tween_property(c, "scale", rest, 0.18)

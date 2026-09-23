@@ -1,11 +1,20 @@
 class_name SettingsUI
 
-## Shared builder for the options controls (audio / display / controls), wired to the
-## Settings autoload. Both the main menu and the pause menu call `SettingsUI.build(box)` —
-## it drops a scroll area (the list can be tall with all the key bindings) filled with the
-## rows. Each control applies live and persists via Settings; no Apply button needed.
+## Shared builder for the options controls (audio / display / interface / controls), wired
+## to the Settings autoload. Both the main menu and the pause menu call
+## `SettingsUI.build(box)` — it drops a scroll area (the list can be tall with all the key
+## bindings) filled with the rows. Each control applies live and persists via Settings; no
+## Apply button needed.
 
 const SCROLL_HEIGHT := 360
+## The interface size rows: [UiScale category, label].
+const SIZES := [
+	[UiScale.MENUS, "Menus"],
+	[UiScale.HUD, "HUD"],
+	[UiScale.PROMPTS, "Prompts and keys"],
+	[UiScale.DIALOGUE, "Dialogue"],
+]
+const SIZE_STEP := 0.05
 
 
 static func build(box: VBoxContainer) -> void:
@@ -31,6 +40,8 @@ static func build(box: VBoxContainer) -> void:
 	col.add_child(_vsync_row())
 	col.add_child(_antialiasing_row())
 
+	_add_sizes(col)
+
 	col.add_child(Style.header("Controls"))
 	for r: Array in Settings.REBINDS:
 		col.add_child(_rebind_row(r[0], r[1]))
@@ -55,13 +66,15 @@ static func _row() -> HBoxContainer:
 	return row
 
 
-static func _slider(label: String, value: float, setter: Callable) -> HBoxContainer:
+static func _slider(
+	label: String, value: float, setter: Callable, lo := 0.0, hi := 1.0, step := 0.01
+) -> HBoxContainer:
 	var row := _row()
 	row.add_child(_label(label))
 	var s := HSlider.new()
-	s.min_value = 0.0
-	s.max_value = 1.0
-	s.step = 0.01
+	s.min_value = lo
+	s.max_value = hi
+	s.step = step
 	s.value = value
 	s.custom_minimum_size = Vector2(0, 24)
 	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -80,6 +93,33 @@ static func _slider(label: String, value: float, setter: Callable) -> HBoxContai
 			setter.call(v)
 	)
 	return row
+
+
+## Interface: one size slider per UiScale category, live as it drags, and a reset.
+static func _add_sizes(col: VBoxContainer) -> void:
+	col.add_child(Style.header("Interface"))
+	var sliders: Array[HSlider] = []
+	for spec: Array in SIZES:
+		var cat: String = spec[0]
+		var row := _slider(
+			spec[1],
+			Settings.ui_scale_of(cat),
+			func(v: float) -> void: Settings.set_ui_scale(cat, v),
+			Settings.UI_SCALE_MIN,
+			Settings.UI_SCALE_MAX,
+			SIZE_STEP
+		)
+		col.add_child(row)
+		sliders.append(row.get_child(1) as HSlider)
+	var reset := MenuKit.button("Reset to 100%", func() -> void: _reset_sizes(sliders))
+	reset.custom_minimum_size = Vector2(0, 40)
+	col.add_child(reset)
+
+
+## Each slider back to 100%; moving it applies the size and updates its percentage.
+static func _reset_sizes(sliders: Array[HSlider]) -> void:
+	for s in sliders:
+		s.value = 1.0
 
 
 static func _check(label: String, on: bool, setter: Callable) -> HBoxContainer:

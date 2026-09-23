@@ -42,6 +42,7 @@ static func show_for(
 	bubble._happy = happy
 	bubble._build(lines)
 	host.add_child(bubble)
+	UiScale.attach(bubble, UiScale.DIALOGUE, Vector2(0.5, 0.5))
 	bubble._follow()
 	Craft.pop_in(bubble, 0.7, POP_TIME)
 	if not happy:
@@ -57,7 +58,7 @@ func dismiss() -> void:
 	set_process(false)
 	pivot_offset = size * 0.5
 	var tw := create_tween().set_parallel()
-	tw.tween_property(self, "scale", Vector2(0.9, 0.9), 0.18)
+	tw.tween_property(self, "scale", UiScale.target_scale(self) * 0.9, 0.18)
 	tw.tween_property(self, "modulate:a", 0.0, 0.18)
 	tw.chain().tween_callback(queue_free)
 
@@ -158,7 +159,7 @@ func _draw() -> void:
 func _tail_poly(card: PackedVector2Array) -> PackedVector2Array:
 	if not _has_head:
 		return PackedVector2Array()
-	var head := _head - global_position
+	var head := get_global_transform().affine_inverse() * _head  # scale-aware
 	var half := TAIL_ROOT * 0.5
 	var root: Vector2
 	var along: Vector2  # the edge the tail grows from

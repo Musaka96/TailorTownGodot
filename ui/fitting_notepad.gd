@@ -43,6 +43,7 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 	set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	UiScale.attach(self, UiScale.DIALOGUE)  # toward the bottom-left corner
 	_build()
 
 

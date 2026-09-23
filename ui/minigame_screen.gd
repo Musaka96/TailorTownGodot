@@ -96,6 +96,7 @@ func _ensure_chrome(screen_title: String, painter: Callable, frame := Style.FRAM
 	_panel = PanelContainer.new()
 	_panel.custom_minimum_size = frame
 	center.add_child(_panel)
+	UiScale.attach(_panel, UiScale.MENUS)
 	Style.apply_skin(_panel, Style.MenuSkin.WORK)
 
 	var box := VBoxContainer.new()

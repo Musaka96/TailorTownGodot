@@ -47,7 +47,8 @@ func _process(delta: float) -> void:
 	if panel == null or not panel.is_visible_in_tree():
 		return
 	_time += delta
-	panel.pivot_offset = Vector2(panel.size.x * 0.5, 0.0)
+	if not UiScale.is_attached(panel):  # a scaled board keeps the pivot it shrinks on
+		panel.pivot_offset = Vector2(panel.size.x * 0.5, 0.0)
 	panel.rotation_degrees = sin(_time * 0.9) * SWAY_DEG
 	queue_redraw()
 
@@ -133,7 +134,8 @@ func _draw_mounts(full: Rect2) -> void:
 
 
 func _draw_chains(full: Rect2) -> void:
-	var top := -global_position.y - 40.0  # well above the screen top
+	# Well above the screen top, in this node's (possibly scaled) space.
+	var top := (get_global_transform().affine_inverse() * Vector2(0.0, -40.0)).y
 	for fx in CHAIN_AT:
 		var x: float = full.position.x + full.size.x * fx
 		var y := full.position.y + 4.0

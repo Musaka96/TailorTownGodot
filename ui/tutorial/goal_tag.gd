@@ -115,9 +115,10 @@ func _process(delta: float) -> void:
 
 
 func _pop() -> void:
-	scale = Vector2(0.85, 0.85)
+	var rest := UiScale.target_scale(self)
+	scale = rest * 0.85
 	var tw := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(self, "scale", Vector2.ONE, 0.28)
+	tw.tween_property(self, "scale", rest, 0.28)
 
 
 func _on_resized() -> void:

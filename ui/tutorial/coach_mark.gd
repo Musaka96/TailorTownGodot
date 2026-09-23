@@ -10,11 +10,15 @@ enum Side { BELOW, ABOVE, LEFT }
 
 const GAP := 34.0  # distance between the pill and the target
 const BOB := 4.0
+## Where the pill keeps still when the Dialogue size shrinks it: the edge its arrow
+## leaves from (a fraction of the pill), per Side.
+const PIVOTS := [Vector2(0.5, 0.0), Vector2(0.5, 1.0), Vector2(1.0, 0.5)]
 
 var _pill: PanelContainer
 var _label: Label
 var _target := Rect2()
 var _side := Side.BELOW
+var _pivot_side := -1  # the side the pill's pivot was last set for
 var _time := 0.0
 
 
@@ -60,6 +64,9 @@ func point_at(target: Rect2, text: String, beside := false) -> void:
 		_side = Side.LEFT
 	else:
 		_side = Side.ABOVE if room_below < 8.0 else Side.BELOW
+	if _pivot_side != _side:
+		_pivot_side = _side
+		UiScale.attach(_pill, UiScale.DIALOGUE, PIVOTS[_side])
 	visible = true
 	queue_redraw()
 

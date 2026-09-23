@@ -219,6 +219,7 @@ func _build() -> void:
 	holder.add_theme_constant_override("separation", -Style.S2)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(holder)
+	UiScale.attach(holder, UiScale.DIALOGUE)  # toward the bottom centre, from its anchors
 
 	var port_col := VBoxContainer.new()
 	port_col.alignment = BoxContainer.ALIGNMENT_END

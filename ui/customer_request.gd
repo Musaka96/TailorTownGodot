@@ -93,6 +93,7 @@ func _build_decor_once() -> void:
 	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_portrait.size = PORTRAIT_SIZE
 	add_child(_portrait)  # overlay on the root, so it can overhang the panel
+	UiScale.attach(_portrait, UiScale.MENUS, Vector2.ZERO)  # the panel's size, placed below
 	_reposition_portrait()
 	# What kind of client this is, right under their name.
 	_badges = ClientBadges.make(null)
@@ -123,8 +124,9 @@ func _reposition_portrait() -> void:
 	if _portrait == null or _panel == null:
 		return
 	var pr := _panel.get_global_rect()
-	var x := pr.end.x - _portrait.size.x * PORTRAIT_INSET
-	var y := pr.position.y - _portrait.size.y * PORTRAIT_RISE
+	var shown := _portrait.size * _portrait.scale
+	var x := pr.end.x - shown.x * PORTRAIT_INSET
+	var y := pr.position.y - shown.y * PORTRAIT_RISE
 	_portrait.global_position = Vector2(x, y)
 
 

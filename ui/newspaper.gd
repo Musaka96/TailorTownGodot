@@ -148,6 +148,7 @@ func _build() -> void:
 	var spread := HBoxContainer.new()
 	spread.add_theme_constant_override("separation", Style.S4)
 	center.add_child(spread)
+	UiScale.attach(spread, UiScale.MENUS)
 	spread.add_child(_build_paper())
 	spread.add_child(_build_side())
 

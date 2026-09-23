@@ -153,7 +153,10 @@ func _wrap_rows() -> void:
 func _fit_list() -> void:
 	if _list_scroll == null or not visible:
 		return
-	var tallest := minf(get_viewport_rect().size.y - _panel.offset_top - LIST_MARGIN, PANEL_MAX_H)
+	# The Menus size shrinks the panel toward its top-right corner, so the room below it
+	# is worth 1/scale of layout height.
+	var room := get_viewport_rect().size.y - _panel.offset_top - LIST_MARGIN
+	var tallest := minf(room / UiScale.target_scale(_panel).y, PANEL_MAX_H)
 	if _screen == Screen.UPGRADES or _screen == Screen.BUILDERS:
 		_list_scroll.custom_minimum_size.y = 0.0
 		_list_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -226,10 +229,12 @@ func _place_panel() -> void:
 		_ledger = ClothLedger.new()
 		add_child(_ledger)
 		_ledger.position = Vector2(28, 72)
+		UiScale.attach(_ledger, UiScale.MENUS)  # toward its top-left corner
 	_panel.offset_left = -(PANEL_W + 28)
 	_panel.offset_right = -28
 	_panel.offset_top = 72
 	_panel.offset_bottom = 72
+	UiScale.fit_pivot(_panel)  # docked now: shrink toward the top-right corner
 
 
 func _style() -> void:

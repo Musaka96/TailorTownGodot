@@ -50,7 +50,7 @@ func _ready() -> void:
 ## The on-screen rect of the tab for `parts[part_index]` — the tutorial points at it.
 func tab_rect(part_index: int) -> Rect2:
 	var local := _tab_rect(part_index)
-	return Rect2(global_position + local.position, local.size)
+	return get_global_transform() * local  # scaled with its menu (UiScale)
 
 
 ## The index of the part under local point `at`, or -1 between / off the tabs.

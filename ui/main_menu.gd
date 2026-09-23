@@ -96,6 +96,7 @@ func _build_sign() -> void:
 func _build_plate() -> void:
 	_plate = PanelContainer.new()
 	_root.add_child(_plate)
+	UiScale.attach(_plate, UiScale.MENUS)  # toward its top-left corner
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", Style.S3)
 	_plate.add_child(box)

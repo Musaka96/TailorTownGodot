@@ -411,7 +411,8 @@ func _trend_text() -> String:
 func _left_reserve() -> float:
 	var side: float = Tutorial.side_reserve() if Tutorial != null else 0.0
 	if _pad != null and _pad.visible:
-		side += FittingNotepad.EDGE + FittingNotepad.WIDTH + PAD_GAP
+		var pad_w := FittingNotepad.WIDTH * UiScale.target_scale(_pad).x
+		side += FittingNotepad.EDGE + pad_w + PAD_GAP
 	return side
 
 

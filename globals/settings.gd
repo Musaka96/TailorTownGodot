@@ -1,15 +1,21 @@
 extends Node
 
 ## Autoloaded as "Settings". Global player options — audio, display (mode / resolution /
-## vsync / anti-aliasing) and key bindings — persisted to user://settings.cfg, SEPARATE
-## from save slots so they apply to every game. Loaded and applied once at boot, and each
-## setter applies live + re-saves. The Settings screen (ui/settings_ui.gd +
-## ui/rebind_button.gd) reads/writes through here; nothing else needs to know the storage.
+## vsync / anti-aliasing), interface sizes and key bindings — persisted to
+## user://settings.cfg, SEPARATE from save slots so they apply to every game. Loaded and
+## applied once at boot, and each setter applies live + re-saves. The Settings screen
+## (ui/settings_ui.gd + ui/rebind_button.gd) reads/writes through here; nothing else
+## needs to know the storage.
 
 ## A key binding changed (rebind or reset) — on-screen key caps refresh on this.
 signal bindings_changed
+## One interface size changed (see UiScale): every control of category `cat` rescales.
+signal ui_scale_changed(cat: String, value: float)
 
 const PATH := "user://settings.cfg"
+## The interface size sliders' range (1.0 = as designed).
+const UI_SCALE_MIN := 0.6
+const UI_SCALE_MAX := 1.3
 
 ## Window modes for the dropdown (index = stored value).
 const MODES := ["Windowed", "Fullscreen", "Borderless"]
@@ -70,6 +76,8 @@ var mode := 0  # index into MODES
 var resolution := Vector2i(1280, 720)
 var vsync := true
 var antialiasing := 3  # index into ANTIALIASING
+## Interface size per UiScale category (menus / hud / prompts / dialogue).
+var ui_scale := {"menus": 1.0, "hud": 1.0, "prompts": 1.0, "dialogue": 1.0}
 
 var _bindings := {}  # action -> encoded event dict (only actions the player changed)
 
@@ -91,6 +99,9 @@ func load_settings() -> void:
 	resolution = cfg.get_value("display", "resolution", resolution)
 	vsync = bool(cfg.get_value("display", "vsync", vsync))
 	antialiasing = int(cfg.get_value("display", "antialiasing", antialiasing))
+	for cat: String in ui_scale:
+		var v := float(cfg.get_value("ui", cat, ui_scale[cat]))
+		ui_scale[cat] = clampf(v, UI_SCALE_MIN, UI_SCALE_MAX)
 	_bindings = {}
 	if cfg.has_section("controls"):
 		for action in cfg.get_section_keys("controls"):
@@ -106,6 +117,8 @@ func save() -> void:
 	cfg.set_value("display", "resolution", resolution)
 	cfg.set_value("display", "vsync", vsync)
 	cfg.set_value("display", "antialiasing", antialiasing)
+	for cat: String in ui_scale:
+		cfg.set_value("ui", cat, ui_scale[cat])
 	for action: String in _bindings:
 		cfg.set_value("controls", action, _bindings[action])
 	cfg.save(PATH)
@@ -115,6 +128,24 @@ func apply_all() -> void:
 	_apply_audio()
 	_apply_display()
 	_apply_bindings()
+
+
+# --- Interface size ----------------------------------------------------------
+
+
+## Set one UiScale category's size (clamped to the slider range); every attached control
+## of that category rescales live.
+func set_ui_scale(cat: String, value: float) -> void:
+	if not ui_scale.has(cat):
+		return
+	ui_scale[cat] = clampf(value, UI_SCALE_MIN, UI_SCALE_MAX)
+	ui_scale_changed.emit(cat, ui_scale[cat])
+	save()
+
+
+## The size for a UiScale category (1.0 for an unknown one).
+func ui_scale_of(cat: String) -> float:
+	return float(ui_scale.get(cat, 1.0))
 
 
 # --- Audio -----------------------------------------------------------------

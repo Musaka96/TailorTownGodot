@@ -14,6 +14,7 @@ static func say(who: Node3D, text: String, seconds := 2.4) -> WorldBubble:
 	var bubble := WorldBubble.new()
 	bubble._build(text)
 	WorldAnchor.pin(who, bubble, HEIGHT)
+	UiScale.attach(bubble, UiScale.DIALOGUE, Vector2(0.5, 1.0))  # toward its tail
 	Craft.pop_in(bubble, 0.7, 0.18)
 	bubble._expire_after(seconds)
 	return bubble

@@ -76,6 +76,7 @@ func _ready() -> void:
 	bench_game = _build_code_menu("BenchGameScreen", "res://ui/bench_game_screen.gd")
 	story_note = _build_code_menu("StoryNote", "res://ui/story_note.gd")
 	_wire_pop_ins()
+	_attach_sizes()
 
 
 ## Close every station menu (e.g. when leaving the game scene).
@@ -164,6 +165,30 @@ func _wire_pop_ins() -> void:
 		if menu == null:
 			continue
 		menu.visibility_changed.connect(_pop_menu.bind(menu))
+
+
+## Each menu's panel takes the Menus interface size (Settings > Interface); its dimmer
+## stays full-screen. The order tickets along the top take the HUD size.
+func _attach_sizes() -> void:
+	for menu: Control in [
+		shelf_menu,
+		phone_order,
+		worktable_screen,
+		suit_builder,
+		customer_request,
+		handbook,
+		orders_menu,
+		rack_menu,
+		apprentice_menu,
+		story_note,
+		pause_menu,
+	]:
+		var panel: Variant = menu.get("_panel") if menu != null else null
+		if panel is Control:
+			UiScale.attach(panel, UiScale.MENUS)
+	var tickets := hud.get_node_or_null("OrdersPanel") as Control
+	if tickets != null:
+		UiScale.attach(tickets, UiScale.HUD, Vector2(0.5, 0.0))
 
 
 func _pop_menu(menu: Control) -> void:
@@ -294,6 +319,7 @@ func toast(text: String, hold := 1.6) -> void:
 		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		holder.add_child(_toast_bar)
 		hud.add_child(holder)
+		UiScale.attach(_toast_bar, UiScale.HUD, Vector2(0.5, 0.0))
 	_toast.text = text
 	_toast_bar.modulate.a = 1.0
 	if _toast_tween != null:
@@ -325,8 +351,9 @@ func pop_above_player(text: String, note := "", col: Color = Style.BRASS_LIGHT) 
 	hud.add_child(box)
 	var at := cam.unproject_position(player.global_position + Vector3.UP * POP_HEIGHT)
 	var size := box.get_combined_minimum_size()
+	box.size = size
 	box.position = at - Vector2(size.x * 0.5, size.y)
-	box.pivot_offset = Vector2(size.x * 0.5, size.y)
+	UiScale.attach(box, UiScale.DIALOGUE, Vector2(0.5, 1.0))  # grows up from the head
 	Craft.pop_in(box, 0.6, 0.3)
 	var tw := create_tween()
 	tw.tween_property(box, "position:y", box.position.y - 46.0, 1.9).set_ease(Tween.EASE_OUT)
@@ -433,7 +460,7 @@ func _build_clock() -> Control:
 	widget.set_script(load("res://ui/clock_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	widget.position = Vector2(16, 12)
-	hud.add_child(widget)
+	hud.corner(Vector2.ZERO).add_child(widget)
 	return widget
 
 
@@ -445,7 +472,7 @@ func _build_reputation() -> Control:
 	widget.set_script(load("res://ui/reputation_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	widget.position = Vector2(20, 126)
-	hud.add_child(widget)
+	hud.corner(Vector2.ZERO).add_child(widget)
 	return widget
 
 
@@ -456,7 +483,7 @@ func _build_focus() -> void:
 	widget.set_script(load("res://ui/focus_widget.gd"))
 	widget.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	widget.position = Vector2(152, 126)
-	hud.add_child(widget)
+	hud.corner(Vector2.ZERO).add_child(widget)
 
 
 ## The Newspaper / Orders / Handbook key pills, bottom-left of the HUD — click one (or
@@ -466,6 +493,7 @@ func _build_handbook_pill() -> void:
 	widget.name = "HandbookPill"
 	widget.set_script(load("res://ui/handbook_pill.gd"))
 	hud.add_child(widget)
+	UiScale.attach(widget, UiScale.PROMPTS)  # anchored bottom-left once it fits
 
 
 ## The morning paper — a modal broadsheet attached to the root UI (above the HUD) so

@@ -369,6 +369,8 @@ func _build() -> void:
 	_root.theme = theme
 	_root.visible = false
 	_layer.add_child(_root)
+	# The "Next job" tag is HUD: the HUD size shrinks it toward the top-right corner.
+	UiScale.attach(_root, UiScale.HUD, Vector2(1.0, 0.0))
 	_tag = GoalTag.new()
 	_root.add_child(_tag)
 

@@ -32,6 +32,7 @@ func _ready() -> void:
 	var sign := PanelContainer.new()
 	sign.custom_minimum_size = Vector2(460, 0)
 	center.add_child(sign)
+	UiScale.attach(sign, UiScale.MENUS)
 	SignBoard.dress(sign)
 
 	var box := VBoxContainer.new()

@@ -1400,11 +1400,13 @@ func _build() -> void:
 
 	_tag = GoalTag.new()
 	root.add_child(_tag)
+	UiScale.attach(_tag, UiScale.DIALOGUE, Vector2(0.5, 0.0))  # hangs from its eyelet
 	_coach = CoachMark.new()
 	root.add_child(_coach)
 
 	_hand = PointerPin.new()
 	root.add_child(_hand)
+	UiScale.attach(_hand, UiScale.DIALOGUE, Vector2.ZERO)  # around the needle tip
 
 	_mentor = MentorDialog.new()
 	root.add_child(_mentor)
