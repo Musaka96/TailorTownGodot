@@ -66,6 +66,7 @@ const STEEL := Color("bcc3c9")  # polished blade / pin shaft
 const STEEL_DARK := Color("70797f")  # steel in shadow, blade outlines
 const TAPE := Color("f2c94c")  # tape-measure yellow
 const PATCH := Color("3d6b4a")  # embroidered patch green
+const PENCIL := Color("4d3d38")  # graphite handwriting on paper (the fitting notepad)
 
 # Per-menu skin accents (single source; mirrors the table in the style guide).
 const ACC_ORDER := BRASS  # phone order pad

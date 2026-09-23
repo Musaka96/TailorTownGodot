@@ -20,6 +20,10 @@ var pause_menu: Control
 var rack_menu: Control
 var apprentice_menu: Control
 var bench_game: Control
+## True while a screen owns the HUD's bottom-left corner (the fitting notepad sits
+## there): the key pills stay hidden. A flag, not a method: this class is at gdlint's
+## public-method cap.
+var key_pills_hidden := false
 
 var _toast: Label
 var _toast_bar: PanelContainer

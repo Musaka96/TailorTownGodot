@@ -4,7 +4,7 @@ extends Control
 ## design each part of the suit. Selecting a part glides the camera to zoom onto
 ## it; "Overview" frames the whole customer. E confirms the design.
 
-enum Row { PART, FABRIC, COLOR, PATTERN, STYLE }
+enum Row { PART, FABRIC, COLOR, PATTERN, STYLE, TROUSERS }
 const KICKER := "Fitting room"
 # The mark for "in fashion" — the same glyph on the header line and on the rows, so the
 # thing you're told to look for is the thing you see when you land on it.
@@ -15,9 +15,14 @@ const ROW_NAME := {
 	Row.COLOR: "Colour",
 	Row.PATTERN: "Pattern",
 	Row.STYLE: "Style",
+	Row.TROUSERS: "Trousers",
 }
-# Display order of the parts.
+# Every part of the design, in display order. While the trousers are linked to the jacket
+# (the usual suit) the tabs show only the suit and the shirt: see _parts().
 const PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT, Enums.GarmentType.PANTS]
+const LINKED_PARTS := [Enums.GarmentType.JACKET, Enums.GarmentType.SHIRT]
+# The design fields the linked trousers copy from the jacket (the cut stays their own).
+const LINK_KEYS := ["fabric", "color", "pattern"]
 # The design fields a row edits (the tutorial checks them against its recipe).
 const ROW_KEY := {Row.FABRIC: "fabric", Row.COLOR: "color", Row.PATTERN: "pattern"}
 # Camera framing. The subject (whole customer, or the selected part) is placed EXACTLY
@@ -40,7 +45,9 @@ const DEFAULT_BODY_HEIGHT := 2.25
 const REACTION_FRAME := Vector2(0.62, 1.0)
 const REACTION_HOLD := 2.6
 const HEAD_AT := 0.9  # the bubble points at this fraction of the customer's height
-const REACTION_LINES := 3  # most complaints the bubble lists at once
+## After an ask, E / a click does nothing for this long, so a double tap can't sell.
+const ASK_LOCK := 0.5
+const PAD_GAP := 16.0  # between the fitting notepad and the band the customer is framed in
 const CAMERA_BLOCK_MASK := 1  # world geometry (walls, furniture)
 const CAMERA_WALL_MARGIN := 0.3
 # Yaw offsets (degrees) tried in order when the straight-on view is blocked.
@@ -54,6 +61,8 @@ var _actor = null
 var _customer = null
 var _pref = null  # CustomerPreference when fitting a real customer, else null
 var _awaiting := false  # customer loved it; next E finalises the order
+var _ask_lock := 0.0  # > 0 just after an ask: E and clicks wait (see ASK_LOCK)
+var _linked := true  # the trousers follow the jacket's cloth (one "Suit" tab)
 var _reaction_t := 0.0  # > 0 while the camera is out on the customer's face
 var _bubble: ReactionBubble
 var _rig = null
@@ -76,6 +85,7 @@ var _decor_built := false
 var _head: TitleBlock
 var _badges: ClientBadges
 var _height := DEFAULT_BODY_HEIGHT  # customer's measured height, cached on open
+var _pad: FittingNotepad
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _title: Label = $Panel/Margin/Box/Title
@@ -86,12 +96,16 @@ var _height := DEFAULT_BODY_HEIGHT  # customer's measured height, cached on open
 
 func _ready() -> void:
 	_build_preview()
+	# The fitting notes: the builder's own child (not the panel's), bottom-left of the screen.
+	_pad = FittingNotepad.new()
+	add_child(_pad)
 
 
 func _process(delta: float) -> void:
 	# Re-solve every frame: the panel's layout settles after opening and the window can
 	# be resized, and the target must track both to stay exactly centred.
 	if visible:
+		_ask_lock = maxf(_ask_lock - delta, 0.0)
 		if _reaction_t > 0.0:
 			_reaction_t -= delta
 			if _reaction_t <= 0.0:
@@ -105,6 +119,8 @@ func open(mirror, actor) -> void:
 	_customer = mirror.customer
 	_pref = _customer.get("preference") if _customer != null else null
 	_awaiting = false
+	_ask_lock = 0.0
+	_linked = true
 	_rig = get_tree().get_first_node_in_group("camera_rig")
 	_part_sel = -1
 	_row = 0
@@ -126,14 +142,22 @@ func open(mirror, actor) -> void:
 	WallCutaway.hold_solid(true)
 	RoofManager.hold_walls(true)
 	_style()
+	_sync_pants()
 	_apply_to_customer()
 	_height = _body_height() if _customer != null else DEFAULT_BODY_HEIGHT
 	_update_camera()
+	if _pref != null:
+		_pad.show_for(_pref, _she())
+		UI.key_pills_hidden = true
+	else:
+		_pad.hide_pad()
 	_refresh()
 
 
 func close() -> void:
 	_end_reaction()
+	_pad.hide_pad()
+	UI.key_pills_hidden = false
 	WallCutaway.hold_solid(false)
 	RoofManager.hold_walls(false)
 	visible = false
@@ -251,11 +275,14 @@ func current_design() -> Dictionary:
 
 
 ## Screen areas the tutorial must keep clear: the customer, framed between the strip the
-## tutorial reserves on the left and the panel.
+## tutorial reserves on the left and the panel, and the fitting notepad.
 func tutorial_busy_rects() -> Array[Rect2]:
 	var vp := get_viewport_rect().size
 	var left := _left_reserve()
-	return [Rect2(left, 0, _panel.get_global_rect().position.x - left, vp.y)]
+	var out: Array[Rect2] = [Rect2(left, 0, _panel.get_global_rect().position.x - left, vp.y)]
+	if _pad != null and _pad.visible:
+		out.append(_pad.get_global_rect())
+	return out
 
 
 ## The tutorial's coach mark (see Tutorial._update_pointers): the first part, in panel
@@ -288,16 +315,20 @@ func _first_wrong_row(t: int, want: Dictionary) -> int:
 	return -1
 
 
-## W/S to reach the part tabs, then A/D across to the tab for part `t`.
+## W/S to reach the part tabs, then A/D across to the tab for part `t` (linked trousers
+## live on the Suit tab).
 func _coach_tab(t: int) -> Dictionary:
+	var at := _parts().find(t)
+	if at < 0:
+		at = _parts().find(Enums.GarmentType.JACKET)
 	for child in _rows.get_children():
 		var tabs := child as PartTabs
 		if tabs == null or tabs.is_queued_for_deletion():
 			continue
 		var on_tabs: bool = _active_rows()[_row] == Row.PART
-		var nm := Enums.garment_type_name(t)
+		var nm := _part_name(int(_parts()[at]))
 		var text := ("A/D: pick %s" % nm) if on_tabs else "W/S: go to the tabs"
-		return {"rect": tabs.tab_rect(PARTS.find(t)), "text": text, "beside": true}
+		return {"rect": tabs.tab_rect(at), "text": text, "beside": true}
 	return {}
 
 
@@ -333,6 +364,8 @@ func _field_name(row: int, value: int) -> String:
 			return Enums.fabric_name(value)
 		Row.COLOR:
 			return MaterialFactory.color_name(value)
+		Row.TROUSERS:
+			return _link_text(value != 0)
 	return Enums.pattern_name(value)
 
 
@@ -387,17 +420,46 @@ func _trend_text() -> String:
 	return "%s In style: %s (+%d standing)%s" % [TREND_MARK, " or ".join(bits), bonus, tail]
 
 
-## Width kept free at the left edge (the tutorial's goal tag), so the customer is centred
-## in the space that is actually visible.
+## Width kept free at the left edge (the tutorial's goal tag, then the fitting notepad and
+## a gap past it), so the customer is centred in the space that is actually visible. The
+## pad places itself from Tutorial.side_reserve(), never from this.
 func _left_reserve() -> float:
-	return Tutorial.side_reserve() if Tutorial != null else 0.0
+	var side: float = Tutorial.side_reserve() if Tutorial != null else 0.0
+	if _pad != null and _pad.visible:
+		side += FittingNotepad.EDGE + FittingNotepad.WIDTH + PAD_GAP
+	return side
 
 
 # --- State -----------------------------------------------------------------
 
 
+## The parts with a tab of their own: the suit and the shirt while the trousers are linked
+## to the jacket, all three once they have their own cloth.
+func _parts() -> Array:
+	return LINKED_PARTS if _linked else PARTS
+
+
 func _type() -> int:
-	return PARTS[_part_sel] if _part_sel >= 0 else -1
+	return _parts()[_part_sel] if _part_sel >= 0 else -1
+
+
+## A part's name on the page: the jacket is "Suit" while the trousers come with it.
+func _part_name(t: int) -> String:
+	if _linked and (t == Enums.GarmentType.JACKET or t == Enums.GarmentType.PANTS):
+		return "Suit"
+	return Enums.garment_type_name(t)
+
+
+func _link_text(linked: bool) -> String:
+	return "Match the jacket" if linked else "Own choice"
+
+
+## Linked trousers take the jacket's cloth, colour and pattern (the cut stays their own).
+func _sync_pants() -> void:
+	if not _linked or _design.is_empty():
+		return
+	for k: String in LINK_KEYS:
+		_design[Enums.GarmentType.PANTS][k] = _design[Enums.GarmentType.JACKET][k]
 
 
 func _cfg() -> Dictionary:
@@ -407,6 +469,8 @@ func _cfg() -> Dictionary:
 func _active_rows() -> Array:
 	if _part_sel < 0:
 		return [Row.PART]
+	if _type() == Enums.GarmentType.JACKET:
+		return [Row.PART, Row.FABRIC, Row.COLOR, Row.PATTERN, Row.STYLE, Row.TROUSERS]
 	return [Row.PART, Row.FABRIC, Row.COLOR, Row.PATTERN, Row.STYLE]
 
 
@@ -418,7 +482,9 @@ func _material() -> MaterialType:
 
 func _value_text(row: int) -> String:
 	if row == Row.PART:
-		return "Overview" if _part_sel < 0 else Enums.garment_type_name(_type())
+		return "Overview" if _part_sel < 0 else _part_name(_type())
+	if row == Row.TROUSERS:
+		return _link_text(_linked)
 	var c := _cfg()
 	if row == Row.FABRIC:
 		return Enums.fabric_name(c["fabric"])
@@ -542,12 +608,12 @@ func _refresh() -> void:
 		var rush := ""
 		if _pref.rush:
 			rush = "  + rush $%d" % _rush_extra(int(q["total"]))
-		var taste: String = _pref.taste_short()
-		var brief: String = _pref.describe() + ("   ·   " + taste if taste != "" else "")
-		_brief_label.text = "For: %s   ·   Budget $%d%s" % [brief, _pref.budget, _status]
+		# The brief and the verdict are on the fitting notepad now; the panel keeps the quote.
+		_brief_label.visible = false
 		var working := "Cloth $%d + Craft $%d%s" % [q["cloth"], q["craft"], rush]
 		_show_total(working, int(q["total"]), over)
 	else:
+		_brief_label.visible = true
 		_brief_label.text = _status.strip_edges()
 		_clear_total()
 	_trend_label.text = _trend_text()
@@ -568,7 +634,10 @@ func _refresh() -> void:
 
 
 func _keep_row_in_view() -> void:
-	if _scroll != null and _row < _rows.get_child_count():
+	# A frame later: the rebuilt rows have their sizes by then (the suit tab's sixth row,
+	# Trousers, sits below the fold at 720p).
+	await get_tree().process_frame
+	if _scroll != null and visible and _row < _rows.get_child_count():
 		_scroll.ensure_control_visible(_rows.get_child(_row) as Control)
 
 
@@ -579,11 +648,26 @@ func _clear_total() -> void:
 
 
 ## The live quote as the panel's footer: working on the left, the total large and bold.
+## Once the customer has said yes, the note under the working says so, in green.
 func _show_total(working: String, total: int, over: bool) -> void:
 	_clear_total()
-	var col := Style.CLAY if over else Style.INK
-	var note := "Over budget" if over else ""
+	var col := Style.INK
+	var note := ""
+	if over:
+		col = Style.CLAY
+		note = "Over budget"
+	elif _awaiting:
+		col = Style.FOREST
+		note = "%s take it" % ("She'll" if _she() else "He'll")
 	_total_slot.add_child(Style.total_bar(working, "Quote", total, col, note))
+
+
+## Whether the customer at the mirror is a woman (for "She'll take it").
+func _she() -> bool:
+	if _customer == null or not is_instance_valid(_customer):
+		return false
+	var gender: Variant = _customer.get("gender")
+	return gender != null and int(gender) == Enums.Gender.FEMALE
 
 
 ## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.
@@ -592,7 +676,12 @@ func _rebuild_hint_bar() -> void:
 		_hint_bar.remove_child(child)  # gone now, so the tutorial finds only the live keys
 		child.queue_free()
 	var pairs := [["W/S", "Select"], ["A/D", "Change"]]
-	pairs.append(["E", "Ask / confirm"] if _pref != null else ["E", "Confirm"])
+	if _pref == null:
+		pairs.append(["E", "Confirm"])
+	elif _awaiting:
+		pairs.append(["E", "Sell · $%d" % _final_quote()])
+	else:
+		pairs.append(["E", "Ask"])
 	pairs.append([_key_name("handbook"), "Handbook"])
 	if OS.is_debug_build():
 		pairs.append(["F2", "Auto-fit"])
@@ -620,7 +709,7 @@ func _key_name(action: String) -> String:
 func _make_row(row: int, selected: bool, index: int) -> Control:
 	if row == Row.PART:
 		# Not one more value row: the part switcher is its own strip of drawn tabs.
-		var strip := PartTabs.make(PARTS, _part_sel, selected, _parts_on_target())
+		var strip := PartTabs.make(_parts(), _part_sel, selected, _parts_on_target(), _linked)
 		MousePick.wire(strip, _pick_row.bind(index))
 		strip.gui_input.connect(_on_tabs_input.bind(strip, index))
 		return strip
@@ -760,8 +849,12 @@ func _adjust(dir: int) -> void:
 	_awaiting = false
 	var row: int = _active_rows()[_row]
 	if row == Row.PART:
-		_part_sel = wrapi(_part_sel + dir, -1, PARTS.size())
+		_part_sel = wrapi(_part_sel + dir, -1, _parts().size())
 		_update_camera()
+	elif row == Row.TROUSERS:
+		# Unlinking leaves the trousers as they are (their own tab appears); relinking
+		# puts them back in the jacket's cloth.
+		_linked = not _linked
 	else:
 		var c := _cfg()
 		match row:
@@ -773,6 +866,7 @@ func _adjust(dir: int) -> void:
 				c["pattern"] = _cycle(Enums.patterns_for(_type()), int(c["pattern"]), dir)
 			Row.STYLE:
 				c["style_idx"] = wrapi(c["style_idx"] + dir, 0, Enums.styles_for(_type()).size())
+	_sync_pants()
 	_apply_to_customer()
 	_refresh()
 
@@ -833,6 +927,8 @@ func _cloth_in_stock(fabric: int, pattern: int, color_index: int) -> bool:
 
 
 func _confirm() -> void:
+	if _ask_lock > 0.0:
+		return  # the answer is still coming: a double tap can't sell by accident
 	# Free-design mode (no customer): just announce the design.
 	if _pref == null:
 		EventBus.design_confirmed.emit(_design.duplicate(true))
@@ -842,45 +938,44 @@ func _confirm() -> void:
 	# First E asks the customer for their reaction — they light up or shake their head
 	# for a moment, then settle back to their normal face.
 	if not _awaiting:
-		var reaction: Dictionary = _pref.evaluate(_design)
-		var lesson: Array[String] = Tutorial.recipe_reasons(_design) if Tutorial != null else []
-		if not lesson.is_empty():
-			# Mr. Hemming's customer came for the suit he's teaching, and takes no other.
-			reaction["suitable"] = false
-			reaction["reasons"] = lesson
-		var suitable: bool = reaction.get("suitable", false)
-		var objections: Array = reaction.get("reasons", [])
-		EventBus.design_judged.emit(
-			suitable, str(objections[0]) if not objections.is_empty() else ""
-		)
-		if _customer != null and _customer.has_method("react"):
-			_customer.react(Customer.REACT_LIKE if suitable else Customer.REACT_DISLIKE)
-		var verdict := "happy: E to take the order" if suitable else "not quite"
-		_status = "     %s is %s" % [_pref.display_name, verdict]
-		_awaiting = suitable
-		_start_reaction(suitable, reaction.get("reasons", []), reaction.get("liked", false))
-		_refresh()
+		_ask()
 		return
 	# Second E finalises: create the order and send the customer on their way.
 	_finalize()
 
 
+## Ask the customer: they answer in a bubble (the biggest complaint, or yes) and the
+## fitting notepad takes down everything still wrong.
+func _ask() -> void:
+	_ask_lock = ASK_LOCK
+	var reaction: Dictionary = _pref.evaluate(_design)
+	var lesson: Array[String] = Tutorial.recipe_reasons(_design) if Tutorial != null else []
+	if not lesson.is_empty():
+		# Mr. Hemming's customer came for the suit he's teaching, and takes no other.
+		reaction["suitable"] = false
+		reaction["reasons"] = lesson
+		reaction["notes"] = FittingNotepad.fallback_notes(lesson)
+	var suitable: bool = reaction.get("suitable", false)
+	if suitable and str(reaction.get("said_happy", "")) == "" and reaction.get("liked", false):
+		reaction["said_happy"] = (
+			"%s! Just as I asked." % MaterialFactory.color_name(_pref.likes_color)
+		)
+	var objections: Array = reaction.get("reasons", [])
+	EventBus.design_judged.emit(suitable, str(objections[0]) if not objections.is_empty() else "")
+	if _customer != null and _customer.has_method("react"):
+		_customer.react(Customer.REACT_LIKE if suitable else Customer.REACT_DISLIKE)
+	_awaiting = suitable
+	_pad.note(reaction)
+	_start_reaction(suitable, FittingNotepad.said_of(reaction))
+	_refresh()
+
+
 ## Ease the camera out to the customer's face and let them answer in a bubble.
-func _start_reaction(suitable: bool, reasons: Array, liked := false) -> void:
+func _start_reaction(suitable: bool, said: String) -> void:
 	_end_reaction()
-	if _customer == null or not is_instance_valid(_customer):
+	if _customer == null or not is_instance_valid(_customer) or said == "":
 		return
-	var lines := PackedStringArray()
-	if suitable and liked:
-		lines.append("%s! Just as I asked." % MaterialFactory.color_name(_pref.likes_color))
-		lines.append("Press E to agree the order.")
-	elif suitable:
-		lines.append("Perfect. I'll take it!")
-		lines.append("Press E to agree the order.")
-	else:
-		lines.append("Not quite.")
-		for r: String in reasons.slice(0, REACTION_LINES):
-			lines.append(r.substr(0, 1).to_upper() + r.substr(1))
+	var lines := PackedStringArray([said])
 	_reaction_t = REACTION_HOLD
 	_bubble = ReactionBubble.show_for(self, _customer, _height * HEAD_AT, suitable, lines)
 	var vp := get_viewport_rect()
@@ -901,9 +996,7 @@ func _end_reaction() -> void:
 
 ## Create the order for the current design and send the customer off happy.
 func _finalize() -> void:
-	var quote: int = Pricing.suit_quote(_design)
-	if _pref.rush:
-		quote += _rush_extra(quote)  # the rush premium is agreed up front
+	var quote := _final_quote()
 	var skin: Color = _customer.skin_color if _customer != null else _SKIN_FALLBACK
 	var hair: int = _customer.hair_index if _customer != null else 0
 	var hair_col: Color = _customer.hair_color if _customer != null else _HAIR_FALLBACK
@@ -926,6 +1019,15 @@ func _finalize() -> void:
 		if cust.has_method("react"):
 			cust.react(Customer.REACT_ACCEPT)  # keep a happy face as they leave
 		cust.finish_and_leave()
+
+
+## What the customer pays for this design: the quote, plus the rush premium (agreed up
+## front) when they need it tomorrow.
+func _final_quote() -> int:
+	var quote: int = Pricing.suit_quote(_design)
+	if _pref != null and _pref.rush:
+		quote += _rush_extra(quote)
+	return quote
 
 
 func _rush_extra(quote: int) -> int:

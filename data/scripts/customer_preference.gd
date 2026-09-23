@@ -94,6 +94,9 @@ const FIRST_NAMES := [
 ## A regular's past suits from you as [colour, pattern]; they want something new.
 @export var owned_suits: Array = []
 
+## How many times they have been shown a design; seeds which line they say.
+var _asks := 0
+
 
 ## A random shopper's brief: an occasion, a style, and a budget for the shop's current
 ## reputation tier. `regular` (a name from Clientele) makes it a returning regular,
@@ -268,29 +271,70 @@ func hint() -> String:
 
 ## Judge a proposed design against the brief + budget (DressCode), then against their
 ## own taste: a disliked colour is the first thing they mention. "liked" says whether the
-## colour they asked for is in it.
+## colour they asked for is in it. "notes" runs parallel to "reasons" (DressCode.evaluate
+## has the shape), taste first; "said_happy" is what they say if they take it. Each call
+## moves their voice on, so asking twice doesn't get the same line twice.
 func evaluate(design: Dictionary) -> Dictionary:
+	var voice := absi(display_name.hash()) + _asks
+	_asks += 1
 	var out := {"suitable": false, "quote": Pricing.suit_quote(design), "reason": "…"}
 	out["reasons"] = [] as Array[String]
+	out["notes"] = [] as Array[Dictionary]
 	if Catalog.dress_code != null:
-		out = Catalog.dress_code.evaluate(occasion, style, design, budget)
+		out = Catalog.dress_code.evaluate(occasion, style, design, budget, voice)
 	var reasons: Array[String] = out.get("reasons", [] as Array[String])
+	var notes: Array[Dictionary] = out.get("notes", [] as Array[Dictionary])
 	# Their own taste is the first thing they mention: a stated dislike, a suit they
 	# already have from you, then a quiet dislike (which they only now say out loud).
-	var taste: Array[String] = []
-	var dislike := taste_reason(design)
-	if dislike != "":
-		taste.append(dislike)
-	if SuitTaste.owns(owned_suits, design):
-		taste.append(SuitTaste.OWNED_LINE)
-	if SuitTaste.hits(quiet_dislike, design):
-		quiet_known = true  # said now, and remembered on the design screen
-		taste.append(SuitTaste.line(quiet_dislike))
+	var taste := _taste_objections(design)
 	if not taste.is_empty():
-		taste.append_array(reasons)
-		reasons = taste
+		var taste_reasons: Array[String] = []
+		var taste_notes: Array[Dictionary] = []
+		for t: Dictionary in taste:
+			taste_reasons.append(t["reason"])
+			taste_notes.append({"part": t["part"], "note": t["note"], "said": t["said"]})
+		taste_reasons.append_array(reasons)
+		taste_notes.append_array(notes)
+		reasons = taste_reasons
+		notes = taste_notes
 		out["suitable"] = false
 		out["reason"] = "Not quite: " + reasons[0]
 	out["reasons"] = reasons
+	out["notes"] = notes
 	out["liked"] = likes_met(design)
+	var liked := MaterialFactory.color_name(likes_color).to_lower() if out["liked"] else ""
+	out["said_happy"] = CustomerLines.happy(occasion, voice, liked)
+	return out
+
+
+## The taste this design breaks, in the order they bring it up: each is the refusal
+## sentence (`reason`), the notepad slot and shorthand, and what they say.
+func _taste_objections(design: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var dislike := taste_reason(design)
+	if dislike != "":
+		var word := MaterialFactory.color_name(dislikes_color).to_lower()
+		var said := dislike.substr(0, 1).to_upper() + dislike.substr(1)
+		var entry := {"reason": dislike, "part": "shirt" if is_shirting(dislikes_color) else "suit"}
+		entry["note"] = "not %s — said so at the counter" % word
+		if town_worn > 0:
+			entry["part"] = "suit"
+			entry["note"] = "town's full of your %s" % word
+			said = SuitTaste.town_line(dislikes_color, town_worn)
+		entry["said"] = said
+		out.append(entry)
+	if SuitTaste.owns(owned_suits, design):
+		var owned := SuitTaste.OWNED_LINE
+		out.append({"reason": owned, "part": "suit", "note": "has this one already", "said": owned})
+	if SuitTaste.hits(quiet_dislike, design):
+		quiet_known = true  # said now, and remembered on the design screen
+		var said := SuitTaste.line(quiet_dislike)
+		var shirt: bool = (
+			quiet_dislike.get("kind", "") == "color"
+			and is_shirting(int(quiet_dislike.get("value", -1)))
+		)
+		var note := SuitTaste.short(quiet_dislike) + " — won't wear it"
+		out.append(
+			{"reason": said, "part": "shirt" if shirt else "suit", "note": note, "said": said}
+		)
 	return out

@@ -22,7 +22,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	visible = not (UI.any_menu_open() or GameState.input_locked or get_tree().paused)
+	visible = not (
+		UI.key_pills_hidden or UI.any_menu_open() or GameState.input_locked or get_tree().paused
+	)
 
 
 func _rebuild() -> void:

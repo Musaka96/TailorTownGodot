@@ -200,18 +200,20 @@ func _test_suit_builder() -> void:
 	if strip == null:
 		menu.call("close")
 		return
-	await _click_at(strip.tab_rect(0).get_center())  # the jacket tab
-	_check(int(menu.get("_part_sel")) == 0, "clicking the jacket tab turns to the jacket")
+	await _click_at(strip.tab_rect(0).get_center())  # the suit (jacket) tab
+	_check(int(menu.get("_part_sel")) == 0, "clicking the suit tab turns to the jacket")
 	await _frames(2)
 	strip = rows.get_child(0) as PartTabs
-	await _click_at(strip.tab_rect(2).get_center())  # the trousers tab
-	_check(int(menu.get("_part_sel")) == 2, "clicking the trousers tab turns to them")
+	# Trousers linked to the jacket (the default): only the suit and shirt have tabs.
+	_check(strip.parts.size() == 2, "linked trousers have no tab of their own")
+	await _click_at(strip.tab_rect(1).get_center())  # the shirt tab
+	_check(int(menu.get("_part_sel")) == 1, "clicking the shirt tab turns to it")
 	await _frames(2)
 	strip = rows.get_child(0) as PartTabs
 	var first := strip.tab_rect(-1)  # (on screen already)
 	var left := Vector2(first.position.x - 8.0, first.get_center().y)  # the ‹ chevron
 	await _click_at(left)
-	_check(int(menu.get("_part_sel")) == 1, "clicking the ‹ chevron steps back a part")
+	_check(int(menu.get("_part_sel")) == 0, "clicking the ‹ chevron steps back a part")
 
 	# Colour: row 2 (Part, Fabric, Colour, Pattern, Style).
 	var design: Dictionary = menu.get("_design")
@@ -229,12 +231,19 @@ func _test_suit_builder() -> void:
 	await _frames(2)
 	await _wheel(_value_label(rows.get_child(2)), MOUSE_BUTTON_WHEEL_DOWN)
 	_check(int(menu.get("_design")[part]["color"]) == colour, "the wheel never steps a value")
-	# Style (the cut): the last row steps the same way.
+	# Style (the cut): the fifth row steps the same way.
 	var style: int = int(design[part]["style_idx"])
 	await _click_value(rows.get_child(4), 0.85)
 	var styles := Enums.styles_for(part).size()
 	var want := (style + 1) % styles
 	_check(int(menu.get("_design")[part]["style_idx"]) == want, "the cut steps on a click too")
+	# Trousers (the suit tab's last row): unlinked, they get a tab of their own.
+	await _frames(2)
+	await _click_value(rows.get_child(5), 0.85)
+	await _frames(2)
+	_check(not bool(menu.get("_linked")), "a click on the trousers row unlinks them")
+	var tabs := rows.get_child(0) as PartTabs
+	_check(tabs != null and tabs.parts.size() == 3, "unlinked trousers get their own tab")
 
 	# The E pill confirms (free design: it saves the design).
 	var bar: Control = menu.get("_hint_bar")

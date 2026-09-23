@@ -814,18 +814,24 @@ func _sew_checks() -> Array:
 	return lines
 
 
-## The fitting checklist: one line per part of the premade recipe, then confirm.
+## The fitting checklist: one line per part of the premade recipe, then confirm. When the
+## recipe's trousers are the jacket's cloth, the fitting room's linked Suit tab makes both
+## at once, so they share one "Suit" line.
 func _design_checks() -> Array:
 	var jt := int(Enums.GarmentType.JACKET)
 	var pt := int(Enums.GarmentType.PANTS)
 	var st := int(Enums.GarmentType.SHIRT)
+	var matched := _part_desc(pt) == _part_desc(jt)
+	var suit := ("Suit: " if matched else "Jacket: ") + _part_desc(jt)
 	# In the builder's own part order, so the coach mark walks down the list with them.
-	return [
-		["Jacket: " + _part_desc(jt), "design:%d" % jt, "A/D", "Change the value"],
+	var out := [
+		[suit, "design:%d" % jt, "A/D", "Change the value"],
 		["Shirt: " + _part_desc(st), "design:%d" % st, "A/D", "Change the value"],
-		["Trousers: " + _part_desc(pt), "design:%d" % pt, "A/D", "Change the value"],
-		["Confirm with E", "", "E", "Ask and confirm"],
 	]
+	if not matched:
+		out.append(["Trousers: " + _part_desc(pt), "design:%d" % pt, "A/D", "Change the value"])
+	out.append(["Confirm with E", "", "E", "Ask and confirm"])
+	return out
 
 
 # --- Mentor ----------------------------------------------------------------

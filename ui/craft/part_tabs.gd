@@ -6,26 +6,32 @@ extends Control
 ## stitched underline; when the strip itself is the selected row it gains a brass running
 ## stitch and ‹ › chevrons, so A/D visibly belongs to it. Flat shapes from Style tokens,
 ## each glyph drawn in a 0..1 box and scaled to its tab.
-##   PartTabs.make(parts, current, focused, ticks)
+##   PartTabs.make(parts, current, focused, ticks, linked)
 ## `parts` are GarmentTypes; tab 0 is always the overview, so `current` is -1 for it (the
-## suit builder's own convention) and `ticks` lists the parts that earn a ✓.
+## suit builder's own convention) and `ticks` lists the parts that earn a ✓. `linked`:
+## the trousers come with the jacket, so the jacket tab is the whole suit (its glyph
+## shows the trousers peeking out below).
 
 const HEIGHT := 50.0
 const TAB_W := 52.0
 const GAP := 6.0
 const ICON := 28.0
 const CHEVRON_W := 16.0
+const SUIT_PANTS := 0.72  # the linked suit tab: trouser glyph size, as a fraction of ICON
+const SUIT_SHIFT := 0.16  # ...and how far up-left the jacket moves to make room
 
 var parts: Array = []
 var current := -1
 var focused := false
 var ticks: Array = []
+var linked := false
 
 
 static func make(
-	tab_parts: Array, tab_current: int, tab_focused: bool, tab_ticks: Array
+	tab_parts: Array, tab_current: int, tab_focused: bool, tab_ticks: Array, tab_linked := false
 ) -> PartTabs:
 	var strip := PartTabs.new()
+	strip.linked = tab_linked
 	strip.parts = tab_parts
 	strip.current = tab_current
 	strip.focused = tab_focused
@@ -97,7 +103,20 @@ func _draw_tab(i: int, rect: Rect2) -> void:
 		Craft.stitch(self, poly, Style.WALNUT, 4.0, 1.2)
 	var ink := Style.WALNUT if on else Style.INK_SOFT
 	var icon_at := rect.get_center() - Vector2(ICON, ICON) * 0.5
-	_glyph(-1 if i == 0 else int(parts[i - 1]), Rect2(icon_at, Vector2(ICON, ICON)), ink, fill)
+	var kind := -1 if i == 0 else int(parts[i - 1])
+	if linked and kind == Enums.GarmentType.JACKET:
+		# The suit: the jacket, and the trousers in front of it, down and to the right —
+		# cut out of the jacket by a halo in the tab's colour so the two shapes stay apart.
+		_glyph(
+			kind, Rect2(icon_at - Vector2(ICON, ICON) * SUIT_SHIFT, Vector2(ICON, ICON)), ink, fill
+		)
+		var small := Vector2(ICON, ICON) * SUIT_PANTS
+		var pants := Rect2(icon_at + Vector2(ICON, ICON) - small * 0.8, small)
+		for d: Vector2 in [Vector2(-2, 0), Vector2(2, 0), Vector2(0, -2), Vector2(0, 2)]:
+			_glyph(Enums.GarmentType.PANTS, Rect2(pants.position + d, small), fill, fill)
+		_glyph(Enums.GarmentType.PANTS, pants, ink, fill)
+	else:
+		_glyph(kind, Rect2(icon_at, Vector2(ICON, ICON)), ink, fill)
 	if on:
 		# The stitched underline that marks "you are here", even when the cursor isn't.
 		var y := rect.end.y + 5.0

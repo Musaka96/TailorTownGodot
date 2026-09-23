@@ -48,6 +48,7 @@ const IN_WORLD := [
 	"res://data/scripts/customer_preference.gd",
 	"res://data/scripts/suit_taste.gd",
 	"res://data/scripts/dress_code.gd",
+	"res://data/scripts/customer_lines.gd",
 	"res://tools/build_news.gd",
 	"res://ui/newspaper.gd",
 	"res://entities/customer/street_pitch.gd",
