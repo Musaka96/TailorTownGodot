@@ -3,10 +3,10 @@ extends Node3D
 
 ## Ordering station. Opens the phone menu. Ordered bolts are *on the way* for a while
 ## (GameConfig.delivery_hours of shop time; the Courier Account upgrade makes it minutes)
-## and then turn up at the delivery spot beside the phone with a door chime, each in a
-## postal box that unpacks itself. An order that would land after closing arrives first
-## thing next morning. The tutorial's bolts come at once so the lesson never stalls.
-## Pending deliveries save with the station.
+## and then turn up at the delivery spot beside the phone with a door chime, in a postal
+## box that unpacks itself; bolts that land together share one box, side by side. An
+## order that would land after closing arrives first thing next morning. The tutorial's
+## bolts come at once so the lesson never stalls. Pending deliveries save with the station.
 
 const ROLL_SCENE := preload("res://entities/items/material_roll.tscn")
 
@@ -61,22 +61,37 @@ func next_arrival_text() -> String:
 func deliver_all_now() -> void:
 	var due := _pending.duplicate()
 	_pending.clear()
-	for p: Dictionary in due:
-		_arrive(p)
+	_arrive(due)
 
 
 ## Spawn a full bolt of `mat` with `length` metres at the delivery spot.
 func deliver_roll(mat: MaterialType, length: float) -> Node:
-	var roll: Node = ROLL_SCENE.instantiate()
-	roll.material = mat
-	roll.remaining_length_m = length
-	get_parent().add_child(roll)
-	# Small jitter so stacked deliveries don't perfectly overlap.
+	return deliver_rolls([{"mat": mat, "length": length}])[0]
+
+
+## Spawn several full bolts ([{mat, length}]) side by side at the delivery spot, all in one
+## box. Returns the rolls in the same order.
+func deliver_rolls(specs: Array) -> Array:
+	var rolls: Array = []
 	var base := _delivery.global_position
-	roll.global_position = base + Vector3(randf_range(-0.25, 0.25), 0.13, randf_range(-0.25, 0.25))
-	DeliveryBox.wrap(roll as Node3D)
-	EventBus.order_delivered.emit(roll)
-	return roll
+	for i in specs.size():
+		var spec: Dictionary = specs[i]
+		var roll: MaterialRoll = ROLL_SCENE.instantiate()
+		roll.material = spec["mat"]
+		roll.remaining_length_m = spec["length"]
+		get_parent().add_child(roll)
+		# In a row across the bolts (the box's width), with a little jitter so it looks packed
+		# by hand.
+		var across := Vector3(roll.global_basis.x.x, 0.0, roll.global_basis.x.z).normalized()
+		var slot := (i - (specs.size() - 1) * 0.5) * DeliveryBox.SLOT
+		var jitter := Vector3(randf_range(-0.04, 0.04), 0.13, randf_range(-0.04, 0.04))
+		roll.global_position = base + across * slot + jitter
+		rolls.append(roll)
+	if not rolls.is_empty():
+		DeliveryBox.wrap_all(rolls)
+	for roll: Node in rolls:
+		EventBus.order_delivered.emit(roll)
+	return rolls
 
 
 func _process(_delta: float) -> void:
@@ -88,15 +103,25 @@ func _process(_delta: float) -> void:
 			due.append(p)
 	for p: Dictionary in due:
 		_pending.erase(p)
-		_arrive(p)
+	_arrive(due)
 
 
-func _arrive(p: Dictionary) -> void:
-	var mat: MaterialType = p["mat"]
-	deliver_roll(mat, p["length"])
+## Everything due at once lands together: one box, one chime, one toast.
+func _arrive(due: Array) -> void:
+	if due.is_empty():
+		return
+	var specs: Array = []
+	for p: Dictionary in due:
+		specs.append({"mat": p["mat"], "length": p["length"]})
+	deliver_rolls(specs)
 	Sfx.play("door_chime")
-	if UI != null:
+	if UI == null:
+		return
+	if due.size() == 1:
+		var mat: MaterialType = due[0]["mat"]
 		UI.toast("Delivery!  %s has arrived by the phone" % mat.display_name)
+	else:
+		UI.toast("Delivery!  %d bolts have arrived by the phone" % due.size())
 
 
 func _instant() -> bool:

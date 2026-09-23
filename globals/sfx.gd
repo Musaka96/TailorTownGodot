@@ -413,7 +413,8 @@ func _on_order_placed(_material: MaterialType, _length: float, _cost: int) -> vo
 
 
 func _on_order_delivered(_roll: Node) -> void:
-	play("fabric_unroll")
+	# A batch lands as one box: one unroll, not one per bolt in the same frame.
+	play_single("fabric_unroll")
 
 
 func _on_order_created(_order: Resource) -> void:

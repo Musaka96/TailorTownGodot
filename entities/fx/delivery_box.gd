@@ -3,11 +3,16 @@ extends Node3D
 
 ## The postal box a phone-ordered bolt arrives in. It pops in with a poof, the top flaps
 ## swing open, then the four sides fold down flat and leave the bolt lying on a cross of
-## cardboard. The bolt can't be picked up until the box is open; once it is, the flat box
-## poofs away. Built entirely in code, no textures.
+## cardboard. Bolts that land together share one wider box and lie side by side in it.
+## They can't be picked up until the box is open; once the last one has been taken, the
+## flat box poofs away. Built entirely in code, no textures.
 ##   DeliveryBox.wrap(roll)  # right after placing a delivered roll
+##   DeliveryBox.wrap_all(rolls)  # several, laid in a row across the first one's local X
 
-const WIDTH := 0.42  # inside, across the bolt (local X)
+const WIDTH := 0.42  # inside, across one bolt (local X); the narrowest box
+## A box of several bolts is this much wider per bolt, plus the padding.
+const SLOT := 0.30
+const SLOT_PAD := 0.12
 const LENGTH := 0.72  # inside, along the bolt (local Z)
 const HEIGHT := 0.32
 const THICK := 0.012
@@ -27,35 +32,54 @@ const FLAPS_AT := 0.7
 const SIDES_AT := 1.4
 const FALL := 0.28
 
-var _roll: Node3D
+## The rolls still in (or on) the box. Untyped: a freed roll must be checkable here.
+var _rolls: Array = []
+var _width := WIDTH
 var _unpacked := false
 var _gone := false
 var _tween: Tween
 var _cardboard: StandardMaterial3D
-## Each entry: {hinge: Node3D, axis: "x"/"z", fold: float (deg), flap: Node3D, sign: float}
-## `sign` turns a flap outward (open) about its axis.
-var _long: Array[Dictionary] = []
-var _short: Array[Dictionary] = []
+## Each entry: {hinge: Node3D, axis: "z", fold: float (deg), flap: Node3D, sign: float}
+## `sign` turns a flap outward (open) about its axis. `_meet` are the taped flaps that
+## meet over the middle; `_tuck` the short ones tucked under them.
+var _meet: Array[Dictionary] = []
+var _tuck: Array[Dictionary] = []
 
 
 ## Box `roll` where it lies: the box sits on the floor under it, turned to match, and the
 ## roll stays out of reach until the box has unpacked.
 static func wrap(roll: Node3D) -> DeliveryBox:
+	return wrap_all([roll])
+
+
+## Box several rolls lying side by side across the first one's local X (all under the
+## same parent). The box grows wide enough for them, sits centred under them, and goes
+## once the last of them has been picked up.
+static func wrap_all(rolls: Array) -> DeliveryBox:
+	if rolls.is_empty():
+		return null
 	var box := DeliveryBox.new()
-	box._roll = roll
+	var centre := Vector3.ZERO
+	for r: Node3D in rolls:
+		box._rolls.append(r)
+		centre += r.global_position
+	centre /= float(rolls.size())
+	box._width = maxf(WIDTH, rolls.size() * SLOT + SLOT_PAD)
+	var first: Node3D = rolls[0]
 	# Place it before it enters the tree: _ready starts the show at the box's position.
-	var at := roll.global_position
-	var floor_at := Vector3(at.x, at.y - ROLL_LIFT + 0.002, at.z)
-	var world := Transform3D(Basis(Vector3.UP, roll.global_rotation.y), floor_at)
-	var parent := roll.get_parent()
+	var floor_at := Vector3(centre.x, centre.y - ROLL_LIFT + 0.002, centre.z)
+	var world := Transform3D(Basis(Vector3.UP, first.global_rotation.y), floor_at)
+	var parent := first.get_parent()
 	box.transform = world
 	if parent is Node3D:
 		box.transform = (parent as Node3D).global_transform.affine_inverse() * world
 	parent.add_child(box)
-	roll.global_position = floor_at + Vector3.UP * (ROLL_LIFT + THICK)  # on the base panel
-	if roll.has_method("set_pickable"):
-		roll.set_pickable(false)
-	roll.visible = false
+	for r: Node3D in rolls:
+		var at := r.global_position
+		r.global_position = Vector3(at.x, floor_at.y + ROLL_LIFT + THICK, at.z)  # on the base
+		if r.has_method("set_pickable"):
+			r.set_pickable(false)
+		r.visible = false
 	return box
 
 
@@ -63,8 +87,8 @@ func _ready() -> void:
 	_build()
 	if EventBus != null:
 		EventBus.item_picked_up.connect(_on_picked_up)
-	if is_instance_valid(_roll):
-		_roll.tree_exited.connect(_on_roll_left)
+	for r: Node3D in _rolls:
+		r.tree_exited.connect(_on_roll_left)
 	_play()
 
 
@@ -86,14 +110,14 @@ func _play() -> void:
 		. set_trans(Tween.TRANS_BACK)
 		. set_ease(Tween.EASE_OUT)
 	)
-	_tween.tween_callback(_show_roll).set_delay(0.3)
-	# The long flaps lie on top, so they open first; the short ones tucked under follow.
+	_tween.tween_callback(_show_rolls).set_delay(0.3)
+	# The taped flaps lie on top, so they open first; the short ones tucked under follow.
 	var t := FLAPS_AT
-	for side: Dictionary in _long + _short:
+	for side: Dictionary in _meet + _tuck:
 		_open_flap(side, t)
 		t += 0.08
 	t = SIDES_AT
-	for side: Dictionary in _short + _long:
+	for side: Dictionary in _tuck + _meet:
 		_fold_side(side, t)
 		t += 0.06
 	_tween.tween_callback(_on_unpacked).set_delay(t - 0.06 + FALL + 0.2)
@@ -156,39 +180,48 @@ func _fold_side(side: Dictionary, at: float) -> void:
 	)
 
 
-func _show_roll() -> void:
-	if is_instance_valid(_roll):
-		_roll.visible = true
+func _show_rolls() -> void:
+	for r: Variant in _rolls:
+		if is_instance_valid(r):
+			(r as Node3D).visible = true
 
 
 func _on_unpacked() -> void:
 	_unpacked = true
-	if is_instance_valid(_roll) and _roll.has_method("set_pickable"):
-		_roll.set_pickable(true)
+	for r: Variant in _rolls:
+		if is_instance_valid(r) and (r as Node).has_method("set_pickable"):
+			r.set_pickable(true)
 
 
 # --- Leaving -------------------------------------------------------------------------
 
 
 func _on_picked_up(item: Node) -> void:
-	if item == _roll:
+	if not _rolls.has(item):
+		return
+	_rolls.erase(item)
+	if _rolls.is_empty():
 		_vanish()
 
 
-## The roll left the floor: picked up (reparented to the hand) or freed. Wait a frame and
-## go if it's no longer lying beside the box.
+## A roll left the floor: picked up (reparented to the hand) or freed. Wait a frame, drop
+## every roll no longer lying beside the box, and go once none is left.
 func _on_roll_left() -> void:
-	_check_roll.call_deferred()
+	_check_rolls.call_deferred()
 
 
-func _check_roll() -> void:
+func _check_rolls() -> void:
 	if _gone:
 		return
-	if (
-		not is_instance_valid(_roll)
-		or not _roll.is_inside_tree()
-		or _roll.get_parent() != get_parent()
-	):
+	for i in range(_rolls.size() - 1, -1, -1):
+		var r: Variant = _rolls[i]
+		if (
+			not is_instance_valid(r)
+			or not (r as Node).is_inside_tree()
+			or (r as Node).get_parent() != get_parent()
+		):
+			_rolls.remove_at(i)
+	if _rolls.is_empty():
 		_vanish()
 
 
@@ -196,8 +229,7 @@ func _vanish() -> void:
 	if _gone or not is_inside_tree():
 		return
 	_gone = true
-	if is_instance_valid(_roll):
-		_roll.visible = true
+	_show_rolls()
 	if _tween != null:
 		_tween.kill()
 	if Sfx != null:
@@ -229,7 +261,7 @@ func _poof(count: int, life: float) -> void:
 	p.lifetime = life
 	p.explosiveness = 1.0
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	p.emission_sphere_radius = 0.18
+	p.emission_sphere_radius = maxf(0.18, _width * 0.4)
 	p.direction = Vector3.UP
 	p.spread = 85.0
 	p.initial_velocity_min = 0.7
@@ -274,61 +306,61 @@ func _puff_quad() -> QuadMesh:
 # --- Build -----------------------------------------------------------------------------
 
 
+## The flaps that meet in the middle run along the box's longer sides, as on a real box:
+## on the ±X walls while the box is narrower than it is long, on the ±Z walls once
+## enough bolts make it wider. A folded flap that's longer than its wall is tall would
+## reach back over the base into the bolts, and this keeps every flap about as short as
+## its wall. The ±Z walls span the corners.
 func _build() -> void:
 	_cardboard = _flat(KRAFT)
 	_panel(
-		self, Vector3(WIDTH + THICK * 2.0, THICK, LENGTH + THICK * 2.0), Vector3(0, THICK * 0.5, 0)
+		self, Vector3(_width + THICK * 2.0, THICK, LENGTH + THICK * 2.0), Vector3(0, THICK * 0.5, 0)
 	)
+	var meet_x := _width <= LENGTH
 	for s: float in [1.0, -1.0]:
-		_long.append(_long_side(s))
-		_short.append(_short_side(s))
-	_label(_long[0]["flap"])
+		var x_side := _side(90.0 - s * 90.0, _width * 0.5, LENGTH, LENGTH, meet_x)
+		var z_side := _side(-s * 90.0, LENGTH * 0.5, _width + THICK * 2.0, _width, not meet_x)
+		_meet.append(x_side if meet_x else z_side)
+		_tuck.append(z_side if meet_x else x_side)
+	_label(_meet[0]["flap"], LENGTH if meet_x else _width)
 
 
-## A long side (±X), a flap longer than the box that meets its twin in the middle, and
-## half of the tape strip along that seam. One wall-thickness taller than the short
-## sides, so its flap lies over theirs. Flaps hinge on the wall's inner top edge, so a
-## flap folded onto the inside face lies on the wall, not in it.
-func _long_side(s: float) -> Dictionary:
-	var tall := HEIGHT + THICK
-	var hinge := _hinge(self, Vector3(s * (WIDTH * 0.5 + THICK), THICK, 0))
-	_panel(hinge, Vector3(THICK, tall, LENGTH), Vector3(-s * THICK * 0.5, tall * 0.5, 0))
-	var reach := WIDTH * 0.5
-	var flap := _hinge(hinge, Vector3(-s * THICK, tall, 0))
-	_panel(
-		flap, Vector3(reach, THICK, LENGTH + THICK * 2.0), Vector3(-s * reach * 0.5, THICK * 0.5, 0)
-	)
-	var tape := _panel(
-		flap,
-		Vector3(0.03, 0.002, LENGTH + THICK * 2.0),
-		Vector3(-s * (reach - 0.015), THICK + 0.001, 0)
-	)
-	tape.material_override = _flat(TAPE)
-	return {"hinge": hinge, "flap": flap, "axis": "z", "fold": -s * 90.0, "sign": -s}
+## One wall and its flap, built in a frame turned by `yaw` (deg) so the wall is always at
+## the frame's +X and falls outward about its local Z. `half` is the inside half-depth
+## out to this wall, `span` the wall's own length and `inner` the inside length along it.
+## A meeting flap reaches the middle and carries half of the tape strip along the seam;
+## its wall stands one wall-thickness taller, so its flap lies over the tucked ones.
+## Flaps hinge on the wall's inner top edge, so a flap folded onto the inside face lies on
+## the wall, not in it.
+func _side(yaw: float, half: float, span: float, inner: float, meets: bool) -> Dictionary:
+	var frame := _hinge(self, Vector3.ZERO)
+	frame.rotation_degrees.y = yaw
+	var tall := HEIGHT + THICK if meets else HEIGHT
+	var hinge := _hinge(frame, Vector3(half + THICK, THICK, 0))
+	_panel(hinge, Vector3(THICK, tall, span), Vector3(-THICK * 0.5, tall * 0.5, 0))
+	var reach := half if meets else SHORT_FLAP
+	var along := inner + THICK * 2.0 if meets else inner
+	var flap := _hinge(hinge, Vector3(-THICK, tall, 0))
+	_panel(flap, Vector3(reach, THICK, along), Vector3(-reach * 0.5, THICK * 0.5, 0))
+	if meets:
+		var tape := _panel(
+			flap, Vector3(0.03, 0.002, along), Vector3(-(reach - 0.015), THICK + 0.001, 0)
+		)
+		tape.material_override = _flat(TAPE)
+	return {"hinge": hinge, "flap": flap, "axis": "z", "fold": -90.0, "sign": -1.0}
 
 
-## A short end (±Z) and its flap, which tucks under the long ones.
-func _short_side(s: float) -> Dictionary:
-	var hinge := _hinge(self, Vector3(0, THICK, s * (LENGTH * 0.5 + THICK)))
-	_panel(
-		hinge,
-		Vector3(WIDTH + THICK * 2.0, HEIGHT, THICK),
-		Vector3(0, HEIGHT * 0.5, -s * THICK * 0.5)
-	)
-	var flap := _hinge(hinge, Vector3(0, HEIGHT, -s * THICK))
-	_panel(flap, Vector3(WIDTH, THICK, SHORT_FLAP), Vector3(0, THICK * 0.5, -s * SHORT_FLAP * 0.5))
-	return {"hinge": hinge, "flap": flap, "axis": "x", "fold": s * 90.0, "sign": s}
-
-
-## The address label on the +X long flap's top, near its wall: a white card with two
-## lines of "writing". Up on the closed box and still up once the flap lies on its wall.
-func _label(flap: Node3D) -> void:
+## The address label on the first meeting flap's top, near its wall: a white card with
+## two lines of "writing". Up on the closed box and still up once the flap lies on its
+## wall. `inner` is the flap's inside length along its hinge.
+func _label(flap: Node3D, inner: float) -> void:
 	var x := -0.07
-	var card := _panel(flap, Vector3(0.07, 0.002, 0.10), Vector3(x, THICK + 0.001, LENGTH * 0.2))
+	var z := inner * 0.2
+	var card := _panel(flap, Vector3(0.07, 0.002, 0.10), Vector3(x, THICK + 0.001, z))
 	card.material_override = _flat(LABEL)
 	var ink := _flat(INK)
 	for line: Vector2 in [Vector2(0.013, 0.07), Vector2(-0.012, 0.05)]:
-		var at := Vector3(x + line.x, THICK + 0.0025, LENGTH * 0.2 - (0.07 - line.y) * 0.5)
+		var at := Vector3(x + line.x, THICK + 0.0025, z - (0.07 - line.y) * 0.5)
 		var mark := _panel(flap, Vector3(0.007, 0.001, line.y), at)
 		mark.material_override = ink
 
