@@ -303,7 +303,8 @@ func evaluate(design: Dictionary) -> Dictionary:
 	out["notes"] = notes
 	out["liked"] = likes_met(design)
 	var liked := MaterialFactory.color_name(likes_color).to_lower() if out["liked"] else ""
-	out["said_happy"] = CustomerLines.happy(occasion, voice, liked)
+	# Only a yes spends a happy line; a refusal must not burn through the rotation.
+	out["said_happy"] = CustomerLines.happy(occasion, voice, liked) if out["suitable"] else ""
 	return out
 
 

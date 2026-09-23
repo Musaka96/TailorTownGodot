@@ -5,7 +5,8 @@ extends SceneTree
 ## to `reasons`. For each occasion a deliberately wrong design and a right one are
 ## judged; the notes line up with the reasons, sit in a known notepad slot, and asking
 ## twice moves the customer on to another line. Taste objections come first and keep to
-## the same shape.
+## the same shape. The same objection from three customers in a row doesn't come round
+## again soon, and no line leans on a person the player never meets.
 ##   godot --headless --path . --script res://tools/test_notes.gd
 
 const JACKET := 2  # Enums.GarmentType.JACKET
@@ -17,6 +18,26 @@ const FACTORY_SCRIPT := "res://data/scripts/material_factory.gd"
 const PARTS := ["suit", "shirt", "price"]
 const SUIT_COLORS := 10  # MaterialFactory.SUIT_COLOR_COUNT
 const SHIRT_COLORS := [10, 11, 12, 13, 14, 15, 16, 17]
+## Words that point at somebody the player never meets ("He'd have approved…").
+const PRIVATE := [
+	"he",
+	"he'd",
+	"him",
+	"his",
+	"she",
+	"she'd",
+	"her",
+	"aunt",
+	"uncle",
+	"father",
+	"mother",
+	"brother",
+	"sister",
+	"wife",
+	"husband",
+	"chairman",
+	"vicar",
+]
 
 var _failures: Array[String] = []
 var _code: Resource
@@ -34,6 +55,8 @@ func _run() -> void:
 	for occasion in 4:
 		_occasion(occasion)
 	_taste()
+	_no_repeats()
+	_no_strangers()
 	_finish()
 
 
@@ -89,6 +112,46 @@ func _taste() -> void:
 	_check(s["notes"][0]["part"] == "shirt", "a shirting dislike goes on the shirt line")
 
 
+## Three customers ask about the same wrong jacket colour, eight times between them:
+## at least six different lines come back.
+func _no_repeats() -> void:
+	_lines.reset()
+	var style := 1
+	var rule: Resource = _code.rule_for(0, style)
+	var wrong := _wrong_design(rule, 0, style)
+	var prefs: Array[Resource] = []
+	for nm: String in ["Mr. Ellison", "Ms. Ito", "Dr. Vance"]:
+		var p := _pref(0, style)
+		p.display_name = nm
+		prefs.append(p)
+	var heard := {}
+	for i in 8:
+		var said := str(prefs[i % prefs.size()].evaluate(wrong)["notes"][0]["said"])
+		heard[said] = true
+	_check(heard.size() >= 6, "eight asks, three customers: %d different lines" % heard.size())
+
+
+## No spoken line names a person the player never meets.
+func _no_strangers() -> void:
+	var consts: Dictionary = _lines.get_script_constant_map()
+	var all: Array = []
+	for by_occasion: Dictionary in (consts["LINES"] as Dictionary).values():
+		for pool: Array in by_occasion.values():
+			all.append_array(pool)
+	all.append_array(consts["BUDGET_LINES"])
+	for key in ["HAPPY", "HAPPY_LIKED"]:
+		for pool: Array in (consts[key] as Dictionary).values():
+			all.append_array(pool)
+	var words := RegEx.create_from_string("[a-z']+")
+	var bad: Array[String] = []
+	for line: String in all:
+		for m: RegExMatch in words.search_all(line.to_lower()):
+			if m.get_string() in PRIVATE:
+				bad.append(line)
+				break
+	_check(bad.is_empty(), "%d lines, none about a stranger %s" % [all.size(), bad])
+
+
 ## notes parallel reasons; every note has the three keys, non-empty; parts known.
 func _shape(r: Dictionary, where: String) -> void:
 	var notes: Array = r.get("notes", [])
@@ -97,7 +160,9 @@ func _shape(r: Dictionary, where: String) -> void:
 		notes.size() == reasons.size(),
 		"%s: %d notes for %d reasons" % [where, notes.size(), reasons.size()]
 	)
-	_check(str(r.get("said_happy", "")) != "", "%s: said_happy is set" % where)
+	# A yes says something; a refusal spends no happy line.
+	var happy_set := str(r.get("said_happy", "")) != ""
+	_check(happy_set == bool(r.get("suitable", false)), "%s: said_happy only on a yes" % where)
 	for n: Dictionary in notes:
 		var ok := true
 		for key in ["part", "note", "said"]:

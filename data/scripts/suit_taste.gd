@@ -20,7 +20,7 @@ const LINES := {
 		1: "Not charcoal. I look like a filing cabinet.",
 		2: "Light grey shows every drop of soup.",
 		3: "Black? Nobody's died.",
-		5: "Brown. My father wore brown.",
+		5: "Brown. I'd look like the furniture.",
 		"_": "Not %s. Never suited me.",
 	},
 	"pattern":
