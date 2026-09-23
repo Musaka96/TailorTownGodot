@@ -22,8 +22,9 @@ queue up and build when the runner comes back (the newest push per branch wins).
 3. `godot --headless --import`
 4. `tools/validate.gd`: every script and scene must load.
 5. Exports the `TailorTown` preset as a debug build, the same as the editor's Export dialog with "Export With Debug" ticked. `build.ps1 -Mode release` builds a release instead. The exe goes to `E:\Chewdlaka\Dev\TailorTown-builds\TailorTown-<version>-<branch>-<sha>\TailorTown.exe`. The newest 15 builds are kept.
-6. Smoke test: boots the exported exe headless to the main menu and quits. Fails on a crash, a non-zero exit or a script error.
-7. Uploads the exe to GitHub only for a `v*` tag, or a manual run (Actions tab > Build > Run workflow). A regular push doesn't upload, because the exe is about 900 MB.
+6. Fails if the exe is over the size budget (650 MB, `-MaxSizeMB`). The build is mostly art, and unused art ships unless the preset excludes it, so size creeps. When this trips, run `godot --headless --path . --script res://tools/report_unused_assets.gd`: it writes `.dev/unused_assets.txt`, listing what nothing in the game reaches. Add those to `exclude_filter` in `export_presets.cfg` rather than raising the budget. Check each glob catches nothing live — a `town_block_v5*` glob once swallowed the wood textures the phone uses.
+7. Smoke test: boots the exported exe headless to the main menu and quits. Fails on a crash, a non-zero exit or a script error.
+8. Uploads the exe to GitHub only for a `v*` tag, or a manual run (Actions tab > Build > Run workflow). A regular push doesn't upload, because the exe is about 600 MB.
 
 Note that `IMPORT/` is not versioned. A build uses whatever art is on disk at build
 time, not the art as it was at that commit.

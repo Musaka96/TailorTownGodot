@@ -21,6 +21,9 @@ param(
     # Debug matches the editor's Export dialog default ("Export With Debug"),
     # which is how playtest builds are made.
     [ValidateSet('debug', 'release')][string]$Mode = 'debug',
+    # Fails the build if the exe grows past this. The size is mostly art: when
+    # this trips, run tools/report_unused_assets.gd before raising the number.
+    [int]$MaxSizeMB = 650,
     [Parameter(Mandatory = $true)][string]$OutDir
 )
 
@@ -72,7 +75,11 @@ $exe = Join-Path (Resolve-Path $OutDir).Path 'TailorTown.exe'
 Remove-Item $exe -ErrorAction SilentlyContinue
 $code = Invoke-Godot 'export' @('--headless', "--export-$Mode","`"$Preset`"", "`"$exe`"")
 if ($code -ne 0 -or -not (Test-Path $exe)) { throw "Export failed ($code)." }
-Write-Host ("Exported {0} ({1:N0} MB)" -f $exe, ((Get-Item $exe).Length / 1MB))
+$sizeMB = [int]((Get-Item $exe).Length / 1MB)
+Write-Host ("Exported {0} ({1:N0} MB, budget {2} MB)" -f $exe, $sizeMB, $MaxSizeMB)
+if ($sizeMB -gt $MaxSizeMB) {
+    throw "Build is ${sizeMB} MB, over the ${MaxSizeMB} MB budget. See docs/CI.md."
+}
 
 Step 'Smoke test'
 # Boot the exported game headless to the main menu and quit. Catches what only
