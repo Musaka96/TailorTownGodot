@@ -260,8 +260,6 @@ func _update_status() -> void:
 		_set_status("Off the line — turn the blades   ·   %d%%" % pct, Style.CLAY)
 		return
 	var tip := "Follow the chalk line   ·   %d%% cut" % pct
-	if OS.is_debug_build():
-		tip += "   ·   F2 skip"
 	_set_status(tip, Style.INK_SOFT)
 
 

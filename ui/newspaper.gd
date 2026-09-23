@@ -446,9 +446,7 @@ func _events_text(day: int) -> String:
 		var held := News.day_of(ev)
 		var away := held - day
 		var when := "today" if away <= 0 else ("tomorrow" if away == 1 else "in %d days" % away)
-		lines.append(
-			"Day %d · %s (%s)" % [held, Enums.occasion_name(ev.event_occasion), when]
-		)
+		lines.append("Day %d · %s (%s)" % [held, Enums.occasion_name(ev.event_occasion), when])
 	lines.append("Best dressed makes the paper: fine work, on trend.")
 	return "\n".join(lines)
 

@@ -257,8 +257,6 @@ func _update_status() -> void:
 		_set_status("Too hot — move the iron on!", Style.AMBER)
 		return
 	var tip := "%d of %d smooth" % [_smooth_count(), _at.size()]
-	if OS.is_debug_build():
-		tip += "   ·   F2 skip"
 	_set_status(tip, Style.INK_SOFT)
 
 

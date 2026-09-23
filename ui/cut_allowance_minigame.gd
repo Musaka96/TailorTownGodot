@@ -322,8 +322,6 @@ func _update_status() -> void:
 	if _moving and _pivot_t <= 0.0 and WARNINGS.has(_zone):
 		tip = "%s   ·   %s" % [WARNINGS[_zone], tip]
 		col = _zone_status_color(_zone)
-	if OS.is_debug_build():
-		tip += "   ·   F2 skip"
 	_set_status(tip, col)
 
 

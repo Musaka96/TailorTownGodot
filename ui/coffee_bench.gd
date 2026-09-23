@@ -286,8 +286,6 @@ func _update_status() -> void:
 	var tip: String = BEAT_NAME[_kind()]
 	if _beat_list.size() > 1:
 		tip += "   ·   step %d of %d" % [_beat + 1, _beat_list.size()]
-	if OS.is_debug_build():
-		tip += "   ·   F2 skip"
 	_set_status(tip, Style.INK_SOFT)
 
 

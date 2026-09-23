@@ -652,8 +652,6 @@ func _rebuild_hint_bar() -> void:
 	else:
 		pairs.append(["E", "Ask"])
 	pairs.append([_key_name("handbook"), "Handbook"])
-	if OS.is_debug_build():
-		pairs.append(["F2", "Auto-fit"])
 	pairs.append(["Esc", "Close"])
 	var bar := Style.hint_bar(pairs)
 	_hint_bar.add_child(bar)

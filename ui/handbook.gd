@@ -52,6 +52,8 @@ var _head: TitleBlock
 
 
 func _ready() -> void:
+	# Above every menu it can open over: their swatches lift themselves with z_index 1.
+	z_index = 4
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 

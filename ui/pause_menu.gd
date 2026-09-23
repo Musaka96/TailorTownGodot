@@ -13,6 +13,8 @@ var _controls: ControlsScreen = null  # the controls sheet, while it is up
 
 
 func _ready() -> void:
+	# Above every menu it can open over: their swatches lift themselves with z_index 1.
+	z_index = 4
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false

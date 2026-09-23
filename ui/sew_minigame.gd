@@ -283,8 +283,6 @@ func _update_status() -> void:
 		if j != Stitch.PENDING:
 			done += 1
 	var tip := "Tap as the needle meets each stitch   ·   %d/%d" % [done, _pts.size()]
-	if OS.is_debug_build():
-		tip += "   ·   F2 skip"
 	_set_status(tip, Style.INK_SOFT)
 
 

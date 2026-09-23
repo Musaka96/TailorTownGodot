@@ -214,8 +214,6 @@ func _update_status() -> void:
 	var pct := int(_cum[_idx] / _total * 100.0)
 	if not _charging:
 		var tip := "Strokes %d   ·   %d%% cut" % [_strokes, pct]
-		if OS.is_debug_build():
-			tip += "   ·   F2 skip"
 		_set_status(tip, Style.INK_SOFT)
 		return
 	var arc := _cum[_ghost_idx] - _cum[_idx]
