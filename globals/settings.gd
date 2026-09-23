@@ -77,7 +77,14 @@ var resolution := Vector2i(1280, 720)
 var vsync := true
 var antialiasing := 3  # index into ANTIALIASING
 ## Interface size per UiScale category (menus / hud / prompts / dialogue).
-var ui_scale := {"menus": 1.0, "hud": 1.0, "prompts": 1.0, "dialogue": 1.0}
+## The owner's pick after playing with the sliders: 80% across the board.
+const UI_SCALE_DEFAULT := 0.8
+var ui_scale := {
+	"menus": UI_SCALE_DEFAULT,
+	"hud": UI_SCALE_DEFAULT,
+	"prompts": UI_SCALE_DEFAULT,
+	"dialogue": UI_SCALE_DEFAULT,
+}
 
 var _bindings := {}  # action -> encoded event dict (only actions the player changed)
 
@@ -143,9 +150,9 @@ func set_ui_scale(cat: String, value: float) -> void:
 	save()
 
 
-## The size for a UiScale category (1.0 for an unknown one).
+## The size for a UiScale category (the default for an unknown one).
 func ui_scale_of(cat: String) -> float:
-	return float(ui_scale.get(cat, 1.0))
+	return float(ui_scale.get(cat, UI_SCALE_DEFAULT))
 
 
 # --- Audio -----------------------------------------------------------------

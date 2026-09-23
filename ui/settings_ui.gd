@@ -111,15 +111,15 @@ static func _add_sizes(col: VBoxContainer) -> void:
 		)
 		col.add_child(row)
 		sliders.append(row.get_child(1) as HSlider)
-	var reset := MenuKit.button("Reset to 100%", func() -> void: _reset_sizes(sliders))
+	var reset := MenuKit.button("Reset to default", func() -> void: _reset_sizes(sliders))
 	reset.custom_minimum_size = Vector2(0, 40)
 	col.add_child(reset)
 
 
-## Each slider back to 100%; moving it applies the size and updates its percentage.
+## Each slider back to the default; moving it applies the size and updates its percentage.
 static func _reset_sizes(sliders: Array[HSlider]) -> void:
 	for s in sliders:
-		s.value = 1.0
+		s.value = Settings.UI_SCALE_DEFAULT
 
 
 static func _check(label: String, on: bool, setter: Callable) -> HBoxContainer:
