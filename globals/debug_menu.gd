@@ -32,12 +32,15 @@ var _upg_boxes := {}  # upgrade id -> CheckBox
 var _reno_panel: PanelContainer
 var _reno_status: Label
 var _reno_boxes := {}  # project id -> CheckBox
+var _review: Node  # the Sound Review panel (F7)
 
 
 func _ready() -> void:
 	if not OS.is_debug_build():
 		return
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_review = load("res://globals/sound_review.gd").new()
+	add_child(_review)
 	_build()
 	EventBus.money_changed.connect(func(_m: int) -> void: _refresh_money())
 	Upgrades.changed.connect(_refresh_upgrades)
@@ -603,6 +606,7 @@ func _build() -> void:
 	_main_box = box
 
 	_heading(box, "DEBUG  ·  F3 to close")
+	_button(_row(box), "Sound review (F7)", _review.toggle)
 
 	var money := _section(box, "Money")
 	_money_label = _make_label("", 16, LABEL)
