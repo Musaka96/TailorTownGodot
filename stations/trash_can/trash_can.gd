@@ -57,7 +57,7 @@ static func _made_share(value: int) -> int:
 
 func get_interaction_prompt(actor) -> String:
 	if actor.carry.is_empty():
-		return "Recycling bin — carry something to recycle"
+		return "Recycling bin — drop cloth in, get a little money back"
 	return "Recycle for $%d" % scrap_value(actor.carry.get_held())
 
 
