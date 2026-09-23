@@ -136,10 +136,19 @@ func _dressing() -> void:
 			Vector3(-7.8, 0, 6.9),
 			Vector3(-5.9, 0, 6.5),
 		],
+		# Along the plinth of the street front (outer face at ZF + T / 2), one cluster under
+		# each boarded window and at each corner, none on the door's path.
+		"front_weeds":
+		[
+			Vector3(-3.7, 0, 8.65),
+			Vector3(-1.35, 0, 8.7),
+			Vector3(2.3, 0, 8.7),
+			Vector3(5.0, 0, 8.65),
+			Vector3(7.3, 0, 8.6),
+		],
 	}
 	var holder := _group("Spots")
 	_boarded_windows(holder)
-	_facade_weeds()
 	for project: String in spots:
 		var group := Node3D.new()
 		group.name = project
@@ -162,6 +171,8 @@ func _dressing() -> void:
 						dice.randf_range(-0.4, 0.4), 0, dice.randf_range(-0.35, 0.35)
 					)
 					_weed_clump(spot, "Clump%d" % k, root, dice, 1.4)
+			elif project == "front_weeds":
+				_plinth_weeds(spot, i, dice)
 			else:
 				_rubble_heap(spot, dice)
 			i += 1
@@ -233,15 +244,16 @@ func _board_up(spot: Node3D, which: int) -> void:
 	brace.name = "Brace"
 
 
-## Weeds that have come up along the front while the shop stood shut.
-func _facade_weeds() -> void:
-	var group := _group("Facade")
-	var dice := RandomNumberGenerator.new()
-	dice.seed = 8801
-	for clump in 22:
-		var at := Vector3(X0 + dice.randf_range(0.2, 11.6), 0.0, ZF + 0.35)
-		at.z += dice.randf_range(-0.12, 0.12)
-		_weed_clump(group, "Weed%d" % clump, at, dice, 1.0)
+## Weeds that have come up along the plinth while the shop stood shut: a few clumps hugging
+## the wall, and at the two corners (spots 0 and 4) one more round beside the side wall.
+func _plinth_weeds(spot: Node3D, which: int, dice: RandomNumberGenerator) -> void:
+	var corner := which == 0 or which == 4
+	for k in 3:
+		var root := Vector3(dice.randf_range(-0.45, 0.5), 0, dice.randf_range(0.0, 0.3))
+		_weed_clump(spot, "Clump%d" % k, root, dice, dice.randf_range(0.6, 1.0))
+	if corner:
+		var round_corner := Vector3(-0.75, 0, -0.15) if which == 0 else Vector3(0.55, 0, -0.2)
+		_weed_clump(spot, "Clump3", round_corner, dice, dice.randf_range(0.6, 1.0))
 
 
 ## A clump of weed blades at `at` under `parent`; `scale` > 1 for the rank garden kind.

@@ -57,7 +57,6 @@ const PROJECTS := {
 		"room": "front",
 		"kind": Kind.CLEANUP,
 		"spots": 3,
-		"needs": ["front_sheets"],
 		"desc": "Years of dust and a few dead leaves. A broom does wonders.",
 		"appeal": 1,
 	},
@@ -67,7 +66,6 @@ const PROJECTS := {
 		"room": "front",
 		"kind": Kind.CLEANUP,
 		"spots": 3,
-		"needs": ["front_sweep"],
 		"desc": "Somebody boarded the shop up years ago. Let the daylight back in.",
 		"appeal": 2,
 	},
@@ -77,7 +75,6 @@ const PROJECTS := {
 		"room": "front",
 		"kind": Kind.CLEANUP,
 		"spots": 3,
-		"needs": ["front_boards"],
 		"desc": "Crates and wet newspaper against the door. Nobody walks into a shop past that.",
 		"appeal": 1,
 	},
@@ -87,8 +84,16 @@ const PROJECTS := {
 		"room": "front",
 		"kind": Kind.CLEANUP,
 		"spots": 4,
-		"needs": ["yard_rubbish"],
 		"desc": "Docks and thistles up to the knee. The cherry is still under there somewhere.",
+		"appeal": 1,
+	},
+	"front_weeds":
+	{
+		"name": "Weed the shop front",
+		"room": "front",
+		"kind": Kind.CLEANUP,
+		"spots": 5,
+		"desc": "They have come up along the plinth and round the step. Out by the roots.",
 		"appeal": 1,
 	},
 	"front_window":
@@ -128,7 +133,8 @@ const PROJECTS := {
 		"kind": Kind.BUILD,
 		"cost": 560,
 		"needs": ["front_window"],
-		"desc": "Weeds out, paintwork back, THIMBLE bright over the door again.",
+		"desc":
+		"Fresh paint from corner to corner, and the sign gone over while they are up there.",
 		"appeal": 4,
 	},
 	"workroom_build":

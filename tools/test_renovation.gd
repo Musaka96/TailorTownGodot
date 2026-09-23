@@ -94,11 +94,22 @@ func _fresh() -> void:
 
 
 func _gating() -> void:
-	_check(_reno.available("front_sheets"), "dust sheets can be pulled off at once")
-	_check(not _reno.available("front_sweep"), "sweeping waits for the sheets (needs)")
+	# The hand jobs wait for nothing: any of them can be done first (owner, 2026-09-23).
+	for id: String in _reno.all_ids():
+		if int(_reno.data(id).get("kind", -1)) != int(_reno.Kind.CLEANUP):
+			continue
+		_check(_reno.needs_met(id), "%s: a hand job waits for nothing" % id)
+		_check(_reno.available(id), "%s: can be done from the first morning" % id)
+	var weeds := _node("GrandpaShell/Spots/front_weeds/Spot0").get_node("Work")
+	_check(
+		weeds.get_interaction_prompt(null) == "Pull the weeds",
+		"day 1: the weeds along the shop front can be pulled"
+	)
 	_check(not _reno.available("workroom_build"), "workroom_build waits for the front room")
 	_check(not _reno.needs_met("workroom_build"), "…the front room is tidied first")
 	_check(not _reno.available("cloth_build"), "the cloth store waits for the workroom's build")
+	_check(not _reno.available("nook_build"), "the nook waits for the front room to be swept")
+	_check(not _reno.available("front_window"), "no glazier while the boards are still up")
 	_check(not _reno.available("no_such_project"), "an unknown project is never available")
 	_check(not _reno.clear_spot("front_window"), "building work can't be done by hand")
 	_sections_ended += 1
@@ -119,7 +130,6 @@ func _by_hand() -> void:
 	_check(_usable("ClothingRack") and _usable("SewingMachine"), "every sheeted station is usable")
 	_check(not _node("ClothingRack/DustSheet").visible, "the sheets are gone")
 	_check(_usable("Mirror"), "the mirror is never sheeted: customers can be measured at once")
-	_check(_reno.available("front_sweep"), "now the floor can be swept")
 	_reno.clear_spot("front_sweep")
 	var piles := _node("GrandpaShell/Spots/front_sweep").get_children()
 	var hidden := 0
@@ -133,11 +143,17 @@ func _by_hand() -> void:
 		_reno.available("workroom_build"),
 		"front room swept: now the builders can be sent in (no reputation needed)"
 	)
-	_check(_reno.available("front_boards"), "…and the shop windows can be unboarded")
-	_check(not _reno.can_order("front_window"), "no glazier while the boards are still up")
+	_check(not _reno.available("front_window"), "…but still no glazier: the boards are up")
 	for _i in 3:
 		_reno.clear_spot("front_boards")
 	_check(_reno.is_done("front_boards"), "all three windows unboarded")
+	_check(_reno.available("front_window"), "boards off: now the glazier can come")
+	_check(int(_reno.data("front_weeds").get("spots", 0)) == 5, "front_weeds has five spots")
+	var pulled := 0
+	for _i in 5:
+		pulled += 1 if _reno.clear_spot("front_weeds") else 0
+	_check(pulled == 5, "all five clumps of front weeds pulled by hand")
+	_check(_reno.is_done("front_weeds"), "…and the shop front is weeded")
 	_check(_reno.available("nook_build"), "the nook can also be tackled: the front room gates it")
 	_game.money = 100000
 	_check(

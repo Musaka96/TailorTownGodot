@@ -33,6 +33,7 @@ const MESS_PROJECTS := [
 	"front_boards",
 	"yard_rubbish",
 	"yard_weeds",
+	"front_weeds",
 ]
 ## Rubble in the back rooms (Spots/<holder>): only seen through the doorway now, and carried
 ## out by the builders with the rest of the room's job. holder -> room.
@@ -45,7 +46,11 @@ const ROOM_MESS := {
 ## Spots that are boards over a window rather than a heap: they are prised off, not scooped.
 const BOARDED_SPOTS := ["front_boards"]
 ## What the prompt says at a spot, when it isn't the heap's "Clear this away".
-const SPOT_VERBS := {"yard_rubbish": "Clear the rubbish", "yard_weeds": "Pull the weeds"}
+const SPOT_VERBS := {
+	"yard_rubbish": "Clear the rubbish",
+	"yard_weeds": "Pull the weeds",
+	"front_weeds": "Pull the weeds",
+}
 ## The dust-sheet project and the stations sleeping under a sheet.
 const SHEETS_PROJECT := "front_sheets"
 ## (Not the tri-fold mirror: it is 2.5 m tall, and under a sheet it was a white wall
@@ -303,12 +308,13 @@ func _apply_spots(project: String) -> void:
 	var gone := int(Renovation.data(project).get("spots", 0))
 	if not Renovation.is_done(project):
 		gone = Renovation.spots_cleared(project)
-	var live := Renovation.available(project)
 	var i := 0
 	for spot in holder.get_children():
 		var there := i >= gone
 		_show(spot, there)
-		_set_interactable(spot, there and live)
+		# Still there means still pressable: a job that isn't open yet says why (work_prompt)
+		# rather than going quiet, and do_work turns it down.
+		_set_interactable(spot, there)
 		i += 1
 
 
@@ -378,7 +384,8 @@ func work_prompt(project: String, verb: String) -> String:
 	if Renovation.available(project):
 		return verb
 	if not Renovation.needs_met(project):
-		return "Not yet — %s first" % _first_need(project)
+		var need := _first_need(project)
+		return "Not yet. %s first." % (need.left(1).to_upper() + need.substr(1))
 	return ""
 
 
@@ -1016,8 +1023,8 @@ func _papered(room: String) -> bool:
 	return Renovation.room_state(room) == Renovation.RoomState.DONE
 
 
-## The street front: years of dirt over the paintwork and the sign, and weeds along the
-## plinth, until the front is repainted.
+## The street front: years of dirt over the paintwork and the sign until the front is
+## repainted. (The weeds along the plinth are a hand job of their own: front_weeds.)
 func _build_facade() -> void:
 	var front := _shell.get_node_or_null("Body/Floor_front") as MeshInstance3D
 	var nook := _shell.get_node_or_null("Body/Floor_nook") as MeshInstance3D
@@ -1040,12 +1047,9 @@ func _build_facade() -> void:
 	_forecourt = _plot_props(out_front)
 
 
-## Grime lifts, the weeds go, and the flowers come back out, all with the repaint.
+## Grime lifts and the flowers come back out, both with the repaint.
 func _apply_facade() -> void:
 	var done := Renovation.is_done(FACADE_JOB)
-	var weeds := _shell.get_node_or_null("Facade")
-	if weeds is Node3D:
-		(weeds as Node3D).visible = not done
 	for prop: MeshInstance3D in _forecourt:
 		prop.visible = done
 	for dirt: Decal in _facade:
