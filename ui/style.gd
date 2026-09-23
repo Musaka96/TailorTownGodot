@@ -13,6 +13,7 @@ enum MenuSkin { ORDER, BOOK, SHELF, MIRROR, WORK, ORDERS }
 
 const _FONT := preload("res://assets/fonts/Fredoka.ttf")
 const _DISPLAY := preload("res://assets/fonts/Fraunces.ttf")
+const _HAND := preload("res://assets/fonts/Caveat.ttf")
 
 # Type scale — the only font sizes a screen may use (style guide §2).
 const T_MICRO := 12  # badges, folio, tape numerals
@@ -21,6 +22,10 @@ const T_BODY := 16  # body copy, row labels
 const T_VALUE := 18  # row values, buttons, section headers
 const T_NAME := 21  # card / item names
 const T_TITLE := 28  # screen titles
+## Handwriting runs larger than the sans (small x-height): the tailor's notes and
+## the customer's quoted words on the fitting notepad.
+const T_HAND := 26
+const T_HAND_SMALL := 24
 const T_HERO := 46  # day card, wordmark base
 
 # Variable-font weights. Fredoka runs 300–700 and its default instance is Light, so
@@ -131,6 +136,12 @@ static func font_caps() -> FontVariation:
 ## body, rows, values or prompts.
 static func font_display() -> FontVariation:
 	return _face("display", _DISPLAY, {"wght": W_DISPLAY, "SOFT": 100, "opsz": 72, "WONK": 0})
+
+
+## Handwriting (Caveat, medium weight) — the fitting notepad and other pencil notes.
+## Never for rows, values, prompts or anything the player must scan fast.
+static func font_hand() -> FontVariation:
+	return _face("hand", _HAND, {"wght": 500})
 
 
 ## Kept for callers from before the type scale: the real bold cut.
