@@ -819,14 +819,19 @@ func _paint_pattern(c: Control, area: Rect2, clip: PackedVector2Array) -> void:
 		y += step
 
 
+## One stripe. Clipped, it is cut as a band (not a centreline drawn wide), so its end
+## follows the piece's edge instead of stepping square across it at every check.
 func _thread(
 	c: Control, a: Vector2, b: Vector2, clip: PackedVector2Array, col: Color, width: float
 ) -> void:
 	if clip.is_empty():
 		c.draw_line(a, b, col, width)
 		return
-	for part in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([a, b]), clip):
-		c.draw_polyline(part, col, width)
+	var n := (b - a).normalized().orthogonal() * width * 0.5
+	var band := PackedVector2Array([a + n, b + n, b - n, a - n])
+	for part in Geometry2D.intersect_polygons(band, clip):
+		if not Geometry2D.triangulate_polygon(part).is_empty():  # skip hairline slivers
+			c.draw_colored_polygon(part, col)
 
 
 ## The folded edge: a soft rounded crease, darker than the cloth.
@@ -929,11 +934,14 @@ func _paint_piece(c: Control) -> void:
 
 
 func _paint_piece_part(c: Control, poly: PackedVector2Array, fill: Color) -> void:
-	Craft.card(c, poly, fill, _cloth.darkened(0.4), 2.0)
+	var edge := _cloth.darkened(0.4)
+	Craft.card(c, poly, fill, edge, 2.0)
 	var box := Rect2(poly[0], Vector2.ZERO)
 	for p in poly:
 		box = box.expand(p)
 	_paint_pattern(c, box, poly)
+	# The edge again over the pattern, so the stripes end under a clean antialiased line.
+	Craft.outline(c, poly, edge, 2.0)
 
 
 # --- Shears (upright, over the world) --------------------------------------
