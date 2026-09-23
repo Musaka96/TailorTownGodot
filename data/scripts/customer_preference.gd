@@ -65,6 +65,10 @@ const FIRST_NAMES := [
 ]
 
 @export var display_name: String = "Customer"
+## Their body: MALE or FEMALE, the one decision the name and the figure both follow. A
+## "Mr." is a man and a "Ms." a woman; a "Dr." could be either. ANY until settled
+## (settle_gender), which the CustomerManager does before it dresses them.
+@export var gender: Enums.Gender = Enums.Gender.ANY
 @export var occasion: Enums.Occasion = Enums.Occasion.BUSINESS
 @export var style: Enums.Style = Enums.Style.CLASSIC
 ## Most they'll pay for the whole suit.
@@ -100,10 +104,14 @@ var _asks := 0
 
 ## A random shopper's brief: an occasion, a style, and a budget for the shop's current
 ## reputation tier. `regular` (a name from Clientele) makes it a returning regular,
-## whose loyalty raises the budget; otherwise the name avoids known regulars.
-static func random_pref(rng: RandomNumberGenerator, regular := "") -> CustomerPreference:
+## whose loyalty raises the budget; otherwise the name avoids known regulars. `body`
+## names someone who already has a figure (a passer-by talked inside) to match it.
+static func random_pref(
+	rng: RandomNumberGenerator, regular := "", body := Enums.Gender.ANY
+) -> CustomerPreference:
 	var p := CustomerPreference.new()
-	p.display_name = regular if regular != "" else _fresh_name(rng)
+	p.display_name = regular if regular != "" else _fresh_name(rng, body)
+	p.gender = body
 	p.occasion = rng.randi() % Enums.Occasion.size()
 	p.style = rng.randi() % Enums.Style.size()
 	p.budget = Pricing.random_budget(rng)
@@ -225,12 +233,53 @@ func likes_met(design: Dictionary) -> bool:
 	return int(spec.get("color", -1)) == likes_color
 
 
-static func _fresh_name(rng: RandomNumberGenerator) -> String:
+## MALE for a "Mr.", FEMALE for a "Ms.", "Mrs." or "Miss", ANY for a title that says
+## neither ("Dr.").
+static func title_gender(nm: String) -> int:
+	if nm.begins_with("Mr. ") or nm.begins_with("Mr "):
+		return Enums.Gender.MALE
+	for t: String in ["Ms. ", "Mrs. ", "Miss ", "Ms ", "Mrs "]:
+		if nm.begins_with(t):
+			return Enums.Gender.FEMALE
+	return Enums.Gender.ANY
+
+
+## Pin down their body if it isn't yet, and return it: the title decides ("Mr." / "Ms.");
+## a "Dr." keeps what they were (as remembered by Clientele), or a coin toss the first
+## time. A gender that contradicts the title (an old save) gives way to the title.
+func settle_gender(rng: RandomNumberGenerator) -> int:
+	var by_title := title_gender(display_name)
+	if by_title != Enums.Gender.ANY:
+		gender = by_title as Enums.Gender
+	elif gender == Enums.Gender.ANY:
+		var seen := int(Clientele.look(display_name).get("gender", 0)) if Clientele != null else 0
+		if seen == Enums.Gender.MALE or seen == Enums.Gender.FEMALE:
+			gender = seen as Enums.Gender
+		else:
+			gender = Enums.Gender.MALE if rng.randf() < 0.5 else Enums.Gender.FEMALE
+	return gender
+
+
+## Whether to call them "she" (e.g. "She'll take it"), from the settled gender or, if it
+## isn't settled, the title.
+func is_female() -> bool:
+	if gender == Enums.Gender.ANY:
+		return title_gender(display_name) == Enums.Gender.FEMALE
+	return gender == Enums.Gender.FEMALE
+
+
+## A name nobody in Clientele already has, whose title fits `body` (ANY = any title).
+static func _fresh_name(rng: RandomNumberGenerator, body := Enums.Gender.ANY) -> String:
+	var pool: Array = FIRST_NAMES
+	if body != Enums.Gender.ANY:
+		pool = FIRST_NAMES.filter(
+			func(nm: String) -> bool: return title_gender(nm) in [body, Enums.Gender.ANY]
+		)
 	for _i in 12:
-		var nm: String = FIRST_NAMES[rng.randi() % FIRST_NAMES.size()]
+		var nm: String = pool[rng.randi() % pool.size()]
 		if Clientele == null or not Clientele.is_known(nm):
 			return nm
-	return FIRST_NAMES[rng.randi() % FIRST_NAMES.size()]
+	return pool[rng.randi() % pool.size()]
 
 
 ## "Mr. Okafor" or "Mr. Okafor ★2" for a regular.

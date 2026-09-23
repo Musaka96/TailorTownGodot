@@ -315,6 +315,7 @@ func book_appointment(cust: Node) -> int:
 		. append(
 			{
 				"name": pref.display_name,
+				"gender": int(pref.gender),
 				"day": day,
 				"at": _rng.randf_range(0.08, 0.3),
 				"occasion": int(pref.occasion),

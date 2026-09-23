@@ -631,12 +631,10 @@ func _show_total(working: String, total: int, over: bool) -> void:
 	_total_slot.add_child(Style.total_bar(working, "Quote", total, col, note))
 
 
-## Whether the customer at the mirror is a woman (for "She'll take it").
+## Whether the customer at the mirror is a woman (for "She'll take it"), by their brief:
+## the name's title and the body both follow CustomerPreference.gender.
 func _she() -> bool:
-	if _customer == null or not is_instance_valid(_customer):
-		return false
-	var gender: Variant = _customer.get("gender")
-	return gender != null and int(gender) == Enums.Gender.FEMALE
+	return _pref != null and _pref.is_female()
 
 
 ## Rebuild the key-cap bar — the confirm verb and the debug auto-fit key vary.

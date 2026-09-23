@@ -140,10 +140,9 @@ func _street_end() -> Vector3:
 func spawn_tutorial_customer() -> void:
 	if busy() or _greet == Vector3.ZERO:
 		return
-	var cust := _spawn(_greet, true)
-	# The tutorial teaches a fixed, premade brief so it can spell out exactly what to make.
-	if Tutorial != null and Tutorial.is_active() and Tutorial.has_method("tutorial_pref"):
-		cust.preference = Tutorial.tutorial_pref()
+	# The tutorial teaches a fixed, premade brief so it can spell out exactly what to make
+	# (_spawn gives them it before dressing them, so the body fits the name).
+	var cust := _spawn(_greet, true, {"kind": "tutorial"})
 	_served = cust
 	# Hide them inside a magic cloud, then reveal once it's billowed up — so the player never
 	# sees the figure pop into existence.
@@ -210,7 +209,7 @@ func hold_for(cust: Customer) -> bool:
 ## A passer-by agreed to come in (StreetPitch): give them a brief like any walk-in and
 ## bring them to the counter to be greeted.
 func invite_in(cust: Customer) -> void:
-	cust.preference = CustomerPreference.random_pref(_rng, "")
+	cust.preference = CustomerPreference.random_pref(_rng, "", cust.gender)  # named to fit
 	var biased := _apply_event_bias(cust.preference)
 	FrontDesk.season_brief(cust.preference)
 	_briefs.shape(cust.preference, _rng, "", biased)
@@ -266,11 +265,12 @@ func _on_order_due(order: SuitOrder) -> void:
 	cust.collect_order = order
 	var known: Dictionary = Clientele.look(order.customer_name) if Clientele != null else {}
 	if known.is_empty():
-		cust.apply_look(order.skin)
+		# Head and hair are one combo (same index), so the hair gives back the head too.
+		cust.apply_look(order.skin, "", "", order.hair_index)
 		cust.set_hair(order.hair_index)  # match the customer who ordered
 		cust.set_hair_color(order.hair_color)
 	else:
-		_dress_as(cust, known)
+		_dress_as(cust, known, order.customer_name)
 	cust.walk([_door_out, _door_in, _collect_spot()], func() -> void: _on_collector_arrived(cust))
 
 
@@ -315,6 +315,8 @@ func _spawn(pos: Vector3, with_pref: bool, arrival := {}) -> Customer:
 				if Clientele.is_known(cust.preference.display_name)
 				else ""
 			)
+		elif kind == "tutorial" and Tutorial != null and Tutorial.is_active():
+			cust.preference = Tutorial.tutorial_pref()
 		else:
 			regular = _maybe_regular() if kind == "walk_in" else ""
 			cust.preference = CustomerPreference.random_pref(_rng, regular)
@@ -326,7 +328,7 @@ func _spawn(pos: Vector3, with_pref: bool, arrival := {}) -> Customer:
 				UI.toast("%s sent a customer your way!" % FrontDesk.RIVAL_NAME)
 	_dress(cust)
 	if regular != "":
-		_dress_as(cust, Clientele.look(regular))
+		_dress_as(cust, Clientele.look(regular), regular)
 	cust.departed.connect(_on_departed)
 	_alive += 1
 	return cust
@@ -361,6 +363,8 @@ func _maybe_regular() -> String:
 func _pref_from_appointment(a: Dictionary) -> CustomerPreference:
 	var p := CustomerPreference.new()
 	p.display_name = str(a.get("name", "Customer"))
+	# Older saves have no gender: settle_gender takes it from the title.
+	p.gender = int(a.get("gender", Enums.Gender.ANY)) as Enums.Gender
 	p.occasion = int(a.get("occasion", 0))
 	p.style = int(a.get("style", 0))
 	p.budget = int(a.get("budget", 400))
@@ -378,23 +382,40 @@ func _pref_from_appointment(a: Dictionary) -> CustomerPreference:
 	return p
 
 
-## Re-apply a remembered face (Clientele look) so a regular looks like themselves.
-func _dress_as(cust: Customer, look: Dictionary) -> void:
+## Re-apply a remembered face (Clientele look) so a regular looks like themselves. The
+## body stays the one their brief settled on (or, for a collector, the one `nm`'s title
+## says): a look saved on the other body (older saves let "Mr." and the figure disagree)
+## keeps its colouring but gets a head that fits, the same one every visit.
+func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 	if look.is_empty():
 		return
-	cust.gender = look.get("gender", cust.gender)
+	var want: int = cust.gender if cust.preference != null else CustomerPreference.title_gender(nm)
+	var head := int(look.get("head", 0))
+	var hair := int(look.get("hair", 0))
+	if want == Enums.Gender.ANY:
+		want = int(look.get("gender", cust.gender))
+	elif int(look.get("gender", want)) != want:
+		var seeded := RandomNumberGenerator.new()
+		seeded.seed = nm.hash()
+		head = maxi(0, Wardrobe.random_head_index(want, seeded))
+		hair = head
+	cust.gender = want as Enums.Gender
 	cust.apply_look(
 		look.get("skin", cust.skin_color),
 		str(look.get("eyes", "brown")),
 		str(look.get("glasses", "")),
-		int(look.get("head", 0))
+		head
 	)
-	cust.set_hair(int(look.get("hair", 0)))
+	cust.set_hair(hair)
 	cust.set_hair_color(look.get("hair_color", cust.hair_color))
 
 
+## A fresh face and street clothes. Someone with a brief gets the body it settles on
+## (CustomerPreference.settle_gender), so the name and the figure always agree.
 func _dress(cust: Customer) -> void:
 	var gender := Enums.Gender.MALE if _rng.randf() < 0.5 else Enums.Gender.FEMALE
+	if cust.preference != null:
+		gender = cust.preference.settle_gender(_rng) as Enums.Gender
 	cust.gender = gender
 	var eye: String = CharacterRig.EYE_COLORS[_rng.randi() % CharacterRig.EYE_COLORS.size()]
 	var glasses := ""
