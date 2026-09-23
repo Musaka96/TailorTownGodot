@@ -9,7 +9,7 @@ extends SceneTree
 ## short cues that have to land the instant you press, which the shipped stitch.wav could
 ## not do — it is two seconds long and all but silent, so every tap felt dead. Three cues,
 ## so the seam answers differently depending on how well you caught it:
-##   sew_stitch_good     a needle punching cloth
+##   sew_stitch_good     a needle punching cloth over a short muted note
 ##   sew_stitch_perfect  the same punch with a bright little ring on top
 ##   sew_tap             a dry click for a press that lands on nothing
 ##
@@ -36,7 +36,7 @@ func _initialize() -> void:
 ## The needle going through: a click as it pierces, a short body as the bar drives down, and
 ## the thread being drawn after it. `bright` adds the ring that says the stitch was perfect.
 func _punch(bright: bool) -> PackedFloat32Array:
-	var n := int((0.17 if bright else 0.09) * RATE)
+	var n := int((0.17 if bright else 0.15) * RATE)
 	var out := PackedFloat32Array()
 	out.resize(n)
 	var pierce := AudioSynth.poles()
@@ -51,7 +51,20 @@ func _punch(bright: bool) -> PackedFloat32Array:
 		out[i] = bar + point + draw
 	if bright:
 		_ring(out)
+	else:
+		_reward(out)
 	return out
+
+
+## Under a good stitch: a short muted wooden note, so it reads as "nice" but stays well below
+## the perfect stitch's bright ring.
+func _reward(out: PackedFloat32Array) -> void:
+	var poles := AudioSynth.poles()
+	for i in out.size():
+		var t := float(i) / RATE
+		var note := sin(TAU * 660.0 * t) + sin(TAU * 1320.0 * t) * exp(-t * 60.0) * 0.2
+		note *= minf(1.0, t * 300.0) * exp(-t * 32.0) * 0.28
+		out[i] += AudioSynth.muffle(poles, note, 3000.0, RATE)
 
 
 ## A small bell over the punch — two partials a fifth-ish apart, ringing out gently.

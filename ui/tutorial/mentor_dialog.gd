@@ -105,7 +105,7 @@ func _process(delta: float) -> void:
 		if ch.strip_edges() != "":
 			_letters += 1
 			if _letters % BLIP_EVERY == 0:
-				Sfx.play_single("mentor_blip", -8.0, 0.9, 1.15)
+				Sfx.play_single("mentor_blip", -13.0, 0.9, 1.15)
 				_portrait.syllable()  # lips move with each blip
 		if PAUSES.has(ch):
 			_hold = PAUSES[ch]

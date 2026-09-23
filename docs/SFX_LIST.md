@@ -20,6 +20,18 @@ clipboard.
 | 3 | 2026-09-18 → 22 | **GDScript sound design**: `tools/audio_synth.gd` + one `build_*_audio.gd` per group, deterministic seeds | curtain_*, scissors_glide_loop, sew_stitch_*, sew_tap, steam_hiss, coffee_pour, iron_glide_loop, scorch, grinder_loop, tamp, pour_loop, juice_*, reno_scoop/tumble/whip/creak/clatter/tick/done/open, reno_poof, sign_* | 44.1 kHz mono, every file peaks at −1.4 dB, 1 ms/6 ms end fades, layered voices, filtered noise, notes on a scale |
 | 3b | 2026-09-22 | Stable Audio Open, three takes per sound auditioned, best kept (`.dev/reno_audio_alts/`) | reno_knock, reno_hammer, reno_saw, reno_drill, reno_roller, reno_reveal | −3 dB peak, clean fades |
 
+**2026-09-23 rebuild (after the first F7 review, `SFX_REVIEW_2026-09-23.md`):**
+every sound rated below 4 moved to generation 3. New builders
+`tools/build_world_audio.gd` (new_order_ping, footsteps, door_open/close,
+cloth_rustle, error, happy, phone_order, tape) and `tools/build_mentor_audio.gd`
+(mentor_blip_1-5, a mumble instead of a beep); retuned recipes in the cut,
+sewing, comfort, juice, renovation, curtain and menu builders (scissors_glide,
+sew_stitch_good, pour_loop, juice_stamp, reno_tick, reno_open, curtain_*,
+sign_drop/hoist). Every sibling those builders also make stayed byte-identical.
+Still gen 1/2 and awaiting a rating: door_chime, day_start, day_end,
+ambience_loop, and the 4-rated samples (coins, pins, drawer, chalk, snip,
+scissors_run, page_turn, order_complete, unhappy).
+
 Why generation 3 sounds better, in one paragraph: it is *designed*, not
 *found*. Each sound is a few named voices (a filtered noise band for cloth or
 air, a sine "knock" for wood, a mallet tone with an octave shimmer for sparkle)

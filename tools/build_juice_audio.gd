@@ -9,7 +9,8 @@ extends SceneTree
 ##                up a pentatonic scale as the streak grows — so a clean run is a tune.
 ##   juice_top    the same note with a bright shimmer: the streak has reached the top.
 ##   juice_drop   a gentle two-note fall when a long streak breaks — an "aw", not a buzzer.
-##   juice_stamp  the verdict stamp coming down: a woody thunk with a little ink-pad slap.
+##   juice_stamp  the verdict stamp coming down: a low thump under a woody thunk and a
+##                little ink-pad slap.
 
 const RATE := 44100
 const DIR := "res://assets/audio"
@@ -50,13 +51,18 @@ func _drop() -> PackedFloat32Array:
 func _stamp() -> PackedFloat32Array:
 	var out := _silence(0.4)
 	var poles := AudioSynth.poles()
+	var drum := 0.0
 	for i in out.size():
 		var t := float(i) / RATE
 		var slap := AudioSynth.muffle(poles, _rng.randf_range(-1.0, 1.0), 1600.0, RATE)
 		var body := (
 			sin(TAU * 92.0 * t) * exp(-t * 16.0) + sin(TAU * 184.0 * t) * exp(-t * 34.0) * 0.5
 		)
-		out[i] = body * 0.7 + slap * exp(-t * 55.0) * 0.9
+		# The weight landing: a low thump sweeping 75 -> 45 Hz, and a soft wooden knock.
+		drum += TAU * lerpf(75.0, 45.0, minf(t / 0.12, 1.0)) / RATE
+		var thump := sin(drum) * exp(-t * 14.0) * minf(1.0, t * 600.0)
+		var knock := sin(TAU * 200.0 * t) * exp(-t * 55.0) * minf(1.0, t * 900.0)
+		out[i] = body * 0.5 + slap * exp(-t * 55.0) * 0.7 + thump * 1.1 + knock * 0.3
 	return out
 
 

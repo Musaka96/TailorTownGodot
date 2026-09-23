@@ -28,7 +28,7 @@ const GLIDING := 1.2  # past this the blades are held half-open and the snips gi
 const GLIDE_OPEN_DEG := 11.0  # blade spread while gliding
 const GLIDE_LOOP := "scissors_glide"
 const GLIDE_DB_QUIET := -20.0  # the glide loop fades in from here …
-const GLIDE_DB_FULL := -6.0  # … to here at full glide
+const GLIDE_DB_FULL := -10.0  # … to here at full glide
 ## Push speed is set against a whole garment's outline, so a shorter cut (on the fold)
 ## really is quicker rather than the same time spread thinner.
 const REF_OUTLINE := 5.5

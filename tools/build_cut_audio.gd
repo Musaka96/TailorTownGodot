@@ -37,10 +37,11 @@ func _glide() -> PackedFloat32Array:
 	for i in n + f:
 		var t := float(i) / RATE
 		var noise := _rng.randf_range(-1.0, 1.0)
-		# Cloth parting: noise with its lows taken out (bright minus dull = a soft band).
-		var hiss := AudioSynth.muffle(body, noise, 2600.0, RATE)
-		hiss -= AudioSynth.muffle(low, noise, 500.0, RATE)
-		var fine := AudioSynth.muffle(edge, _rng.randf_range(-1.0, 1.0), 6000.0, RATE)
+		# Cloth parting: noise with most of its lows taken out (bright minus dull = a soft
+		# band). A share of the lows is left in as the blade's body, under the hiss.
+		var hiss := AudioSynth.muffle(body, noise, 1700.0, RATE)
+		hiss -= AudioSynth.muffle(low, noise, 500.0, RATE) * 0.7
+		var fine := AudioSynth.muffle(edge, _rng.randf_range(-1.0, 1.0), 3800.0, RATE)
 		var flutter := 0.75 + 0.25 * sin(TAU * FLUTTER_HZ * t)
 		var shimmer := sin(TAU * 3150.0 * t) * (0.5 + 0.5 * sin(TAU * FLUTTER_HZ * 2.0 * t))
 		buf[i] = hiss * flutter + fine * 0.18 + shimmer * 0.035

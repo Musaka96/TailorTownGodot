@@ -14,9 +14,9 @@ extends SceneTree
 ##   reno_whip     a dust sheet yanked off furniture: an airy whoosh, a cloth flap at the end
 ##   reno_creak    a nail prising out of old wood: a cartoony squeaky creak, then a tiny pop
 ##   reno_clatter  a plank landing on floorboards: a hollow woody knock, then a smaller bounce
-##   reno_tick     the payoff sparkle: one small bright bell tick (pitched per play in code)
+##   reno_tick     the payoff sparkle: one warm marimba tock (pitched per play in code)
 ##   reno_done     project finished: three ascending glockenspiel notes with an octave shimmer
-##   reno_open     a room opens up: a warm soft chord swell with a light airy shimmer on top
+##   reno_open     a room opens up: a four-note mallet run over a soft chord swell
 ##
 ## Seeded, so re-running gives byte-identical files.
 
@@ -140,20 +140,24 @@ func _clatter() -> PackedFloat32Array:
 	return out
 
 
-## The payoff sparkle: one small bright bell tick with inharmonic partials, ringing out fast.
-## Played pitched (up or down a little) per call in code, so this is the canonical pitch.
+## The payoff sparkle: one warm marimba tock: the fundamental with a short 4th partial,
+## muffled, over a tiny wood knock so it is never a bare bell. Played pitched (up or down a
+## little) per call in code, so this is the canonical pitch.
 func _tick() -> PackedFloat32Array:
 	var n := int(0.35 * RATE)
 	var out := PackedFloat32Array()
 	out.resize(n)
+	var bar := AudioSynth.poles()
+	var wood := AudioSynth.poles()
 	for i in n:
 		var t := float(i) / RATE
-		var bell := (
-			sin(TAU * C6 * t) * 0.55
-			+ sin(TAU * C6 * 2.4 * t) * 0.28
-			+ sin(TAU * C6 * 3.8 * t) * 0.17
+		var tone := (
+			sin(TAU * C6 * t) * exp(-t * 17.0) + sin(TAU * C6 * 4.0 * t) * exp(-t * 90.0) * 0.3
 		)
-		out[i] = bell * exp(-t * 16.0)
+		tone = AudioSynth.muffle(bar, tone * minf(1.0, t * 1500.0), 4000.0, RATE)
+		var knock := AudioSynth.muffle(wood, _rng.randf_range(-1.0, 1.0), 1200.0, RATE)
+		knock = knock * exp(-t * 160.0) * 0.9 + sin(TAU * 340.0 * t) * exp(-t * 70.0) * 0.18
+		out[i] = tone + knock
 	return out
 
 
@@ -168,23 +172,29 @@ func _done() -> PackedFloat32Array:
 	return out
 
 
-## A room opens up: a warm soft major chord swell with a slow attack and a gentle decay, and
-## a light airy shimmer riding on top.
+## A room opens up: a four-note mallet run up C5 E5 G5 C6 with an octave shimmer on the
+## top note, over the warm chord swell (kept quiet underneath).
 func _open() -> PackedFloat32Array:
-	var n := int(1.4 * RATE)
+	var n := int(1.3 * RATE)
 	var out := PackedFloat32Array()
 	out.resize(n)
 	var attack := 0.25
 	var chord: Array[float] = [C4, E4, G4, C5]
 	for i in n:
 		var t := float(i) / RATE
-		var env := minf(1.0, t / attack) * exp(-t * 2.8)
+		var env := minf(1.0, t / attack) * exp(-t * 3.2)
 		var pad := 0.0
 		for f: float in chord:
 			pad += sin(TAU * f * t)
 		pad /= chord.size()
-		var shimmer := sin(TAU * 2600.0 * t) * 0.06 * minf(1.0, t / 0.5) * exp(-t * 2.0)
-		out[i] = pad * env * 0.9 + shimmer
+		out[i] = pad * env * 0.35
+	var notes: Array[float] = [C5, E5, G5, C6]
+	for k in notes.size():
+		_mallet(out, 0.06 * k, notes[k], 0.8 + 0.05 * k)
+	_mallet(out, 0.2, C6 * 2.0, 0.25)
+	var poles := AudioSynth.poles()
+	for i in n:
+		out[i] = AudioSynth.muffle(poles, out[i], 4500.0, RATE)
 	return out
 
 
@@ -274,3 +284,17 @@ func _glock(out: PackedFloat32Array, at: float, freq: float, level: float) -> vo
 			+ sin(TAU * freq * 3.8 * t) * exp(-t * 24.0) * 0.16
 		)
 		out[start + i] += tone * level * minf(1.0, t * 700.0)
+
+
+## A felt mallet on a wooden bar (the voice from build_juice_audio.gd): the fundamental, a
+## quick octave, and the bar's bright inharmonic ping that dies almost at once.
+func _mallet(out: PackedFloat32Array, at: float, freq: float, level: float) -> void:
+	var start := int(at * RATE)
+	for i in out.size() - start:
+		var t := float(i) / RATE
+		var tone := (
+			sin(TAU * freq * t) * exp(-t * 7.0)
+			+ sin(TAU * freq * 2.0 * t) * exp(-t * 14.0) * 0.25
+			+ sin(TAU * freq * 3.93 * t) * exp(-t * 38.0) * 0.18
+		)
+		out[start + i] += tone * level * minf(1.0, t * 900.0) * 0.5

@@ -8,7 +8,7 @@ extends SceneTree
 ##   scorch           held too long: a short dry sizzle with a dull thump under it
 ##   grinder_loop     the espresso grinder: a rattly motor hum with beans in it (loops)
 ##   tamp             the tamper pressed home: a soft, woody thud
-##   pour_loop        coffee running into a cup: a warm trickle (loops)
+##   pour_loop        coffee running into a cup: a warm trickle with small bubbles (loops)
 ##
 ## Kept quiet and rounded (cute, not foley) — see the audio notes in docs/SFX_LIST.md.
 ## Seeded, so re-running gives byte-identical files (maths shared via audio_synth.gd).
@@ -108,13 +108,32 @@ func _tamp() -> PackedFloat32Array:
 	return out
 
 
+## Coffee running into the cup: a muffled, steady flow with a few small bubbles rising on
+## it. The bubbles sit clear of the folded tail so each one plays whole on every loop.
 func _trickle(n: int) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	var body := AudioSynth.poles()
 	for i in n:
 		var t := float(i) / RATE
-		var flow := AudioSynth.muffle(body, _rng.randf_range(-1.0, 1.0), 1500.0, RATE)
-		var burble := 0.75 + 0.25 * sin(TAU * 10.0 * t) * sin(TAU * 2.5 * t)
-		out[i] = flow * burble
+		var flow := AudioSynth.muffle(body, _rng.randf_range(-1.0, 1.0), 900.0, RATE)
+		out[i] = flow * (0.9 + 0.1 * sin(TAU * 2.5 * t))
+	var first := XFADE + 0.02
+	var span := float(n) / RATE - XFADE - first - 0.06
+	var count := 5
+	for k in count:
+		var at := first + span * (float(k) + _rng.randf_range(0.1, 0.9)) / count
+		AudioSynth.mix(out, _bubble(_rng.randf_range(0.05, 0.08)), at, RATE)
 	return out
+
+
+## One soft bubble: a short sine chirp rising 300 -> 600 Hz under a rounded window.
+func _bubble(level: float) -> PackedFloat32Array:
+	var length := 0.04
+	var v := PackedFloat32Array()
+	v.resize(int(length * RATE))
+	for i in v.size():
+		var t := float(i) / RATE
+		var phase := TAU * (300.0 * t + 300.0 * t * t / (2.0 * length))
+		v[i] = sin(phase) * sin(PI * t / length) * level
+	return v
