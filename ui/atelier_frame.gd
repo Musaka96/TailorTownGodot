@@ -293,17 +293,6 @@ func _shape_tape(r: Rect2) -> void:
 	)
 
 
-## A notepad's spiral binding: wire loops along the top edge through punched holes.
+## A notepad's spiral binding: wire coils along the top edge through punched holes.
 func _shape_spiral(r: Rect2) -> void:
-	var step := 26.0
-	var x := r.position.x + 30.0
-	while x < r.end.x - 24.0:
-		var hole := Vector2(x, r.position.y + 12.0)
-		draw_circle(hole, 4.0, Color(trim.r, trim.g, trim.b, 0.85))
-		draw_arc(
-			hole + Vector2(0, -6), 8.0, PI * 0.1, PI * 1.05, 10, Color(0.55, 0.55, 0.58), 3.0, true
-		)
-		draw_arc(
-			hole + Vector2(0, -6), 8.0, PI * 0.1, PI * 1.05, 10, Color(0.85, 0.85, 0.88), 1.2, true
-		)
-		x += step
+	Craft.spiral(self, r)

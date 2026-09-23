@@ -157,6 +157,65 @@ static func eyelet(ci: CanvasItem, at: Vector2, string_len := 26.0, sway := 0.0)
 	ci.draw_circle(at, 3.5, Style.WALNUT)
 
 
+## A spiral binding along the top edge of `r`: punched holes a little below the edge
+## and a wire coil through each one. Each coil rises out of its hole up the front of
+## the paper, loops over the edge and drops behind it, so the strand reads as going
+## *through* the hole rather than sitting beside it. `wire` is the metal colour.
+static func spiral(
+	ci: CanvasItem, r: Rect2, wire := Color(0.66, 0.67, 0.70), step := 24.0, inset := 26.0
+) -> void:
+	var x := r.position.x + inset
+	var last := r.end.x - inset + 0.5
+	while x <= last:
+		coil(ci, Vector2(x, r.position.y + 9.0), r.position.y, wire)
+		x += step
+
+
+## One coil of a spiral binding: the punched hole at `hole` and the wire loop that
+## climbs from it over the paper edge at `y_edge`. The loop is a sheared ellipse so it
+## leans like a real coil; only the part above the edge and the front strand show.
+static func coil(ci: CanvasItem, hole: Vector2, y_edge: float, wire: Color) -> void:
+	var ry := hole.y - (y_edge - 1.0)
+	var lean := 0.35  # the top of the loop sits this far (× ry) left of the hole
+	var c := Vector2(hole.x - lean * ry, y_edge - 1.0)
+	var rx := 4.2
+	var dark := Color(0.18, 0.13, 0.10, 0.92)
+	# The hole: a lighter lower rim (the paper's thickness) under a dark punch.
+	ci.draw_circle(hole + Vector2(0, 1.0), 3.6, Color(1, 1, 1, 0.45))
+	ci.draw_circle(hole, 3.3, dark)
+	# Sample the loop. t = -PI/2 is the top; the right half (cos t > 0) is the strand in
+	# front of the paper, which descends into the hole at t = PI/2.
+	var back := PackedVector2Array()
+	var front := PackedVector2Array()
+	for i in 41:
+		var t := -PI / 2.0 + TAU * i / 40.0
+		var p := c + Vector2(rx * cos(t) + lean * ry * sin(t), ry * sin(t))
+		if cos(t) >= -0.02:
+			front.append(p)
+		elif p.y <= y_edge + 0.5:
+			back.append(p)
+	# Behind the edge: dimmer, thinner.
+	if back.size() >= 2:
+		ci.draw_polyline(back, wire.darkened(0.38), 2.0, true)
+	# Its shadow on the paper, then the front strand and a thin highlight.
+	var on_paper := PackedVector2Array()
+	for p in front:
+		if p.y >= y_edge:
+			on_paper.append(p + Vector2(1.2, 1.6))
+	if on_paper.size() >= 2:
+		ci.draw_polyline(on_paper, Color(0, 0, 0, 0.18), 2.6, true)
+	ci.draw_polyline(front, wire, 2.6, true)
+	var lit := PackedVector2Array()
+	for p in front:
+		lit.append(p + Vector2(-0.6, -0.7))
+	ci.draw_polyline(lit, Color(0.95, 0.95, 0.97, 0.85), 0.9, true)
+	# The lower half of the punch drawn back over the wire's end: it goes *into* the hole.
+	var lip := PackedVector2Array([hole])
+	for i in 9:
+		lip.append(hole + Vector2.from_angle(PI * i / 8.0) * 3.3)
+	ci.draw_colored_polygon(lip, dark)
+
+
 ## A dressmaker's pin lying on the surface at `angle`: a steel shaft with a coloured
 ## glass bead at one end and a fine point at the other, so it reads as pushed through
 ## the cloth rather than as a dot. (Craft.pin is the head-on board pin.)
