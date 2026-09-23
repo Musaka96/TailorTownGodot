@@ -7,7 +7,10 @@ extends SceneTree
 ##   - the bench then sets the tool back on the line, pointing down it;
 ##   - it waits for the button to be let go before going on;
 ##   - and once back on the line, a later dive is a fresh run of two.
-##   godot --headless --fixed-fps 60 --path . --script res://tools/test_cut_safeguard.gd
+## The test owns the game clock: it stops the game's own _process and calls it with a fixed
+## DT per frame. Headless runs uncapped, so real frame deltas are tiny and vary run to run,
+## and the 0.5 s rescue would span a different number of frames every time.
+##   godot --headless --path . --script res://tools/test_cut_safeguard.gd
 
 const CUT2 := "res://ui/cut_allowance_minigame.gd"
 const SEW2 := "res://ui/sew_pedal_minigame.gd"
@@ -15,6 +18,7 @@ const JACKET := 2  # Enums.GarmentType.JACKET
 const RUNNING := 1  # CutBench.State.RUNNING
 const FRAME_CAP := 60 * 8
 const LINE_EPS := 0.004
+const DT := 1.0 / 60.0
 
 var _failures: Array[String] = []
 
@@ -43,7 +47,8 @@ func _dive(path: String, what: String, side: float) -> void:
 		game.start_piece(JACKET, "Jacket · M", factory.make(1, 0, 0, 3.0))
 	else:
 		game.start(JACKET, "Jacket · M", factory.make(1, 0, 0, 3.0))
-	await process_frame
+	game.set_process(false)
+	await _step(game)
 	game.set("_armed", true)
 	Input.action_press("cut")
 
@@ -54,15 +59,14 @@ func _dive(path: String, what: String, side: float) -> void:
 		frames += 1
 		if frames > FRAME_CAP:
 			break
-		await process_frame
+		await _step(game)
 	var slips := int(game.get("_mistakes"))
 	_check(slips == 2, "%s: a dive costs two slips, not three (got %d)" % [what, slips])
 	_check(int(game.get("_state")) <= RUNNING, "%s: the piece survives the dive" % what)
 	_check(float(game.get("_rescue_t")) > 0.0, "%s: the bench steps in" % what)
 
 	# Still holding the button: the tool is set back and then waits.
-	for _i in 60:
-		await process_frame
+	await _step(game, 60)
 	var seg := int(game.get("_seg"))
 	var p: Vector2 = game.get("_p")
 	var off: float = game.call("_offset", seg, p)
@@ -71,19 +75,16 @@ func _dive(path: String, what: String, side: float) -> void:
 	var turn := absf(angle_difference(along, float(game.get("_heading"))))
 	_check(turn < 0.05, "%s: pointing down the line" % what)
 	var held_at: Vector2 = game.get("_p")
-	for _i in 30:
-		await process_frame
+	await _step(game, 30)
 	var still := (game.get("_p") as Vector2).distance_to(held_at) < 0.001
 	_check(still, "%s: it waits while the button is still held" % what)
 	_check(bool(game.get("_caught")), "%s: and says so" % what)
 
 	# Let go and press again: it carries on, and a new dive is a fresh run of two.
 	Input.action_release("cut")
-	await process_frame
-	await process_frame
+	await _step(game, 2)
 	Input.action_press("cut")
-	for _i in 20:
-		await process_frame
+	await _step(game, 20)
 	var moved := (game.get("_p") as Vector2).distance_to(held_at) > 0.005
 	_check(moved, "%s: let go and press again, and it carries on" % what)
 	_check(int(game.get("_slips_in_row")) == 0, "%s: back on the line, the run is cleared" % what)
@@ -91,11 +92,18 @@ func _dive(path: String, what: String, side: float) -> void:
 	while int(game.get("_state")) <= RUNNING and frames < FRAME_CAP:
 		_steer_off(game, side)
 		frames += 1
-		await process_frame
+		await _step(game)
 	_check(int(game.get("_mistakes")) >= 3, "%s: a second dive can still spoil it" % what)
 	Input.action_release("cut")
 	host.queue_free()
 	await process_frame
+
+
+## Advance the game `n` frames of exactly DT each, on the test's clock, not the wall's.
+func _step(game: Control, n := 1) -> void:
+	for _i in n:
+		game.call("_process", DT)
+		await process_frame
 
 
 ## Point the tool as far off the line as the game allows, on `side`.
