@@ -138,10 +138,10 @@ static func font_display() -> FontVariation:
 	return _face("display", _DISPLAY, {"wght": W_DISPLAY, "SOFT": 100, "opsz": 72, "WONK": 0})
 
 
-## Handwriting (Caveat, medium weight) — the fitting notepad and other pencil notes.
+## Handwriting (Caveat, regular weight) — the fitting notepad and other pencil notes.
 ## Never for rows, values, prompts or anything the player must scan fast.
 static func font_hand() -> FontVariation:
-	return _face("hand", _HAND, {"wght": 500})
+	return _face("hand", _HAND, {"wght": 400})
 
 
 ## Kept for callers from before the type scale: the real bold cut.
