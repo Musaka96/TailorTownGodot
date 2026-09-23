@@ -244,3 +244,8 @@ suit builder already flags.
 - Event bulk orders.
 - A size for customers. Everyone is size M today, so size only changes how much cloth you use.
 - Rebalance after real playtests against the §5 health checks.
+
+## 9. Recycling
+
+The bin on the pavement outside grandpa's shop pays 20% of the cloth value of whatever goes in, rounded up (`TrashCan.scrap_value`): a roll or cut length at `Pricing.roll_price` for its metres, a garment piece or suit at the metres its parts take, $1 for anything without cloth.
+It is a small safety net so a wrong order or a spoiled cut isn't a total loss, and it is never worth buying cloth just to scrap it.

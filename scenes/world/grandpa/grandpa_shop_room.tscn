@@ -1,8 +1,5 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dnx7iwipgfkrl"]
 
-[ext_resource type="Script" path="res://scenes/world/grandpa/renovation_director.gd" id="gp_director"]
-[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/grandpa_shop_v8.gltf" id="gp_shop"]
-[ext_resource type="PackedScene" path="res://scenes/world/grandpa/grandpa_shell_greybox.tscn" id="gp_shell"]
 [ext_resource type="PackedScene" uid="uid://jk4i7qcpjrbf" path="res://stations/shelf/shelf.tscn" id="1_2a88l"]
 [ext_resource type="PackedScene" uid="uid://d067p6q3lrihi" path="res://stations/phone/phone.tscn" id="3_jtjmr"]
 [ext_resource type="PackedScene" uid="uid://bp2junry4wnt8" path="res://stations/worktable/worktable.tscn" id="5_usqlc"]
@@ -19,11 +16,14 @@
 [ext_resource type="PackedScene" path="res://stations/ironing_board/ironing_board.tscn" id="35_j5y0n"]
 [ext_resource type="Script" uid="uid://clfnpwwjvwxfb" path="res://scenes/world/roof_manager.gd" id="40_roofm"]
 [ext_resource type="PackedScene" uid="uid://s8v4bsnqp5up" path="res://stations/trash_can/trash_can.tscn" id="41_trash"]
+[ext_resource type="PackedScene" uid="uid://b0s7kytmklp63" path="res://IMPORT/town_kit/export/v8/edging_v8.gltf" id="50_edging"]
+[ext_resource type="PackedScene" uid="uid://cfqauuig8ywxi" path="res://IMPORT/town_kit/export/v8/plot_v8.gltf" id="60_plot6"]
+[ext_resource type="PackedScene" uid="uid://ci4mlmdj3yfn5" path="res://IMPORT/town_kit/export/v8/town_v8.gltf" id="61_town6"]
 [ext_resource type="Script" uid="uid://5fytlswior6w" path="res://scenes/world/wall_cutaway.gd" id="70_wallcut"]
-[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/edging_v8.gltf" id="50_edging"]
-[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/plot_v8.gltf" id="60_plot6"]
-[ext_resource type="PackedScene" path="res://IMPORT/town_kit/export/v8/town_v8.gltf" id="61_town6"]
 [ext_resource type="Script" uid="uid://cotk4brjs3qed" path="res://scenes/world/street_bounds.gd" id="71_bounds"]
+[ext_resource type="Script" uid="uid://c3abvyce80tcv" path="res://scenes/world/grandpa/renovation_director.gd" id="gp_director"]
+[ext_resource type="PackedScene" path="res://scenes/world/grandpa/grandpa_shell_greybox.tscn" id="gp_shell"]
+[ext_resource type="PackedScene" uid="uid://baknhmemyajlb" path="res://IMPORT/town_kit/export/v8/grandpa_shop_v8.gltf" id="gp_shop"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c7tjy"]
 
@@ -82,13 +82,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_ojymr")
 
 [node name="Shelf" parent="." unique_id=2137070260 instance=ExtResource("1_2a88l")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.55, 0, 2.75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.1391225, 0, 2.75)
 
 [node name="Shelf2" parent="." unique_id=724630444 instance=ExtResource("1_2a88l")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, 0, -1.25)
 
 [node name="Phone" parent="." unique_id=244267950 instance=ExtResource("3_jtjmr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0, 5.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0, 5)
 
 [node name="Worktable" parent="." unique_id=2080952600 instance=ExtResource("5_usqlc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 2.5)
@@ -134,8 +134,8 @@ script = ExtResource("71_bounds")
 [node name="GreetSpot" type="Marker3D" parent="Waypoints" unique_id=2002706852]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0, 6.5)
 
-[node name="CollectSpot" type="Marker3D" parent="Waypoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0, 0, 6.5)
+[node name="CollectSpot" type="Marker3D" parent="Waypoints" unique_id=350987130]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 6.5)
 
 [node name="DoorInside" type="Marker3D" parent="Waypoints" unique_id=1351360069]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65, 0, 7.7)
@@ -152,6 +152,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, 12.453909)
 [node name="StreetEast" type="Marker3D" parent="Waypoints" unique_id=1779476627]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 11.833154)
 
+[node name="DoorSignSpot" type="Marker3D" parent="Waypoints" unique_id=415786988]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.65, 0, 7.75)
+
 [node name="CustomerManager" type="Node3D" parent="." unique_id=1388212487]
 script = ExtResource("17_08xdy")
 mirror_path = NodePath("../Mirror")
@@ -164,7 +167,7 @@ street_west_path = NodePath("../Waypoints/StreetWest")
 street_east_path = NodePath("../Waypoints/StreetEast")
 
 [node name="TrashCan" parent="." unique_id=200102761 instance=ExtResource("41_trash")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0, 7.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3, 0, 8.8)
 
 [node name="RoofManager" type="Node3D" parent="." unique_id=200102760]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
@@ -184,9 +187,9 @@ transform = Transform3D(1, 0, 0, 0, 0.7751285, 0.63180363, 0, -0.63180363, 0.775
 light_color = Color(1, 0.96, 0.9, 1)
 light_angular_distance = 0.6
 shadow_enabled = true
-directional_shadow_max_distance = 50.0
 shadow_opacity = 0.9
 shadow_blur = 1.5
+directional_shadow_max_distance = 50.0
 
 [node name="GrassPatch" parent="." unique_id=1909371927 instance=ExtResource("33_ov3w0")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.85996, 0.019536532, 16.668962)
@@ -207,57 +210,51 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 0, -1.2)
 room = "nextdoor"
 
 [node name="CoffeeMachine" parent="." unique_id=1309588511 instance=ExtResource("34_2a88l")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 0, 2.75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 2.75)
 room = "nook"
 
 [node name="IroningBoard" parent="." unique_id=555322733 instance=ExtResource("35_j5y0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.2, 0, 7.4)
 room = "nook"
 
-[node name="DoorSignSpot" type="Marker3D" parent="Waypoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.65, 0, 7.75)
+[node name="ClothingRack2" parent="." unique_id=1317294953 instance=ExtResource("11_26bn3")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 1)
 
-[node name="ClothingRack2" parent="." instance=ExtResource("11_26bn3")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -3.6, 0, 1.0)
+[node name="ClothingRack3" parent="." unique_id=1617316455 instance=ExtResource("11_26bn3")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 13, 0, 2.5)
 
-[node name="ClothingRack3" parent="." instance=ExtResource("11_26bn3")]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 13.0, 0, 2.5)
-
-[node name="Shelf3" parent="." instance=ExtResource("1_2a88l")]
+[node name="Shelf3" parent="." unique_id=807827150 instance=ExtResource("1_2a88l")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 7.25, 0, -0.6)
 
-[node name="Shelf4" parent="." instance=ExtResource("1_2a88l")]
+[node name="Shelf4" parent="." unique_id=1327925437 instance=ExtResource("1_2a88l")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 7.25, 0, 0.9)
 
-[node name="GrandpaShop" parent="." instance=ExtResource("gp_shop")]
+[node name="GrandpaShop" parent="." unique_id=719473196 instance=ExtResource("gp_shop")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65319407, -0.13519084, 8.336888)
 
-[node name="DividerFade" type="Node3D" parent="."]
+[node name="DividerFade" type="Node3D" parent="." unique_id=1732284054]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.65, 1, 0.34)
 script = ExtResource("70_wallcut")
 walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Divider")
-only_prefixes = PackedStringArray("wall_part", "part_back_trim")
 interior_extents = Vector3(6.1, 1.8, 2.1)
 cut_height = 0.96
 up_height = 3.4
 
-[node name="FacadeFader" type="Node3D" parent="."]
+[node name="FacadeFader" type="Node3D" parent="." unique_id=1500852302]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
 script = ExtResource("40_roofm")
 roof_path = NodePath("../GrandpaShell/Spots/front_boards")
 interior_extents = Vector3(9.4, 1.8, 5.1)
 
-[node name="GrandpaShell" parent="." instance=ExtResource("gp_shell")]
+[node name="GrandpaShell" parent="." unique_id=2136563322 instance=ExtResource("gp_shell")]
 
-[node name="RenovationDirector" type="Node3D" parent="."]
+[node name="RenovationDirector" type="Node3D" parent="." unique_id=306452030]
 script = ExtResource("gp_director")
 
-[node name="ShopFrontFade" type="Node3D" parent="."]
+[node name="ShopFrontFade" type="Node3D" parent="." unique_id=1417368224]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
 script = ExtResource("70_wallcut")
 walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Body")
 skip_prefixes = PackedStringArray()
-only_prefixes = PackedStringArray("_lo")
-interior_extents = Vector3(9.4, 1.8, 5.1)
 cut_height = 0.96
 up_height = 3.4
