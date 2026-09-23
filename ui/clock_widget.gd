@@ -6,8 +6,9 @@ extends Control
 ## Four faint quarter dots keep the face readable; the time sits in a small window on
 ## the lower face and reads "Closed" once the bell has gone. Bolts of cloth on the way
 ## ride the dial as little side-on rolls at the hour they land, in their own colour;
-## one that lands tomorrow waits grey at the opening hour, and a delivery pops a ring
-## where it arrived. The watch pulses red after the bell. Reads DayNight and the phone
+## one that lands tomorrow waits grey at the opening hour. Rolls landing together fan
+## out as a small stack of bolts (up to four), and a delivery pops a ring where it
+## arrived. The watch pulses red after the bell. Reads DayNight and the phone
 ## (found lazily, optional); purely presentational, it never advances time itself.
 
 const FACE := Color(0.99, 0.96, 0.90)
@@ -22,8 +23,9 @@ const TEXT := Color(0.35, 0.28, 0.24)
 const WINDOW := Color(0.93, 0.89, 0.82)
 const WINDOW_SIZE := Vector2(40, 14)
 const RING_W := 4.0
-const PIP_GAP := 0.35  # radians; closer pips step inward
-const PIP_STEP := 8.0
+const PIP_GAP := 0.35  # radians; pips closer than this fan out as one stack
+const FAN_MAX := 4
+const FAN_SHADE := 0.15  # each bolt further back leans this much further toward TICK
 const POP_TIME := 0.6
 const POLL_SECS := 1.0
 
@@ -144,37 +146,49 @@ func _draw_window(c: Vector2, r: float) -> void:
 	)
 
 
-## One bolt per delivery on the way, riding the day track at the hour it lands
-## (tomorrow's waits grey at the opening hour). Pips that would crowd each other step
-## inward off the track.
+## One bolt per spot on the dial, riding the day track at the hour its rolls land
+## (tomorrow's wait grey at the opening hour). Rolls landing within PIP_GAP of each
+## other fan out: up to FAN_MAX bolts, each further one stepped anticlockwise and a
+## touch inward, drawn back to front and shading toward TICK the further back it sits.
 func _draw_pips(c: Vector2, r: float) -> void:
+	var rad := r - 4.0
+	for g: Dictionary in _pip_groups():
+		var a := float(g["angle"])
+		var out := Vector2.from_angle(a)
+		var back := out.orthogonal() * 3.0 - out  # one step: anticlockwise and inward
+		var at := c + out * rad
+		var body: Color = g["body"]
+		var edge: Color = g["edge"]
+		for i in range(mini(int(g["count"]), FAN_MAX) - 1, -1, -1):
+			var k := FAN_SHADE * i
+			_draw_bolt(at + back * i, a, body.lerp(TICK, k), edge.lerp(TICK, k))
+
+
+## Pending rolls grouped by dial position, greedily in list order: each joins the first
+## group whose angle is within PIP_GAP, and a group takes its first roll's angle and
+## colours. [{angle, count, body, edge}]
+func _pip_groups() -> Array:
 	var today := _today()
-	var placed: Array = []  # [Vector2(angle, radius)]
+	var groups: Array = []
 	for p: Dictionary in _pending:
-		var mat := p.get("mat") as MaterialType
 		var tomorrow := int(p.get("day", today)) > today
 		var a := _ang(_hour_start() if tomorrow else float(p.get("hour", 0.0)))
-		var rad := _free_radius(placed, a, r - 4.0)
-		placed.append(Vector2(a, rad))
+		var joined := false
+		for g: Dictionary in groups:
+			if absf(angle_difference(float(g["angle"]), a)) < PIP_GAP:
+				g["count"] = int(g["count"]) + 1
+				joined = true
+				break
+		if joined:
+			continue
+		var mat := p.get("mat") as MaterialType
 		var body := Color(TICK, 0.45)
 		var edge := TICK
 		if not tomorrow and mat != null:
 			body = mat.cloth_color
 			edge = mat.cloth_color.darkened(0.25)
-		_draw_bolt(c + Vector2.from_angle(a) * rad, a, body, edge)
-
-
-## The pip radius at angle `a`: `rad`, stepped inward past any pip already too close.
-func _free_radius(placed: Array, a: float, rad: float) -> float:
-	var crowded := true
-	while crowded and rad > PIP_STEP:
-		crowded = false
-		for q: Vector2 in placed:
-			if absf(angle_difference(q.x, a)) < PIP_GAP and is_equal_approx(q.y, rad):
-				rad -= PIP_STEP
-				crowded = true
-				break
-	return rad
+		groups.append({"angle": a, "count": 1, "body": body, "edge": edge})
+	return groups
 
 
 ## A rolled bolt seen from the side, lying along the dial: the cloth as a rounded bar
