@@ -1,16 +1,23 @@
 extends SceneTree
 
 ## Close-up of the real character rig with a procedural face (CharacterRig.procedural_faces
-## on, FaceStyle "round"), framed like the char preview's face view. NOT headless:
-##   godot --path . --script res://tools/shot_face_head.gd
-## Writes IMPORT/faces_proc/head_round.png, head_round_happy.png, head_round_closed.png.
+## on), framed like the char preview's face view, for each preset in SHOTS. NOT headless:
+##   godot --path . --script res://tools/shot_face_head.gd [-- preset ...]
+## Writes IMPORT/faces_proc/head_<preset>[_<state>].png; with preset names after `--` only
+## those presets are shot.
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
 ## _ready; earlier the cloth and skin tint silently miss).
 
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
 const RIG_SCRIPT := "res://entities/character/character_rig.gd"
 const SUIT := "res://data/materials/navy_worsted_pinstripe.tres"
-const STYLE := "res://data/face_styles/round.tres"
+const STYLE_DIR := "res://data/face_styles/"
+# preset -> states to shoot ("neutral" = the resting face, no suffix)
+const SHOTS := {
+	"round": ["neutral", "happy", "closed"],
+	"heavy_lid": ["neutral", "happy"],
+	"old_timer": ["neutral", "talking"],
+}
 const OUT_DIR := "res://IMPORT/faces_proc"
 const SKIN := Color(0.86, 0.72, 0.60)
 const DIST := 1.7
@@ -62,17 +69,29 @@ func _run() -> void:
 	var suit := load(SUIT) as MaterialType
 	_rig.set_palette(SKIN)
 	_rig.set_outfit(suit, null, suit, 0, 0)
-	_rig.set("face_style", load(STYLE) as FaceStyle)
 	(_rig.get("_blink") as Timer).stop()  # no random blink mid-capture
+	var only := OS.get_cmdline_user_args()
+	for preset: String in SHOTS:
+		if not only.is_empty() and not only.has(preset):
+			continue
+		_rig.set("face_style", load(STYLE_DIR + preset + ".tres") as FaceStyle)
+		for state: String in SHOTS[preset]:
+			await _pose(state)
+			var suffix := "" if state == "neutral" else "_" + state
+			await _shot("head_%s%s.png" % [preset, suffix])
 	_report()
-	await _shot("head_round.png")
-	_rig.set_expression(true)
-	await _shot("head_round_happy.png")
-	_rig.reset_expression()
-	await _frames(20)
-	_rig.call("_set_dial", 0.0, "openness", FaceStyle.Element.EYE)
-	await _shot("head_round_closed.png")
 	quit(0)
+
+
+## Put the face in a FaceStyle.expression() state (the rig tweens there during the settle).
+func _pose(state: String) -> void:
+	_rig.call("_proc_expression", "")
+	_rig.call("_set_dial", _rig.call("_rest", "openness"), "openness", FaceStyle.Element.EYE)
+	await _frames(20)
+	if state == "closed":
+		_rig.call("_set_dial", 0.0, "openness", FaceStyle.Element.EYE)
+	elif state != "neutral":
+		_rig.call("_proc_expression", state)
 
 
 ## Confirms the instance uniforms landed on the Sprite3D nodes.

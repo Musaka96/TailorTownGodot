@@ -4,14 +4,12 @@
 
 [resource]
 script = ExtResource("1_1mc1k")
-gaze = Vector2(0, -0.2)
-openness = 0.55
-iris_color = Color(0.47843137, 0.3529412, 0.1882353, 1)
-pupil_color = Color(0.18039216, 0.12156863, 0.0627451, 1)
-brow_thickness = 0.36
-brow_arch = 0.05
-brow_raise = -0.14
-nose_kind = 4
-nose_color = Color(0.6901961, 0.4392157, 0.3529412, 1)
-mouth_width = 1.0
+eye_radii = Vector2(0.46, 0.46)
+gaze = Vector2(0, -0.18)
+lid_height = 0.35
+lid_arch = 0.3
+brow_center = Vector2(-0.1, -0.45)
+brow_arch = 0.08
+brow_angle = 0.05
+mouth_width = 0.4
 mouth_curve = 0.1

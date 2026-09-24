@@ -4,19 +4,16 @@
 
 [resource]
 script = ExtResource("1_dn2st")
-eye_radii = Vector2(0.66, 0.5)
-eye_tilt = 0.2
-lash = 0.17
-iris_radius = 0.36
+eye_radii = Vector2(0.55, 0.36)
+eye_tilt = 0.15
+iris_radius = 0.27
 gaze = Vector2(0, -0.04)
-pupil_radius = 0.21
-iris_color = Color(0.30980393, 0.41960785, 0.22745098, 1)
-pupil_color = Color(0.12156863, 0.16470589, 0.078431375, 1)
-brow_thickness = 0.24
+pupil_radius = 0.27
+lid_height = 0.7
+lid_arch = 0.35
+lid_band = 0.07
 brow_arch = 0.1
-brow_angle = -0.08
-brow_taper = 0.9
-nose_kind = 2
-nose_color = Color(0.6901961, 0.4392157, 0.3529412, 1)
-mouth_width = 1.1
+brow_angle = -0.05
+nose_size = 0.35
+mouth_width = 0.45
 mouth_curve = 0.2

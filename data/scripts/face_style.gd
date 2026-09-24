@@ -8,12 +8,17 @@ extends Resource
 ## overridden through a `dials` Dictionary (field name -> value), see expression().
 ##
 ## Units: each element is drawn on a square quad whose half-width is 1 ("q units", y up).
-## QUAD_PX is that quad's size in the old sprite's texture pixels, so pixel_size keeps the
-## element as big on the head as the painted sprite it replaces.
+## QUAD_PX is that quad's size in the old sprite's texture pixels (pixel_size comes from the
+## FaceLayout the painted sprites use). Every quad is larger than its old sprite so a style
+## can move and size its element inside it: wide-set eyes, brows low over the eyes, a large
+## nose, a mouth tucked up under the nose.
+##
+## Drawing language (every preset follows it): thin, slightly tapered strokes, no outline
+## ring and no white highlight in the eyes, a flat nose dot, matte flat colour.
 
 enum Element { EYE, BROW, NOSE, MOUTH }
 
-const QUAD_PX := {Element.EYE: 360, Element.BROW: 300, Element.NOSE: 80, Element.MOUTH: 120}
+const QUAD_PX := {Element.EYE: 440, Element.BROW: 600, Element.NOSE: 200, Element.MOUTH: 180}
 ## Named iris colours, so CharacterRig.set_face_look("green", ...) still works.
 const IRIS_COLORS := {
 	"brown": Color("6b3a22"),
@@ -31,21 +36,22 @@ const MOUTH_KINDS := 4  # stroke, cat "w", small "o", wide smile with ticks
 static var _blank := {}
 
 @export_group("Eye")
-@export var eye_center := Vector2.ZERO
-@export var eye_radii := Vector2(0.6, 0.78)
+@export var eye_center := Vector2(-0.12, 0.0)
+@export var eye_radii := Vector2(0.4, 0.46)
 ## Radians; > 0 lifts the outer corner.
 @export var eye_tilt := 0.0
-@export var outline_width := 0.085
-## Thickness of the upper outline (and of the closed-eye lash line).
-@export var lash := 0.15
+## Ring around the eye; 0 = none (the house look).
+@export var outline_width := 0.0
+## Extra thickness of the ring's upper half; 0 = none.
+@export var lash := 0.0
 ## Darker band under the upper lid, 0..1.
-@export var top_shade := 0.55
-@export var iris_radius := 0.44
+@export var top_shade := 0.0
+@export var iris_radius := 0.25
 ## Iris offset from the eye centre, in screen directions (both eyes look the same way).
-@export var gaze := Vector2(0.0, -0.12)
-@export var pupil_radius := 0.26
-## Highlight radius and position, relative to the iris radius.
-@export var highlight_radius := 0.3
+@export var gaze := Vector2(0.0, -0.08)
+@export var pupil_radius := 0.25
+## Highlight radius and position, relative to the iris radius (0 = none).
+@export var highlight_radius := 0.0
 @export var highlight_pos := Vector2(0.38, 0.42)
 ## Second, smaller highlight on the opposite lower side (0 = none).
 @export var highlight2_radius := 0.0
@@ -53,59 +59,72 @@ static var _blank := {}
 @export_range(0.0, 1.0) var squint := 0.0
 ## > 0 angry (inner corner of the lid down), < 0 sad (outer corner down).
 @export_range(-1.0, 1.0) var lid_angle := 0.0
+## Where the open upper lid rests, as a fraction of the eye's y radius above its centre:
+## 1.06 clears the top (with lid_arch 0.5), 0 cuts the eye in half (a heavy lid).
+@export var lid_height := 0.8
+## How much the lid curves down at the corners, as a fraction of the y radius (0 = flat).
+@export var lid_arch := 0.45
+## Thickness of a dark band along the lid edge (0 = none). It stays on as the closed line.
+@export var lid_band := 0.06
+## Short wrinkle strokes fanned under the outer corner (0..3) and their length.
+@export_range(0, 3) var corner_marks := 0
+@export var corner_mark_len := 0.3
 @export var outline_color := Color("3a2418")
 @export var sclera_color := Color("fff4e2")
-@export var iris_color := Color("6b3a22")
-@export var pupil_color := Color("2a150c")
+@export var iris_color := Color("3a2418")
+@export var pupil_color := Color("3a2418")
 @export var highlight_color := Color("fffaf0")
+@export var corner_mark_color := Color("b07a52")
 
 @export_group("Brow")
-@export var brow_center := Vector2.ZERO
-@export var brow_length := 1.5
-@export var brow_thickness := 0.4
+@export var brow_center := Vector2(-0.35, -0.15)
+@export var brow_length := 0.9
+@export var brow_thickness := 0.14
 ## Sag as a fraction of the length (> 0 arches up).
-@export var brow_arch := 0.14
+@export var brow_arch := 0.2
 ## Radians; > 0 lifts the inner end.
-@export var brow_angle := 0.0
-@export_range(0.0, 1.0) var brow_taper := 0.75
+@export var brow_angle := 0.2
+@export_range(0.0, 1.0) var brow_taper := 0.35
 @export var brow_raise := 0.0
 @export var brow_angle_offset := 0.0
-@export var brow_color := Color("4a2a1c")
+@export var brow_color := Color("3a2418")
 
 @export_group("Nose")
 ## 0 dot, 1 hook, 2 arc, 3 triangle, 4 two nostril dots.
 @export_range(0, 4) var nose_kind := 0
-@export var nose_center := Vector2.ZERO
-@export var nose_size := 1.2
-@export var nose_thickness := 0.16
-@export var nose_color := Color("c9826a")
+@export var nose_center := Vector2(0.0, 0.1)
+@export var nose_size := 0.5
+@export var nose_thickness := 0.08
+@export var nose_color := Color("d98c7e")
 
 @export_group("Mouth")
 ## 0 stroke, 1 cat "w", 2 small "o", 3 wide smile with corner ticks.
 @export_range(0, 3) var mouth_kind := 0
-@export var mouth_center := Vector2.ZERO
-@export var mouth_width := 1.3
-@export var mouth_thickness := 0.11
+@export var mouth_center := Vector2(0.0, 0.3)
+@export var mouth_width := 0.5
+@export var mouth_thickness := 0.075
 ## -1 frown .. 1 smile.
 @export_range(-1.0, 1.0) var mouth_curve := 0.35
 @export_range(0.0, 1.0) var mouth_open := 0.0
 ## How deep a fully open mouth goes, relative to its half-width.
 @export var mouth_depth := 0.9
 @export_range(0.0, 1.0) var mouth_teeth := 0.0
-@export_range(0.0, 1.0) var mouth_tongue := 1.0
-@export var mouth_line_color := Color("4a2418")
-@export var mouth_inner_color := Color("7a2a2e")
-@export var mouth_tongue_color := Color("e0787a")
+@export_range(0.0, 1.0) var mouth_tongue := 0.0
+@export var mouth_line_color := Color("3a2418")
+@export var mouth_inner_color := Color("4a2018")
+@export var mouth_tongue_color := Color("c86a66")
 @export var mouth_teeth_color := Color("fff6ea")
 
 
-## The shader parameters for one element: {"element", "fp0".."fp5", "fc0".."fc3"}.
+## The shader parameters for one element: {"element", "fp0".."fp6", "fc0".."fc4"} (11 + 1
+## of the 16 instance uniforms Godot allows per shader).
 ## `dials` overrides any field by name (an expression, a blink); `mirror` marks the flipped
 ## eye (its gaze and highlight are flipped back so both eyes agree on screen).
 ##   eye:   fp0 centre.xy radii.xy | fp1 tilt outline lash top_shade
 ##          fp2 iris_r gaze.xy pupil_r | fp3 hl_r hl_pos.xy hl2_r
-##          fp4 openness squint lid_angle mirror | fp5 highlight rgb
-##          fc0 outline, fc1 sclera, fc2 iris, fc3 pupil
+##          fp4 openness squint lid_angle mirror | fp5 highlight rgb, corner_mark_len
+##          fp6 lid_band lid_arch lid_height corner_marks
+##          fc0 outline (also the lid band), fc1 sclera, fc2 iris, fc3 pupil, fc4 corner marks
 ##   brow:  fp0 centre.xy length thickness | fp1 arch angle taper raise
 ##          fp2 angle_offset | fc0 colour
 ##   nose:  fp0 centre.xy size thickness | fp1 kind | fc0 colour
@@ -114,7 +133,7 @@ static var _blank := {}
 func pack(element: int, dials := {}, mirror := false) -> Dictionary:
 	var v := func(key: String) -> Variant: return dials.get(key, get(key))
 	var zero := Vector4.ZERO
-	var out := {"element": element, "fp2": zero, "fp3": zero, "fp4": zero, "fp5": zero}
+	var out := {"element": element, "fp2": zero, "fp3": zero, "fp4": zero, "fp5": zero, "fp6": zero}
 	match element:
 		Element.EYE:
 			var c: Vector2 = v.call("eye_center")
@@ -131,11 +150,18 @@ func pack(element: int, dials := {}, mirror := false) -> Dictionary:
 			out.fp4 = Vector4(
 				v.call("openness"), v.call("squint"), v.call("lid_angle"), 1.0 if mirror else 0.0
 			)
-			out.fp5 = Vector4(hc.r, hc.g, hc.b, 1.0)
+			out.fp5 = Vector4(hc.r, hc.g, hc.b, v.call("corner_mark_len"))
+			out.fp6 = Vector4(
+				v.call("lid_band"),
+				v.call("lid_arch"),
+				v.call("lid_height"),
+				float(v.call("corner_marks")),
+			)
 			out.fc0 = v.call("outline_color")
 			out.fc1 = v.call("sclera_color")
 			out.fc2 = v.call("iris_color")
 			out.fc3 = v.call("pupil_color")
+			out.fc4 = v.call("corner_mark_color")
 		Element.BROW:
 			var c: Vector2 = v.call("brow_center")
 			out.fp0 = Vector4(c.x, c.y, v.call("brow_length"), v.call("brow_thickness"))
@@ -166,7 +192,7 @@ func pack(element: int, dials := {}, mirror := false) -> Dictionary:
 			out.fc1 = v.call("mouth_inner_color")
 			out.fc2 = v.call("mouth_tongue_color")
 			out.fc3 = v.call("mouth_teeth_color")
-	for k in ["fc1", "fc2", "fc3"]:
+	for k in ["fc1", "fc2", "fc3", "fc4"]:
 		if not out.has(k):
 			out[k] = Color.WHITE
 	return out
@@ -196,6 +222,8 @@ func expression(state: String) -> Dictionary:
 		{
 			"openness": 1.0,
 			"squint": 1.0,
+			"lid_height": maxf(lid_height, 1.0),
+			"lid_arch": maxf(lid_arch, 0.45),
 			"mouth_curve": 1.0,
 			"brow_raise": brow_raise + 0.1,
 		},

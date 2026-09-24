@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_etxgg"]
+
+[resource]
+script = ExtResource("1_etxgg")
+eye_center = Vector2(-0.27, 0)
+eye_radii = Vector2(0.64, 0.72)
+iris_radius = 0.4
+gaze = Vector2(0, 0)
+pupil_radius = 0.4
+lid_height = 0.0
+lid_arch = 0.06
+lid_band = 0.2
+brow_center = Vector2(-0.56, -0.08)
+brow_length = 0.85
+brow_thickness = 0.16
+brow_arch = 0.18
+brow_angle = 0.3
+nose_center = Vector2(0, 0.04)
+nose_size = 0.48
+nose_color = Color(0.47843137, 0.2901961, 0.16470589, 1)
+mouth_center = Vector2(0, 0.34)
+mouth_width = 0.41
+mouth_thickness = 0.11
+mouth_curve = -0.12

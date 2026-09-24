@@ -1,7 +1,7 @@
 // Procedural face elements (eye, brow, nose, mouth) drawn from signed distance fields.
 // Shared by face_element.gdshader (spatial, on the rig's face sprites) and
 // face_element_canvas.gdshader (2D review sheets). Looks are data: see FaceStyle
-// (data/scripts/face_style.gd), which packs its fields into the fp0..fp5 / fc0..fc3 vectors
+// (data/scripts/face_style.gd), which packs its fields into the fp0..fp6 / fc0..fc4 vectors
 // that face_element() unpacks below.
 //
 // Space: q is the quad mapped to [-1, 1] with y UP (q = (0,0) is the quad centre). `px` is
@@ -126,14 +126,21 @@ vec4 fs_over(vec4 dst, vec4 src) {
 }
 
 // --- Eye ------------------------------------------------------------------------------
-// Upper lid: a parabola that comes down with `openness`; at 0 only its lash line is left,
-// a thick arc with tapered ends. `squint` pushes a lower lid up into an arc (happy crescent).
-// `lid_angle` > 0 tips the lid down at the inner corner (angry), < 0 at the outer (sad).
+// Upper lid: a parabola (sag `lid_arch` x ry) resting at `lid_height` x ry above the eye
+// centre that comes down with `openness`; at 0 only its lash line is left, a thick arc with
+// tapered ends. A low `lid_height` (0 = cut at the centre) is a heavy lid; the closed line
+// then sits lower too. `lid_band` > 0 draws a dark band of that thickness along the lid
+// edge, a little wider than the eye and tapered, that stays on as the closed-eye line.
+// `squint` pushes a lower lid up into an arc (happy crescent). `lid_angle` > 0 tips the lid
+// down at the inner corner (angry), < 0 at the outer (sad). `marks` (0..3) short wrinkle
+// strokes about `mark_len` long fan out under the outer corner. outline_w, lash and hl_r at
+// 0 draw nothing at all (no minimum-width ring, no stray dot).
 vec4 face_eye(
 	vec2 q, float px, vec2 center, vec2 radii, float tilt, float outline_w, vec3 outline_col,
 	vec3 sclera_col, float iris_r, vec3 iris_col, vec2 gaze, float pupil_r, vec3 pupil_col,
 	float hl_r, vec2 hl_pos, float hl2_r, vec3 hl_col, float openness, float squint,
-	float lid_angle, float top_shade, float lash, float mirror
+	float lid_angle, float top_shade, float lash, float mirror, float lid_band, float lid_arch,
+	float lid_height, float marks, float mark_len, vec3 mark_col
 ) {
 	float ms = mirror > 0.5 ? -1.0 : 1.0;
 	vec2 e = fs_rot(q - center, -tilt);
@@ -141,20 +148,24 @@ vec4 face_eye(
 	float ry = radii.y;
 	float u = e.x / rx;
 	float wmin = 1.3 * px;
-	float ws = max(outline_w, wmin);
+	float ws = outline_w > 1e-4 ? max(outline_w, wmin) : 0.0;
 	float wt = max(lash, ws);
+	wt = wt > 1e-4 ? max(wt, wmin) : 0.0;
 	float d_ell = fs_sd_ellipse(e, radii);
 	// upper lid
-	float h = mix(-0.14 * ry, 1.06 * ry, openness);
-	float lid_k = 0.5 * ry;
+	float closed_h = mix(-0.14, -0.55, clamp(1.0 - lid_height, 0.0, 1.0)) * ry;
+	float h = mix(closed_h, lid_height * ry, openness);
+	// the lid flattens as it closes, so a shut eye is a level line (happy is the squint)
+	float lid_k = mix(-0.08, lid_arch, smoothstep(0.0, 0.6, openness)) * ry;
 	float lid_s = -lid_angle * 0.8 * ry;
 	float lid_y = h - lid_k * u * u + lid_s * u;
 	float lid_dy = (-2.0 * lid_k * u + lid_s) / rx;
 	float d_lid = (e.y - lid_y) / sqrt(1.0 + lid_dy * lid_dy);
 	// lower lid (squint)
 	float sq = clamp(squint, 0.0, 1.0);
-	float lo_h = mix(-1.1 * ry, 0.6 * ry, sq);
-	float lo_k = mix(0.2, 0.8, sq) * ry;
+	// squinted, the lower lid follows the upper one so the happy crescent is an even arc
+	float lo_h = mix(-1.1 * ry, 0.72 * ry, sq);
+	float lo_k = mix(0.2 * ry, lid_k + 0.12 * ry, sq);
 	float lo_y = lo_h - lo_k * u * u;
 	float lo_dy = -2.0 * lo_k * u / rx;
 	float d_lo = (lo_y - e.y) / sqrt(1.0 + lo_dy * lo_dy);
@@ -176,18 +187,49 @@ vec4 face_eye(
 	col = mix(col, col * vec3(0.84, 0.76, 0.7), band);
 	// highlights (always on the same screen side for both eyes)
 	vec2 hp = ic + vec2(hl_pos.x * ms, hl_pos.y) * iris_r;
-	float hl = fs_fill(length(e - hp) - hl_r * iris_r, px);
+	float hl = hl_r > 0.001 ? fs_fill(length(e - hp) - hl_r * iris_r, px) : 0.0;
 	vec2 hp2 = ic + vec2(-hl_pos.x * ms * 0.7, -hl_pos.y * 0.8) * iris_r;
 	hl = max(hl, hl2_r > 0.001 ? fs_fill(length(e - hp2) - hl2_r * iris_r, px) : 0.0);
 	col = mix(col, hl_col, hl);
 	col = mix(outline_col, col, fs_fill(d_in, px));
 	float fade = smoothstep(0.1, 0.15, openness);
 	vec4 res = vec4(col, fs_fill(d_shape, px) * fade);
-	// closing: the lid's lash line across the full eye width, tapered at both ends
-	float tu = clamp(abs(u) / 1.04, 0.0, 1.0);
-	float lw = wt * 1.25 * pow(max(1.0 - tu * tu, 0.0), 0.6);
-	float d_lash = max(abs(d_lid) - 0.5 * lw, abs(e.x) - 1.04 * rx);
-	float lash_a = fs_fill(d_lash, px) * (1.0 - smoothstep(0.12, 0.3, openness));
+	// wrinkle marks under the outer (-x) corner, drawn beneath the eye
+	int nm = int(round(clamp(marks, 0.0, 3.0)));
+	if (nm > 0 && mark_len > 1e-4) {
+		float d_mk = 1e5;
+		float mw = max(0.3 * mark_len, wmin);
+		for (int i = 0; i < 3; i++) {
+			if (i >= nm) {
+				break;
+			}
+			float t = nm > 1 ? float(i) / float(nm - 1) : 0.5;
+			float ang = radians(mix(208.0, 238.0, t));
+			float ml = mark_len * mix(0.75, 1.3, t);
+			vec2 mc = vec2(cos(ang), sin(ang)) * (radii + 1.1 * mark_len);
+			vec2 md = vec2(cos(ang - 0.61), sin(ang - 0.61)) * 0.5 * ml;
+			vec2 mn = vec2(-md.y, md.x) * 0.25;
+			d_mk = min(d_mk, fs_sd_bezier_stroke(e, mc - md, mc + mn, mc + md, mw, 0.2, 0.0, px));
+		}
+		// below about a pixel of real width they would only smudge the cheek: fade them out
+		float mk_on = smoothstep(0.5, 0.9, 0.3 * mark_len / max(px, 1e-5));
+		res = fs_over(vec4(mark_col, fs_fill(d_mk, px) * mk_on), res);
+	}
+	// the lid line: the lid band when set (always on), else the closing lash line across the
+	// full eye width; tapered at both ends
+	bool has_band = lid_band > 1e-4;
+	float thin_w = max(min(0.3 * min(rx, ry), 0.1), wmin);
+	float line_w = has_band ? max(lid_band, wmin) : max(wt * 1.25, thin_w);
+	float ext = has_band ? 1.14 : 1.04;
+	float tu = clamp(abs(u) / ext, 0.0, 1.0);
+	// the band keeps its width and rounds off at the very ends; the lash line tapers
+	float prof = has_band ? sqrt(max(1.0 - pow(tu, 6.0), 0.0)) : pow(max(1.0 - tu * tu, 0.0), 0.6);
+	// squinting hands the line over to the happy crescent (it thins away)
+	float keep = 1.0 - smoothstep(0.5, 1.0, sq);
+	float lw = line_w * prof * keep;
+	float d_lash = max(abs(d_lid - (has_band ? 0.35 * lw : 0.0)) - 0.5 * lw, abs(e.x) - ext * rx);
+	float lash_a = fs_fill(d_lash, px) * (has_band ? 1.0 : 1.0 - smoothstep(0.12, 0.3, openness));
+	lash_a *= clamp(keep * 4.0, 0.0, 1.0);
 	return fs_over(res, vec4(outline_col, lash_a));
 }
 
@@ -225,7 +267,7 @@ vec4 face_nose(vec2 q, float px, vec2 center, int kind, float size, float thick,
 		vec2 r = vec2(0.13, 0.1) * s;
 		d = fs_union(fs_sd_ellipse(p - vec2(-0.24 * s, 0.0), r), fs_sd_ellipse(p - vec2(0.24 * s, 0.0), r));
 	} else {
-		d = fs_sd_ellipse(p, vec2(0.36, 0.27) * s);
+		d = fs_sd_ellipse(p, vec2(0.36, 0.33) * s);
 	}
 	return vec4(col, fs_fill(d, px));
 }
@@ -233,7 +275,8 @@ vec4 face_nose(vec2 q, float px, vec2 center, int kind, float size, float thick,
 // --- Mouth ----------------------------------------------------------------------------
 // kind 0 simple stroke, 1 cat "w", 2 small "o", 3 wide smile with corner ticks. `curve`
 // -1 frown .. 1 smile. `open` 0..1 opens the line into a mouth (dark inside, a tongue at
-// the bottom, `teeth` 0..1 a band under the top edge). `depth` = how deep a full open goes.
+// the bottom, `teeth` 0..1 a band under the top edge; without teeth the top edge lifts too,
+// so an open mouth is a plain oval). `depth` = how deep a full open goes.
 float fs_mouth_base(float u, int kind, float cs, float hw) {
 	if (kind == 1) {
 		float v = 2.0 * abs(u) - 1.0;
@@ -267,7 +310,7 @@ vec4 face_mouth(
 		float d2 = fs_sd_bezier_stroke(p, vec2(0.0, 0.0), vec2(0.5 * hw, sagw), vec2(hw, lift), w, 0.5, 0.0, px);
 		d_line = fs_union(d1, d2);
 	} else {
-		d_line = fs_sd_bezier_stroke(p, vec2(-hw, cs), vec2(0.0, -cs), vec2(hw, cs), w, 0.45, 0.0, px);
+		d_line = fs_sd_bezier_stroke(p, vec2(-hw, cs), vec2(0.0, -cs), vec2(hw, cs), w, 0.2, 0.0, px);
 		if (kind == 3) {
 			vec2 n = normalize(vec2(-2.0 * cs, hw));
 			float tl = 0.13 * hw;
@@ -286,7 +329,8 @@ vec4 face_mouth(
 		float u = clamp(p.x / hw, -1.0, 1.0);
 		float bu = fs_mouth_base(u, kind == 1 ? 0 : kind, cs, hw);
 		float arc = sqrt(max(1.0 - u * u, 0.0));
-		float y_top = bu + op * dep * 0.12 * (1.0 - u * u);
+		float tth = clamp(teeth, 0.0, 1.0);
+		float y_top = bu + op * dep * mix(0.6 * arc, 0.12 * (1.0 - u * u), tth);
 		float y_bot = bu - op * dep * arc;
 		float d_top = p.y - y_top;
 		float d_bot = y_bot - p.y;
@@ -295,7 +339,7 @@ vec4 face_mouth(
 		vec3 c = inner_col;
 		float tg = fs_fill(fs_sd_ellipse(p - vec2(0.0, y_bot + 0.05 * dep), vec2(0.55 * hw, 0.4 * op * dep)), px);
 		c = mix(c, tongue_col, tg * clamp(tongue, 0.0, 1.0));
-		float th = fs_fill(y_top - 0.22 * op * dep - p.y, px) * clamp(teeth, 0.0, 1.0);
+		float th = fs_fill(y_top - 0.22 * op * dep - p.y, px) * tth;
 		c = mix(c, teeth_col, th);
 		c = mix(line_col, c, fs_fill(d_inner, px));
 		res = fs_over(vec4(c, fs_fill(d_m, px)), res);
@@ -304,16 +348,17 @@ vec4 face_mouth(
 }
 
 // --- Packed dispatch --------------------------------------------------------------------
-// element: 0 eye, 1 brow, 2 nose, 3 mouth. Layout of fp0..fp5 / fc0..fc3 per element is
+// element: 0 eye, 1 brow, 2 nose, 3 mouth. Layout of fp0..fp6 / fc0..fc4 per element is
 // documented in FaceStyle.pack() (data/scripts/face_style.gd).
 vec4 face_element(
-	int el, vec2 q, float px, vec4 a0, vec4 a1, vec4 a2, vec4 a3, vec4 a4, vec4 a5,
-	vec4 k0, vec4 k1, vec4 k2, vec4 k3
+	int el, vec2 q, float px, vec4 a0, vec4 a1, vec4 a2, vec4 a3, vec4 a4, vec4 a5, vec4 a6,
+	vec4 k0, vec4 k1, vec4 k2, vec4 k3, vec4 k4
 ) {
 	if (el == 0) {
 		return face_eye(
 			q, px, a0.xy, a0.zw, a1.x, a1.y, k0.rgb, k1.rgb, a2.x, k2.rgb, a2.yz, a2.w, k3.rgb,
-			a3.x, a3.yz, a3.w, a5.rgb, a4.x, a4.y, a4.z, a1.w, a1.z, a4.w
+			a3.x, a3.yz, a3.w, a5.rgb, a4.x, a4.y, a4.z, a1.w, a1.z, a4.w, a6.x, a6.y, a6.z,
+			a6.w, a5.w, k4.rgb
 		);
 	} else if (el == 1) {
 		return face_brow(q, px, a0.xy, a0.z, a0.w, a1.x, a1.y, a1.z, a1.w, a2.x, k0.rgb);

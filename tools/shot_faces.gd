@@ -7,11 +7,14 @@ extends SceneTree
 ##   sheet_presets.png  every preset (rows) in every expression state (columns)
 ##   sheet_scale.png    the presets at game size (~25 px head), upscaled 4x nearest
 ##   sheet_dials.png    the "round" preset with one dial swept per row
+##   sheet_refs.png     the owner's reference faces H and K (IMPORT/faces_proc/ref/, a 4 x 3
+##                      GPT-Image sheet) beside heavy_lid and old_timer in a few states, on
+##                      kraft paper at the same head-disc size
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
 const CANVAS_SHADER := "res://assets/shaders/face_element_canvas.gdshader"
-const PRESETS := ["round", "almond", "sleepy", "sparkle", "dots", "grump"]
+const PRESETS := ["round", "heavy_lid", "old_timer", "almond", "sleepy", "sparkle", "dots", "grump"]
 const STATES := ["neutral", "blink_half", "closed", "happy", "sad", "angry", "surprised", "talking"]
 const SKIN := Color("f2c9a6")
 const PAPER := Color("f7f1e6")
@@ -23,6 +26,17 @@ const FACE_MID_Y := -0.035  # FaceLayout y at the disc centre
 const GAME_HEAD_PX := 25
 const UPSCALE := 4
 const DIAL_STEPS := 7
+const REF_SHEET := "res://IMPORT/faces_proc/ref/style_sheet_HK.webp"
+const REF_COLS := 4
+const REF_ROWS := 3
+const REF_MARGIN := Vector2(0.0175, 0.0471)  # sheet margin, fraction of the image size
+const REF_DISC_Y := 0.474  # disc centre down each cell (the letter sits under it)
+const REF_DISC := 0.783  # disc diameter / cell width
+const REF_CROP := 1.12  # crop side / disc diameter
+const KRAFT := Color("b9ab98")
+const REF_STATES := ["neutral", "blink_half", "closed", "happy", "talking"]
+# reference row: letter, column, row, preset
+const REFS := [["H", 3, 1, "heavy_lid"], ["K", 2, 2, "old_timer"]]
 # dial row: label, field, from, to
 const DIALS := [
 	["openness 1>0", "openness", 1.0, 0.0],
@@ -58,6 +72,7 @@ func _run() -> void:
 	t = Time.get_ticks_msec()
 	await _sheet_dials(styles["round"])
 	print("sheet_dials: %d ms" % (Time.get_ticks_msec() - t))
+	await _sheet_refs(styles)
 	quit(0)
 
 
@@ -123,6 +138,50 @@ func _sheet_dials(style: FaceStyle) -> void:
 	await _save(board, size, "sheet_dials.png")
 
 
+func _sheet_refs(styles: Dictionary) -> void:
+	var ref := Image.new()
+	var err := ref.load_webp_from_buffer(FileAccess.get_file_as_bytes(REF_SHEET))
+	if err != OK:
+		push_error("shot_faces: cannot read %s (%s)" % [REF_SHEET, error_string(err)])
+		return
+	var cols := 1 + REF_STATES.size()
+	var size := Vector2i(CELL * cols, (CELL + LABEL_H) * REFS.size())
+	var board := _board(size)
+	board.color = KRAFT
+	var disc := CELL / REF_CROP
+	for r in REFS.size():
+		var row: Array = REFS[r]
+		var y := r * (CELL + LABEL_H)
+		var tr := TextureRect.new()
+		tr.texture = ImageTexture.create_from_image(_ref_cell(ref, row[1], row[2]))
+		tr.position = Vector2(0, y)
+		board.add_child(tr)
+		board.add_child(_label("reference " + String(row[0]), Vector2(0, y + CELL - 6), CELL))
+		var style: FaceStyle = styles[row[3]]
+		for c in REF_STATES.size():
+			var face := _face(style, style.expression(REF_STATES[c]), disc, false)
+			face.position = Vector2((c + 1) * CELL, y) + Vector2.ONE * (CELL - disc) * 0.5
+			board.add_child(face)
+			var text := "%s / %s" % [row[3], REF_STATES[c]]
+			board.add_child(_label(text, Vector2((c + 1) * CELL, y + CELL - 6), CELL))
+	await _save(board, size, "sheet_refs.png")
+
+
+## Square crop of one lettered face on the reference sheet, the disc REF_CROP times
+## smaller than the crop, scaled to CELL.
+func _ref_cell(ref: Image, col: int, row: int) -> Image:
+	var full := Vector2(ref.get_size())
+	var margin := full * REF_MARGIN
+	var cell := (full - margin * 2.0) / Vector2(REF_COLS, REF_ROWS)
+	var centre := margin + cell * Vector2(col + 0.5, row + REF_DISC_Y)
+	var side := roundi(cell.x * REF_DISC * REF_CROP)
+	var rect := Rect2i(Vector2i(centre - Vector2.ONE * side * 0.5), Vector2i(side, side))
+	var img := ref.get_region(rect)
+	img.convert(Image.FORMAT_RGBA8)
+	img.resize(CELL, CELL, Image.INTERPOLATE_LANCZOS)
+	return img
+
+
 ## One face: a skin disc with both eyes, both brows, the nose and the mouth laid out from
 ## the rig's FaceLayout (metres mapped onto the disc).
 func _face(style: FaceStyle, dials: Dictionary, diameter: float, alpha_cut: bool) -> Control:
@@ -132,6 +191,7 @@ func _face(style: FaceStyle, dials: Dictionary, diameter: float, alpha_cut: bool
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = SKIN
 	sb.set_corner_radius_all(int(diameter * 0.5))
+	sb.corner_detail = 32
 	sb.anti_aliasing = not alpha_cut
 	disc.add_theme_stylebox_override("panel", sb)
 	disc.size = root.size
