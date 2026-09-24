@@ -240,6 +240,7 @@ const SHOTS := [
 	# walk-frame close-ups, new rig only; the camera is aimed from the bones (see _aim)
 	["hands_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, true],
 	["rise_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, false],
+	["knee_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, false],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -407,7 +408,7 @@ func _pose(shot: Array) -> void:
 	else:
 		_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_cam.look_at_from_position(shot[3], shot[4], Vector3.UP)
-	if String(shot[0]) in ["hands_walk", "rise_walk"]:
+	if String(shot[0]) in ["hands_walk", "rise_walk", "knee_walk"]:
 		_aim(String(shot[0]))
 
 
@@ -415,6 +416,13 @@ func _pose(shot: Array) -> void:
 func _aim(name: String) -> void:
 	var rig := _rigs[1]
 	var skel := rig.find_child("Skeleton3D", true, false) as Skeleton3D
+	if name == "knee_walk":
+		# both knees, from the engine_walk camera's direction, closer in
+		var kl := skel.get_bone_global_pose(skel.find_bone("lowerleg.l")).origin
+		var kr := skel.get_bone_global_pose(skel.find_bone("lowerleg.r")).origin
+		var mid := skel.global_transform * ((kl + kr) * 0.5)
+		_cam.look_at_from_position(mid + Vector3(0.75, 0.25, 0.75), mid, Vector3.UP)
+		return
 	if name == "hands_walk":
 		var hand := (
 			skel.global_transform * skel.get_bone_global_pose(skel.find_bone("hand.l")).origin
@@ -790,7 +798,7 @@ func _on_frame() -> void:
 	elif _frame == 10:
 		var image := root.get_texture().get_image()
 		var name := String(SHOTS[_shot][0])
-		var bare := name.begins_with("hem_") or name in ["hands_walk", "rise_walk"]
+		var bare := name.begins_with("hem_") or name in ["hands_walk", "rise_walk", "knee_walk"]
 		var prefix := "" if bare else "engine_"
 		var path := "%s/%s%s%s.png" % [OUT_DIR, prefix, _tag, name]
 		if name.begins_with("shoulder_"):

@@ -282,6 +282,13 @@ def _arguments(argv):
         " metres of the sleeve's highest point and of the armhole, handing over to the arm"
         " across as much again (down and along the arm); 0 = off",
     )
+    for joint, width in JOINT_BLENDS.items():
+        p.add_argument(
+            "--%s-blend" % joint,
+            type=float,
+            default=None,
+            help="metres of hand-over at the %s (default %.2f)" % (joint, width),
+        )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
     ns = p.parse_args(args)
@@ -1589,7 +1596,10 @@ def _quiet_stretch(obj) -> float:
 # step 5: skin
 
 
-JOINT_BLEND = 0.04  # metres over which a joint hands one bone to the next (centred on it)
+JOINT_BLEND = 0.04  # metres over which the legs hand left to right across x = 0
+# Per joint: metres over which it hands one bone to the next (centred on the joint). The
+# knee is wider: in a deep walk bend a 4 cm hand-over folds the back of the knee inward.
+JOINT_BLENDS = {"chest": 0.04, "elbow": 0.04, "hip": 0.04, "knee": 0.12}
 # Each mesh's bones in the rigid assignment; anything else must be exactly zero.
 RIGID_BONES = {
     "jacket": {"chest", "spine", "upperarm.l", "lowerarm.l", "upperarm.r", "lowerarm.r"},
@@ -1627,11 +1637,18 @@ def step_skin_rigid(ns) -> None:
     elbow_x = abs(head("lowerarm.l").x)
     hip_z = head("upperleg.l").z
     knee_z = head("lowerleg.l").z
+    blends = dict(JOINT_BLENDS)
+    for name in blends:
+        value = getattr(ns, name + "_blend", None)
+        if value is not None:
+            blends[name] = value
     log("  joints from the rig: chest %.3f m, elbow |x| %.3f, upperleg %.3f m, knee %.3f m;"
-        " blend %.0f cm across each" % (chest_z, elbow_x, hip_z, knee_z, JOINT_BLEND * 100))
+        " blends %s" % (chest_z, elbow_x, hip_z, knee_z, ", ".join(
+            "%s %.0f cm" % (k, v * 100) for k, v in blends.items())))
 
-    def hand_over(value, joint, below, above):
-        t = min(max((value - (joint - JOINT_BLEND / 2)) / JOINT_BLEND, 0.0), 1.0)
+    def hand_over(value, joint, below, above, kind):
+        width = blends[kind]
+        t = min(max((value - (joint - width / 2)) / width, 0.0), 1.0)
         if t <= 0.0:
             return {below: 1.0}
         if t >= 1.0:
@@ -1680,7 +1697,7 @@ def step_skin_rigid(ns) -> None:
                 sd = side(co.x)
             if role in ("jacket", "tie", "buttons", "square"):
                 if lab.startswith("sleeve"):
-                    w = hand_over(abs(co.x), elbow_x, "upperarm" + sd, "lowerarm" + sd)
+                    w = hand_over(abs(co.x), elbow_x, "upperarm" + sd, "lowerarm" + sd, "elbow")
                     if ring_tree is not None:
                         # stitched to the body along the armhole: a ring vertex takes the
                         # body's bones at its height, handing over to the arm across
@@ -1688,7 +1705,7 @@ def step_skin_rigid(ns) -> None:
                         _, _, d = ring_tree.find(co)
                         t = min(max(d / ns.stitch_armhole, 0.0), 1.0)
                         if t < 1.0:
-                            body_w = hand_over(co.z, chest_z, "spine", "chest")
+                            body_w = hand_over(co.z, chest_z, "spine", "chest", "chest")
                             mixed = {k: x * t for k, x in w.items()}
                             for k, x in body_w.items():
                                 mixed[k] = mixed.get(k, 0.0) + x * (1.0 - t)
@@ -1711,7 +1728,7 @@ def step_skin_rigid(ns) -> None:
                             w = {k: x for k, x in mixed.items() if x > 0.0}
                             banded += 1
                 else:
-                    w = hand_over(co.z, chest_z, "spine", "chest")
+                    w = hand_over(co.z, chest_z, "spine", "chest", "chest")
             elif role == "shirt":
                 w = {"lowerarm" + sd: 1.0} if lab.startswith("sleeve") else {"chest": 1.0}
             elif role == "arms":
@@ -1724,9 +1741,9 @@ def step_skin_rigid(ns) -> None:
                 # one mesh, no split: each side's rule, blended across x = 0 over
                 # JOINT_BLEND so the rise and inseams stay closed when the legs part
                 def leg(sfx):
-                    if co.z >= knee_z + JOINT_BLEND / 2:
-                        return hand_over(co.z, hip_z, "upperleg" + sfx, "hips")
-                    return hand_over(co.z, knee_z, "lowerleg" + sfx, "upperleg" + sfx)
+                    if co.z >= knee_z + blends["knee"] / 2:
+                        return hand_over(co.z, hip_z, "upperleg" + sfx, "hips", "hip")
+                    return hand_over(co.z, knee_z, "lowerleg" + sfx, "upperleg" + sfx, "knee")
 
                 lx = co.x * math.copysign(1.0, head("upperarm.l").x)
                 t = min(max((lx + JOINT_BLEND / 2) / JOINT_BLEND, 0.0), 1.0)
