@@ -613,7 +613,7 @@ func _build_world() -> void:
 	)
 	var hrow := _view.row(world, "Height")
 	_scale_label = _view.value(hrow, "")
-	_view.button(hrow, "Reset", func() -> void: _scale_slider.value = 1.0)
+	_view.button(hrow, "Reset", func() -> void: _scale_slider.value = WorldScale.DEFAULT)
 	WorldScale.changed.connect(_refresh_world_scale)
 
 

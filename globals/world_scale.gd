@@ -1,8 +1,10 @@
 extends Node
 
-## Autoloaded as "WorldScale". A debug dial (F3 panel, "World" section) that shrinks the
-## characters and everything movable by one factor, live, to try other proportions while
-## playing. It scales, by the same `factor`:
+## Autoloaded as "WorldScale". The game's proportions dial: it shrinks the characters and
+## everything movable by one factor, live, so the real-metre building reads roomier around
+## them. DEFAULT (0.85, a 1.90 m character) is what ships; the F3 panel's "World" section
+## moves it in debug builds to try other proportions while playing. It scales, by the same
+## `factor`:
 ##  - the player's visual model (Player/Model), never the Player body or its capsule;
 ##  - every other character rig (customers, the mentor, the apprentice), unless the rig
 ##    sits inside a prop that is scaled already (the apprentice at his bench);
@@ -16,9 +18,10 @@ extends Node
 ## Every touched node's base scale and position are remembered here (not on the node, so
 ## nothing leaks into a scene a tool might pack) and the scaled values are always worked
 ## out from that base, so moving the slider never compounds and 1.0 puts everything back
-## exactly. If game code moves or re-transforms a node, the next pass takes that as its
-## new base. Persisted in user://debug_settings.cfg ([debug] world_scale), not in a save.
-## Debug builds only: a release build always plays at 1.0.
+## to the authored, real-metre size. If game code moves or re-transforms a node, the next
+## pass takes that as its new base. In debug builds the dial persists in
+## user://debug_settings.cfg ([debug] world_scale), not in a save; a release build always
+## plays at DEFAULT.
 
 signal changed(factor: float)
 
@@ -26,6 +29,8 @@ enum Kind { OPEN, SKIP, PROP, RIG, HOLDER, PLAYER, CAMERA }
 
 const MIN := 0.70
 const MAX := 1.00
+## What ships: 0.85 puts the character at 1.90 m against the 2.4 m door and 3 m walls.
+const DEFAULT := 0.85
 ## The character's full height at 1.0, for the panel's readout.
 const CHARACTER_HEIGHT := 2.24
 const CFG_PATH := "user://debug_settings.cfg"
@@ -66,7 +71,7 @@ const SKIP_NAMES: Array[String] = [
 ## own, so the generic rule would take them for one big prop).
 const OPEN_NAMES: Array[String] = ["ShopRoom"]
 
-var factor: float = 1.0
+var factor: float = DEFAULT
 
 var _entries := {}  # instance id -> {node, kind, base_scale, base_pos, set_scale, set_pos, drop}
 var _cameras: Array[Node] = []
@@ -74,16 +79,15 @@ var _pending: Array[Node] = []
 var _flush_queued := false
 var _reapply_queued := false
 var _save_queued := false
-var _enabled := false
+var _dial := false  # the slider and its file: debug builds only
 
 
 func _ready() -> void:
-	_enabled = OS.is_debug_build()
-	if not _enabled:
-		return
-	var cfg := ConfigFile.new()
-	if cfg.load(CFG_PATH) == OK:
-		factor = clampf(float(cfg.get_value(CFG_SECTION, CFG_KEY, 1.0)), MIN, MAX)
+	_dial = OS.is_debug_build()
+	if _dial:
+		var cfg := ConfigFile.new()
+		if cfg.load(CFG_PATH) == OK:
+			factor = clampf(float(cfg.get_value(CFG_SECTION, CFG_KEY, DEFAULT)), MIN, MAX)
 	get_tree().node_added.connect(_on_node_added)
 	Renovation.changed.connect(_queue_reapply)
 	Upgrades.changed.connect(_queue_reapply)
@@ -91,7 +95,7 @@ func _ready() -> void:
 
 ## Set the dial (clamped to MIN..MAX) and rescale the current scene right away.
 func set_factor(f: float) -> void:
-	if not _enabled:
+	if not _dial:
 		return
 	var next := clampf(f, MIN, MAX)
 	if next == factor:
@@ -111,7 +115,7 @@ func character_height() -> float:
 
 
 func _active() -> bool:
-	return _enabled and (factor != 1.0 or not _entries.is_empty() or not _cameras.is_empty())
+	return factor != 1.0 or not _entries.is_empty() or not _cameras.is_empty()
 
 
 ## Cheap filter: most nodes added during play are UI or happen at 1.0 — ignore them here,
@@ -356,7 +360,7 @@ func _apply_camera(rig: Node) -> void:
 
 ## A drag that ends right before quitting still reaches the file.
 func _exit_tree() -> void:
-	if _save_queued:
+	if _dial and _save_queued:
 		_save()
 
 
