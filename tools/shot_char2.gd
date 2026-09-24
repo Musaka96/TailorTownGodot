@@ -7,6 +7,10 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_char2.gd
 ##   godot --path . --script res://tools/shot_char2.gd -- --glb=res://.dev/x.glb --tag=x
 ##   godot --path . --script res://tools/shot_char2.gd -- --only=hem_   (shots by prefix)
+##   ... -- --only=shoulder_ --arm-drop=45 --tag=basic_45   (arms posed by hand, see below)
+## --arm-drop=<deg>: no animation; the skeleton at rest except both upperarms, turned down
+## by that many degrees along the calm idle's own rotation (90 = the calm idle's arms).
+## "shoulder_" shots go to IMPORT/CHARREWORK/report/shoulder/shoulder_<tag><view>.png.
 ## Writes engine_<tag>_<view>.png to IMPORT/CHARREWORK/report/ (git-ignored).
 ##
 ## The outfit goes on through the rig's own set_outfit one frame after the rigs enter
@@ -202,6 +206,37 @@ const SHOTS := [
 		HEM_ORTHO,
 		true
 	],
+	# shoulder study (new rig only); combine with --arm-drop
+	[
+		"shoulder_front",
+		"",
+		0.0,
+		Vector3(0.9, 1.05, 3.4),
+		Vector3(0.9, 0.95, 0.0),
+		"new",
+		0.0,
+		false
+	],
+	[
+		"shoulder_back",
+		"",
+		0.0,
+		Vector3(0.9, 1.05, -3.4),
+		Vector3(0.9, 0.95, 0.0),
+		"new",
+		0.0,
+		false
+	],
+	[
+		"shoulder_closeup",
+		"",
+		0.0,
+		Vector3(1.75, 1.15, 1.35),
+		Vector3(1.1, 0.95, 0.0),
+		"new",
+		0.0,
+		false
+	],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -210,6 +245,7 @@ var _frame := 0
 var _shot := 0
 var _tag := ""
 var _only := ""
+var _arm_drop := -1.0
 
 
 func _initialize() -> void:
@@ -222,6 +258,8 @@ func _initialize() -> void:
 			_tag = arg.trim_prefix("--tag=") + "_"
 		elif arg.begins_with("--only="):
 			_only = arg.trim_prefix("--only=")
+		elif arg.begins_with("--arm-drop="):
+			_arm_drop = float(arg.trim_prefix("--arm-drop="))
 	RenderingServer.set_debug_generate_wireframes(true)
 	# test renders stand in the calm idle (arms straight down); the game keeps the KayKit
 	# idle. Must be set before the first rig builds (and caches) the animation library.
@@ -353,6 +391,9 @@ func _pose(shot: Array) -> void:
 	root.debug_draw = (
 		Viewport.DEBUG_DRAW_WIREFRAME if name.contains("_wire") else Viewport.DEBUG_DRAW_DISABLED
 	)
+	if _arm_drop >= 0.0:
+		for rig in _rigs:
+			_drop_arms(rig, _arm_drop)
 	var who: String = shot[5] if shot.size() > 5 else "both"
 	_rigs[0].visible = who != "new"
 	_rigs[1].visible = who != "old"
@@ -363,6 +404,21 @@ func _pose(shot: Array) -> void:
 	else:
 		_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_cam.look_at_from_position(shot[3], shot[4], Vector3.UP)
+
+
+## Rest pose except both upperarms, turned down `deg` degrees along the calm idle's arm
+## rotation (CharacterAnimations._calm_rotation), so 90 is exactly the calm idle's arms.
+func _drop_arms(rig: Node3D, deg: float) -> void:
+	var player := rig.get_node("AnimationPlayer") as AnimationPlayer
+	player.stop()
+	var skel := rig.find_child("Skeleton3D", true, false) as Skeleton3D
+	skel.reset_bone_poses()
+	for side in [".l", ".r"]:
+		var bone := skel.find_bone("upperarm" + side)
+		var rest := skel.get_bone_rest(bone).basis.get_rotation_quaternion()
+		var calm: Quaternion = CharacterAnimations._calm_rotation(skel, bone)
+		var turn := calm * rest.inverse()
+		skel.set_bone_pose_rotation(bone, Quaternion.IDENTITY.slerp(turn, deg / 90.0) * rest)
 
 
 ## Where the pose puts the sleeves and trouser legs, from the skinned vertices, and how
@@ -630,6 +686,11 @@ func _on_frame() -> void:
 		var name := String(SHOTS[_shot][0])
 		var prefix := "" if name.begins_with("hem_") else "engine_"
 		var path := "%s/%s%s%s.png" % [OUT_DIR, prefix, _tag, name]
+		if name.begins_with("shoulder_"):
+			DirAccess.make_dir_recursive_absolute(
+				ProjectSettings.globalize_path(OUT_DIR + "/shoulder")
+			)
+			path = "%s/shoulder/shoulder_%s%s.png" % [OUT_DIR, _tag, name.trim_prefix("shoulder_")]
 		if image != null and image.save_png(ProjectSettings.globalize_path(path)) == OK:
 			print("Saved " + path)
 		_shot += 1

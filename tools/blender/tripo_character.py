@@ -265,6 +265,14 @@ def _arguments(argv):
         help="copy the owner's CHARTGEN1 weights by position instead of the rigid per-part"
         " assignment (the default)",
     )
+    p.add_argument(
+        "--shoulder-band",
+        type=float,
+        default=0.0,
+        help="the shoulder round of each sleeve stays on the chest: 100%% within this many"
+        " metres of the sleeve's highest point and of the armhole, handing over to the arm"
+        " across as much again (down and along the arm); 0 = off",
+    )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
     ns = p.parse_args(args)
@@ -1629,14 +1637,24 @@ def step_skin_rigid(ns) -> None:
         note = ""
         if role in ("jacket", "shirt", "legs"):
             mode = "legs" if role == "legs" else "sleeves"
-            want = {"body"} if (role == "jacket" and ns.body_caps) else set()
+            want = set()
+            if role == "jacket":
+                want = ({"body"} if ns.body_caps else set()) | (
+                    {"sleeve"} if ns.sleeve_caps else set())
             labels, split, caps = _split_regions(obj, mode, ns.sleeve_x, want, True)
             note = " | split along %d seam edges (%s)%s" % (
                 split, " / ".join(sorted(set(labels))),
-                (", %d body armhole caps" % len(caps)) if caps else "")
+                (", %d armhole caps (%s)" % (len(caps), " + ".join(sorted(want)))) if caps else "")
         obj.vertex_groups.clear()
         for name in bones:
             obj.vertex_groups.new(name=name)
+        tops, inner = {}, {}
+        for i, v in enumerate(obj.data.vertices):
+            if labels[i].startswith("sleeve"):
+                p = obj.matrix_world @ v.co
+                tops[labels[i]] = max(tops.get(labels[i], -1e9), p.z)
+                inner[labels[i]] = min(inner.get(labels[i], 1e9), abs(p.x))
+        banded = 0
         for i, v in enumerate(obj.data.vertices):
             co = obj.matrix_world @ v.co
             lab = labels[i]
@@ -1649,6 +1667,22 @@ def step_skin_rigid(ns) -> None:
             if role in ("jacket", "tie", "buttons", "square"):
                 if lab.startswith("sleeve"):
                     w = hand_over(abs(co.x), elbow_x, "upperarm" + sd, "lowerarm" + sd)
+                    band = ns.shoulder_band
+                    depth = tops.get(lab, co.z) - co.z
+                    along = abs(co.x) - inner.get(lab, abs(co.x))
+                    if band > 0.0 and depth < 2.0 * band and along < 2.0 * band:
+                        # the shoulder round of the sleeve stays on the chest: the top
+                        # `band` below the sleeve's highest point, within `band` of the
+                        # armhole, fading to the arm over one more band down AND along
+                        # the arm (measured from the top alone, the band would run the
+                        # sleeve's whole upper edge out to the cuff)
+                        keep = (1.0 - min(max((depth - band) / band, 0.0), 1.0)) * (
+                            1.0 - min(max((along - band) / band, 0.0), 1.0))
+                        if keep > 0.0:
+                            mixed = {k: x * (1.0 - keep) for k, x in w.items()}
+                            mixed["chest"] = mixed.get("chest", 0.0) + keep
+                            w = {k: x for k, x in mixed.items() if x > 0.0}
+                            banded += 1
                 else:
                     w = hand_over(co.z, chest_z, "spine", "chest")
             elif role == "shirt":
@@ -1674,6 +1708,9 @@ def step_skin_rigid(ns) -> None:
                     used.add(obj.vertex_groups[g.group].name)
         stray = used - RIGID_BONES[role]
         assert not stray, "%s carries weight on %s" % (role, sorted(stray))
+        if banded:
+            note += ", %d sleeve verts in the %.0f+%.0f cm shoulder band" % (
+                banded, ns.shoulder_band * 100, ns.shoulder_band * 100)
         log("  %-7s %s%s" % (role, _bones_used(obj), note))
         log("  %-7s   allowed %s; every other bone is zero (checked)" % (
             "", ", ".join(sorted(RIGID_BONES[role]))))
