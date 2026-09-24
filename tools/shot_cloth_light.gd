@@ -398,7 +398,7 @@ func _build_postfx() -> void:
 	_vp.add_child(_postfx)
 	var rect := ColorRect.new()
 	rect.position = Vector2.ZERO
-	rect.size = Vector2(WIDTH, HEIGHT)
+	rect.size = Vector2(_vp.size)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rect.material = mat
 	_postfx.add_child(rect)

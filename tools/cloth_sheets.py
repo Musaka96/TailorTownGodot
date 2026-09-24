@@ -149,7 +149,29 @@ def row_image(width, row):
     else:
         line.paste(src, (0, 0))
     parts.append(line)
+    if row.get("below"):
+        parts.append(label_strip(width, BAND_W if spec else 0, inner, row["below"]))
     return parts
+
+
+def label_strip(width, x0, inner, below):
+    """A caption strip under a row: each label centred on its subject (xs are 0..1
+    across the row image), wrapped to the gap between neighbours."""
+    labels, xs = below["labels"], below["xs"]
+    f = font(22, "Medium")
+    probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    gap = min((b - a) for a, b in zip(xs, xs[1:])) * inner if len(xs) > 1 else inner
+    col_w = max(80, int(gap) - 12)
+    wrapped = [wrap(probe, text, f, col_w) for text in labels]
+    line_h = 28
+    h = 14 + line_h * max(len(w) for w in wrapped)
+    img = Image.new("RGB", (width, h), CAPTION_BG)
+    d = ImageDraw.Draw(img)
+    for x, lines in zip(xs, wrapped):
+        cx = x0 + x * inner
+        for i, text in enumerate(lines):
+            d.text((cx - text_w(d, text, f) / 2, 6 + i * line_h), text, font=f, fill=WHITE)
+    return img
 
 
 def compose(sheet):
