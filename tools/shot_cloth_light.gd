@@ -175,7 +175,7 @@ var _frames := 0
 
 
 func _initialize() -> void:
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ROW_DIR))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_row_dir()))
 	_vp = SubViewport.new()
 	_vp.size = Vector2i(WIDTH, HEIGHT)
 	_vp.own_world_3d = true
@@ -188,6 +188,31 @@ func _initialize() -> void:
 	_build_stage()
 	_build_figures()
 	process_frame.connect(_on_frame)
+
+
+# --- Hooks (tools/shot_cloth_post.gd extends this script and overrides them) -----
+
+
+func _variant_list() -> Array[String]:
+	return VARIANTS
+
+
+func _row_dir() -> String:
+	return ROW_DIR
+
+
+func _sheet_prefix() -> String:
+	return "light_"
+
+
+## The short settings line on a contact-sheet name band.
+func _band_line(name: String) -> String:
+	return SHORT[name]
+
+
+## Runs once the rolls, box and PostFX layer exist, before the first variant.
+func _after_build() -> void:
+	pass
 
 
 # --- The game's own values -----------------------------------------------------
@@ -581,7 +606,7 @@ func _place_camera(subject: String, which: String) -> void:
 
 func _start_shot() -> void:
 	if _shot == 0:
-		_apply_variant(VARIANTS[_variant])
+		_apply_variant(_variant_list()[_variant])
 	var shot: Array = SHOTS[_shot]
 	_figures.visible = shot[1] == "figures"
 	_rolls.visible = shot[1] == "rolls"
@@ -599,13 +624,14 @@ func _on_frame() -> void:
 		_lower_arms()
 		_build_rolls()
 		_build_postfx()
+		_after_build()
 		_start_shot()
 		return
 	if _frames < SETTLE_FRAMES:
 		return
-	var name := VARIANTS[_variant]
+	var name := _variant_list()[_variant]
 	var row_id: String = SHOTS[_shot][0]
-	var path := ROW_DIR + name + "_" + row_id + ".png"
+	var path := _row_dir() + name + "_" + row_id + ".png"
 	var img := _vp.get_texture().get_image()
 	img.convert(Image.FORMAT_RGB8)
 	img.save_png(path)
@@ -616,7 +642,7 @@ func _on_frame() -> void:
 	if _shot >= SHOTS.size():
 		_shot = 0
 		_variant += 1
-		if _variant >= VARIANTS.size():
+		if _variant >= _variant_list().size():
 			quit(_compose())
 			return
 	_start_shot()
@@ -630,7 +656,7 @@ func _save_zoom(img: Image, name: String) -> void:
 	var corner := (centre - size / 2).clamp(Vector2i.ZERO, Vector2i(WIDTH, HEIGHT) - size)
 	var patch := img.get_region(Rect2i(corner, size))
 	patch.resize(WIDTH, HEIGHT, Image.INTERPOLATE_NEAREST)
-	var path := ROW_DIR + name + "_figures_game_zoom.png"
+	var path := _row_dir() + name + "_figures_game_zoom.png"
 	patch.save_png(path)
 	_rows[name + "/figures_game_zoom"] = ProjectSettings.globalize_path(path)
 
@@ -640,7 +666,7 @@ func _save_zoom(img: Image, name: String) -> void:
 
 func _compose() -> int:
 	var sheets: Array[Dictionary] = []
-	for name in VARIANTS:
+	for name in _variant_list():
 		var rows: Array[Dictionary] = []
 		for shot: Array in SHOTS:
 			rows.append({"image": _rows[name + "/" + String(shot[0])], "caption": shot[3]})
@@ -649,7 +675,7 @@ func _compose() -> int:
 			sheets
 			. append(
 				{
-					"out": _dev("light_%s.png" % name),
+					"out": _dev(_sheet_prefix() + name + ".png"),
 					"width": WIDTH,
 					"title": name,
 					"subtitle": _summaries[name],
@@ -657,19 +683,9 @@ func _compose() -> int:
 				}
 			)
 		)
-	# [file, title, row id, variants]
-	var contacts := [
-		["light_ALL.png", "ALL VARIANTS, FIGURES CLOSE", "figures_close", VARIANTS],
-		["light_ALL_rolls.png", "ALL VARIANTS, ROLLS CLOSE", "rolls_close", VARIANTS],
-		["light_ALL_game.png", "ALL VARIANTS, GAMEPLAY CAMERA 4x", "figures_game_zoom", VARIANTS],
-		# Not light_RAKING.png: on Windows that is the same file as light_raking.png.
-		["light_RAKING_figures.png", "RAKING, FIGURES CLOSE", "figures_close", RAKING_SET],
-		["light_RAKING_rolls.png", "RAKING, ROLLS CLOSE", "rolls_close", RAKING_SET],
-		["light_RAKING_game.png", "RAKING, GAMEPLAY CAMERA 4x", "figures_game_zoom", RAKING_SET],
-	]
-	for c: Array in contacts:
+	for c: Array in _contact_list():
 		sheets.append(_contact(c[0], c[1], c[2], c[3]))
-	var manifest := ROW_DIR + "manifest.json"
+	var manifest := _row_dir() + "manifest.json"
 	var f := FileAccess.open(manifest, FileAccess.WRITE)
 	f.store_string(JSON.stringify({"sheets": sheets}, "\t"))
 	f.close()
@@ -680,8 +696,22 @@ func _compose() -> int:
 		print(line)
 	for note in _notes:
 		print("NOTE: ", note)
-	print("shot_cloth_light: done (composer exit %d)." % code)
+	var tool: String = get_script().resource_path.get_file()
+	print("%s: done (composer exit %d)." % [tool, code])
 	return code
+
+
+## [file, title, row id, variants] per contact sheet.
+func _contact_list() -> Array:
+	return [
+		["light_ALL.png", "ALL VARIANTS, FIGURES CLOSE", "figures_close", VARIANTS],
+		["light_ALL_rolls.png", "ALL VARIANTS, ROLLS CLOSE", "rolls_close", VARIANTS],
+		["light_ALL_game.png", "ALL VARIANTS, GAMEPLAY CAMERA 4x", "figures_game_zoom", VARIANTS],
+		# Not light_RAKING.png: on Windows that is the same file as light_raking.png.
+		["light_RAKING_figures.png", "RAKING, FIGURES CLOSE", "figures_close", RAKING_SET],
+		["light_RAKING_rolls.png", "RAKING, ROLLS CLOSE", "rolls_close", RAKING_SET],
+		["light_RAKING_game.png", "RAKING, GAMEPLAY CAMERA 4x", "figures_game_zoom", RAKING_SET],
+	]
 
 
 func _contact(file: String, title: String, row_id: String, names: Array[String]) -> Dictionary:
@@ -692,7 +722,7 @@ func _contact(file: String, title: String, row_id: String, names: Array[String])
 			. append(
 				{
 					"image": _rows[name + "/" + row_id],
-					"band": {"style": "name", "lines": [name, SHORT[name]]},
+					"band": {"style": "name", "lines": [name, _band_line(name)]},
 				}
 			)
 		)

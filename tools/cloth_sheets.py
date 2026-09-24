@@ -78,18 +78,22 @@ def wrap(draw, text, f, width):
 
 def title_strip(width, title, subtitle):
     big = font(44, "Bold")
-    small = font(24, "Regular")
-    h = 72 if not subtitle else 118
+    lines, size = [], 24
+    if subtitle:
+        # Shrink the summary to fit one line; past 18 px, wrap it instead.
+        probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+        small = font(size, "Regular")
+        while size > 18 and text_w(probe, subtitle, small) > width - 2 * PAD:
+            size -= 1
+            small = font(size, "Regular")
+        lines = wrap(probe, subtitle, small, width - 2 * PAD - 8)
+    line_h = int(size * 1.35)
+    h = 72 if not lines else 72 + line_h * len(lines) + 14
     img = Image.new("RGB", (width, h), TITLE_BG)
     d = ImageDraw.Draw(img)
     d.text((PAD + 4, 10), title, font=big, fill=WHITE)
-    if subtitle:
-        # Shrink the summary until it fits on one line.
-        size = 24
-        while size > 14 and text_w(d, subtitle, small) > width - 2 * PAD:
-            size -= 1
-            small = font(size, "Regular")
-        d.text((PAD + 4, 72), subtitle, font=small, fill=SOFT)
+    for i, line in enumerate(lines):
+        d.text((PAD + 4, 72 + i * line_h), line, font=small, fill=SOFT)
     return img
 
 
