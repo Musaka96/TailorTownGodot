@@ -181,12 +181,22 @@ def compare(name, ours_path, ref_path, half, out_dir, tpose, lines, extra=None):
     ref = load(ref_path, half)
     ref_mask = mask_of(ref)
     placed = fit(ref, ref_mask, ours_mask)
+    # crop everything to the figure (ours and the fitted reference share one frame), with
+    # a small margin, so both stand the same height and nothing is empty page
+    ys, xs = np.where(ours_mask | mask_of(placed))
+    pad = int(0.03 * (ys.max() - ys.min()))
+    box = (max(xs.min() - pad, 0), max(ys.min() - pad, 0),
+           min(xs.max() + pad, ours.width), min(ys.max() + pad, ours.height))
     ghost = placed.copy()
     ghost.putalpha(Image.eval(placed.getchannel("A"), lambda a: a // 2))
-    Image.alpha_composite(ours, ghost).convert("RGB").save(out_dir / ("overlay_%s.png" % name))
-    side = Image.new("RGB", (ours.width * 2, ours.height), (255, 255, 255))
-    side.paste(ours.convert("RGB"), (0, 0))
-    side.paste(on_white(placed).convert("RGB"), (ours.width, 0))
+    Image.alpha_composite(ours, ghost).crop(box).convert("RGB").save(
+        out_dir / ("overlay_%s.png" % name))
+    left = ours.crop(box).convert("RGB")
+    right = on_white(placed).crop(box).convert("RGB")
+    gap = pad
+    side = Image.new("RGB", (left.width * 2 + gap, left.height), (255, 255, 255))
+    side.paste(left, (0, 0))
+    side.paste(right, (left.width + gap, 0))
     side.save(out_dir / ("overlay_%s_side_by_side.png" % name))
     Image.fromarray((np.stack([ref_mask] * 3, axis=2) * 255).astype(np.uint8)).save(
         out_dir / ("overlay_%s_ref_mask.png" % name))

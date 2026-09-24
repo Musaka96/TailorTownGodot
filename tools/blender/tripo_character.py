@@ -115,6 +115,11 @@ ARM_BONES = (
     "upperarm.l", "lowerarm.l", "wrist.l", "hand.l",
     "upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
 )
+# Jacket body vertices above the armpit and near the centre (the collar and lapels, and
+# any piece whose centre sits there) carry no arm bone: in a walk the arms swing and an
+# arm weight there drags the lapel towards the sleeve.
+LAPEL_ZONE_Z = 1.02
+LAPEL_ZONE_X = 0.17
 KNN = 6  # source vertices averaged per vertex
 KNN_RADIUS = 0.06  # metres; past it the single nearest source vertex is used
 MIN_WEIGHT = 0.05  # weights below this are dropped before the limit of 4
@@ -224,8 +229,11 @@ def _arguments(argv):
     )
     p.add_argument(
         "--rigid-hem",
-        action="store_true",
-        help="make the bottom trouser loops 100%% lowerleg instead of the owner's hem weights",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="make the bottom 5 cm of the trousers 100%% lowerleg (a rigid cuff), blended over"
+        " the next 5 cm; the owner's hem carries ~15%% foot, which tilts the hem with the"
+        " foot in a walk (default on)",
     )
     p.add_argument(
         "--body-caps",
@@ -236,6 +244,13 @@ def _arguments(argv):
         "--sleeve-caps",
         action="store_true",
         help="split the jacket at the armholes and cap the sleeves' tops (doll arm socket)",
+    )
+    p.add_argument(
+        "--straight-hem",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="make the bottom 10 cm of each trouser leg a straight column (off: measured, the"
+        " Tripo legs are already straight at rest)",
     )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
@@ -568,6 +583,89 @@ def step_align(ns) -> None:
     log("  height %.3f -> %.3f (x%.4f), centred on x %.4f / torso y %.4f, feet at z 0%s" % (
         hi.z - lo.z, target, scale, centre.x, centre.y, ", turned 180" if turn else ""))
     _landmarks(objs, rig)
+    if "legs" in objs:
+        if ns.straight_hem:
+            _straight_hem(objs["legs"])
+        else:
+            _hem_table(objs["legs"], "(rest, --straight-hem off)")
+
+
+HEM_BAND_M = 0.10  # the bottom of each trouser leg that --straight-hem makes a column
+HEM_REF = (0.10, 0.14)  # the section above the hem it copies (metres over the hem)
+
+
+def _hem_table(obj, title) -> None:
+    """Per leg: centre and half-widths (x across, y front-back) of the trouser tube at the
+    hem ring, +5 and +10 cm, and the hem height."""
+    pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    log("  trouser hems %s:" % title)
+    for side in (1.0, -1.0):
+        leg = [p for p in pts if p.x * side > 0.0]
+        bottom = min(p.z for p in leg)
+        row = "    leg %s hem %.3f m |" % ("+x" if side > 0 else "-x", bottom)
+        for name, lo, hi in (("ring", 0.0, 0.012), ("+5", 0.04, 0.06), ("+10", 0.09, 0.11),
+                             ("+12", 0.10, 0.14)):
+            band = [p for p in leg if bottom + lo <= p.z <= bottom + hi]
+            if not band:
+                row += " %s -" % name
+                continue
+            xs, ys = [p.x for p in band], [p.y for p in band]
+            row += " %s x%.3f y%.3f c(%+.3f,%+.3f)" % (
+                name, (max(xs) - min(xs)) / 2, (max(ys) - min(ys)) / 2,
+                (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2)
+        log(row)
+
+
+def _straight_hem(obj) -> None:
+    """Make the bottom HEM_BAND_M of each trouser leg a straight column: every 1 cm slice
+    is re-centred and rescaled (x and front-back separately) onto the section HEM_REF
+    above the hem, fully at the hem and blending out towards the top of the band. The
+    Tripo legs bell out at the back towards the hem (8% deeper at the ring than 20 cm up);
+    the reference draws straight columns ending on the shoes."""
+    _hem_table(obj, "before --straight-hem")
+    me = obj.data
+    pts = [v.co.copy() for v in me.vertices]
+    inward = 0
+    moved = 0
+    for side in (1.0, -1.0):
+        idx = [i for i, p in enumerate(pts) if p.x * side > 0.0]
+        bottom = min(pts[i].z for i in idx)
+        ref = [pts[i] for i in idx if bottom + HEM_REF[0] <= pts[i].z <= bottom + HEM_REF[1]]
+        if len(ref) < 4:
+            log("    leg %+d: no section to copy, left as is" % side)
+            continue
+        rc = Vector(((max(p.x for p in ref) + min(p.x for p in ref)) / 2,
+                     (max(p.y for p in ref) + min(p.y for p in ref)) / 2))
+        rr = Vector(((max(p.x for p in ref) - min(p.x for p in ref)) / 2,
+                     (max(p.y for p in ref) - min(p.y for p in ref)) / 2))
+        slices = {}
+        for i in idx:
+            if pts[i].z < bottom + HEM_BAND_M:
+                slices.setdefault(int((pts[i].z - bottom) / 0.01), []).append(i)
+        for band, members in slices.items():
+            sp = [pts[i] for i in members]
+            if len(sp) < 3:
+                continue
+            c = Vector(((max(p.x for p in sp) + min(p.x for p in sp)) / 2,
+                        (max(p.y for p in sp) + min(p.y for p in sp)) / 2))
+            r = Vector(((max(p.x for p in sp) - min(p.x for p in sp)) / 2,
+                        (max(p.y for p in sp) - min(p.y for p in sp)) / 2))
+            for i in members:
+                p = pts[i]
+                t = 1.0 - min(max((p.z - bottom) / HEM_BAND_M, 0.0), 1.0)
+                t = t * t * (3.0 - 2.0 * t)
+                ox = (p.x - c.x) * (rr.x / max(r.x, 1e-6))
+                oy = (p.y - c.y) * (rr.y / max(r.y, 1e-6))
+                nx, ny = rc.x + ox, rc.y + oy
+                if (Vector((p.x, p.y)) - c).length < 0.5 * min(r.x, r.y):
+                    inward += 1  # a vertex well inside the tube: part of a turned-in loop
+                me.vertices[i].co.x = p.x + (nx - p.x) * t
+                me.vertices[i].co.y = p.y + (ny - p.y) * t
+                moved += 1
+    me.update()
+    log("    --straight-hem: %d verts moved in the bottom %.2f m, %d inside the tube"
+        " (turned-in loop)" % (moved, HEM_BAND_M, inward))
+    _hem_table(obj, "after --straight-hem")
 
 
 def _front_turn(ns, objs, rig) -> bool:
@@ -1544,6 +1642,9 @@ def step_skin(ns) -> None:
                 for k, w in weights[j].items():
                     avg[k] = avg.get(k, 0.0) + w / len(ring)
             weights[centre] = avg
+        lapels = 0
+        if role == "jacket":
+            lapels = _clear_lapel_arms(obj, weights, rig["jacket"])
         trims = _stick_trims(obj, weights, vlabel)
         capped = 0
         if ns.cap_blend > 0.0 and rule.get("regions") == "sleeves" and role == "jacket":
@@ -1561,6 +1662,8 @@ def step_skin(ns) -> None:
             extra.append("%d trim verts copy the cloth under them" % trims)
         if topped:
             extra.append("%d verts above his garment's top sampled his body verts only" % topped)
+        if lapels:
+            extra.append("%d collar/lapel verts had their arm weight cleared" % lapels)
         if capped:
             extra.append("%d sleeve-cap verts blended into the body" % capped)
         if hem:
@@ -1929,6 +2032,52 @@ class _Knn:
         return out, here, name
 
 
+def _clear_lapel_arms(obj, weights, rig_jacket) -> int:
+    """Clear the arm bones from the collar/lapel zone (and from any UV piece centred in
+    it), renormalising onto what is left (chest/spine). Prints the zone's weights next to
+    the owner's in the same zone."""
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    uvl = bm.loops.layers.uv.active
+    zone = set()
+    for faces in _uv_islands(bm, uvl):
+        area = sum(f.calc_area() for f in faces) or 1.0
+        c = sum((f.calc_center_median() * f.calc_area() for f in faces), Vector()) / area
+        if c.z > LAPEL_ZONE_Z and abs(c.x) < LAPEL_ZONE_X:
+            zone |= {v.index for f in faces for v in f.verts}
+    bm.free()
+    for v in obj.data.vertices:
+        p = obj.matrix_world @ v.co
+        if p.z > LAPEL_ZONE_Z and abs(p.x) < LAPEL_ZONE_X:
+            zone.add(v.index)
+    before = [weights[i] for i in zone]
+    count = 0
+    for i in zone:
+        w = weights[i]
+        if any(k in ARM_BONES and x > 0.001 for k, x in w.items()):
+            count += 1
+        kept = {k: x for k, x in w.items() if k not in ARM_BONES}
+        total = sum(kept.values())
+        weights[i] = {k: x / total for k, x in kept.items()} if total > 1e-6 else {"chest": 1.0}
+
+    def share(ws):
+        acc = {}
+        for w in ws:
+            for k, x in w.items():
+                acc[k] = acc.get(k, 0.0) + x
+        t = sum(acc.values()) or 1.0
+        return _fmt_share({k: x / t for k, x in acc.items()})
+
+    pts, rws = _vertex_weights(rig_jacket)
+    owner = [w for p, w in zip(pts, rws) if p.z > LAPEL_ZONE_Z and abs(p.x) < LAPEL_ZONE_X]
+    log("    collar/lapel zone (z > %.2f, |x| < %.2f, plus pieces centred in it): %d verts,"
+        " %d had arm weight" % (LAPEL_ZONE_Z, LAPEL_ZONE_X, len(zone), count))
+    log("      owner, same zone (%d verts): %s" % (len(owner), share(owner)))
+    log("      ours before:                %s" % share(before))
+    log("      ours after:                 %s" % share([weights[i] for i in zone]))
+    return count
+
+
 def _column_tops(objs, width):
     """A function |x| -> the highest point of the source meshes in that |x| column
     (`width` wide; an empty column takes the nearest filled one)."""
@@ -2115,8 +2264,9 @@ def _smooth(obj, weights, factor, repeat):
 
 def _rigid_hem(obj, weights, bone, side_of) -> int:
     """The trouser hem follows only the shin: the bottom HEM_BAND is 100% lowerleg of its
-    side, blended back to the transferred weights over the next HEM_BAND. (A hem that
-    carries foot weight curls in towards the leg in the idle pose.)"""
+    side, blended back to the transferred weights over the next HEM_BAND. The owner's hem
+    carries ~15% foot, so in a walk it tilts and flares with the foot; a rigid cuff stays
+    square to the shin."""
     zs = [(obj.matrix_world @ v.co).z for v in obj.data.vertices]
     bottom = min(zs)
     count = 0

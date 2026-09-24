@@ -6,6 +6,7 @@ extends SceneTree
 ## judged. NOT headless (it renders):
 ##   godot --path . --script res://tools/shot_char2.gd
 ##   godot --path . --script res://tools/shot_char2.gd -- --glb=res://.dev/x.glb --tag=x
+##   godot --path . --script res://tools/shot_char2.gd -- --only=hem_   (shots by prefix)
 ## Writes engine_<tag>_<view>.png to IMPORT/CHARREWORK/report/ (git-ignored).
 ##
 ## The outfit goes on through the rig's own set_outfit one frame after the rigs enter
@@ -27,6 +28,8 @@ const SHIRT_COLOR := Color(0.94, 0.93, 0.89)
 const POPLIN := 6  # Enums.Fabric.POPLIN (autoload enums are not resolved in a --script run)
 const SOLID := 0  # Enums.Pattern.SOLID
 const ORTHO_SIZE := 2.4
+const HEM_ORTHO := 0.75
+const HEM_GAP := 0.34  # the two rigs stand this far either side of the centre for hem shots
 const ARM_CHAIN := [["upperarm", "lowerarm"], ["lowerarm", "wrist"]]
 const LEG_CHAIN := [["upperleg", "lowerleg"], ["lowerleg", "foot"], ["foot", "toes"]]
 # name, animation, time fraction, camera position, look-at target, and optionally:
@@ -97,6 +100,108 @@ const SHOTS := [
 		ORTHO_SIZE,
 		false
 	],
+	# trouser bottoms, both rigs close together (front/back side by side, side view one
+	# behind the other along z), rest and calm idle, plus a wireframe
+	[
+		"hem_front_rest",
+		"",
+		0.0,
+		Vector3(0.0, 0.3, 4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		true
+	],
+	[
+		"hem_back_rest",
+		"",
+		0.0,
+		Vector3(0.0, 0.3, -4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_side_rest",
+		"",
+		0.0,
+		Vector3(4.0, 0.3, 0.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_front_wire_rest",
+		"",
+		0.0,
+		Vector3(0.0, 0.3, 4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_front_idle",
+		"idle",
+		0.0,
+		Vector3(0.0, 0.3, 4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		true
+	],
+	[
+		"hem_back_idle",
+		"idle",
+		0.0,
+		Vector3(0.0, 0.3, -4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_side_idle",
+		"idle",
+		0.0,
+		Vector3(4.0, 0.3, 0.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_front_wire_idle",
+		"idle",
+		0.0,
+		Vector3(0.0, 0.3, 4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_front_walk",
+		"walk",
+		0.25,
+		Vector3(0.0, 0.3, 4.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		false
+	],
+	[
+		"hem_side_walk",
+		"walk",
+		0.25,
+		Vector3(4.0, 0.3, 0.0),
+		Vector3(0.0, 0.3, 0.0),
+		"both",
+		HEM_ORTHO,
+		true
+	],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -104,6 +209,7 @@ var _cam: Camera3D
 var _frame := 0
 var _shot := 0
 var _tag := ""
+var _only := ""
 
 
 func _initialize() -> void:
@@ -114,6 +220,9 @@ func _initialize() -> void:
 			glb = arg.trim_prefix("--glb=")
 		elif arg.begins_with("--tag="):
 			_tag = arg.trim_prefix("--tag=") + "_"
+		elif arg.begins_with("--only="):
+			_only = arg.trim_prefix("--only=")
+	RenderingServer.set_debug_generate_wireframes(true)
 	var world := Node3D.new()
 	root.add_child(world)
 	_add_lights(world)
@@ -229,6 +338,18 @@ func _pose(shot: Array) -> void:
 		player.play(clip)
 		player.seek(player.get_animation(clip).length * float(shot[2]), true)
 		player.pause()
+	var name := String(shot[0])
+	var hem := name.begins_with("hem_")
+	var side_view := name.begins_with("hem_side")
+	_rigs[0].position = Vector3(
+		0.0 if side_view else (-HEM_GAP if hem else -SEPARATION), 0.0, HEM_GAP if side_view else 0.0
+	)
+	_rigs[1].position = Vector3(
+		0.0 if side_view else (HEM_GAP if hem else SEPARATION), 0.0, -HEM_GAP if side_view else 0.0
+	)
+	root.debug_draw = (
+		Viewport.DEBUG_DRAW_WIREFRAME if name.contains("_wire") else Viewport.DEBUG_DRAW_DISABLED
+	)
 	var who: String = shot[5] if shot.size() > 5 else "both"
 	_rigs[0].visible = who != "new"
 	_rigs[1].visible = who != "old"
@@ -285,8 +406,90 @@ func _measure(shot: Array) -> void:
 					]
 				)
 			)
+		_hem_radii(lp, skel)
 		if rig == _rigs[1]:
 			_bone_angles(skel)
+
+
+## The trouser tube per leg at the hem ring, +5, +10 and +20 cm (by REST height), in the
+## current pose: half-width across (x), half-depth (z), and where its centre sits.
+func _hem_radii(points: Array, skel: Skeleton3D) -> void:
+	for side in [1.0, -1.0]:
+		var bottom := INF
+		for pair in points:
+			var rest: Vector3 = pair[0]
+			if rest.x * side > 0.0:
+				bottom = minf(bottom, rest.y)
+		var posed_bottom := INF
+		for pair in points:
+			var rest: Vector3 = pair[0]
+			if rest.x * side > 0.0:
+				posed_bottom = minf(posed_bottom, (pair[1] as Vector3).y)
+		var row := (
+			"    trouser %s hem at %.3f m (rest %.3f):"
+			% ["+x" if side > 0 else "-x", posed_bottom, bottom]
+		)
+		for band in [
+			[0.0, 0.012, "ring"], [0.04, 0.06, "+5"], [0.09, 0.11, "+10"], [0.19, 0.21, "+20"]
+		]:
+			var box := AABB()
+			var n := 0
+			for pair in points:
+				var rest: Vector3 = pair[0]
+				if rest.x * side <= 0.0:
+					continue
+				if rest.y >= bottom + float(band[0]) and rest.y <= bottom + float(band[1]):
+					box = AABB(pair[1], Vector3.ZERO) if n == 0 else box.expand(pair[1])
+					n += 1
+			if n == 0:
+				row += "  %s -" % band[2]
+			else:
+				row += (
+					"  %s x%.3f z%.3f c%+.3f"
+					% [band[2], box.size.x * 0.5, box.size.z * 0.5, box.get_center().x]
+				)
+		print(
+			row + "  | ring tilt off square to the shin %.1f deg" % _ring_tilt(points, skel, side)
+		)
+
+
+## Angle between the hem ring's plane normal and the lowerleg bone in the current pose:
+## 0 when the cuff stays square to the shin.
+func _ring_tilt(points: Array, skel: Skeleton3D, side: float) -> float:
+	var bottom := INF
+	for pair in points:
+		if (pair[0] as Vector3).x * side > 0.0:
+			bottom = minf(bottom, (pair[0] as Vector3).y)
+	var ring: Array[Vector3] = []
+	for pair in points:
+		var rest: Vector3 = pair[0]
+		if rest.x * side > 0.0 and rest.y <= bottom + 0.004:
+			ring.append(pair[1])
+	if ring.size() < 4:
+		return 0.0
+	var c := Vector3.ZERO
+	for p in ring:
+		c += p
+	c /= ring.size()
+	var cov := Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO)
+	for p in ring:
+		var d := p - c
+		cov.x += d * d.x
+		cov.y += d * d.y
+		cov.z += d * d.z
+	# smallest eigenvector = power iteration on (trace * I - cov)
+	var tr := cov.x.x + cov.y.y + cov.z.z
+	var shifted := Basis(
+		Vector3(tr, 0, 0) - cov.x, Vector3(0, tr, 0) - cov.y, Vector3(0, 0, tr) - cov.z
+	)
+	var n := Vector3(0.1, 1.0, 0.1).normalized()
+	for i in 60:
+		n = (shifted * n).normalized()
+	var a := skel.find_bone("lowerleg" + (".l" if side > 0 else ".r"))
+	var b := skel.find_bone("foot" + (".l" if side > 0 else ".r"))
+	var shin := skel.get_bone_global_pose(b).origin - skel.get_bone_global_pose(a).origin
+	var ang := rad_to_deg(n.angle_to(shin))
+	return minf(ang, 180.0 - ang)
 
 
 ## Skeleton-space positions of a skinned mesh in the current pose, each paired with its
@@ -409,13 +612,21 @@ func _on_frame() -> void:
 				(tree as AnimationTree).active = false
 			var player := rig.get_node("AnimationPlayer") as AnimationPlayer
 			print("%s animations: %s" % [rig.name, player.get_animation_list()])
+	if _frame == 3 and _only != "" and not String(SHOTS[_shot][0]).begins_with(_only):
+		_shot += 1
+		_frame = 2
+		if _shot >= SHOTS.size():
+			quit(0)
+		return
 	if _frame == 4:
 		_pose(SHOTS[_shot])
 	elif _frame == 7 and SHOTS[_shot].size() > 7 and SHOTS[_shot][7]:
 		_measure(SHOTS[_shot])
 	elif _frame == 10:
 		var image := root.get_texture().get_image()
-		var path := "%s/engine_%s%s.png" % [OUT_DIR, _tag, SHOTS[_shot][0]]
+		var name := String(SHOTS[_shot][0])
+		var prefix := "" if name.begins_with("hem_") else "engine_"
+		var path := "%s/%s%s%s.png" % [OUT_DIR, prefix, _tag, name]
 		if image != null and image.save_png(ProjectSettings.globalize_path(path)) == OK:
 			print("Saved " + path)
 		_shot += 1
