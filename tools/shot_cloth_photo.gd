@@ -3,7 +3,9 @@ extends SceneTree
 ## Cloth Look v3 review sheets: the scanned photo grain + cloth lighting against the
 ## v2 look it replaces, on the real garment meshes (straight from the glb, as in
 ## tools/shot_cloth_compare.gd) and on material_roll bolts. Each sheet stacks its
-## rows (v2 on top, photo below) into one PNG in .dev/:
+## rows (v2 on top, photo below) into one PNG in .dev/, with a title strip and a
+## BEFORE (grey) / AFTER (green) band down each row's left, drawn by
+## tools/cloth_sheets.py (PIL) from the raw rows in .dev/cloth_rows/:
 ##   cloth_photo_suit_<front|raking|gameplay>.png   5 suitings, navy solid
 ##   cloth_photo_patterns_<front|gameplay>.png      5 worsted patterns, photo only
 ##   cloth_photo_rolls.png                          8 fabrics on bolts
@@ -63,16 +65,41 @@ const SETUPS := {
 	"shirt_rolls":
 	[Vector3(-38, -32, 0), Vector3(0, 1.05, 3.3), Vector3(0, 0.12, 0), 30.0, [230, 370]],
 }
-# [kind, setup, looks, out file].
+# [kind, setup, looks, out file, sheet title].
 const JOBS := [
-	["suit", "front", ["v2", "photo"], "cloth_photo_suit_front.png"],
-	["suit", "raking", ["v2", "photo"], "cloth_photo_suit_raking.png"],
-	["suit", "gameplay", ["v2", "photo"], "cloth_photo_suit_gameplay.png"],
-	["patterns", "front", ["photo"], "cloth_photo_patterns_front.png"],
-	["patterns", "gameplay", ["photo"], "cloth_photo_patterns_gameplay.png"],
-	["rolls", "rolls", ["v2", "photo"], "cloth_photo_rolls.png"],
-	["shirtings", "shirt_rolls", ["v2", "photo"], "cloth_photo_shirtings.png"],
+	["suit", "front", ["v2", "photo"], "cloth_photo_suit_front.png", "SUIT, FRONT LIGHT"],
+	["suit", "raking", ["v2", "photo"], "cloth_photo_suit_raking.png", "SUIT, RAKING LIGHT"],
+	[
+		"suit",
+		"gameplay",
+		["v2", "photo"],
+		"cloth_photo_suit_gameplay.png",
+		"SUIT, GAMEPLAY CAMERA",
+	],
+	["patterns", "front", ["photo"], "cloth_photo_patterns_front.png", "PATTERNS, FRONT LIGHT"],
+	[
+		"patterns",
+		"gameplay",
+		["photo"],
+		"cloth_photo_patterns_gameplay.png",
+		"PATTERNS, GAMEPLAY CAMERA",
+	],
+	["rolls", "rolls", ["v2", "photo"], "cloth_photo_rolls.png", "CLOTH ROLLS"],
+	[
+		"shirtings",
+		"shirt_rolls",
+		["v2", "photo"],
+		"cloth_photo_shirtings.png",
+		"SHIRTINGS ON ROLLS"
+	],
 ]
+# The label band per look (tools/cloth_sheets.py styles).
+const BANDS := {
+	"v2": {"style": "before", "lines": ["BEFORE", "previous cloth (v2)"]},
+	"photo": {"style": "after", "lines": ["AFTER", "scanned grain (v3)"]},
+}
+const ROW_DIR := "res://.dev/cloth_rows/"
+const COMPOSER := "res://tools/cloth_sheets.py"
 const SETTLE_FRAMES := 12
 
 var _vp: SubViewport
@@ -81,16 +108,17 @@ var _content: Node3D
 var _sun: DirectionalLight3D
 var _cam: Camera3D
 var _labels: CanvasLayer
-var _row_label: Label
 var _col_labels: Array[Label] = []
 var _meshes := {}
-var _shots: Array[Image] = []
+var _rows: Array[Dictionary] = []
+var _sheets: Array[Dictionary] = []
 var _job := 0
 var _look := 0
 var _frames := 0
 
 
 func _initialize() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ROW_DIR))
 	_vp = _make_viewport()
 	root.add_child(_vp)
 	_world = Node3D.new()
@@ -141,7 +169,6 @@ func _add_environment() -> void:
 	_labels = CanvasLayer.new()
 	_labels.layer = 100
 	_vp.add_child(_labels)
-	_row_label = _label(Vector2(24, 16), 36, Color(1, 0.93, 0.6))
 
 
 ## The garment Mesh resources straight out of the glb (bind pose on a bare
@@ -308,10 +335,6 @@ func _start_capture() -> void:
 	_sun.rotation_degrees = setup[0]
 	_cam.fov = setup[3]
 	_cam.look_at_from_position(setup[1], setup[2], Vector3.UP)
-	var crop: Array = setup[4]
-	# Bottom-left, on the empty floor clear of the column labels.
-	_row_label.position = Vector2(24, int(crop[0]) + int(crop[1]) - 56)
-	_row_label.text = "%s  %s  —  %s" % [kind, job[1], look]
 	if _cam.is_inside_tree():
 		_place_col_labels(kind)
 	_frames = 0
@@ -343,34 +366,45 @@ func _on_frame() -> void:
 	shot.convert(Image.FORMAT_RGBA8)
 	var y0 := mini(int(crop[0]), shot.get_height() - 1)
 	var h := mini(int(crop[1]), shot.get_height() - y0)
-	_shots.append(shot.get_region(Rect2i(0, y0, shot.get_width(), h)))
+	var look: String = job[2][_look]
+	var row_path := ROW_DIR + String(job[3]).get_basename() + "_" + look + ".png"
+	shot.get_region(Rect2i(0, y0, shot.get_width(), h)).save_png(row_path)
+	_rows.append({"image": ProjectSettings.globalize_path(row_path), "band": BANDS[look]})
 	_look += 1
 	if _look < (job[2] as Array).size():
 		_start_capture()
 		return
-	_save_sheet("res://.dev/" + String(job[3]))
-	_shots.clear()
+	(
+		_sheets
+		. append(
+			{
+				"out": ProjectSettings.globalize_path("res://.dev/" + String(job[3])),
+				"width": WIDTH,
+				"title": job[4],
+				"rows": _rows.duplicate(),
+			}
+		)
+	)
+	_rows.clear()
 	_look = 0
 	_job += 1
 	if _job < JOBS.size():
 		_start_capture()
 		return
-	print("shot_cloth_photo: done.")
-	quit(0)
+	quit(_compose())
 
 
-## Stack the rows top to bottom into one sheet, no wider than WIDTH.
-func _save_sheet(path: String) -> void:
-	var w := _shots[0].get_width()
-	var total := 0
-	for s in _shots:
-		total += s.get_height()
-	var sheet := Image.create(w, total, false, Image.FORMAT_RGBA8)
-	var y := 0
-	for s in _shots:
-		sheet.blit_rect(s, Rect2i(0, 0, s.get_width(), s.get_height()), Vector2i(0, y))
-		y += s.get_height()
-	if w > WIDTH:
-		sheet.resize(WIDTH, int(total * float(WIDTH) / w))
-	sheet.save_png(path)
-	print("Saved ", path)
+## Hand the raw rows to tools/cloth_sheets.py, which draws the title strips and the
+## BEFORE / AFTER bands and saves the sheets. Returns the exit code for quit().
+func _compose() -> int:
+	var manifest := ROW_DIR + "manifest.json"
+	var f := FileAccess.open(manifest, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"sheets": _sheets}, "\t"))
+	f.close()
+	var out: Array = []
+	var args := [ProjectSettings.globalize_path(COMPOSER), ProjectSettings.globalize_path(manifest)]
+	var code := OS.execute("python", args, out, true)
+	for line: String in out:
+		print(line)
+	print("shot_cloth_photo: done (composer exit %d)." % code)
+	return code
