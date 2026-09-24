@@ -80,22 +80,26 @@ DEFAULT_BUDGET = {
     "buttons": 80,
     "square": 60,
 }
-# Where each mesh's skin weights come from, and which bones it may use. The bone set is
-# read off the rig meshes named in "src" (the owner hand-cleaned CHARTGEN1's weights, so
-# the bones a rig mesh uses ARE the truth for that part), unless "allow" names it. "bind"
-# hard-binds the whole mesh to one bone. "sleeve_src" samples the sleeve zone from other
-# rig meshes (shirt cuffs follow the jacket's sleeve end) and may add their ARM bones.
-# "hem" makes the bottom loops of the trousers 100% that bone, so the hem stays flat.
-# "own" samples OUR finished mesh of that name instead (the tie and buttons ride on the
-# new jacket, so they move with the cloth they sit on); the bone set still comes from src.
+# Where each mesh's skin weights come from, and which bones each PIECE of it may use.
+# Weights are sampled off the rig meshes in "src" (the owner hand-cleaned CHARTGEN1's
+# weights) and then cut down to the piece's bone set:
+#   "regions": "sleeves"  pieces (UV islands, i.e. cut at the seams) whose centroid is
+#       past --sleeve-x are SLEEVE pieces and follow only their own arm (upperarm,
+#       lowerarm, wrist of that side); the rest are BODY pieces. The mesh is split along
+#       the seams between the two, so the armhole carries no arm weight into the body and
+#       the sleeve follows the arm completely (the arm may clip the body; that is intended).
+#   "regions": "legs"  each trouser leg (split at the rise) follows only its own side.
+#   "body": the body pieces' bones ("owner" = what the owner's jacket body uses, measured,
+#       minus any arm bone); "sleeve_src": rig meshes the sleeve pieces sample instead.
+#   "allow": a fixed bone set for the whole mesh; otherwise the src meshes' own set.
+#   "own": sample OUR finished mesh of that name (tie and buttons ride on the new jacket).
+#   "hem": the bottom loops of the trousers are 100% that bone, so the hem stays flat.
+#   "bind": hard-bind the whole mesh to one bone.
 WEIGHT_RULES = {
-    "jacket": {"src": ("jacket",)},
-    "shirt": {"src": ("shirt",), "sleeve_src": ("jacket",)},
-    "legs": {
-        "src": ("legs",),
-        "allow": ("hips", "upperleg.l", "upperleg.r", "lowerleg.l", "lowerleg.r"),
-        "hem": "lowerleg",
-    },
+    "jacket": {"src": ("jacket",), "regions": "sleeves", "body": "owner"},
+    "shirt": {"src": ("shirt",), "regions": "sleeves", "sleeve_src": ("jacket",),
+              "body": ("chest", "spine")},
+    "legs": {"src": ("legs",), "regions": "legs", "hem": "lowerleg"},
     "arms": {"src": ("arms",)},
     "shoes": {"src": ("left leg", "right leg")},
     "tie": {"src": ("jacket",), "own": "jacket", "allow": ("chest", "spine")},
@@ -108,6 +112,10 @@ ARM_BONES = (
     "upperarm.l", "lowerarm.l", "wrist.l", "hand.l",
     "upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
 )
+# The owner's jacket is measured with the body inside this |x| and the sleeves past the
+# other (rig metres; the band between is the armhole ring).
+OWNER_BODY_X = 0.20
+OWNER_SLEEVE_X = 0.32
 HEM_BAND = 0.05  # metres of trouser hem that are 100% lowerleg, blended over as much again
 HEAD_BONE = "head"
 MATERIAL = {
@@ -201,6 +209,15 @@ def _arguments(argv):
         type=int,
         default=8,
         help="smoothing passes on the garment weights (within each mesh's bone set)",
+    )
+    p.add_argument(
+        "--cap-blend",
+        type=float,
+        default=0.10,
+        help="metres of sleeve next to the armhole that blend from the body's weights to "
+        "the arm (like the owner's sleeve caps, measured at ~0.07 m on CHARTGEN1); "
+        "0 = sleeves follow the arm alone, which opens a hole over each shoulder when "
+        "the arm drops because the Tripo cap is twice as tall",
     )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
@@ -1422,8 +1439,9 @@ def _quiet_stretch(obj) -> float:
 
 
 def step_skin(ns) -> None:
-    """Weights by nearest point on the matching rig mesh (barycentric), then cut down to
-    the bones that rig mesh uses, with each side's bones kept to its own side."""
+    """Weights by nearest point on the matching rig mesh (barycentric), cut down per piece
+    to the bones that piece may use, each side's bones kept to its own side, smoothed
+    only inside a region (the seams between regions are split first)."""
     log("\n== skin")
     arm = _armature()
     arm.data.pose_position = "REST"
@@ -1431,64 +1449,224 @@ def step_skin(ns) -> None:
     bones = [b.name for b in arm.data.bones]
     side_of = {b.name: math.copysign(1.0, (arm.matrix_world @ b.head_local).x)
                for b in arm.data.bones if b.name[-2:] in (".l", ".r")}
+    owner = _measure_owner_jacket(rig["jacket"], OWNER_BODY_X, OWNER_SLEEVE_X)
+    owner_body = owner["body"] - set(ARM_BONES)
+    owner_sleeve_chest = "chest" in owner["sleeve"]
+    log("  -> jacket body pieces may use %s; sleeve pieces their own upperarm/lowerarm/wrist%s"
+        % (", ".join(sorted(owner_body)), " + chest" if owner_sleeve_chest else " (no chest:"
+           " the owner's sleeves have none)"))
     samplers = {}
     for role, obj in _role_objects().items():
         rule = WEIGHT_RULES[role]
-        obj.vertex_groups.clear()
-        for name in bones:
-            obj.vertex_groups.new(name=name)
         if "bind" in rule:
+            obj.vertex_groups.clear()
+            for name in bones:
+                obj.vertex_groups.new(name=name)
             obj.vertex_groups[rule["bind"]].add(range(len(obj.data.vertices)), 1.0, "REPLACE")
             _parent_to(obj, arm)
             log("  %-7s hard bind to %s | %s" % (role, rule["bind"], _bones_used(obj)))
             continue
         main = _sampler(samplers, rig, rule["src"])
-        allowed = set(rule.get("allow") or main.bones)
         if "own" in rule:
             main = _Sampler([bpy.data.objects[rule["own"]]])
-        sleeve = None
-        if "sleeve_src" in rule:
-            sleeve = _sampler(samplers, rig, rule["sleeve_src"])
-            allowed |= sleeve.bones & set(ARM_BONES)
+        sets = {}
+        labels = None
+        if "regions" in rule:
+            labels, split = _split_regions(obj, rule["regions"], ns.sleeve_x)
+            for side, tag in ((1.0, "+x"), (-1.0, "-x")):
+                own = {b for b, sd in side_of.items() if sd == side}
+                if rule["regions"] == "sleeves":
+                    arm_set = {b for b in own if b.split(".")[0] in ("upperarm", "lowerarm", "wrist")}
+                    sets["sleeve " + tag] = arm_set | ({"chest"} if owner_sleeve_chest else set())
+                else:
+                    sets["leg " + tag] = {"hips"} | {b for b in own if b.split(".")[0] in (
+                        "upperleg", "lowerleg")}
+            if rule["regions"] == "sleeves":
+                body = rule["body"]
+                sets["body"] = set(owner_body if body == "owner" else body)
+            log("  %-7s split along %d seam edges between %s" % (
+                role, split, " / ".join(sorted(set(labels)))))
+        else:
+            sets["all"] = set(rule.get("allow") or main.bones)
+        sleeve = _sampler(samplers, rig, rule["sleeve_src"]) if "sleeve_src" in rule else None
+        obj.vertex_groups.clear()
+        for name in bones:
+            obj.vertex_groups.new(name=name)
+        vlabel = labels or ["all"] * len(obj.data.vertices)
         stats = {"bone": 0, "side": 0, "empty": 0}
         weights = []
-        for v in obj.data.vertices:
+        for i, v in enumerate(obj.data.vertices):
             co = obj.matrix_world @ v.co
-            in_sleeve = sleeve is not None and abs(co.x) > ns.sleeve_x
-            raw = (sleeve if in_sleeve else main).sample(co)
-            ok = allowed & set(ARM_BONES) if in_sleeve else allowed
-            weights.append(_clip(raw, ok, side_of, co, arm, stats))
+            src = sleeve if (sleeve is not None and vlabel[i].startswith("sleeve")) else main
+            weights.append(_clip(src.sample(co), sets[vlabel[i]], side_of, co, arm, stats))
         smoothed = role in GARMENT_ROLES
         rough = _roughness(obj, weights)
         if smoothed:
             weights = _smooth(obj, weights, 0.5, ns.weight_smooth)
-            weights = [_clip(w, allowed, side_of, obj.matrix_world @ v.co, arm, None)
-                       for w, v in zip(weights, obj.data.vertices)]
-        trims = _stick_trims(obj, weights)
-        if trims:
-            weights = [_clip(w, allowed, side_of, obj.matrix_world @ v.co, arm, None)
-                       for w, v in zip(weights, obj.data.vertices)]
-        hem = 0
-        if "hem" in rule:
-            hem = _rigid_hem(obj, weights, rule["hem"], side_of)
+        trims = _stick_trims(obj, weights, vlabel)
+        weights = [_clip(w, sets[vlabel[i]], side_of, obj.matrix_world @ v.co, arm, None)
+                   for i, (w, v) in enumerate(zip(weights, obj.data.vertices))]
+        capped = 0
+        if ns.cap_blend > 0.0 and rule.get("regions") == "sleeves" and role == "jacket":
+            capped = _blend_caps(obj, weights, vlabel, ns.cap_blend)
+            for label in sets:
+                if label.startswith("sleeve"):
+                    sets[label] = sets[label] | sets["body"]
+        hem = _rigid_hem(obj, weights, rule["hem"], side_of) if "hem" in rule else 0
         for i, w in enumerate(weights):
             for name, value in _top4(w).items():
                 obj.vertex_groups[name].add([i], value, "REPLACE")
         _parent_to(obj, arm)
-        log("  %-7s from rig %s%s%s | allowed %s" % (
+        log("  %-7s from rig %s%s%s" % (
             role, " + ".join(rule["src"]),
-            (", sleeve zone from rig " + " + ".join(rule["sleeve_src"])) if sleeve else "",
-            (", smoothed x%d within the set" % ns.weight_smooth) if smoothed else "",
-            ", ".join(sorted(allowed))))
+            (", sleeve pieces from rig " + " + ".join(rule["sleeve_src"])) if sleeve else "",
+            (", smoothed x%d inside each region" % ns.weight_smooth) if smoothed else ""))
         log("  %-7s weight roughness (mean jump to the neighbours' average) %.3f -> %.3f" % (
             "", rough, _roughness(obj, weights)))
-        log("  %-7s clipped: %d verts had weight on bones outside the set, %d on the other"
-            " side's bones, %d fell back to the nearest allowed bone%s%s" % (
+        log("  %-7s clipped: %d verts had weight on bones outside their piece's set, %d on the"
+            " other side's bones, %d fell back to the nearest allowed bone%s%s%s" % (
                 "", stats["bone"], stats["side"], stats["empty"],
                 (", %d trim verts copy the cloth under them" % trims) if trims else "",
+                (", %d sleeve-cap verts blended into the body over %.2f m" % (capped, ns.cap_blend))
+                if capped else "",
                 (", %d hem verts rigid to %s" % (hem, rule["hem"])) if hem else ""))
-        log("  %-7s final: %s" % ("", _bones_used(obj)))
+        for label in sorted(sets):
+            idx = [i for i, lab in enumerate(vlabel) if lab == label]
+            if not idx:
+                continue
+            used = {}
+            for i in idx:
+                for name, value in _top4(weights[i]).items():
+                    if value > 0.01:
+                        used[name] = used.get(name, 0) + 1
+            log("  %-7s   %-9s %4d verts | allowed %-40s | used %s" % (
+                "", label, len(idx), ", ".join(sorted(sets[label])),
+                ", ".join("%s %d" % (k, used[k]) for k in sorted(used, key=lambda k: -used[k]))))
     arm.data.pose_position = "POSE"
+
+
+def _blend_caps(obj, weights, labels, band) -> int:
+    """Optional (--cap-blend): the sleeve's first `band` metres from the armhole blend
+    from the body's own weights at the seam to the arm, the way the owner's sleeve caps
+    mix upperarm with chest/spine. The seam row then stays on the body's armhole (no hole
+    opens over the shoulder when the arm drops) and the body itself still carries no arm
+    weight. A tall sleeve cap swinging on the arm alone leaves a gap there."""
+    from mathutils.kdtree import KDTree
+
+    pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    body = [i for i, lab in enumerate(labels) if lab == "body"]
+    tree = KDTree(len(body))
+    for n, i in enumerate(body):
+        tree.insert(pts[i], n)
+    tree.balance()
+    seam = []  # sleeve verts sitting on a body vert: the two sides of the armhole split
+    for i, lab in enumerate(labels):
+        if lab.startswith("sleeve"):
+            _, n, d = tree.find(pts[i])
+            if d < 1e-5:
+                seam.append((i, body[n]))
+    if not seam:
+        return 0
+    stree = KDTree(len(seam))
+    for n, (i, _) in enumerate(seam):
+        stree.insert(pts[i], n)
+    stree.balance()
+    count = 0
+    for i, lab in enumerate(labels):
+        if not lab.startswith("sleeve"):
+            continue
+        _, n, d = stree.find(pts[i])
+        if d >= band:
+            continue
+        t = d / band
+        t = t * t * (3.0 - 2.0 * t)
+        base = weights[seam[n][1]]
+        mixed = {k: w * t for k, w in weights[i].items()}
+        for k, w in base.items():
+            mixed[k] = mixed.get(k, 0.0) + w * (1.0 - t)
+        weights[i] = mixed
+        count += 1
+    return count
+
+
+def _split_regions(obj, mode, sleeve_x):
+    """Label every piece (UV island) of a garment and split the mesh along the seams
+    between pieces of different labels, keeping the shading: the glb splits those
+    vertices anyway (they are UV seams), so no geometry changes, but now each side of
+    the seam can carry its own weights. Returns (label per vertex, edges split)."""
+    me = obj.data
+    stored = {}
+    corner = me.corner_normals
+    for poly in me.polygons:
+        stored[poly.index] = [corner[li].vector.copy() for li in poly.loop_indices]
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    uvl = bm.loops.layers.uv.active
+    face_label = {}
+    for faces in _uv_islands(bm, uvl):
+        area = sum(f.calc_area() for f in faces) or 1.0
+        c = sum((f.calc_center_median() * f.calc_area() for f in faces), Vector()) / area
+        tag = "+x" if c.x > 0 else "-x"
+        if mode == "sleeves":
+            label = ("sleeve " + tag) if abs(c.x) > sleeve_x else "body"
+        else:
+            label = "leg " + tag
+        for f in faces:
+            face_label[f.index] = label
+    cut = [e for e in bm.edges
+           if len({face_label[f.index] for f in e.link_faces}) > 1]
+    bmesh.ops.split_edges(bm, edges=cut)
+    bm.to_mesh(me)
+    bm.free()
+    normals = [None] * len(me.loops)
+    for poly in me.polygons:
+        for k, li in enumerate(poly.loop_indices):
+            normals[li] = stored[poly.index][k]
+    me.normals_split_custom_set(normals)
+    labels = ["body"] * len(me.vertices)
+    for poly in me.polygons:
+        for v in poly.vertices:
+            labels[v] = face_label[poly.index]
+    return labels, len(cut)
+
+
+def _measure_owner_jacket(rig_jacket, armhole_x, sleeve_x):
+    """Print how the owner hand-weighted CHARTGEN1's jacket: the body (|x| < armhole_x),
+    the sleeves (|x| > sleeve_x, clear of the body's sides) and the ring round the
+    armhole between the two. Returns the bones that carry a real share (over 1% of the
+    weight) in each region: {"body": set, "sleeve": set, "armhole ring": set}.
+    """
+    names = {g.index: g.name for g in rig_jacket.vertex_groups}
+    regions = {"body": [], "sleeve": [], "armhole ring": []}
+    for v in rig_jacket.data.vertices:
+        co = rig_jacket.matrix_world @ v.co
+        w = {names[g.group]: g.weight for g in v.groups if g.weight > 0.001}
+        if abs(co.x) < armhole_x:
+            regions["body"].append(w)
+        elif abs(co.x) > sleeve_x:
+            regions["sleeve"].append(w)
+        else:
+            regions["armhole ring"].append(w)
+    log("  owner's jacket (CHARTGEN1): body |x| < %.2f, armhole ring between, sleeve |x| > %.2f"
+        % (armhole_x, sleeve_x))
+    out = {}
+    for region, rows in regions.items():
+        total = sum(sum(w.values()) for w in rows) or 1.0
+        bones = sorted({b for w in rows for b in w})
+        log("    %-12s %4d verts" % (region, len(rows)))
+        keep = set()
+        for b in sorted(bones, key=lambda b: -sum(w.get(b, 0.0) for w in rows)):
+            vals = [w[b] for w in rows if w.get(b, 0.0) > 0.01]
+            share = sum(w.get(b, 0.0) for w in rows) / total
+            if share > 0.01:
+                keep.add(b)
+            hist = [sum(1 for x in vals if lo < x <= lo + 0.25) for lo in (0.0, 0.25, 0.5, 0.75)]
+            log("      %-11s %4d verts, share %5.1f%%, mean %.2f | weight 0-.25 %3d  .25-.5 %3d"
+                "  .5-.75 %3d  .75-1 %3d" % (b, len(vals), share * 100,
+                                          sum(vals) / max(len(vals), 1), *hist))
+        out[region] = keep
+    return out
 
 
 class _Sampler:
@@ -1579,7 +1757,7 @@ def _nearest_bone(arm, co, allowed, side_of):
     return best
 
 
-def _stick_trims(obj, weights) -> int:
+def _stick_trims(obj, weights, labels) -> int:
     """Small loose parts (pocket flaps, welt, cuff buttons) take the weights of the
     nearest point on the garment's main surfaces, so they cannot drift off them in a pose.
     A part is trim when its area is under a tenth of the largest part's; everything else
@@ -1612,12 +1790,19 @@ def _stick_trims(obj, weights) -> int:
         return 0
     me.calc_loop_triangles()
     points = [obj.matrix_world @ v.co for v in me.vertices]
-    tris = [tuple(t.vertices) for t in me.loop_triangles if find(t.vertices[0]) not in trims]
-    tree = BVHTree.FromPolygons(points, tris)
     count = 0
+    trees = {}
     for i in range(len(me.vertices)):
         if find(i) not in trims:
             continue
+        # stick to the same region (a cuff button to its sleeve, a flap to the body)
+        if labels[i] not in trees:
+            tris = [tuple(t.vertices) for t in me.loop_triangles
+                    if find(t.vertices[0]) not in trims and labels[t.vertices[0]] == labels[i]]
+            trees[labels[i]] = (BVHTree.FromPolygons(points, tris), tris) if tris else None
+        if trees[labels[i]] is None:
+            continue
+        tree, tris = trees[labels[i]]
         loc, _, index, _ = tree.find_nearest(points[i])
         tri = tris[index]
         bary = poly_3d_calc([points[j] for j in tri], loc)

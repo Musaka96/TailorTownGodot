@@ -36,6 +36,12 @@ const SHOTS := [
 	["rest_back", "", 0.0, Vector3(0.0, 1.1, -5.2), Vector3(0.0, 1.05, 0.0)],
 	["back_close", "idle", 0.3, Vector3(0.9, 0.95, -2.6), Vector3(0.9, 0.85, 0.0)],
 	["rest_back_close", "", 0.0, Vector3(0.9, 0.95, -2.6), Vector3(0.9, 0.85, 0.0)],
+	# both torsos at one framing, arms down, so the armhole and shoulders compare 1:1
+	["torso_front", "idle", 0.3, Vector3(0.0, 1.0, 4.0), Vector3(0.0, 0.95, 0.0)],
+	["torso_back", "idle", 0.3, Vector3(0.0, 1.0, -4.0), Vector3(0.0, 0.95, 0.0)],
+	# the sleeve / body junction of each rig from the front three-quarter
+	["junction_new", "idle", 0.3, Vector3(1.75, 1.15, 1.35), Vector3(1.1, 0.95, 0.0)],
+	["junction_old", "idle", 0.3, Vector3(-0.05, 1.15, 1.35), Vector3(-0.7, 0.95, 0.0)],
 ]
 
 var _rigs: Array[Node3D] = []
