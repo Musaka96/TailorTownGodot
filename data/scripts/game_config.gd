@@ -133,6 +133,9 @@ extends Resource
 ## upgrade uses the shorter one). Orders that would land after closing come next morning.
 @export var delivery_hours: float = 2.0
 @export var courier_hours: float = 0.25
+## An order placed while an earlier same-day delivery is on its way, and due within this
+## many hours after it, rides along with it and lands at the earlier time (one box, one chime).
+@export var delivery_merge_hours: float = 1.0
 
 @export_group("Workshop")
 ## Pressing Iron: quality a piece gains from a clean press (half of it with one scorch,

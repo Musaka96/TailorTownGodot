@@ -7,9 +7,10 @@ extends Control
 ## the lower face and reads "Closed" once the bell has gone. Bolts of cloth on the way
 ## ride the dial as little side-on rolls at the hour they land, in their own colour;
 ## one that lands tomorrow waits grey at the opening hour. Rolls landing together fan
-## out as a small stack of bolts (up to four), and a delivery pops a ring where it
-## arrived. The watch pulses red after the bell. Reads DayNight and the phone
-## (found lazily, optional); purely presentational, it never advances time itself.
+## out as a small stack of bolts (up to four; a bigger batch shows its count beside the
+## stack), and a delivery pops a ring where it arrived. The watch pulses red after the
+## bell. Reads DayNight and the phone (found lazily, optional); purely presentational,
+## it never advances time itself.
 
 const FACE := Color(0.99, 0.96, 0.90)
 const RIM := Color("c9a24a")  # brass case
@@ -150,6 +151,7 @@ func _draw_window(c: Vector2, r: float) -> void:
 ## (tomorrow's wait grey at the opening hour). Rolls landing within PIP_GAP of each
 ## other fan out: up to FAN_MAX bolts, each further one stepped anticlockwise and a
 ## touch inward, drawn back to front and shading toward TICK the further back it sits.
+## A batch bigger than FAN_MAX shows its count just inside the stack.
 func _draw_pips(c: Vector2, r: float) -> void:
 	var rad := r - 4.0
 	for g: Dictionary in _pip_groups():
@@ -159,9 +161,24 @@ func _draw_pips(c: Vector2, r: float) -> void:
 		var at := c + out * rad
 		var body: Color = g["body"]
 		var edge: Color = g["edge"]
-		for i in range(mini(int(g["count"]), FAN_MAX) - 1, -1, -1):
+		var count := int(g["count"])
+		for i in range(mini(count, FAN_MAX) - 1, -1, -1):
 			var k := FAN_SHADE * i
 			_draw_bolt(at + back * i, a, body.lerp(TICK, k), edge.lerp(TICK, k))
+		if count > FAN_MAX:
+			_draw_count(at - out * 11.0, count)
+
+
+## A batch's size as tiny digits centred on `at`, over a face-coloured halo so they read
+## on the ring.
+func _draw_count(at: Vector2, count: int) -> void:
+	var font := Style.font_bold()
+	var fs := Style.T_MICRO
+	var text := str(count)
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var base := at.y + (font.get_ascent(fs) - font.get_descent(fs)) * 0.5
+	draw_circle(at, maxf(w, fs * 0.8) * 0.5 + 2.0, Color(FACE, 0.9))
+	draw_string(font, Vector2(at.x - w * 0.5, base), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TEXT)
 
 
 ## Pending rolls grouped by dial position, greedily in list order: each joins the first

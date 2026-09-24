@@ -8,7 +8,9 @@ class_name UiScale
 ## dimmer stays full-screen while its panel shrinks.
 ##   UiScale.attach(_panel, UiScale.MENUS)
 ## Anything that tweens an attached control's `scale` must rest at target_scale(c), not
-## at Vector2.ONE (Craft.pop_in / bump do), and should leave its pivot alone.
+## at Vector2.ONE (Craft.pop_in / bump do), and should leave its pivot alone. A control
+## placed by a Container is re-scaled after each sort, since fitting a child resets its
+## scale to one (showing a hidden menu sorts it again).
 
 ## Centred modals and docked station panels.
 const MENUS := "menus"
@@ -25,6 +27,7 @@ const FROM_ANCHORS := Vector2(-1.0, -1.0)
 const _CAT := "ui_scale_cat"
 const _PIVOT := "ui_scale_pivot"
 const _LISTENER := "ui_scale_listener"
+const _RESORT := "ui_scale_resort"
 
 
 ## Scale `c` by category `cat` from now on. `pivot` is the fixed point as a fraction of
@@ -42,6 +45,7 @@ static func attach(c: Control, cat: String, pivot := FROM_ANCHORS) -> void:
 			if changed == str(c.get_meta(_CAT, "")):
 				apply(c)
 		c.set_meta(_LISTENER, listener)
+		c.set_meta(_RESORT, func() -> void: apply(c))
 		c.resized.connect(func() -> void: fit_pivot(c))
 		c.tree_entered.connect(func() -> void: _listen(c, true))
 		c.tree_exited.connect(func() -> void: _listen(c, false))
@@ -87,6 +91,7 @@ static func _anchor_point(c: Control) -> Vector2:
 
 
 static func _listen(c: Control, on: bool) -> void:
+	_follow_sorts(c, on)
 	var settings := _settings()
 	if settings == null:
 		return
@@ -97,6 +102,20 @@ static func _listen(c: Control, on: bool) -> void:
 		apply(c)
 	elif not on and linked:
 		settings.disconnect("ui_scale_changed", listener)
+
+
+## A Container parent resets `c`'s scale to one each time it lays `c` out; put it back
+## right after (sort_children fires once the children are fitted).
+static func _follow_sorts(c: Control, on: bool) -> void:
+	var box := c.get_parent() as Container
+	if box == null:
+		return
+	var resort: Callable = c.get_meta(_RESORT)
+	var linked := box.sort_children.is_connected(resort)
+	if on and not linked:
+		box.sort_children.connect(resort)
+	elif not on and linked:
+		box.sort_children.disconnect(resort)
 
 
 ## The Settings autoload, looked up by path: Craft (and so this script) is compiled by

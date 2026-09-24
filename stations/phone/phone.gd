@@ -4,8 +4,10 @@ extends Node3D
 ## Ordering station. Opens the phone menu. Ordered bolts are *on the way* for a while
 ## (GameConfig.delivery_hours of shop time; the Courier Account upgrade makes it minutes)
 ## and then turn up at the delivery spot beside the phone with a door chime, in a postal
-## box that unpacks itself; bolts that land together share one box, side by side. An
-## order that would land after closing arrives first thing next morning. The tutorial's
+## box that unpacks itself; bolts that land together share one box, side by side. A
+## same-day order placed soon after another rides along with it (GameConfig
+## .delivery_merge_hours) and lands at the first one's time. An order that would land
+## after closing arrives first thing next morning. The tutorial's
 ## bolts come at once so the lesson never stalls. Pending deliveries save with the station.
 
 const ROLL_SCENE := preload("res://entities/items/material_roll.tscn")
@@ -31,7 +33,7 @@ func order_roll(mat: MaterialType, length: float) -> String:
 	if _instant():
 		deliver_roll(mat, length)
 		return "now"
-	var eta := _eta()
+	var eta := _batch_eta(_eta())
 	_pending.append({"mat": mat, "length": length, "day": int(eta.x), "hour": eta.y})
 	return _eta_text(eta)
 
@@ -137,6 +139,24 @@ func _eta() -> Vector2:
 	if not DayNight.running or at >= DayNight.end_hour():
 		return Vector2(Shift.day + 1, DayNight.start_hour())
 	return Vector2(Shift.day, at)
+
+
+## A same-day order due within GameConfig.delivery_merge_hours after an earlier delivery
+## still on its way rides along with the earliest such batch and lands at its time, so
+## later orders never push a batch back. Tomorrow's orders already share the opening hour.
+func _batch_eta(eta: Vector2) -> Vector2:
+	if int(eta.x) != Shift.day:
+		return eta
+	var c: GameConfig = Config.data if Config != null else null
+	var merge := c.delivery_merge_hours if c != null else 1.0
+	var best := eta
+	for p: Dictionary in _pending:
+		var hour := float(p["hour"])
+		if int(p["day"]) != Shift.day or hour < DayNight.hour:
+			continue
+		if eta.y - hour <= merge and hour < best.y:
+			best = Vector2(Shift.day, hour)
+	return best
 
 
 func _eta_text(eta: Vector2) -> String:
