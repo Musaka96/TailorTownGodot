@@ -285,6 +285,7 @@ is its own object, differing on **four** axes, not just accent:
 | Suit builder / mirror| `MIRROR`  | `PAPER_MIRROR`| `BRASS`   | none         | arched top          | none   |
 | Worktable / sewing   | `WORK`    | `MAT`         | `WALNUT`  | `GRID`       | boxy                | `TAPE` |
 | Orders board         | `ORDERS`  | `CORK`        | `BURGUNDY`| `CORK`       | boxy                | `PIN`  |
+| Debug panel (F3)     | `WORK`    | `MAT`         | `WALNUT`  | `GRID`       | boxy                | `TAPE` |
 
 Add a menu → add its row here and a `case` to `Style.apply_skin()`, then the menu
 calls `Style.apply_skin(panel, Style.MenuSkin.X)` (one line — it sets paper,

@@ -55,6 +55,7 @@ const MIGRATED := [
 	"espresso_minigame.gd",
 	"controls_screen.gd",
 	"rack_menu.gd",  # apply_skin(MIRROR) + FRAME_TALL + TitleBlock — just missing from this list
+	"debug_panel.gd",  # the F3 debug panel (debug builds only): WORK skin, docked left
 ]
 const PENDING: Array[String] = []
 # Not standard panel-menus: sewing_screen only hosts the sewing minigame, and

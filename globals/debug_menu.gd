@@ -1,14 +1,12 @@
 extends Node
 
 ## Autoloaded as "Debug". A togglable in-game debug console (F3, debug builds only)
-## for driving game actions by hand: manage money and reputation, call customers, add/solve order
-## tickets, and control the shift. Built entirely in code as its own CanvasLayer
-## above everything, so no scene edits are needed. This is meant to grow — new
-## in-game actions get a button here via _button()/_section().
+## for driving game actions by hand: the world scale, money and reputation, customers and
+## order tickets, the minigames, upgrades, renovation and the shift. Built entirely in code
+## on its own CanvasLayer above everything, so no scene edits are needed. This is meant to
+## grow: a new action gets a row in a section via _view.section() / _view.row() and a
+## control from ui/debug_panel.gd, which owns the look.
 
-const PANEL_BG := Color(0.10, 0.11, 0.15, 0.94)
-const HEADING := Color(0.62, 0.78, 1.0)
-const LABEL := Color(0.90, 0.92, 0.98)
 const SUIT_SCENE := preload("res://entities/items/suit.tscn")
 const COFFEE_SCENE := "res://stations/coffee_machine/coffee_machine.tscn"
 const IRON_SCENE := "res://stations/ironing_board/ironing_board.tscn"
@@ -16,7 +14,6 @@ const BENCH_SCENE := "res://stations/apprentice_bench/apprentice_bench.tscn"
 
 var _layer: CanvasLayer
 var _money_label: Label
-var _status: Label
 var _amount: LineEdit
 var _rep_label: Label
 var _rep_amount: LineEdit
@@ -25,14 +22,15 @@ var _cut_type: OptionButton
 var _cut_variant: OptionButton
 var _sew_type: OptionButton
 var _trial: CanvasLayer
-var _upg_panel: PanelContainer
-var _main_scroll: ScrollContainer
-var _main_box: VBoxContainer
-var _upg_boxes := {}  # upgrade id -> CheckBox
-var _reno_panel: PanelContainer
+var _upg_panel: DebugPanel.SidePanel
+var _upg_boxes := {}  # upgrade id -> toggle Button
+var _reno_panel: DebugPanel.SidePanel
 var _reno_status: Label
-var _reno_boxes := {}  # project id -> CheckBox
+var _reno_boxes := {}  # project id -> toggle Button
 var _review: Node  # the Sound Review panel (F7)
+var _view: DebugPanel
+var _scale_slider: HSlider
+var _scale_label: Label
 
 
 func _ready() -> void:
@@ -58,6 +56,12 @@ func _input(event: InputEvent) -> void:
 			_note("cutting trial abandoned")
 			return
 		_toggle()
+	elif (
+		_layer.visible
+		and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"))
+	):
+		get_viewport().set_input_as_handled()  # Esc closes the panel, not into the pause menu
+		_close()
 
 
 # --- Actions ---------------------------------------------------------------
@@ -321,7 +325,7 @@ func _train_apprentice() -> void:
 
 
 func _toggle_upgrades() -> void:
-	_upg_panel.visible = not _upg_panel.visible
+	_view.set_side(_upg_panel, not _upg_panel.visible)
 	_refresh_upgrades()
 
 
@@ -338,7 +342,7 @@ func _set_all_upgrades(on: bool) -> void:
 
 func _refresh_upgrades() -> void:
 	for id: String in _upg_boxes:
-		(_upg_boxes[id] as CheckBox).set_pressed_no_signal(Upgrades.has(id))
+		(_upg_boxes[id] as Button).set_pressed_no_signal(Upgrades.has(id))
 
 
 func _end_shift() -> void:
@@ -426,7 +430,7 @@ func _watch_build(id: String) -> void:
 	_finish_ids(_with_needs(needs))
 	GameState.money += int(Renovation.data(id).get("cost", 0))
 	if _layer.visible:
-		_toggle()
+		_close()
 	if not Renovation.order(id):
 		_note("couldn't order %s" % id)
 
@@ -456,7 +460,7 @@ func _set_project(on: bool, id: String) -> void:
 
 
 func _toggle_renovation() -> void:
-	_reno_panel.visible = not _reno_panel.visible
+	_view.set_side(_reno_panel, not _reno_panel.visible)
 	_refresh_renovation()
 
 
@@ -464,7 +468,7 @@ func _refresh_renovation() -> void:
 	if _reno_status != null:
 		_reno_status.text = _reno_status_text()
 	for id: String in _reno_boxes:
-		(_reno_boxes[id] as CheckBox).set_pressed_no_signal(Renovation.is_done(id))
+		(_reno_boxes[id] as Button).set_pressed_no_signal(Renovation.is_done(id))
 
 
 ## Mark every id in `ids` done for free, and drop them from "building"/"spots" — built
@@ -566,297 +570,218 @@ func _reno_status_text() -> String:
 # --- Build -----------------------------------------------------------------
 
 
+## The panel's look lives in ui/debug_panel.gd; this fills it, section by section, with
+## one labelled row per control.
 func _build() -> void:
 	_layer = CanvasLayer.new()
 	_layer.layer = 250  # above the post-process filter so it stays crisp
 	_layer.visible = false
 	add_child(_layer)
+	_view = DebugPanel.new()
+	_view.close_requested.connect(_close)
+	_layer.add_child(_view)
+	_upg_panel = _build_upgrades()
+	_reno_panel = _build_renovation()
 
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 10)
-	_layer.add_child(margin)
+	_build_world()
+	_build_economy()
+	_build_shop()
+	_build_minigames()
+	_build_upgrade_rows()
+	_build_renovation_rows()
 
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = PANEL_BG
-	sb.set_corner_radius_all(10)
-	sb.set_content_margin_all(12)
-	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 8)
-	columns.alignment = BoxContainer.ALIGNMENT_BEGIN
-	margin.add_child(columns)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", sb)
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	columns.add_child(panel)
-	_upg_panel = _build_upgrades(sb)
-	columns.add_child(_upg_panel)
-	_reno_panel = _build_renovation(sb)
-	columns.add_child(_reno_panel)
+	var guide := _view.section("Guide")
+	var gd_row := _view.row(guide, "Goals")
+	_view.button(gd_row, "Skip goal", _skip_goal)
+	_view.button(gd_row, "Restart guide", _restart_guide)
 
-	# The panel outgrew the screen: its sections scroll, capped to the window height.
-	_main_scroll = ScrollContainer.new()
-	_main_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	panel.add_child(_main_scroll)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(232, 0)
-	_main_scroll.add_child(box)
-	_main_box = box
-
-	_heading(box, "DEBUG  ·  F3 to close")
-	_button(_row(box), "Sound review (F7)", _review.toggle)
-
-	var money := _section(box, "Money")
-	_money_label = _make_label("", 16, LABEL)
-	money.add_child(_money_label)
-	var mrow := _row(money)
-	_button(mrow, "+100", _add_money.bind(100))
-	_button(mrow, "+1k", _add_money.bind(1000))
-	_button(mrow, "-100", _add_money.bind(-100))
-	var srow := _row(money)
-	_amount = LineEdit.new()
-	_amount.placeholder_text = "amount"
-	_amount.custom_minimum_size = Vector2(96, 0)
-	srow.add_child(_amount)
-	_button(srow, "Set", _set_money)
-
-	var rep := _section(box, "Reputation")
-	_rep_label = _make_label("", 16, LABEL)
-	rep.add_child(_rep_label)
-	var rrow := _row(rep)
-	_button(rrow, "+10", _add_reputation.bind(10))
-	_button(rrow, "+50", _add_reputation.bind(50))
-	_button(rrow, "-10", _add_reputation.bind(-10))
-	var rset := _row(rep)
-	_rep_amount = LineEdit.new()
-	_rep_amount.placeholder_text = "points"
-	_rep_amount.custom_minimum_size = Vector2(96, 0)
-	rset.add_child(_rep_amount)
-	_button(rset, "Set", _set_reputation)
-	var rtier := _row(rep)
-	rtier.add_child(_make_label("Rank", 13, LABEL))
-	_rep_tier = OptionButton.new()
-	for t: Dictionary in Reputation.TIERS:
-		_rep_tier.add_item("%s (%d)" % [t["name"], int(t["at"])])
-	_rep_tier.item_selected.connect(_set_reputation_tier)
-	rtier.add_child(_rep_tier)
-
-	var cust := _section(box, "Customers")
-	var crow := _row(cust)
-	_button(crow, "Call customer", _call_customer)
-	_button(crow, "Clear", _clear_customers)
-
-	var tickets := _section(box, "Tickets")
-	var trow := _row(tickets)
-	_button(trow, "Add", _add_ticket)
-	_button(trow, "Solve 1st", _solve_first)
-	var trow2 := _row(tickets)
-	_button(trow2, "Solve all", _solve_all)
-	_button(trow2, "Expire 1st", _expire_first)
-	var trow3 := _row(tickets)
-	_button(trow3, "Ready + pickup", _ready_for_pickup)
-
-	var cut := _section(box, "Cutting minigame")
-	var cut_row := _row(cut)
-	cut_row.add_child(_make_label("Piece", 13, LABEL))
-	_cut_type = OptionButton.new()
-	for item in ["Random", "Shirt", "Trousers", "Jacket"]:
-		_cut_type.add_item(item)
-	cut_row.add_child(_cut_type)
-	var try_row := _row(cut)
-	try_row.add_child(_make_label("Try", 13, LABEL))
-	for v in CutVariants.NAMES.size():
-		_button(try_row, "v%d" % (v + 1), _try_cut.bind(v))
-	var use_row := _row(cut)
-	use_row.add_child(_make_label("Worktable", 13, LABEL))
-	_cut_variant = OptionButton.new()
-	for v in CutVariants.NAMES:
-		_cut_variant.add_item(v)
-	_cut_variant.selected = CutVariants.current()
-	_cut_variant.item_selected.connect(_set_cut_variant)
-	use_row.add_child(_cut_variant)
-
-	var sew := _section(box, "Sewing minigame")
-	var sew_row := _row(sew)
-	sew_row.add_child(_make_label("Piece", 13, LABEL))
-	_sew_type = OptionButton.new()
-	for item in ["Random", "Shirt", "Trousers", "Jacket"]:
-		_sew_type.add_item(item)
-	sew_row.add_child(_sew_type)
-	var sew_try := _row(sew)
-	sew_try.add_child(_make_label("Try", 13, LABEL))
-	for v in SewVariants.NAMES.size():
-		_button(sew_try, "v%d" % (v + 1), _try_sew.bind(v))
-	var sew_use := _row(sew)
-	sew_use.add_child(_make_label("Machine", 13, LABEL))
-	var sew_pick := OptionButton.new()
-	for v in SewVariants.NAMES:
-		sew_pick.add_item(v)
-	sew_pick.selected = SewVariants.current()
-	sew_pick.item_selected.connect(_set_sew_variant)
-	sew_use.add_child(sew_pick)
-
-	var comfort := _row(sew)
-	comfort.add_child(_make_label("Also", 13, LABEL))
-	_button(comfort, "Press", _try_press)
-	_button(comfort, "Coffee", _try_coffee.bind(false))
-	_button(comfort, "Espresso", _try_coffee.bind(true))
-
-	var upg := _section(box, "Upgrades & deliveries")
-	var urow := _row(upg)
-	_button(urow, "Upgrades ▸", _toggle_upgrades)
-	_button(urow, "Deliver now", _deliver_now)
-	var spawn_row := _row(upg)
-	_button(spawn_row, "Spawn coffee", _spawn_station.bind(COFFEE_SCENE))
-	_button(spawn_row, "Spawn iron", _spawn_station.bind(IRON_SCENE))
-	var percy_row := _row(upg)
-	_button(percy_row, "Spawn Percy", _spawn_station.bind(BENCH_SCENE))
-	_button(percy_row, "Percy +5 jobs", _train_apprentice)
-
-	var shift := _section(box, "Shift")
-	var shrow := _row(shift)
-	_button(shrow, "End shift", _end_shift)
-	_button(shrow, "Next day", _new_day)
-
-	var reno := _section(box, "Renovation")
-	_reno_status = _make_label("", 12, LABEL)
-	_reno_status.custom_minimum_size = Vector2(220, 0)
-	_reno_status.autowrap_mode = TextServer.AUTOWRAP_WORD
-	reno.add_child(_reno_status)
-	var rn_row1 := _row(reno)
-	_button(rn_row1, "Finish next job", _finish_next_job)
-	_button(rn_row1, "Builders finish now", _finish_building_now)
-	var rn_row2 := _row(reno)
-	_button(rn_row2, "Renovate everything", _renovate_everything)
-	_button(rn_row2, "…and own the room upgrades", _renovate_everything_and_upgrades)
-	var rn_row3 := _row(reno)
-	_button(rn_row3, "Reset renovations", _reset_renovation)
-	_button(rn_row3, "Projects ▸", _toggle_renovation)
-	var rn_rooms1 := _row(reno)
-	var rn_rooms2 := _row(reno)
-	var rn_i := 0
-	for room: String in Renovation.ROOMS:
-		if room == "front":
-			continue
-		var room_name := str((Renovation.ROOMS[room] as Dictionary).get("name", room))
-		var target := rn_rooms1 if rn_i < 2 else rn_rooms2
-		_button(target, "Open %s" % room_name, _open_room.bind(room))
-		rn_i += 1
-
-	var watch := _section(box, "Watch the builders")
-	var watch_row := _row(watch)
-	for id: String in Renovation.PROJECTS:
-		if int(Renovation.data(id).get("kind", -1)) != Renovation.Kind.BUILD:
-			continue
-		if watch_row.get_child_count() >= 2:
-			watch_row = _row(watch)
-		_button(watch_row, str(Renovation.data(id).get("name", id)), _watch_build.bind(id))
-
-	var guide := _section(box, "Guide")
-	var gd_row := _row(guide)
-	_button(gd_row, "Skip goal", _skip_goal)
-	_button(gd_row, "Restart guide", _restart_guide)
-
-	_status = _make_label("", 12, Color(0.7, 0.75, 0.85))
-	box.add_child(_status)
+	var sound := _view.section("Sound")
+	_view.button(_view.row(sound, "Review"), "Rate sounds (F7)", _review.toggle)
 
 	_refresh_money()
 	_refresh_reputation()
 	_refresh_renovation()
+	_refresh_world_scale(WorldScale.factor)
 
 
-## The upgrade list, as a second column: a tick per upgrade, grouped as the phone groups
+## World scale (WorldScale autoload): characters, props and camera distance, live.
+func _build_world() -> void:
+	var world := _view.section("World")
+	var srow := _view.row(world, "Scale")
+	_scale_slider = _view.slider(
+		srow, WorldScale.MIN, WorldScale.MAX, 0.01, WorldScale.factor, WorldScale.set_factor
+	)
+	var hrow := _view.row(world, "Height")
+	_scale_label = _view.value(hrow, "")
+	_view.button(hrow, "Reset", func() -> void: _scale_slider.value = 1.0)
+	WorldScale.changed.connect(_refresh_world_scale)
+
+
+func _build_economy() -> void:
+	var money := _view.section("Money")
+	_money_label = _view.value(_view.row(money, "Balance"), "")
+	var mrow := _view.row(money, "Add")
+	_view.button(mrow, "+100", _add_money.bind(100))
+	_view.button(mrow, "+1k", _add_money.bind(1000))
+	_view.button(mrow, "-100", _add_money.bind(-100))
+	var srow := _view.row(money, "Set to")
+	_amount = _view.line_edit(srow, "amount")
+	_view.button(srow, "Set", _set_money)
+
+	var rep := _view.section("Reputation")
+	_rep_label = _view.value(_view.row(rep, "Points"), "")
+	var rrow := _view.row(rep, "Add")
+	_view.button(rrow, "+10", _add_reputation.bind(10))
+	_view.button(rrow, "+50", _add_reputation.bind(50))
+	_view.button(rrow, "-10", _add_reputation.bind(-10))
+	var rset := _view.row(rep, "Set to")
+	_rep_amount = _view.line_edit(rset, "points")
+	_view.button(rset, "Set", _set_reputation)
+	var tiers: Array[String] = []
+	for t: Dictionary in Reputation.TIERS:
+		tiers.append("%s (%d)" % [t["name"], int(t["at"])])
+	_rep_tier = _view.option(_view.row(rep, "Rank"), tiers, -1, _set_reputation_tier)
+
+
+func _build_shop() -> void:
+	var cust := _view.section("Customers & tickets")
+	var crow := _view.row(cust, "Customers")
+	_view.button(crow, "Call one", _call_customer)
+	_view.button(crow, "Clear", _clear_customers)
+	var trow := _view.row(cust, "New ticket")
+	_view.button(trow, "Add", _add_ticket)
+	_view.button(trow, "Ready + pickup", _ready_for_pickup)
+	var solve := _view.row(cust, "Solve")
+	_view.button(solve, "First", _solve_first)
+	_view.button(solve, "All", _solve_all)
+	_view.button(_view.row(cust, "Expire"), "First", _expire_first)
+
+	var shift := _view.section("Shift")
+	var shrow := _view.row(shift, "Day")
+	_view.button(shrow, "End shift", _end_shift)
+	_view.button(shrow, "Next day", _new_day)
+
+
+func _build_minigames() -> void:
+	var pieces := ["Random", "Shirt", "Trousers", "Jacket"]
+	var cut := _view.section("Cutting")
+	_cut_type = _view.option(_view.row(cut, "Piece"), pieces, 0, func(_i: int) -> void: pass)
+	var try_row := _view.row(cut, "Try")
+	for v in CutVariants.NAMES.size():
+		_view.button(try_row, "v%d" % (v + 1), _try_cut.bind(v))
+	_cut_variant = _view.option(
+		_view.row(cut, "Worktable"), CutVariants.NAMES, CutVariants.current(), _set_cut_variant
+	)
+
+	var sew := _view.section("Sewing & comfort")
+	_sew_type = _view.option(_view.row(sew, "Piece"), pieces, 0, func(_i: int) -> void: pass)
+	var sew_try := _view.row(sew, "Try")
+	for v in SewVariants.NAMES.size():
+		_view.button(sew_try, "v%d" % (v + 1), _try_sew.bind(v))
+	_view.option(
+		_view.row(sew, "Machine"), SewVariants.NAMES, SewVariants.current(), _set_sew_variant
+	)
+	var comfort := _view.row(sew, "Also try")
+	_view.button(comfort, "Press", _try_press)
+	_view.button(comfort, "Coffee", _try_coffee.bind(false))
+	_view.button(comfort, "Espresso", _try_coffee.bind(true))
+
+
+func _build_upgrade_rows() -> void:
+	var upg := _view.section("Upgrades & deliveries")
+	var urow := _view.row(upg, "Upgrades")
+	_view.button(urow, "List ▸", _toggle_upgrades)
+	_view.button(urow, "Deliver now", _deliver_now)
+	var spawn_row := _view.row(upg, "Spawn")
+	_view.button(spawn_row, "Coffee", _spawn_station.bind(COFFEE_SCENE))
+	_view.button(spawn_row, "Iron", _spawn_station.bind(IRON_SCENE))
+	var percy_row := _view.row(upg, "Percy")
+	_view.button(percy_row, "Spawn", _spawn_station.bind(BENCH_SCENE))
+	_view.button(percy_row, "+5 jobs", _train_apprentice)
+
+
+func _build_renovation_rows() -> void:
+	var reno := _view.section("Renovation")
+	_reno_status = _view.text(reno, "")
+	var jobs := _view.row(reno, "Jobs")
+	_view.button(jobs, "Finish next", _finish_next_job)
+	_view.button(jobs, "Builders finish now", _finish_building_now)
+	var all := _view.row(reno, "Everything")
+	_view.button(all, "Renovate", _renovate_everything)
+	_view.button(all, "Renovate + room upgrades", _renovate_everything_and_upgrades)
+	var projects := _view.row(reno, "Projects")
+	_view.button(projects, "List ▸", _toggle_renovation)
+	_view.button(projects, "Reset all", _reset_renovation)
+	var rooms := _view.row(reno, "Open room")
+	for room: String in Renovation.ROOMS:
+		if room == "front":
+			continue
+		var room_name := str((Renovation.ROOMS[room] as Dictionary).get("name", room))
+		_view.button(rooms, room_name, _open_room.bind(room))
+
+	var watch := _view.section("Watch the builders")
+	var watch_row := _view.row(watch, "Replay")
+	for id: String in Renovation.PROJECTS:
+		if int(Renovation.data(id).get("kind", -1)) != Renovation.Kind.BUILD:
+			continue
+		_view.button(watch_row, str(Renovation.data(id).get("name", id)), _watch_build.bind(id))
+
+
+## The upgrade list, as a side panel: a tick per upgrade, grouped as the phone groups
 ## them, granted or taken away for free.
-func _build_upgrades(sb: StyleBoxFlat) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", sb)
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	panel.visible = false
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
-	_heading(box, "UPGRADES")
-	var row := _row(box)
-	_button(row, "All", _set_all_upgrades.bind(true))
-	_button(row, "None", _set_all_upgrades.bind(false))
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(250, 470)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	box.add_child(scroll)
-	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 2)
-	scroll.add_child(list)
+func _build_upgrades() -> DebugPanel.SidePanel:
+	var panel := _view.side("Upgrades")
+	_view.button(panel.tools, "All", _set_all_upgrades.bind(true))
+	_view.button(panel.tools, "None", _set_all_upgrades.bind(false))
 	var category := ""
 	for id: String in Upgrades.all_ids():
 		var d := Upgrades.data(id)
 		if str(d.get("category", "")) != category:
 			category = str(d.get("category", ""))
-			list.add_child(_make_label(category, 12, HEADING))
-		var tick := CheckBox.new()
-		tick.text = "%s  (T%d)" % [d.get("name", id), int(d.get("tier", 0))]
-		tick.add_theme_font_size_override("font_size", 13)
-		tick.toggled.connect(_set_upgrade.bind(id))
-		list.add_child(tick)
-		_upg_boxes[id] = tick
+			_view.list_heading(panel.list, category)
+		var text := "%s  (T%d)" % [d.get("name", id), int(d.get("tier", 0))]
+		_upg_boxes[id] = _view.toggle(panel.list, text, _set_upgrade.bind(id))
 	return panel
 
 
-## The renovation checklist, as a third column: a tick per project, grouped by room in
+## The renovation checklist, as a side panel: a tick per project, grouped by room in
 ## story order. Ticking one also ticks what it needs; un-ticking one un-ticks everything
 ## that (transitively) needs it.
-func _build_renovation(sb: StyleBoxFlat) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", sb)
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	panel.visible = false
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
-	_heading(box, "RENOVATION")
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(250, 470)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	box.add_child(scroll)
-	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 2)
-	scroll.add_child(list)
+func _build_renovation() -> DebugPanel.SidePanel:
+	var panel := _view.side("Renovation")
 	var room := ""
 	for id: String in Renovation.PROJECTS:
 		var d := Renovation.data(id)
 		if str(d.get("room", "")) != room:
 			room = str(d.get("room", ""))
 			var room_name := str((Renovation.ROOMS.get(room, {}) as Dictionary).get("name", room))
-			list.add_child(_make_label(room_name, 12, HEADING))
-		var tick := CheckBox.new()
-		tick.text = str(d.get("name", id))
-		tick.add_theme_font_size_override("font_size", 13)
-		tick.toggled.connect(_set_project.bind(id))
-		list.add_child(tick)
-		_reno_boxes[id] = tick
+			_view.list_heading(panel.list, room_name)
+		_reno_boxes[id] = _view.toggle(panel.list, str(d.get("name", id)), _set_project.bind(id))
 	return panel
 
 
 func _toggle() -> void:
-	_layer.visible = not _layer.visible
-	GameState.input_locked = _layer.visible
 	if _layer.visible:
-		_refresh_money()
-		_refresh_renovation()
-		_fit_main()
+		_close()
+		return
+	_layer.visible = true
+	GameState.input_locked = true
+	_refresh_money()
+	_refresh_renovation()
+	_view.fit_to_screen()
 
 
-## As tall as its sections, but never past the bottom of the window.
-func _fit_main() -> void:
-	var content := _main_box.get_combined_minimum_size()
-	var room := get_viewport().get_visible_rect().size.y - 60.0
-	_main_scroll.custom_minimum_size = Vector2(content.x + 14.0, minf(content.y, room))
+## Shut the panel and hand the keys back to the game (a focused field or slider would
+## otherwise keep eating them).
+func _close() -> void:
+	_layer.visible = false
+	GameState.input_locked = false
+	get_viewport().gui_release_focus()
 
 
 func _refresh_money() -> void:
 	if _money_label != null:
-		_money_label.text = "Balance:  $%d" % GameState.money
+		_money_label.text = "$%d" % GameState.money
 
 
 func _refresh_reputation() -> void:
@@ -865,12 +790,16 @@ func _refresh_reputation() -> void:
 		_rep_tier.select(Reputation.tier())
 
 
+func _refresh_world_scale(f: float) -> void:
+	if _scale_label == null:
+		return
+	_scale_label.text = "%.2f  →  %.2f m" % [f, WorldScale.character_height()]
+	_scale_slider.set_value_no_signal(f)
+
+
 func _note(text: String) -> void:
-	if _status != null:
-		_status.text = text
-
-
-# --- Small UI builders -----------------------------------------------------
+	if _view != null:
+		_view.note(text)
 
 
 func _customer_manager() -> Node:
@@ -879,42 +808,3 @@ func _customer_manager() -> Node:
 		return null
 	var found := scene.find_children("*", "CustomerManager", true, false)
 	return found[0] if not found.is_empty() else null
-
-
-func _heading(parent: Node, text: String) -> void:
-	var lbl := _make_label(text, 16, HEADING)
-	parent.add_child(lbl)
-
-
-func _section(parent: Node, title: String) -> VBoxContainer:
-	var sep := HSeparator.new()
-	parent.add_child(sep)
-	var sec := VBoxContainer.new()
-	sec.add_theme_constant_override("separation", 4)
-	parent.add_child(sec)
-	sec.add_child(_make_label(title, 12, HEADING))
-	return sec
-
-
-func _row(parent: Node) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	parent.add_child(row)
-	return row
-
-
-func _button(parent: Node, text: String, cb: Callable) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.add_theme_font_size_override("font_size", 13)
-	btn.pressed.connect(cb)
-	parent.add_child(btn)
-	return btn
-
-
-func _make_label(text: String, font_size: int, color: Color) -> Label:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", color)
-	return lbl

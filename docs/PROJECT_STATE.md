@@ -59,8 +59,16 @@ briefs. The whole thing saves/loads and has a guided first-run tutorial.
 | **DayNight** | `globals/day_night.gd` | Shift clock + sun sweep; `start_shift`/`shift_ended`; `hold_morning()` parks it at the opening hour. Does NOT auto-start at boot. |
 | **SaveManager** | `globals/save_manager.gd` | Save/load orchestrator; boot flow; autosave on `shift_ended`. |
 | **Tutorial** | `globals/tutorial.gd` | Data-driven first-run walkthrough (hand pointer, EventBus-driven steps). |
-| **Debug** | `globals/debug_menu.gd` | F3 in-game console (money, customers, orders, shift) — debug builds only. |
+| **WorldScale** | `globals/world_scale.gd` | Debug dial for proportions (debug builds only): scales the player model, every other character rig, the movable props/stations and the camera's home offset by one factor, live. See the note below the table. |
+| **Debug** | `globals/debug_menu.gd` | F3 in-game console (world scale, money, reputation, customers, tickets, minigames, upgrades, renovation, shift, guide), debug builds only. Its look is `ui/debug_panel.gd` (WORK skin, checked by `check_ui`). |
 | **McpBridgeGame** | `mcp_bridge_game.gd` | TCP tooling bridge (screenshot / tree / click) on 127.0.0.1:9501. |
+
+**World scale slider.** The F3 panel's World section has a Scale slider (0.70 to 1.00) with a
+readout of the character's height (2.24 m at 1.0) and a Reset button; it drives the
+`WorldScale` autoload, which scales characters, movable props (not the building, floors or
+anything in its `SKIP_NAMES` list) and the camera distance together, and never touches
+collision capsules, reach, walk speed or nav. The value survives restarts in
+`user://debug_settings.cfg` under `[debug] world_scale`, separate from the save game.
 
 Autoload order is deliberate: EventBus first; Config before GameState (reads
 `Config.data`); Reputation before Upgrades/News (they read it); SaveManager/

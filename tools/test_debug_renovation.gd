@@ -109,7 +109,7 @@ func _finish_next_advances_one() -> void:
 	_check(done_count == 1, "finish next: exactly one project is done")
 	var job_name: String = str(_reno.data(first).get("name", first))
 	_check(
-		(_debug._status as Label).text.find(job_name) != -1,
+		(_debug._view as DebugPanel).note_text().find(job_name) != -1,
 		"finish next: the status label reports its name (%s)" % job_name
 	)
 	_check_invariant("finish next")

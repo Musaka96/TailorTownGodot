@@ -21,6 +21,7 @@ var _mode := Mode.FOLLOW
 var _focus_pos := Vector3.ZERO
 var _focus_look := Vector3.ZERO
 var _cam_home: Transform3D
+var _cam_base: Transform3D  # the home pose as authored, before any offset scale
 
 @onready var _target: Node3D = get_node_or_null(target_path) as Node3D
 @onready var _camera: Camera3D = $Camera3D
@@ -29,6 +30,7 @@ var _cam_home: Transform3D
 func _ready() -> void:
 	add_to_group("camera_rig")
 	_cam_home = _camera.transform
+	_cam_base = _cam_home
 
 
 func _physics_process(delta: float) -> void:
@@ -57,6 +59,14 @@ func focus(eye: Vector3, look: Vector3) -> void:
 ## Return to following the player.
 func unfocus() -> void:
 	_mode = Mode.FOLLOW
+
+
+## Pull the home pose toward the player by `f` (1.0 = as authored), same pitch and FOV.
+## Used by the WorldScale debug dial so the view keeps up with a smaller world.
+func set_offset_scale(f: float) -> void:
+	_cam_home = Transform3D(_cam_base.basis, _cam_base.origin * f)
+	if _mode == Mode.FOLLOW:
+		_camera.transform = _cam_home
 
 
 func set_target(node: Node3D) -> void:
