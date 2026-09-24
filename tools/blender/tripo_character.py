@@ -381,9 +381,30 @@ def step_classify(ns) -> None:
         log("  source object %-40s rot=%s scale=%s" % (
             o.name, tuple(round(math.degrees(a), 1) for a in o.rotation_euler),
             tuple(round(s, 3) for s in o.scale)))
-    _select_only(tripo)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    # a file saved in Edit Mode keeps its mesh in the edit buffer: leave Edit Mode first,
+    # or the next mode switch writes the stale buffer back over everything done below
+    if bpy.context.object is not None and bpy.context.object.mode != "OBJECT":
+        log("  the file was saved in %s mode: back to Object mode" % bpy.context.object.mode)
+        bpy.ops.object.mode_set(mode="OBJECT")
+    # objects hidden in the file cannot be selected, so every operator would skip them
+    # (a hidden head kept its FBX rotation and ended up at the feet): unhide everything,
+    # and bake the transforms into the meshes directly rather than through the selection
+    hidden = [o.name for o in tripo if o.hide_get() or o.hide_viewport or o.hide_select]
+    for o in tripo:
+        o.hide_set(False)
+        o.hide_viewport = False
+        o.hide_select = False
+    if hidden:
+        log("  %d object(s) were hidden in the file, unhidden: %s" % (len(hidden), ", ".join(hidden)))
+    for o in tripo:
+        if o.data.users > 1:
+            o.data = o.data.copy()
+        o.data.transform(o.matrix_world)
+        o.matrix_world = Matrix.Identity(4)
 
+    # nothing active or selected: the glTF importer builds its bone-shape icosphere into
+    # the active object's mesh when there is one
+    _select_only([])
     rig_objects = _import_rig(ns.rig)
 
     named = {}
@@ -610,6 +631,22 @@ def _classify(shells, named):
     collar = [s for s in free() if abs(s["nc"].x) < CENTRE_X and s["nhi"].z > top - 0.05]
     if collar and "shirt" not in named:
         assign(max(collar, key=lambda s: s["nf"]), "shirt", "largest centred shell at the collar")
+    # the rest of a shirt split into several pieces: anything lying inside the shirt's box
+    # that is not touching the tie, or a centred piece over it that is wider than the tie
+    shirt = next((s for s in infos if s["role"] == "shirt"), None)
+    blades = [s for s in infos if s["role"] == "tie"]
+    if shirt is not None:
+        tie_w = max((t["dims"].x for t in blades), default=0.0)
+        for s in free():
+            inside = all(shirt["nlo"][k] - OVERLAP <= s["nlo"][k] and
+                         s["nhi"][k] <= shirt["nhi"][k] + OVERLAP for k in range(3))
+            on_tie = any(_overlap(s, t, OVERLAP) for t in blades)
+            wide = (abs(s["nc"].x) < CENTRE_X and _overlap(s, shirt, OVERLAP)
+                    and s["dims"].x > 1.3 * tie_w)
+            if inside and not on_tie:
+                assign(s, "shirt", "inside the shirt's box, clear of the tie")
+            elif wide:
+                assign(s, "shirt", "centred over the shirt, wider than the tie")
     grew = True
     while grew:
         grew = False
