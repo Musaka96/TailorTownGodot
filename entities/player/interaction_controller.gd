@@ -1,8 +1,20 @@
 extends Area3D
 
-## Sits on the player as a detection volume. Each physics frame it picks the
-## nearest overlapping Interactable, publishes its prompt to the HUD (via
-## EventBus), and triggers it on the "interact" action.
+## Sits on the player as a detection volume. Each physics frame it picks one overlapping
+## Interactable as the target, publishes its prompt to the HUD (via EventBus), and
+## triggers it on the "interact" action; with no target, interact sets a carried thing down.
+##
+## Targeting follows the way the character faces (the model's +Z, flat on the floor):
+##   - a new target is taken only inside a cone of ACQUIRE_COS (60 degrees either side),
+##     preferring what you face over what is merely a little closer
+##     (score = distance * (FACING_BIAS - dot), lowest wins);
+##   - the current target is kept while it still overlaps, can still be seen and stays
+##     inside the wider KEEP_COS cone (80 degrees), so it doesn't flicker at the edge —
+##     turn further away and it lets go, which frees interact to "Set down";
+##   - anything within NEAR_ANY (standing on or against it: a renovation spot, a mess
+##     pile, the carpet) is in reach whichever way you face.
+## A tutorial step can hide stations that aren't its target, and a wall between you and
+## a thing always hides it (_in_sight).
 
 const OUTLINE_SHADER := preload("res://assets/shaders/interact_outline.gdshader")
 ## Line of sight is checked this high off the floor: over counters, tables and benches,
@@ -11,10 +23,16 @@ const SIGHT_HEIGHT := 1.2
 const WORLD_MASK := 1  # walls sit on layer 1 (with floors and furniture; see _is_wall)
 const SIGHT_HITS := 6  # furniture the sight line looks past before giving up
 const SIGHT_SHORT := 0.4  # the sight line ends this far short of the target (m)
+const ACQUIRE_COS := 0.5  # cos(60 deg): a new target must be this far in front
+const KEEP_COS := 0.1736482  # cos(80 deg): the current target holds out to here
+const NEAR_ANY := 0.55  # m (flat): closer than this, facing doesn't matter
+const FACING_BIAS := 1.6  # score = distance * (FACING_BIAS - dot)
 
 @export var player_path: NodePath
 
 var _player: Node
+## The node whose rotation is the character's facing (the player's Model; it faces +Z).
+var _facing_node: Node3D
 var _current: Interactable = null
 var _last_prompt := ""
 var _outline: ShaderMaterial
@@ -22,6 +40,9 @@ var _outline: ShaderMaterial
 
 func _ready() -> void:
 	_player = get_node(player_path)
+	_facing_node = _player.get_node_or_null("Model") as Node3D
+	if _facing_node == null:
+		_facing_node = _player as Node3D
 	_outline = ShaderMaterial.new()
 	_outline.shader = OUTLINE_SHADER
 	_outline.set_shader_parameter("outline_color", Style.BRASS)
@@ -36,23 +57,68 @@ func _physics_process(_delta: float) -> void:
 	if GameState.input_locked:
 		_set_current(null)
 		return
-	_set_current(_find_nearest())
+	_set_current(_find_target())
 	_publish_prompt()
 
 
-func _find_nearest() -> Interactable:
+## Keep the current target while it still qualifies, else take the best one in front
+## (see the class comment).
+func _find_target() -> Interactable:
+	var fwd := _facing()
+	var areas := get_overlapping_areas()
+	if _current != null and areas.has(_current) and _usable(_current):
+		if _facing_dot(_current, fwd) >= KEEP_COS and _in_sight(_current):
+			return _current
 	var best: Interactable = null
-	var best_dist := INF
-	for area in get_overlapping_areas():
-		if area is Interactable and area.is_in_group("interactable"):
-			# During the tutorial, ignore stations that aren't the current step's target.
-			if Tutorial != null and Tutorial.blocks(area.target):
-				continue
-			var d := global_position.distance_squared_to(area.global_position)
-			if d < best_dist and _in_sight(area):
-				best_dist = d
-				best = area
+	var best_score := INF
+	for area in areas:
+		var it := area as Interactable
+		if it == null or not _usable(it):
+			continue
+		var dot := _facing_dot(it, fwd)
+		if dot < ACQUIRE_COS:
+			continue
+		var score := _flat_to(it).length() * (FACING_BIAS - dot)
+		if score < best_score and _in_sight(it):
+			best_score = score
+			best = it
 	return best
+
+
+## Whether `it` can be a target at all, facing aside.
+func _usable(it: Interactable) -> bool:
+	if not it.is_in_group("interactable"):
+		return false
+	# During the tutorial, ignore stations that aren't the current step's target.
+	return not (Tutorial != null and Tutorial.blocks(it.target))
+
+
+## How squarely the player faces `it`: 1 dead ahead, 0 square to the side, -1 behind.
+## Anything within NEAR_ANY counts as dead ahead.
+func _facing_dot(it: Interactable, fwd: Vector3) -> float:
+	var to := _flat_to(it)
+	var dist := to.length()
+	if dist < NEAR_ANY:
+		return 1.0
+	return fwd.dot(to / dist)
+
+
+func _flat_to(it: Interactable) -> Vector3:
+	var to := it.global_position - global_position
+	to.y = 0.0
+	return to
+
+
+## The way the character faces, flat on the floor. The player's model turns toward the
+## way it moves and faces its own +Z (Player.drop_held sets things down along it too).
+func _facing() -> Vector3:
+	if _facing_node == null:
+		return Vector3.BACK
+	var fwd := _facing_node.global_transform.basis.z
+	fwd.y = 0.0
+	if fwd.length_squared() < 0.0001:
+		return Vector3.BACK
+	return fwd.normalized()
 
 
 ## True unless something solid (a wall, most often) stands between the player and `area`

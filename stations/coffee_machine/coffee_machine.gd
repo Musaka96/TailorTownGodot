@@ -66,6 +66,13 @@ func serve_guest(on_done: Callable) -> void:
 	UI.open_coffee(self)
 
 
+## The player walked away from the cup before it was poured (see bench_game_screen): the
+## cup goes back in the pot and a guest's cup is simply not made.
+func leave_bench() -> void:
+	_cups += 1
+	_guest_cup = Callable()
+
+
 ## Called by the coffee game: `quality` is the cup's score (0..1); `success` is false for
 ## a spilt cup.
 func finish_coffee(success: bool, quality: float) -> void:

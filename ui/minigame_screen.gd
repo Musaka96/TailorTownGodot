@@ -13,6 +13,14 @@ extends Control
 ## note that climbs a scale as the streak grows, sparks off the tool, a streak chip by the
 ## slip pins; _break_streak() when the run of perfects ends; _stamp_verdict() to thump
 ## the result onto the finished piece. _good_feedback() is the twin of _slip_feedback().
+##
+## And how a player walks away mid-run: the host that owns the screen (worktable_screen,
+## sewing_screen, bench_game_screen) reads is_leave_event() and calls request_leave(),
+## which stops the run and emits `left` — never `finished` — so the host can put the job
+## back exactly as it was.
+
+## The player left the bench before the run was decided. Nothing was judged.
+signal left
 
 const CANVAS_MIN := Vector2(600, 260)
 const PIP_SIZE := Vector2(18, 18)
@@ -77,6 +85,38 @@ var _chip: Control
 ## tutorial treats a missing flag as not done yet.
 func coach_flags() -> Dictionary:
 	return {}
+
+
+## Walk away from the bench mid-run. The run stops where it is, the coffee focus it took
+## is handed back and `left` tells the host to put the job back as it was; `finished` is
+## never emitted for a run that was left. Once the result is in (the stamp is showing) it
+## does nothing and returns false: the host is about to apply that result anyway.
+func request_leave() -> bool:
+	if is_settled():
+		return false
+	set_process(false)
+	if _focused:
+		_focused = false
+		GameState.focus += 1
+	left.emit()
+	return true
+
+
+## True once the run has a result (success or ruin) and is only showing it off before
+## `finished` goes out. Each game answers from its own state; the default is "still
+## playing".
+func is_settled() -> bool:
+	return false
+
+
+## The one input that leaves any bench game: Esc / gamepad B ("ui_cancel"), Esc / Start
+## ("pause") or a right click. The hosts check it, so every game leaves the same way.
+static func is_leave_event(event: InputEvent) -> bool:
+	return (
+		event.is_action_pressed("pause")
+		or event.is_action_pressed("ui_cancel")
+		or MousePick.is_back(event)
+	)
 
 
 func _ensure_chrome(screen_title: String, painter: Callable, frame := Style.FRAME_WIDE) -> void:

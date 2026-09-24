@@ -361,6 +361,10 @@ func _speed_boost() -> float:
 	return boost
 
 
+func is_settled() -> bool:
+	return _state > State.RUNNING
+
+
 ## Debug (F2, debug builds only): skip the cut and finish it perfectly.
 func _unhandled_input(event: InputEvent) -> void:
 	if _state > State.RUNNING or not OS.is_debug_build():

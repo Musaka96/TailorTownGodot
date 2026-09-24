@@ -156,6 +156,10 @@ func _process(delta: float) -> void:
 	_repaint()
 
 
+func is_settled() -> bool:
+	return _state != State.RUNNING
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _state != State.RUNNING:
 		return

@@ -53,6 +53,12 @@ func finish_press(success: bool, quality: float) -> void:
 	)
 
 
+## The player walked away mid-press (see bench_game_screen): the piece stays in hand,
+## unpressed, and can be pressed later.
+func leave_bench() -> void:
+	_piece_on_board = null
+
+
 func _piece(actor) -> GarmentPiece:
 	if actor == null or actor.carry == null:
 		return null

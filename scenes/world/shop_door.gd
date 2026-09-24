@@ -12,8 +12,10 @@ extends Node3D
 
 const GROUPS: Array[StringName] = [&"player", &"customer"]
 
-## Horizontal distance from the doorway centre that triggers opening (metres).
-@export var radius: float = 2.2
+## Horizontal distance from the doorway centre that triggers opening (metres). Close
+## enough that walking past or loitering near the door leaves it shut; it opens a step
+## or two out, still ahead of anyone at walking pace (open_time).
+@export var radius: float = 1.4
 ## How far each leaf swings (degrees).
 @export var open_angle: float = 100.0
 ## Seconds for a full open / a full close.

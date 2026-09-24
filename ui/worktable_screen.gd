@@ -1,7 +1,8 @@
 extends Control
 
 ## Two-phase worktable screen: configure the garment (type / size / style), then
-## run the cutting minigame. Applies the result back to the worktable.
+## run the cutting minigame. Applies the result back to the worktable. Esc / B / Start /
+## right click leave from either phase; mid-cut that leaves the cloth on the table uncut.
 
 enum Row { TYPE, SIZE, STYLE }
 const ROW_NAME := {Row.TYPE: "Type", Row.SIZE: "Size", Row.STYLE: "Style"}
@@ -22,6 +23,7 @@ var _minigame: MinigameScreen
 var _minigame_variant := -1
 var _decor_built := false
 var _head: TitleBlock
+var _leave_hint: BenchLeaveHint
 
 @onready var _config: Control = $Config
 @onready var _panel: PanelContainer = $Config/Center/Panel
@@ -33,6 +35,9 @@ var _head: TitleBlock
 
 func _ready() -> void:
 	_build_preview()
+	_leave_hint = BenchLeaveHint.new()
+	_leave_hint.visible = false
+	add_child(_leave_hint)
 
 
 func open(worktable, actor, piece) -> void:
@@ -49,6 +54,7 @@ func open(worktable, actor, piece) -> void:
 	if _minigame:
 		_minigame.visible = false
 		_minigame.set_process(false)
+	_leave_hint.visible = false
 	_style()
 	_refresh()
 
@@ -158,8 +164,11 @@ func _make_row(row: int, selected: bool) -> Control:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or not _config.visible:
-		return  # minigame handles its own input while it's up
+	if not visible:
+		return
+	if not _config.visible:
+		_bench_input(event)
+		return  # the minigame handles the rest of its own input while it's up
 	Sfx.ui(event)
 	if event.is_action_pressed("ui_down") or event.is_action_pressed("move_back"):
 		_row = (_row + 1) % 3
@@ -184,6 +193,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	get_viewport().set_input_as_handled()
 	_refresh()
+
+
+## Mid-cut, the leave keys walk away from the bench (see _on_cut_left). Swallowed even
+## once the cut is decided, so the pause menu never opens over the stamp.
+func _bench_input(event: InputEvent) -> void:
+	if _minigame == null or not _minigame.visible:
+		return
+	if not MinigameScreen.is_leave_event(event):
+		return
+	get_viewport().set_input_as_handled()
+	_minigame.request_leave()
 
 
 ## Changed your mind: pick the cloth back up off the table (closes on success).
@@ -296,13 +316,26 @@ func _start_cutting() -> void:
 		_minigame_variant = variant
 		add_child(_minigame)
 		_minigame.connect("finished", _on_cut_finished)
+		_minigame.left.connect(_on_cut_left)
 	_minigame.visible = true
 	var title := "%s · %s" % [Enums.garment_type_name(_type), Enums.size_name(_size)]
 	var cloth: MaterialType = _piece.material if _piece != null else null
 	_minigame.call("start", _type, title, cloth)
+	MousePick.release(self)  # a right click anywhere reaches _unhandled_input as a leave
+	move_child(_leave_hint, -1)  # over the game
+	_leave_hint.visible = true
+
+
+## Left mid-cut: nothing is judged and the cloth stays on the table, uncut, as it was.
+func _on_cut_left() -> void:
+	_minigame.visible = false
+	Sfx.ui_cancel()
+	close()
 
 
 func _on_cut_finished(success: bool, quality: float) -> void:
+	if not visible:
+		return  # a run that was left can't report back (the F2 cheat on a hidden game)
 	if _minigame:
 		_minigame.visible = false
 	var style: String = _styles()[_style_idx]
