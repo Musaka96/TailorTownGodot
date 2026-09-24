@@ -65,18 +65,21 @@ more: no shoulders, no body.
 
 ## EDIT PREFIX (Stage 2, with the bald sheet attached)
 
-Attach two images: the bald base sheet first, the hairstyle sheet
-(`IMPORT/CHARREWORK/ref/heads/style_sheet_gentlemen.png`, the "A More Refined Tomorrow"
-sheet) second. The second one only sets how richly the hair is sculpted.
+Attach two images: the bald base sheet first, the labelled hairstyle sheet
+(`IMPORT/CHARREWORK/ref/heads/style_sheet_labelled.png`, the "Hairstyle Ideas (for
+Everyone!)" sheet) second. The second one sets how chunky the hair is and, where a cell
+is labelled, which style to copy. It has faces, text and a logo, so the prefix tells the
+model to ignore those; it has no back views, so the hair line still describes the back.
 
 ```
 The first attached image is the character. Keep everything in it exactly as it is: the
 skull shape, the blank face with no features, the disc ears, the neck cut, the two-view
 layout with the front view on the left and the back view on the right, the size, the
-baseline, the colours and the flat background. The second attached image shows how
-richly the hair must be sculpted: match that amount of lock detail, layering and volume,
-but not its head shape, colours or layout. Change only one thing on the character: give
-the head this hairstyle.
+baseline, the colours and the flat background. The second attached image is a sheet of
+hairstyles: copy how its hair is sculpted, big simple clumps with real volume, and copy
+the style named below if it is on the sheet. Take nothing else from it: not its faces,
+eyes, clothes, head shape, colours, text, labels, logo or layout. Change only one thing
+on the character: give the head this hairstyle.
 ```
 
 ## BATCH PREFIX (Stage 2, four styles per image)
@@ -88,8 +91,10 @@ then the halves. Keep one hair colour per batch, so the palette stays closed.
 ```
 The first attached image is the character. Keep its skull shape, blank face with no
 features, disc ears, neck cut, colours and flat background exactly as they are. The
-second attached image shows how richly the hair must be sculpted: match that amount of
-lock detail, layering and volume, but not its head shape, colours or layout.
+second attached image is a sheet of hairstyles: copy how its hair is sculpted, big simple
+clumps with real volume, and copy each style named below if it is on the sheet. Take
+nothing else from it: not its faces, eyes, clothes, head shape, colours, text, labels,
+logo or layout.
 
 Make one image holding four versions of this same head, each with a different hairstyle,
 in a two by two grid: top left, top right, bottom left, bottom right. Every cell shows
@@ -146,6 +151,34 @@ the face is blank.
 Add after the line: `No hair: the skull is bare and smooth.`
 
 ---
+
+## Pointing at a cell of the labelled sheet
+
+When our style has a cell on the sheet, start the hair line with
+`Hair: the style labelled "<label>" on the second image:` and then keep our line, which
+carries the back view. Labels on the sheet:
+
+| ours | sheet label |
+|---|---|
+| `side_part` | "Classic Part" |
+| `slick_back` | "Slick Back" |
+| `taper` | "Taper Fade" |
+| `ivy_league` | "Ivy League" |
+| `undercut` | "Undercut" |
+| `waves` | "Wavy Business" |
+| `curtains` | "Curtains" |
+| `textured_crop` | "Textured Crop" |
+| `wavy_mop` | "Soft Waves" |
+| `curly_crop` | "Curly" |
+| `buzz` | "Buzz Cut" |
+| `receding_part` | "Receding" |
+| `grey_neat` | "Short & Gray" |
+| `white_swept` | "Silver Sweep" |
+| `wild_white` | "Wise & Wispy" |
+| `horseshoe` | "Horseshoe" |
+
+Pompadour, quiff, crew cut, flat top, coils, comb-over, widow's peak, side wings and the
+rest have no cell; their lines stand alone.
 
 ## Hairstyles, gentlemen (Stage 2 subject lines)
 
