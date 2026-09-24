@@ -111,14 +111,14 @@ const FABRIC_GRAIN := [
 # shader's sheen_strength). Flannel's raised nap has the most; a smooth poplin least.
 # Indexed by Enums.Fabric.
 const FABRIC_SHEEN := [
-	0.25,  # worsted wool
-	0.9,  # flannel — the nap is the look
-	0.7,  # tweed
-	0.5,  # mohair blend
-	0.35,  # linen
-	0.3,  # cotton
-	0.2,  # poplin
-	0.3,  # oxford cloth
+	0.375,  # worsted wool
+	1.35,  # flannel — the nap is the look
+	1.05,  # tweed
+	0.75,  # mohair blend
+	0.525,  # linen
+	0.45,  # cotton
+	0.3,  # poplin
+	0.45,  # oxford cloth
 ]
 # Anisotropic highlight streak along the threads (the shader's aniso). Only mohair's
 # long lustrous fibre shows one. Indexed by Enums.Fabric.

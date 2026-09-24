@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_hgnyj")
-thickness = 0.5
-opacity = 0.48
+thickness = 0.3
+opacity = 0.35
 edge_softness = 2.0
 grazing_guard = 0.0
 crease_threshold = 0.19

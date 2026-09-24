@@ -49,12 +49,12 @@ const LOOK_V2 := {
 }
 const LOOK_PHOTO := {
 	"fabric_strength": 0.2,
-	"normal_depth": 1.2,
+	"normal_depth": 2.2,
 	"grain_strength": 1.0,
 	"grain_scale": 1.85,
-	"grain_contrast": 1.0,
+	"grain_contrast": 1.4,
 	"pattern_fuzz": 1.0,
-	"wrap": 0.25,
+	"wrap": 0.35,
 	"sheen_roughness": 0.8,
 	"sheen_tint": 0.5,
 }

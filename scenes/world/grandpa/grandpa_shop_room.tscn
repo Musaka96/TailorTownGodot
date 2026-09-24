@@ -37,8 +37,9 @@ background_color = Color(0.76862746, 0.8509804, 0.8392157, 1)
 sky = SubResource("Sky_hg8uv")
 ambient_light_source = 2
 ambient_light_color = Color(0.84705883, 0.89411765, 0.8666667, 1)
-ambient_light_energy = 0.55
+ambient_light_energy = 0.45
 tonemap_mode = 2
+tonemap_exposure = 1.1
 ssao_enabled = true
 ssao_radius = 0.6
 ssao_intensity = 1.4
@@ -51,8 +52,8 @@ fog_enabled = true
 fog_light_color = Color(0.7490196, 0.81960785, 0.8156863, 1)
 fog_density = 0.002
 adjustment_enabled = true
-adjustment_contrast = 1.04
-adjustment_saturation = 1.12
+adjustment_contrast = 1.12
+adjustment_saturation = 1.15
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ojymr"]
 size = Vector3(30, 1, 30)

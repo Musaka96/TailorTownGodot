@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_5f4ej")
 film_preset = 1
-film_strength = 0.065
-scanline_strength = 0.049
+film_strength = 0.04
+scanline_strength = 0.03
 scanline_count = 500.0
-chromatic_aberration = 0.069
-barrel_distortion = 0.184
+chromatic_aberration = 0.03
+barrel_distortion = 0.12

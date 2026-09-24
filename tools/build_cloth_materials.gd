@@ -36,8 +36,8 @@ func _write(path: String, shader_path: String, scale_param: String, scale: float
 	mat.set_shader_parameter("rim_tint", 0.4)
 	# B2/B4 live values (the shader defaults are 0 = off, the regression guard):
 	# weave normal-map depth, and the macro brightness breakup per metre of cloth.
-	# Lower than v2's 1.8: the photo grain normal is strong on its own.
-	mat.set_shader_parameter("normal_depth", 1.2)
+	# Above v2's 1.8: the combo look from the post study wants the grain to read deeper.
+	mat.set_shader_parameter("normal_depth", 2.2)
 	mat.set_shader_parameter("macro_strength", 0.12)
 	mat.set_shader_parameter("macro_scale", 0.35)
 	# Cloth Look v3 (the shader defaults are all off = v2): the per-fabric scanned grain
@@ -45,9 +45,9 @@ func _write(path: String, shader_path: String, scale_param: String, scale: float
 	# pattern edges fuzz with it, and the light wraps and sheens like cloth.
 	mat.set_shader_parameter("grain_strength", 1.0)
 	mat.set_shader_parameter("grain_scale", 1.85)
-	mat.set_shader_parameter("grain_contrast", 1.0)
+	mat.set_shader_parameter("grain_contrast", 1.4)
 	mat.set_shader_parameter("pattern_fuzz", 1.0)
-	mat.set_shader_parameter("wrap", 0.25)
+	mat.set_shader_parameter("wrap", 0.35)
 	mat.set_shader_parameter("sheen_roughness", 0.8)
 	mat.set_shader_parameter("sheen_tint", 0.5)
 	mat.set_shader_parameter("aniso_shine", 40.0)

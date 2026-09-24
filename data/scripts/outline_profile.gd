@@ -12,7 +12,7 @@ extends Resource
 @export_group("Outline")
 @export var outline_color: Color = Color(0.0, 0.0, 0.0, 1.0)
 ## Line width in pixels.
-@export_range(0.5, 8.0, 0.1) var thickness: float = 1.6
+@export_range(0.2, 8.0, 0.1) var thickness: float = 1.6
 ## Overall strength: 0 = invisible, 1 = solid.
 @export_range(0.0, 1.0, 0.01) var opacity: float = 1.0
 
