@@ -29,7 +29,7 @@ func try_pick_up(item: Node) -> bool:
 	if _held != null:
 		return false
 	_held = item
-	item.attach_to(_point())
+	_seat(item)
 	EventBus.item_picked_up.emit(item)
 	return true
 
@@ -41,8 +41,16 @@ func take_item(item: Node) -> bool:
 	if _held != null:
 		return false
 	_held = item
-	item.attach_to(_point())
+	_seat(item)
 	return true
+
+
+## Attach to the hand, then let an item that rests on the hands by its size (a bolt of
+## cloth, fatter the more is on it) settle itself there.
+func _seat(item: Node) -> void:
+	item.attach_to(_point())
+	if item.has_method("seat_in_hands"):
+		item.seat_in_hands()
 
 
 ## Where held items attach: the rig's hand point if set, else the local marker.

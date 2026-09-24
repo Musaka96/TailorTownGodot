@@ -17,7 +17,8 @@ const LENGTH := 0.72  # inside, along the bolt (local Z)
 const HEIGHT := 0.32
 const THICK := 0.012
 const SHORT_FLAP := 0.20
-## Roll origin sits this far above the floor (its radius).
+## Where the phone drops a roll's origin above the floor; also the lift for a bolt that
+## can't report its own radius().
 const ROLL_LIFT := 0.13
 const KRAFT := Color(0.78, 0.60, 0.40)
 const TAPE := Color(0.93, 0.86, 0.72)
@@ -76,7 +77,8 @@ static func wrap_all(rolls: Array) -> DeliveryBox:
 	parent.add_child(box)
 	for r: Node3D in rolls:
 		var at := r.global_position
-		r.global_position = Vector3(at.x, floor_at.y + ROLL_LIFT + THICK, at.z)  # on the base
+		var lift: float = r.radius() if r.has_method("radius") else ROLL_LIFT
+		r.global_position = Vector3(at.x, floor_at.y + lift + THICK, at.z)  # on the base
 		if r.has_method("set_pickable"):
 			r.set_pickable(false)
 		r.visible = false

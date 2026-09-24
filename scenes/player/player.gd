@@ -173,7 +173,9 @@ func drop_held() -> bool:
 	parent.add_child(item)
 	var ahead := _model.global_transform.basis.z  # the way the model is facing
 	ahead.y = 0.0
-	item.global_position = global_position + ahead.normalized() * 0.7 + Vector3(0.0, 0.15, 0.0)
+	# A bolt rests on its own girth; everything else sits a fixed hand's breadth up.
+	var lift: float = item.radius() if item.has_method("radius") else 0.15
+	item.global_position = global_position + ahead.normalized() * 0.7 + Vector3(0.0, lift, 0.0)
 	if item.has_method("set_pickable"):
 		item.set_pickable(true)
 	EventBus.item_dropped.emit(item)
