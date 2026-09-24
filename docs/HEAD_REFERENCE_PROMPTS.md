@@ -118,9 +118,9 @@ Batch plan (gentlemen dark brown `#2c1e18`, older silver `#8e9196`, all on cream
 | batch | styles |
 |---|---|
 | G1 (done) | slick_back, pompadour, curly_crop, wavy_mop |
-| G2 | side_part, deep_part, brushed_back, ivy_league |
-| G3 | wavy_side, centre_part, long_swept, short_neat |
-| G4 | curly_side, plus three of the same on the `squat` or `heavy` base once one exists |
+| G2 (done) | side_part, deep_part, wavy_side, plus a shaggy miss |
+| G3 | brushed_back, ivy_league, centre_part, long_swept |
+| G4 | short_neat, curly_side, plus two of the same on the `squat` or `heavy` base once one exists |
 | O1 | receding_part, comb_over, grey_neat, side_wings |
 | O2 | thinning_slick, widows_peak, grey_curls, bald_fringe |
 | O3 (white `#e9e6df`, background slate `#3e4a55`, divider cream `#e5dbd1`) | white_swept, wild_white, plus two facial hair heads: horseshoe + full_beard, grey_neat + moustache |
@@ -183,16 +183,16 @@ Old money, not the barbershop: every cut is scissor cut and combed, long enough 
 locks everywhere it grows, tapered by scissors at the neck and ears. No fades, no
 undercuts, no buzz cuts, no cropped or spiked tops. Default hair colour dark brown
 `#2c1e18` on the cream background. Done and kept: `slick_back`, `pompadour`,
-`curly_crop`, `wavy_mop` (round 4).
+`curly_crop`, `wavy_mop` (round 4), `side_part`, `deep_part`, `wavy_side` (round 6).
 
 | style | line |
 |---|---|
 | `side_part` | Hair: a classic side part, combed flat and neat, the parting a straight carved groove on the left of the crown, the larger side swept across to the right in a few fat locks, short and tapered at the sides and back, both ears fully showing, a soft scissor-tapered hairline at the nape. |
 | `deep_part` | Hair: a deep side part, the parting low on the left, the heavy side combed across the crown to the right in one thick rolling wave that lifts a little above the forehead, the small side combed flat, sides and back short and tapered, ears clear. |
 | `slick_back` | Hair: slicked straight back from the forehead in a few fat locks lying side by side, tight at the sides, a straight front hairline, the back one rounded cap ending in a clean line at the nape. |
-| `brushed_back` | Hair: brushed straight back from the forehead with volume, longer than a slick back, the locks lifting off the forehead and rolling back over the crown, reaching the tops of the ears at the sides and curling a little at the nape. |
+| `brushed_back` | Hair: brushed straight back from the forehead with volume, every lock running from the forehead toward the nape, nothing hanging over the forehead and no fringe, the mass lifting off the forehead then lying flat over the crown, the sides combed back over the tops of the ears, ending in a soft tapered line at the nape. |
 | `pompadour` | Hair: a classic pompadour, a tall rounded mass swept up and back off the forehead, the volume sitting above the forehead, the sides combed back and tapered by scissors, the back smooth and swept down toward the nape. |
-| `ivy_league` | Hair: an ivy league cut, short and neat with the top just long enough to be brushed to one side in a few soft locks, a light side part, the sides combed down and tapered, ears clear. |
+| `ivy_league` | Hair: an ivy league cut, short all over: the sides and back scissor-tapered short above the ears and the collar, the top no longer than two finger widths and combed neatly to one side in a few flat locks with a light side part, the forehead fully clear, no fringe and nothing shaggy. |
 | `wavy_side` | Hair: wavy hair with a side part, combed over from the left in big soft rolling waves that lift off the forehead, the sides combed back over the tops of the ears, the back in rounded waves down to a tapered nape. |
 | `centre_part` | Hair: a nineteen twenties centre part, parted straight down the middle and combed flat to both sides in a few smooth locks, short at the sides and back, ears clear, a straight front hairline. |
 | `long_swept` | Hair: collar-length hair swept back behind the ears in thick loose locks, the front lifting off the forehead, the ends curling out at the nape and behind the ears. |
@@ -324,6 +324,15 @@ back, wavy side, twenties centre part, collar-length swept back, short neat, cur
 and the suffix now bans shaved, faded and stubbled hair on every run. The four styles
 kept from round 4 stay. Also seen: with four styles the model sometimes lays out fronts
 on the top row and backs on the bottom row instead of the grid; crop accordingly.
+
+## Round 6 (2026-09-25)
+
+G2 on the old-money list: chunkiness, blank faces and layout all held. Side part and
+deep part as asked; brushed back came out as a wavy side style (kept as `wavy_side`);
+ivy league came out as a shaggy mop (dropped). "Rolling back" and "curling at the nape"
+read as waves and a fringe; "just long enough" read as long. Both lines now say what
+must NOT be there (no fringe, forehead clear, nothing shaggy) and give lengths. The
+model also drifts the hair hex lighter each run; harmless, the game recolours.
 
 ## Check before Tripo
 
