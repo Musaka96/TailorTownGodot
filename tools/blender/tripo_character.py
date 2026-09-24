@@ -266,6 +266,15 @@ def _arguments(argv):
         " assignment (the default)",
     )
     p.add_argument(
+        "--stitch-armhole",
+        type=float,
+        default=0.04,
+        help="stitch each sleeve to the body along the armhole: the ring takes the body's"
+        " bones at its height, handing over to the arm across this many metres (0 = off)."
+        " Default on: the owner chose it over an open sleeve top, sleeve caps and a"
+        " top-only chest band, the only variant with no gap at 45 and 90 degrees",
+    )
+    p.add_argument(
         "--shoulder-band",
         type=float,
         default=0.0,
@@ -1655,6 +1664,9 @@ def step_skin_rigid(ns) -> None:
                 tops[labels[i]] = max(tops.get(labels[i], -1e9), p.z)
                 inner[labels[i]] = min(inner.get(labels[i], 1e9), abs(p.x))
         banded = 0
+        ring_tree, ring_count, stitched = None, 0, 0
+        if ns.stitch_armhole > 0.0 and role == "jacket":
+            ring_tree, ring_count = _armhole_ring(obj, labels)
         for i, v in enumerate(obj.data.vertices):
             co = obj.matrix_world @ v.co
             lab = labels[i]
@@ -1667,6 +1679,19 @@ def step_skin_rigid(ns) -> None:
             if role in ("jacket", "tie", "buttons", "square"):
                 if lab.startswith("sleeve"):
                     w = hand_over(abs(co.x), elbow_x, "upperarm" + sd, "lowerarm" + sd)
+                    if ring_tree is not None:
+                        # stitched to the body along the armhole: a ring vertex takes the
+                        # body's bones at its height, handing over to the arm across
+                        # --stitch-armhole of distance from the ring
+                        _, _, d = ring_tree.find(co)
+                        t = min(max(d / ns.stitch_armhole, 0.0), 1.0)
+                        if t < 1.0:
+                            body_w = hand_over(co.z, chest_z, "spine", "chest")
+                            mixed = {k: x * t for k, x in w.items()}
+                            for k, x in body_w.items():
+                                mixed[k] = mixed.get(k, 0.0) + x * (1.0 - t)
+                            w = {k: x for k, x in mixed.items() if x > 0.0}
+                            stitched += 1
                     band = ns.shoulder_band
                     depth = tops.get(lab, co.z) - co.z
                     along = abs(co.x) - inner.get(lab, abs(co.x))
@@ -1708,6 +1733,9 @@ def step_skin_rigid(ns) -> None:
                     used.add(obj.vertex_groups[g.group].name)
         stray = used - RIGID_BONES[role]
         assert not stray, "%s carries weight on %s" % (role, sorted(stray))
+        if ring_tree is not None:
+            note += ", armhole ring %d sleeve verts, %d verts stitched within %.0f cm" % (
+                ring_count, stitched, ns.stitch_armhole * 100)
         if banded:
             note += ", %d sleeve verts in the %.0f+%.0f cm shoulder band" % (
                 banded, ns.shoulder_band * 100, ns.shoulder_band * 100)
@@ -1715,6 +1743,26 @@ def step_skin_rigid(ns) -> None:
         log("  %-7s   allowed %s; every other bone is zero (checked)" % (
             "", ", ".join(sorted(RIGID_BONES[role]))))
     arm.data.pose_position = "POSE"
+
+
+def _armhole_ring(obj, labels):
+    """The sleeve side of the armhole split: sleeve vertices sitting exactly on a body
+    vertex. Returns (a KD tree of their positions, how many)."""
+    from mathutils.kdtree import KDTree
+
+    pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    body = [i for i, lab in enumerate(labels) if lab == "body"]
+    btree = KDTree(len(body))
+    for n, i in enumerate(body):
+        btree.insert(pts[i], n)
+    btree.balance()
+    ring = [i for i, lab in enumerate(labels)
+            if lab.startswith("sleeve") and btree.find(pts[i])[2] < 1e-5]
+    tree = KDTree(max(len(ring), 1))
+    for n, i in enumerate(ring):
+        tree.insert(pts[i], n)
+    tree.balance()
+    return tree, len(ring)
 
 
 def step_skin(ns) -> None:
