@@ -3,6 +3,9 @@ extends SceneTree
 ## Checks the UV quality of the character's cloth meshes and draws their UV layouts to
 ## .dev/. Run it before and after touching the unwrap in Blender:
 ##   godot --headless --path . --script res://tools/uv_report.gd
+## Another glb and/or mesh list (the layouts then go to .dev/uv_<glb name>_<mesh>_<n>.png):
+##   godot --headless --path . --script res://tools/uv_report.gd --
+##       --glb=res://assets/characters/CHARTGEN2.glb --meshes=jacket,shirt,legs,tie
 ##
 ## The garment materials tile a fabric across the mesh UVs (see materials/cloth.gdshader),
 ## so what matters is NOT a tidily packed atlas:
@@ -20,21 +23,32 @@ const STRETCH_WARN := 1.5
 const IMG := 512
 const OUT_DIR := "res://.dev"
 
+var _src := SRC
+var _prefix := ""
+
 
 func _initialize() -> void:
+	var meshes: Array = CLOTH_MESHES
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--glb="):
+			_src = arg.trim_prefix("--glb=")
+			_prefix = _src.get_file().get_basename() + "_"
+		elif arg.begins_with("--meshes="):
+			meshes = Array(arg.trim_prefix("--meshes=").split(","))
 	if not DirAccess.dir_exists_absolute(OUT_DIR):
 		DirAccess.make_dir_recursive_absolute(OUT_DIR)
-	var scene := load(SRC) as PackedScene
+	var scene := load(_src) as PackedScene
 	if scene == null:
-		push_error("could not load " + SRC)
+		push_error("could not load " + _src)
 		quit(1)
 		return
+	print(_src)
 	var instance := scene.instantiate()
 	var worst := 1.0
-	for name in CLOTH_MESHES:
+	for name in meshes:
 		var found := instance.find_children(name, "MeshInstance3D", true, false)
 		if found.is_empty():
-			print("%-8s MISSING from %s" % [name, SRC])
+			print("%-8s MISSING from %s" % [name, _src])
 			continue
 		worst = maxf(worst, _report(name, (found[0] as MeshInstance3D).mesh))
 	print("\nworst stretch %.2fx (the guide is under %.2fx)" % [worst, STRETCH_WARN])
@@ -126,7 +140,7 @@ func _draw(name: String, surf: int, uv: PackedVector2Array, indices: PackedInt32
 	for t in indices.size() / 3:
 		for e in 3:
 			_line(img, uv[indices[t * 3 + e]], uv[indices[t * 3 + (e + 1) % 3]])
-	var path := "%s/uv_%s_%d.png" % [OUT_DIR, name, surf]
+	var path := "%s/uv_%s%s_%d.png" % [OUT_DIR, _prefix, name, surf]
 	if img.save_png(path) != OK:
 		push_error("save failed: " + path)
 

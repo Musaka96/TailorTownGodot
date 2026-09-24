@@ -1,0 +1,1814 @@
+"""Turn a Tripo-generated character into a drop-in replacement for the live character glb.
+
+Run headless, nothing here needs the Blender GUI:
+
+    blender.exe --background --factory-startup --python tools/blender/tripo_character.py -- \
+        [--src IMPORT/CHARREWORK/singlebreasted.blend] [--rig assets/characters/CHARTGEN1.glb] \
+        [--out assets/characters/CHARTGEN2.glb] [--stop-after STEP] [--report]
+
+INPUT
+-----
+A .blend holding the Tripo model: one mesh (or several), all-quad, already split by the
+owner into loose shells (jacket, trousers, head, hair, hands, shoe pieces, buttons, ...)
+with UV seams marked on the garments. Any transform (the FBX import leaves a 90 degree X
+rotation) is applied first. If an object in the .blend is already NAMED after a role
+(`jacket`, `Hair`, `legs`, ...), that name wins and the object is taken whole; everything
+else is split into loose shells and classified by geometry (z band, x position, size,
+mirror pairs, overlap), and the table of what went where is printed so it can be checked.
+
+OUTPUT
+------
+A glb skinned to the same KayKit `Rig_Medium` skeleton as the rig glb (--rig), with these
+mesh nodes, which entities/character/character_rig.gd looks up by name:
+
+    head  Hair  jacket  shirt  legs  arms  shoes  tie  buttons  square
+
+(`head` as a mesh name is also what makes Godot rename the head BONE to `head_2`, which
+the face code relies on, so it must stay.) The two shoe meshes of the old rig
+(`left leg` / `right leg`) are replaced by the single `shoes`.
+
+STEPS (each one a function; `--stop-after STEP` ends there and saves the working .blend)
+------------------------------------------------------------------------------------
+  classify  load, apply transforms, split shells, classify into roles, join per role
+  align     uniform scale to the rig's height, feet on the floor, centred, front = -Y;
+            prints landmarks against the rig and flags anything more than 10% off
+  uv        cloth meshes (jacket legs shirt tie): unwrap on the owner's seams, then per
+            island turn the grain (UV +V) to run up along the bone and scale to METRES
+            (1 UV unit = 1 m of cloth, what ClothMaterial's uv_scale expects); the rest
+            get a plain smart projection
+  decimate  poly budget per role (Un-Subdivide where the quad grid allows it, else
+            collapse), AFTER the unwrap so the seams are cut at full resolution
+  skin      weights transferred from the matching rig mesh, head and hair hard-bound to
+            the head bone; normalised, limited to 4, smoothed on the garments
+  export    glb with only the armature and the 10 meshes, then re-read and checked
+  --report  workbench renders, a UV layout per cloth mesh and summary.txt in --report-dir
+
+See tools/blender/fix_garment_uvs.py for why the garment UVs are in metres and for the
+unwraps that were tried on CHARTGEN1 and rejected. The difference here is that the owner
+marks real tailoring seams, so each island is one pattern piece (sleeve, front, back,
+trouser leg) and the grain can be set per piece.
+"""
+
+import argparse
+import heapq
+import json
+import math
+import os
+import struct
+import sys
+from pathlib import Path
+
+import bmesh
+import bpy
+from mathutils import Matrix, Vector
+
+ROOT = Path(__file__).resolve().parents[2]
+STEPS = ("classify", "align", "uv", "decimate", "skin", "export")
+ROLES = ("head", "Hair", "jacket", "shirt", "legs", "arms", "shoes", "tie", "buttons", "square")
+# Meshes that get a tiling fabric in the game, so they need metre UVs and a grain.
+CLOTH_ROLES = ("jacket", "legs", "shirt", "tie")
+GARMENT_ROLES = ("jacket", "legs", "shirt", "tie")  # weights smoothed on these
+DEFAULT_BUDGET = {
+    "head": 1800,
+    "Hair": 1800,
+    "jacket": 2300,
+    "legs": 800,
+    "shirt": 300,
+    "shoes": 800,
+    "arms": 500,
+    "tie": 160,
+    "buttons": 80,
+    "square": 60,
+}
+# Rig meshes each role's skin weights are copied from; None = hard bind to HEAD_BONE.
+WEIGHT_SOURCE = {
+    "jacket": ["jacket"],
+    "shirt": ["shirt"],
+    "legs": ["legs"],
+    "arms": ["arms"],
+    "shoes": ["left leg", "right leg"],
+    "tie": ["jacket"],
+    "buttons": ["jacket"],
+    "square": ["jacket"],
+    "head": None,
+    "Hair": None,
+}
+HEAD_BONE = "head"
+MATERIAL = {
+    "head": "skin",
+    "arms": "skin",
+    "Hair": "hair",
+    "jacket": "cloth",
+    "legs": "cloth",
+    "shirt": "cloth",
+    "tie": "cloth",
+    "square": "cloth",
+    "shoes": "shoe",
+    "buttons": "button",
+}
+REPORT_COLOUR = {
+    "head": (0.93, 0.76, 0.62),
+    "arms": (0.93, 0.76, 0.62),
+    "Hair": (0.45, 0.27, 0.18),
+    "jacket": (0.35, 0.45, 0.70),
+    "legs": (0.40, 0.35, 0.60),
+    "shirt": (0.92, 0.92, 0.88),
+    "tie": (0.75, 0.25, 0.25),
+    "square": (0.30, 0.75, 0.75),
+    "shoes": (0.25, 0.22, 0.20),
+    "buttons": (0.95, 0.80, 0.30),
+}
+RIG_PREFIX = "RIG_"
+STRETCH_LIMIT = 1.6  # same limit as fix_garment_uvs: past this a weave visibly smears
+LANDMARK_TOLERANCE = 0.10
+
+# Classification thresholds, all in units of total model height (feet at 0, top at 1).
+SHOE_TOP = 0.12  # shells entirely below this are shoe pieces
+HAND_REACH = 0.9  # a shell reaching this fraction of the widest x is a hand
+HEAD_REGION = 0.8  # big shells reaching above this are the head and the hair
+HEAD_ATTACH = 0.1  # small shells this far above the neck, inside the head box: ears etc.
+CENTRE_X = 0.02  # |x| below this counts as on the centre line
+BUTTON_SIZE = 0.025
+OVERLAP = 0.003
+
+_LOG = []
+
+
+def log(text="") -> None:
+    print(text)
+    _LOG.append(text)
+
+
+# ---------------------------------------------------------------------------------------
+# arguments
+
+
+def _arguments(argv):
+    args = argv[argv.index("--") + 1 :] if "--" in argv else []
+    p = argparse.ArgumentParser(prog="tripo_character.py")
+    p.add_argument("--src", default="IMPORT/CHARREWORK/singlebreasted.blend")
+    p.add_argument("--rig", default="assets/characters/CHARTGEN1.glb")
+    p.add_argument("--out", default="assets/characters/CHARTGEN2.glb")
+    p.add_argument("--stop-after", choices=STEPS, default="export")
+    p.add_argument("--report", action="store_true", help="render the result and its UVs")
+    p.add_argument("--report-dir", default="IMPORT/CHARREWORK/report")
+    p.add_argument("--height", type=float, default=0.0, help="target height; 0 = the rig's")
+    p.add_argument(
+        "--sleeve-x",
+        type=float,
+        default=0.25,
+        help="islands whose centroid |x| (m, after scaling) is past this follow the arm bone",
+    )
+    p.add_argument("--budget", default="", help="role=tris,... overrides, e.g. Hair=2500")
+    p.add_argument("--no-unsubdiv", action="store_true", help="always use collapse decimate")
+    p.add_argument(
+        "--auto-seams",
+        action="store_true",
+        help="FALLBACK for models without owner seams: add a trouser rise + inseams and a "
+        "jacket centre-back seam by shortest path where none is marked",
+    )
+    p.add_argument(
+        "--no-centre-cut",
+        action="store_true",
+        help="do not split wide garment pieces that still straddle x = 0 (fused fronts)",
+    )
+    p.add_argument(
+        "--shoulder-seams",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="cut the jacket from each armhole top to the neckline when the owner marked no "
+        "shoulder seam, so front and back are separate pieces with their own grain "
+        "(default on; without it the stripes form a V over the back)",
+    )
+    p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
+    p.add_argument("--no-front-check", action="store_true", help="never turn the model")
+    ns = p.parse_args(args)
+    for key in ("src", "rig", "out", "report_dir"):
+        path = Path(getattr(ns, key))
+        setattr(ns, key, path if path.is_absolute() else (ROOT / path).resolve())
+    ns.budgets = dict(DEFAULT_BUDGET)
+    for item in filter(None, ns.budget.split(",")):
+        k, v = item.split("=")
+        ns.budgets[k.strip()] = int(v)
+    return ns
+
+
+# ---------------------------------------------------------------------------------------
+# small helpers
+
+
+def _select_only(objs, active=None) -> None:
+    if bpy.context.object is not None and bpy.context.object.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+    for o in bpy.context.view_layer.objects:
+        o.select_set(False)
+    for o in objs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = active or (objs[0] if objs else None)
+
+
+def _world_verts(obj):
+    m = obj.matrix_world
+    return [m @ v.co for v in obj.data.vertices]
+
+
+def _bounds(points):
+    lo = Vector((min(p.x for p in points), min(p.y for p in points), min(p.z for p in points)))
+    hi = Vector((max(p.x for p in points), max(p.y for p in points), max(p.z for p in points)))
+    return lo, hi
+
+
+def _tris(obj) -> int:
+    return sum(len(p.vertices) - 2 for p in obj.data.polygons)
+
+
+def _role_objects():
+    return {r: bpy.data.objects[r] for r in ROLES if r in bpy.data.objects}
+
+
+def _rig_objects():
+    return {
+        o.name[len(RIG_PREFIX) :]: o
+        for o in bpy.data.objects
+        if o.type == "MESH" and o.name.startswith(RIG_PREFIX)
+    }
+
+
+def _armature():
+    return next(o for o in bpy.data.objects if o.type == "ARMATURE")
+
+
+def _bone_head(arm, name) -> Vector:
+    return arm.matrix_world @ arm.data.bones[name].head_local
+
+
+def _role_from_name(name):
+    base = name.split(".")[0].strip().lower()
+    for role in ROLES:
+        if base == role.lower():
+            return role
+    aliases = {"trousers": "legs", "pants": "legs", "hands": "arms", "hair": "Hair"}
+    return aliases.get(base)
+
+
+# ---------------------------------------------------------------------------------------
+# step 1: classify
+
+
+def step_classify(ns) -> None:
+    log("== classify: %s" % ns.src)
+    bpy.ops.wm.open_mainfile(filepath=str(ns.src))
+    for o in list(bpy.data.objects):
+        if o.type != "MESH":
+            bpy.data.objects.remove(o, do_unlink=True)
+    tripo = [o for o in bpy.data.objects if o.type == "MESH"]
+    for o in tripo:
+        log("  source object %-40s rot=%s scale=%s" % (
+            o.name, tuple(round(math.degrees(a), 1) for a in o.rotation_euler),
+            tuple(round(s, 3) for s in o.scale)))
+    _select_only(tripo)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    rig_objects = _import_rig(ns.rig)
+
+    named = {}
+    shells = []
+    for o in tripo:
+        role = _role_from_name(o.name)
+        if role is not None:
+            named.setdefault(role, []).append(o)
+            log("  object %s is named after role %s: taken whole" % (o.name, role))
+            continue
+        _select_only([o])
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.mesh.separate(type="LOOSE")
+        bpy.ops.object.mode_set(mode="OBJECT")
+    for o in bpy.data.objects:
+        if o.type == "MESH" and o not in rig_objects:
+            if not any(o in objs for objs in named.values()):
+                shells.append(o)
+    roles = _classify(shells, named)
+    for role in ROLES:
+        objs = roles.get(role, [])
+        if not objs:
+            log("  WARNING: nothing classified as %s" % role)
+            continue
+        _select_only(objs)
+        if len(objs) > 1:
+            bpy.ops.object.join()
+        obj = bpy.context.view_layer.objects.active
+        obj.name = role
+        obj.data.name = role
+        with bpy.context.temp_override(object=obj, active_object=obj):
+            if obj.data.has_custom_normals:
+                bpy.ops.mesh.customdata_custom_splitnormals_clear()
+        for poly in obj.data.polygons:
+            poly.use_smooth = True
+    leftovers = [o for o in bpy.data.objects if o.type == "MESH"
+                 and o.name not in ROLES and o not in rig_objects]
+    for o in leftovers:
+        bpy.data.objects.remove(o, do_unlink=True)
+
+
+def _import_rig(path) -> set:
+    """Import the target rig next to the model; its meshes are renamed RIG_<name> (they are
+    the weight sources and the landmark reference). Returns every object it brought in."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(path))
+    added = set(bpy.data.objects) - before
+    for o in added:
+        if o.type == "MESH" and o.parent is not None and o.parent.type == "ARMATURE":
+            o.name = RIG_PREFIX + o.name
+            o.data.name = o.name
+    arm = _armature()
+    log("  rig %s: armature %s, %d bones, meshes %s" % (
+        path.name, arm.name, len(arm.data.bones),
+        ", ".join(sorted(n for n in _rig_objects()))))
+    return added
+
+
+def _shell_info(i, obj):
+    me = obj.data
+    pts = _world_verts(obj)
+    lo, hi = _bounds(pts)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    open_edges = sum(1 for e in bm.edges if e.is_boundary)
+    seams = sum(1 for e in bm.edges if e.seam)
+    bm.free()
+    return {
+        "i": i,
+        "obj": obj,
+        "nv": len(me.vertices),
+        "nf": len(me.polygons),
+        "open": open_edges,
+        "seams": seams,
+        "lo": lo,
+        "hi": hi,
+        "c": sum(pts, Vector()) / len(pts),
+    }
+
+
+def _classify(shells, named):
+    """Sort loose shells into roles by geometry. Returns {role: [objects]}."""
+    infos = [_shell_info(i, o) for i, o in enumerate(sorted(shells, key=lambda o: -len(o.data.vertices)))]
+    if not infos:
+        return {r: list(v) for r, v in named.items()}
+    lo_all, hi_all = _bounds([s["lo"] for s in infos] + [s["hi"] for s in infos])
+    height = hi_all.z - lo_all.z
+    xc = (lo_all.x + hi_all.x) * 0.5
+    yc = (lo_all.y + hi_all.y) * 0.5
+
+    def n(v):  # normalised: feet at 0, top at 1, centred in x/y
+        return Vector(((v.x - xc) / height, (v.y - yc) / height, (v.z - lo_all.z) / height))
+
+    for s in infos:
+        s["nlo"], s["nhi"], s["nc"] = n(s["lo"]), n(s["hi"]), n(s["c"])
+        s["dims"] = s["nhi"] - s["nlo"]
+        s["role"], s["why"] = None, ""
+    maxabs = max(max(abs(s["nlo"].x), abs(s["nhi"].x)) for s in infos)
+    for s in infos:
+        s["pair"] = next(
+            (t["i"] for t in infos if t is not s
+             and abs(t["nc"].x + s["nc"].x) < 0.01 and abs(t["nc"].z - s["nc"].z) < 0.01
+             and abs(t["nc"].y - s["nc"].y) < 0.02
+             and 0.7 < t["nv"] / max(s["nv"], 1) < 1.43), None)
+
+    def free():
+        return [s for s in infos if s["role"] is None]
+
+    def assign(s, role, why):
+        s["role"], s["why"] = role, why
+
+    max_nf = max(s["nf"] for s in infos)
+    for s in free():
+        if s["nhi"].z < SHOE_TOP:
+            assign(s, "shoes", "below %.2f H" % SHOE_TOP)
+        elif max(abs(s["nlo"].x), abs(s["nhi"].x)) >= HAND_REACH * maxabs:
+            assign(s, "arms", "reaches the arm tips")
+    big = [s for s in free() if s["nhi"].z > HEAD_REGION and s["nf"] >= 0.05 * max_nf]
+    head = hair = None
+    if "head" not in named and big:
+        head = min(big, key=lambda s: s["nlo"].z)
+        assign(head, "head", "big, top region, reaches lowest (neck)")
+    if "Hair" not in named:
+        rest = [s for s in big if s is not head]
+        if rest:
+            hair = max(rest, key=lambda s: s["nhi"].z)
+            assign(hair, "Hair", "big, top region, highest top")
+    boxes = [s for s in (head, hair) if s is not None]
+    if boxes:
+        blo, bhi = _bounds([s["nlo"] for s in boxes] + [s["nhi"] for s in boxes])
+        neck = min(s["nlo"].z for s in boxes)
+        for s in free():
+            inside = all(blo[k] - 0.01 <= s["nc"][k] <= bhi[k] + 0.01 for k in range(3))
+            if inside and s["nc"].z > neck + HEAD_ATTACH:
+                assign(s, "head", "inside the head box (ear etc.)")
+
+    width_all = 2.0 * maxabs
+    wide = [s for s in free() if s["dims"].x > 0.4 * width_all]
+    jacket = max(wide, key=lambda s: s["nf"]) if wide and "jacket" not in named else None
+    if jacket is not None:
+        assign(jacket, "jacket", "largest wide torso shell")
+    hem = jacket["nlo"].z if jacket else 0.3
+    top = jacket["nhi"].z if jacket else 0.6
+    low = [s for s in free() if s["nc"].z < hem + 0.05 and s["dims"].z > 0.1]
+    if low and "legs" not in named:
+        assign(max(low, key=lambda s: s["nf"]), "legs", "largest shell below the jacket hem")
+    sleeve_x = 0.5 * maxabs
+    for s in free():
+        if abs(s["nc"].x) > sleeve_x:
+            assign(s, "jacket", "sleeve zone (cuff ring / cuff button)")
+    collar = [s for s in free() if abs(s["nc"].x) < CENTRE_X and s["nhi"].z > top - 0.05]
+    if collar and "shirt" not in named:
+        assign(max(collar, key=lambda s: s["nf"]), "shirt", "largest centred shell at the collar")
+    for s in free():
+        d = s["dims"]
+        if abs(s["nc"].x) < CENTRE_X and d.z > 0.05 and d.z > 3.0 * max(d.x, 1e-6):
+            assign(s, "tie", "centred, long and narrow (blade)")
+    grew = True
+    while grew:
+        grew = False
+        ties = [s for s in infos if s["role"] == "tie"]
+        for s in free():
+            if abs(s["nc"].x) < CENTRE_X and any(_overlap(s, t, OVERLAP) for t in ties):
+                assign(s, "tie", "centred, touches the tie (knot)")
+                grew = True
+    for s in free():
+        d = s["dims"]
+        size = max(d.x, d.z)
+        aspect = size / max(min(d.x, d.z), 1e-6)
+        if size < BUTTON_SIZE and aspect < 1.5 and s["nc"].y < 0.0:
+            assign(s, "buttons", "small, round, on the front")
+    chest = (hem + top) * 0.5
+    pocket = [s for s in free() if s["pair"] is None and abs(s["nc"].x) > CENTRE_X
+              and s["nc"].z > chest]
+    if len(pocket) >= 2:
+        sq = min(pocket, key=lambda s: s["dims"].x)
+        assign(sq, "square", "unpaired chest piece, the narrowest (the welt is wider)")
+    for s in free():
+        assign(s, "jacket", "torso default (flap / welt / trim)")
+
+    log("  %d shells, height %.3f, widest |x| %.3f (normalised to H=1 below)" % (
+        len(infos), height, maxabs))
+    log("  %3s %6s %6s %5s %4s %-21s %-21s %-21s %-8s %s" % (
+        "#", "verts", "faces", "open", "pair", "x", "y", "z", "role", "why"))
+    for s in infos:
+        lo, hi = s["nlo"], s["nhi"]
+        log("  %3d %6d %6d %5d %4s [%6.3f,%6.3f]     [%6.3f,%6.3f]     [%6.3f,%6.3f]     %-8s %s" % (
+            s["i"], s["nv"], s["nf"], s["open"], "-" if s["pair"] is None else s["pair"],
+            lo.x, hi.x, lo.y, hi.y, lo.z, hi.z, s["role"], s["why"]))
+    out = {r: list(v) for r, v in named.items()}
+    for s in infos:
+        out.setdefault(s["role"], []).append(s["obj"])
+    return out
+
+
+def _overlap(a, b, margin) -> bool:
+    return all(a["nlo"][k] - margin <= b["nhi"][k] and b["nlo"][k] - margin <= a["nhi"][k]
+               for k in range(3))
+
+
+# ---------------------------------------------------------------------------------------
+# step 2: align
+
+
+def step_align(ns) -> None:
+    log("\n== align")
+    objs = _role_objects()
+    rig = _rig_objects()
+    pts = [p for o in objs.values() for p in _world_verts(o)]
+    lo, hi = _bounds(pts)
+    target = ns.height
+    if target <= 0.0:
+        rpts = [p for o in rig.values() for p in _world_verts(o)]
+        target = max(p.z for p in rpts) - min(p.z for p in rpts)
+    scale = target / (hi.z - lo.z)
+    turn = _front_turn(ns, objs, rig)
+    torso = objs.get("jacket") or objs.get("legs")
+    tlo, thi = _bounds(_world_verts(torso)) if torso else (lo, hi)
+    centre = Vector(((lo.x + hi.x) * 0.5, (tlo.y + thi.y) * 0.5, lo.z))
+    m = (
+        Matrix.Rotation(math.pi if turn else 0.0, 4, "Z")
+        @ Matrix.Diagonal((scale, scale, scale, 1.0))
+        @ Matrix.Translation(-centre)
+    )
+    for o in objs.values():
+        o.data.transform(m)
+        o.matrix_world = Matrix.Identity(4)
+        o.data.update()
+    log("  height %.3f -> %.3f (x%.4f), centred on x %.4f / torso y %.4f, feet at z 0%s" % (
+        hi.z - lo.z, target, scale, centre.x, centre.y, ", turned 180" if turn else ""))
+    _landmarks(objs, rig)
+
+
+def _front_turn(ns, objs, rig) -> bool:
+    if ns.flip_front:
+        return True
+    if ns.no_front_check:
+        return False
+
+    def front_sign(meshes):
+        body = meshes.get("jacket") or meshes.get("legs")
+        marks = [meshes[k] for k in ("buttons", "tie") if k in meshes]
+        if body is None or not marks:
+            return 0.0
+        by = sum(p.y for p in _world_verts(body)) / len(body.data.vertices)
+        pts = [p for o in marks for p in _world_verts(o)]
+        return math.copysign(1.0, sum(p.y for p in pts) / len(pts) - by)
+
+    ours, theirs = front_sign(objs), front_sign(rig)
+    log("  front: model faces %s, rig faces %s" % (
+        {1.0: "+Y", -1.0: "-Y", 0.0: "?"}[ours], {1.0: "+Y", -1.0: "-Y", 0.0: "?"}[theirs]))
+    return ours != 0.0 and theirs != 0.0 and ours != theirs
+
+
+def _measure(meshes, arm, seam_obj):
+    def pts(*names):
+        return [p for n in names if n in meshes for p in _world_verts(meshes[n])]
+
+    out = {}
+    allp = pts(*meshes.keys())
+    out["total height"] = max(p.z for p in allp)
+    arms = pts("arms")
+    if arms:
+        out["hand centre z (sleeve axis)"] = sum(p.z for p in arms) / len(arms)
+        out["hand tip |x|"] = (max(p.x for p in arms) - min(p.x for p in arms)) * 0.5
+    if seam_obj is not None:
+        me = seam_obj.data
+        axis = out.get("hand centre z (sleeve axis)", 0.0)
+        xs = sorted({abs(me.vertices[v].co.x) for e in me.edges if e.use_seam
+                     for v in e.vertices if me.vertices[v].co.z >= axis})
+        if xs:
+            out["armhole |x|"] = xs[len(xs) // 2]
+    else:
+        out["armhole |x|"] = abs(_bone_head(arm, "upperarm.l").x)
+    for key, names, fn in (
+        ("jacket hem z", ("jacket",), min),
+        ("jacket width |x|", ("jacket",), None),
+        ("trouser hem z", ("legs",), min),
+        ("trouser top z", ("legs",), max),
+        ("head bottom z", ("head",), min),
+        ("head top z", ("head",), max),
+        ("hair top z", ("Hair",), max),
+        ("shoe top z", ("shoes", "left leg", "right leg"), max),
+    ):
+        p = pts(*names)
+        if not p:
+            continue
+        if fn is None:
+            out[key] = (max(q.x for q in p) - min(q.x for q in p)) * 0.5
+        else:
+            out[key] = fn(q.z for q in p)
+    return out
+
+
+def _landmarks(objs, rig) -> None:
+    arm = _armature()
+    ours = _measure(objs, arm, objs.get("jacket"))
+    theirs = _measure(rig, arm, None)
+    log("  arm bone height %.3f, upperarm |x| %.3f, hand bone |x| %.3f, hips %.3f, head bone %.3f"
+        % (_bone_head(arm, "upperarm.l").z, abs(_bone_head(arm, "upperarm.l").x),
+           abs(_bone_head(arm, "hand.l").x), _bone_head(arm, "hips").z,
+           _bone_head(arm, "head").z))
+    log("  %-28s %8s %8s %8s" % ("landmark", "model", "rig", "off"))
+    for key, ref in theirs.items():
+        if key not in ours:
+            continue
+        off = (ours[key] - ref) / ref if abs(ref) > 1e-6 else 0.0
+        flag = "  <-- more than %d%% off" % (LANDMARK_TOLERANCE * 100) if abs(off) > LANDMARK_TOLERANCE else ""
+        log("  %-28s %8.3f %8.3f %+7.1f%%%s" % (key, ours[key], ref, off * 100, flag))
+    log("  (rig armhole = the upperarm bone; the model's = median |x| of seam verts above the"
+        " sleeve axis)")
+
+
+# ---------------------------------------------------------------------------------------
+# step 4: uv (runs before the decimation)
+
+
+def step_uv(ns) -> None:
+    log("\n== uv")
+    objs = _role_objects()
+    arm = _armature()
+    for role in CLOTH_ROLES:
+        if role in objs:
+            _unwrap_cloth(ns, objs[role], arm)
+    for role, obj in objs.items():
+        if role not in CLOTH_ROLES:
+            _smart_project(obj)
+    log("  smart-projected (0..1): %s" % ", ".join(r for r in objs if r not in CLOTH_ROLES))
+
+
+def _unwrap_cloth(ns, obj, arm) -> None:
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    owner = sum(1 for e in bm.edges if e.seam)
+    added = 0
+    if ns.auto_seams:
+        added += _auto_seams(bm, obj.name)
+    if ns.shoulder_seams and obj.name == "jacket":
+        added += _shoulder_seams(bm, obj.name)
+    added += _cut_to_disks(bm, obj.name, ns.sleeve_x, not ns.no_centre_cut)
+    bm.to_mesh(obj.data)
+    bm.free()
+    log("  %-7s seams: %d marked by the owner, %d added by script" % (obj.name, owner, added))
+    if not obj.data.uv_layers:
+        obj.data.uv_layers.new(name="UVMap")
+    _select_only([obj])
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.unwrap(method="ANGLE_BASED", fill_holes=True, correct_aspect=True, margin=0.0)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    _orient_islands(obj, arm, ns.sleeve_x)
+    obj["stretch_full"] = _stretch(obj, "full res")
+
+
+def _islands(bm):
+    """Faces grouped into pieces of cloth: joined across every edge that is not a seam."""
+    bm.faces.ensure_lookup_table()
+    parent = list(range(len(bm.faces)))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for e in bm.edges:
+        if e.seam or len(e.link_faces) != 2:
+            continue
+        a, b = find(e.link_faces[0].index), find(e.link_faces[1].index)
+        if a != b:
+            parent[a] = b
+    groups = {}
+    for f in bm.faces:
+        groups.setdefault(find(f.index), []).append(f)
+    return list(groups.values())
+
+
+def _cut_to_disks(bm, name, sleeve_x, centre_cut=True) -> int:
+    """Make every piece flattenable, finishing cuts the seams leave open.
+
+    Non-manifold edges (three faces, where Tripo fused two layers of cloth) become seams.
+    Then each piece (faces joined across non-seam edges) is checked on a copy split along
+    its seams: a piece with more than one boundary loop (a ring, a front fused at the
+    button, a centre-back seam that stops at a hole above the vent) gets its loops joined
+    by shortest paths, a closed piece gets a slit. A piece straddling the centre line is
+    cut along it (x = 0); sleeve pieces are cut underneath; others at the back.
+    Returns the number of seam edges added.
+    """
+    added = 0
+    for e in bm.edges:
+        if len(e.link_faces) > 2 and not e.seam:
+            e.seam = True
+            added += 1
+    if added:
+        log("    %-7s %d non-manifold edges marked as seams" % (name, added))
+    work = bm.copy()
+    orig = work.verts.layers.int.new("orig")
+    for v, ov in zip(work.verts, bm.verts):
+        v[orig] = ov.index
+    bmesh.ops.split_edges(work, edges=[e for e in work.edges if e.seam])
+    bm.verts.ensure_lookup_table()
+    work.verts.ensure_lookup_table()
+    for faces in _islands(work):
+        fset = set(faces)
+        verts = {v for f in faces for v in f.verts}
+        edges = {e for f in faces for e in f.edges}
+        loops = _boundary_loops([e for e in edges if e.is_boundary])
+        chi = len(verts) - len(edges) + len(faces)
+        if len(loops) == 1 and chi == 1:
+            continue
+        centre = sum((v.co for v in verts), Vector()) / len(verts)
+        lo, hi = _bounds([v.co for v in verts])
+        xpenalty = 0.0
+        if lo.x < -0.02 and hi.x > 0.02 and abs(centre.x) < sleeve_x:
+            prefer, xpenalty, where = Vector(), 60.0, "along the centre line"
+        elif abs(centre.x) > sleeve_x:
+            prefer, where = Vector((0, 0, -1)), "underneath"
+        else:
+            prefer, where = Vector((0, 1, 0)), "at the back"
+        paths = []
+        if not loops:
+            a = min(verts, key=lambda v: v.co.z)
+            b = max(verts, key=lambda v: v.co.z)
+            paths.append(_dijkstra(fset, {a}, {b}, centre, prefer, xpenalty))
+            what = "closed piece: slit %s" % where
+        else:
+            joined = set(loops[0])
+            rest = [set(lp) for lp in loops[1:]]
+            while rest:
+                path = _dijkstra(fset, joined, set().union(*rest), centre, prefer, xpenalty)
+                if not path:
+                    break
+                hit = next(lp for lp in rest if path[-1] in lp)
+                rest.remove(hit)
+                joined |= hit | set(path)
+                paths.append(path)
+            what = "%d boundary loops joined %s (%s edges)" % (
+                len(loops), where, "+".join(str(len(p) - 1) for p in paths))
+            if chi != 2 - len(loops):
+                what += " - Euler %d does not match %d loops (a handle or a pinched vertex)" % (
+                    chi, len(loops))
+            if len(loops) == 1:
+                what = "one boundary loop but Euler %d: a handle or a pinched vertex, left as is" % chi
+        for path in paths:
+            for a, b in zip(path, path[1:]):
+                e = bm.edges.get((bm.verts[a[orig]], bm.verts[b[orig]]))
+                if e is not None and not e.seam:
+                    e.seam = True
+                    added += 1
+        log("    %-7s piece of %4d faces at (%+.2f, %+.2f, %.2f): %s" % (
+            name, len(faces), centre.x, centre.y, centre.z, what))
+    work.free()
+    if centre_cut:
+        added += _centre_cuts(bm, name, sleeve_x)
+    return added
+
+
+def _centre_cuts(bm, name, sleeve_x) -> int:
+    """Split wide pieces that still straddle the centre line (x = 0) where a short bridge
+    of cloth joins the two halves, e.g. jacket fronts fused at the button: cut the
+    shortest path along x = 0 between two places where the piece's edge meets the centre
+    line. Narrow pieces (a tie) are left whole. Repeats until nothing is left to cut."""
+    added = 0
+    for _ in range(6):
+        work = bm.copy()
+        orig = work.verts.layers.int.new("orig")
+        for v, ov in zip(work.verts, bm.verts):
+            v[orig] = ov.index
+        bmesh.ops.split_edges(work, edges=[e for e in work.edges if e.seam])
+        bm.verts.ensure_lookup_table()
+        best = None
+        for faces in _islands(work):
+            verts = {v for f in faces for v in f.verts}
+            lo, hi = _bounds([v.co for v in verts])
+            centre = sum((v.co for v in verts), Vector()) / len(verts)
+            if hi.x - lo.x < 0.15 or abs(centre.x) > sleeve_x:
+                continue
+            sides = [f.calc_center_median().x for f in faces]
+            if min(sides) > -0.03 or max(sides) < 0.03:
+                continue
+            fset = set(faces)
+            path = _centre_bridge(fset, verts, 0.3 * (hi.z - lo.z))
+            if path and (best is None or len(path) < len(best[0])):
+                best = (path, len(faces))
+        if best is not None:
+            path, size = best
+            for a, b in zip(path, path[1:]):
+                e = bm.edges.get((bm.verts[a[orig]], bm.verts[b[orig]]))
+                if e is not None and not e.seam:
+                    e.seam = True
+                    added += 1
+            mid = path[len(path) // 2].co
+            log("    %-7s piece of %4d faces cut along the centre line at (%+.2f, %+.2f, %.2f),"
+                " %d edges" % (name, size, mid.x, mid.y, mid.z, len(path) - 1))
+        work.free()
+        if best is None:
+            break
+    return added
+
+
+def _centre_bridge(fset, verts, max_len):
+    """Shortest interior path hugging x = 0 between two separate stretches of the piece's
+    edge that lie on the centre line, or None."""
+    near = {v for v in verts if v.is_boundary and abs(v.co.x) < 0.012}
+    parent = {v: v for v in near}
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for v in near:
+        for e in v.link_edges:
+            w = e.other_vert(v)
+            if e.is_boundary and w in near:
+                parent[find(v)] = find(w)
+    clusters = {}
+    for v in near:
+        clusters.setdefault(find(v), set()).add(v)
+    clusters = list(clusters.values())
+    best = None
+    for i, src in enumerate(clusters):
+        others = set().union(*(c for j, c in enumerate(clusters) if j != i)) if len(clusters) > 1 else set()
+        if not others:
+            continue
+        dist = {v: 0.0 for v in src}
+        back = {}
+        heap = [(0.0, id(v), v) for v in src]
+        heapq.heapify(heap)
+        done = set()
+        while heap:
+            d, _, v = heapq.heappop(heap)
+            if v in done or d > max_len:
+                continue
+            done.add(v)
+            if v in others:
+                path = [v]
+                while path[-1] in back:
+                    path.append(back[path[-1]])
+                if best is None or d < best[0]:
+                    best = (d, path[::-1])
+                break
+            for e in v.link_edges:
+                if e.is_boundary or not all(f in fset for f in e.link_faces):
+                    continue
+                w = e.other_vert(v)
+                if abs(w.co.x) > 0.03:
+                    continue
+                nd = d + e.calc_length() * (1.0 + 40.0 * abs(w.co.x))
+                if nd < dist.get(w, math.inf):
+                    dist[w] = nd
+                    back[w] = v
+                    heapq.heappush(heap, (nd, id(w), w))
+    return best[1] if best else None
+
+
+def _boundary_loops(edges):
+    parent = {}
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for e in edges:
+        for v in e.verts:
+            parent.setdefault(v, v)
+        a, b = find(e.verts[0]), find(e.verts[1])
+        if a != b:
+            parent[a] = b
+    loops = {}
+    for v in parent:
+        loops.setdefault(find(v), []).append(v)
+    return sorted(loops.values(), key=len, reverse=True)
+
+
+def _dijkstra(fset, sources, targets, centre, prefer, xpenalty=0.0):
+    """Shortest edge path (as a vertex list) from any source to any target, walking only
+    edges of the given faces, cheaper on the `prefer` side of `centre`."""
+    dist = {v: 0.0 for v in sources}
+    back = {}
+    heap = [(0.0, id(v), v) for v in sources]
+    heapq.heapify(heap)
+    done = set()
+    while heap:
+        d, _, v = heapq.heappop(heap)
+        if v in done:
+            continue
+        done.add(v)
+        if v in targets and v not in sources:
+            path = [v]
+            while path[-1] in back:
+                path.append(back[path[-1]])
+            return path[::-1]
+        for e in v.link_edges:
+            if not any(f in fset for f in e.link_faces):
+                continue
+            w = e.other_vert(v)
+            mid = (v.co + w.co) * 0.5
+            side = (mid - centre).normalized().dot(prefer)
+            cost = e.calc_length() * (1.0 + 1.5 * (1.0 - side) + xpenalty * abs(mid.x))
+            nd = d + cost
+            if nd < dist.get(w, math.inf):
+                dist[w] = nd
+                back[w] = v
+                heapq.heappush(heap, (nd, id(w), w))
+    return []
+
+
+def _auto_seams(bm, name) -> int:
+    """Fallback for a model without owner seams: a trouser rise and inseams, a jacket
+    centre back, each as a shortest path hugging the centre line."""
+    bm.verts.ensure_lookup_table()
+    faces = set(bm.faces)
+    lo, hi = _bounds([v.co for v in bm.verts])
+    eps = 0.02 * (hi.z - lo.z)
+    centre_line = [v for v in bm.verts if abs(v.co.x) < eps]
+    marked = []
+    if name == "legs" and not any(e.seam for e in bm.edges):
+        front = [v for v in centre_line if v.co.y < 0]
+        back = [v for v in centre_line if v.co.y > 0]
+        crotch = min(centre_line, key=lambda v: v.co.z)
+        fw, bw = max(front, key=lambda v: v.co.z), max(back, key=lambda v: v.co.z)
+        c = Vector((0, 0, crotch.co.z))
+        marked += _dijkstra(faces, {fw}, {crotch}, c, Vector((0, 0, 0)), 50.0)
+        marked += _dijkstra(faces, {crotch}, {bw}, c, Vector((0, 0, 0)), 50.0)
+        hem = [v for v in bm.verts if v.is_boundary and v.co.z < lo.z + eps]
+        for side in (-1, 1):
+            leg = [v for v in hem if v.co.x * side > 0]
+            if leg:
+                inner = min(leg, key=lambda v: abs(v.co.x))
+                marked += _dijkstra(faces, {crotch}, {inner}, c, Vector((0, 0, 0)))
+    elif name == "jacket" and not any(e.seam and abs(e.verts[0].co.x) < eps and
+                                      e.verts[0].co.y > 0 for e in bm.edges):
+        back = [v for v in centre_line if v.co.y > 0]
+        if back:
+            nape = max(back, key=lambda v: v.co.z)
+            hem = min(back, key=lambda v: v.co.z)
+            marked += _dijkstra(faces, {nape}, {hem}, Vector(), Vector((0, 0, 0)), 50.0)
+    n = 0
+    for path in [marked]:
+        for a, b in zip(path, path[1:]):
+            e = bm.edges.get((a, b))
+            if e is not None and not e.seam:
+                e.seam = True
+                n += 1
+    if n:
+        log("    %-7s auto seams: %d edges" % (name, n))
+    return n
+
+
+def _shoulder_seams(bm, name) -> int:
+    """Cut each shoulder from the top of the armhole seam to the neckline, so the front
+    and the back become separate pieces. Without it a piece that folds over the shoulder
+    carries two grains (front up and back up are not parallel once flattened), and no
+    single turn gets both right: the stripes lean into a V on the back."""
+    bm.verts.ensure_lookup_table()
+    seam_verts = {v for e in bm.edges if e.seam for v in e.verts}
+    parent = {v: v for v in seam_verts}
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for e in bm.edges:
+        if e.seam:
+            parent[find(e.verts[0])] = find(e.verts[1])
+    added = 0
+    for side in (-1.0, 1.0):
+        mine = [v for v in seam_verts if v.co.x * side > 0.05]
+        if not mine:
+            continue
+        top = max(mine, key=lambda v: v.co.z)
+        chain = find(top)
+        targets = {v for v in bm.verts
+                   if (v.is_boundary or (v in seam_verts and find(v) != chain))
+                   and abs(v.co.x) < abs(top.co.x) and v.co.z > top.co.z - 0.03}
+        dist = {top: 0.0}
+        back = {}
+        heap = [(0.0, 0, top)]
+        done = set()
+        end = None
+        while heap:
+            d, _, v = heapq.heappop(heap)
+            if v in done:
+                continue
+            done.add(v)
+            if v in targets:
+                end = v
+                break
+            for e in v.link_edges:
+                w = e.other_vert(v)
+                if e.seam or abs(w.co.x) > abs(top.co.x) + 0.01:
+                    continue
+                up = max(0.0, w.normal.z)
+                nd = d + e.calc_length() * (1.0 + 4.0 * (1.0 - up))
+                if nd < dist.get(w, math.inf):
+                    dist[w] = nd
+                    back[w] = v
+                    heapq.heappush(heap, (nd, id(w), w))
+        if end is None:
+            log("    %-7s shoulder %s: no neckline found from (%+.2f, %+.2f, %.2f)" % (
+                name, "+x" if side > 0 else "-x", top.co.x, top.co.y, top.co.z))
+            continue
+        path = [end]
+        while path[-1] in back:
+            path.append(back[path[-1]])
+        n = 0
+        for a, b in zip(path, path[1:]):
+            e = bm.edges.get((a, b))
+            if e is not None and not e.seam:
+                e.seam = True
+                n += 1
+        added += n
+        log("    %-7s shoulder %s: %d edges from (%+.2f, %+.2f, %.2f) to (%+.2f, %+.2f, %.2f)" % (
+            name, "+x" if side > 0 else "-x", n, top.co.x, top.co.y, top.co.z,
+            end.co.x, end.co.y, end.co.z))
+    return added
+
+
+def _orient_islands(obj, arm, sleeve_x, quiet=False) -> None:
+    """Per piece: turn it so the grain (UV V) runs along its bone, then scale it to
+    metres. Pieces past sleeve_x follow their arm (V up towards the shoulder), the rest the
+    vertical (V up). The grain is a direction without a sign, so a piece that folds over
+    the shoulder (front and back in one) is averaged on doubled angles, and then turned so
+    most of its area has V pointing up. A mirrored piece is flipped back first. When the
+    angle-based flattening leaves a piece badly stretched or with a wandering grain, a
+    cylindrical projection around the piece's bone axis is tried and kept if it scores
+    better. Finally the pieces are laid side by side (no rotation) so the layout reads;
+    overlap would not matter to a tiling fabric either way."""
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    uv = bm.loops.layers.uv.active
+    arms = {}
+    for side in ("l", "r"):
+        shoulder = _bone_head(arm, "upperarm." + side)
+        hand = _bone_head(arm, "hand." + side)
+        arms[math.copysign(1.0, shoulder.x)] = (shoulder - hand).normalized()
+    rows = []
+    for faces in _islands(bm):
+        a3 = sum(f.calc_area() for f in faces)
+        if a3 <= 1e-12:
+            continue
+        centre = sum((f.calc_center_median() * f.calc_area() for f in faces), Vector()) / a3
+        if abs(centre.x) > sleeve_x:
+            axis = arms[math.copysign(1.0, centre.x)]
+            label = "arm %s" % ("+x" if centre.x > 0 else "-x")
+        else:
+            axis = Vector((0, 0, 1))
+            label = "vertical"
+        luvs = [l[uv] for f in faces for l in f.loops]
+        before = [x.uv.copy() for x in luvs]
+        mirrored = _flipped_share(faces, uv) > 0.5
+        if mirrored:
+            for x in luvs:
+                x.uv = Vector((-x.uv.x, x.uv.y))
+        turned = _align_grain(faces, uv, axis, a3)
+        abf = _piece_quality(faces, uv, axis)
+        method = "abf"
+        if abf[0] > 2.0 or abf[1] > 25.0:
+            keep = [x.uv.copy() for x in luvs]
+            _cylinder(faces, uv, axis, centre, a3)
+            cyl = _piece_quality(faces, uv, axis)
+            if cyl[0] * (1.0 + cyl[1] / 45.0) < abf[0] * (1.0 + abf[1] / 45.0):
+                method = "cylinder (abf was %.2fx, %.0f deg)" % abf
+                turned = 0.0
+            else:
+                for x, k in zip(luvs, keep):
+                    x.uv = k
+        stretch, spread = _piece_quality(faces, uv, axis)
+        del before
+        rows.append((faces, label, a3, centre, turned, stretch, spread, mirrored, method))
+    _shelf_pack(rows, uv)
+    bm.to_mesh(obj.data)
+    bm.free()
+    if quiet:
+        return
+    log("  %-7s %d islands after unwrap (pieces under 0.005 m2 not listed):" % (obj.name, len(rows)))
+    small = 0
+    for faces, label, a3, centre, angle, stretch, spread, mirrored, method in sorted(
+            rows, key=lambda r: -r[2]):
+        if a3 < 0.005:
+            small += 1
+            continue
+        log("    %4d faces %6.3f m2 at (%+.2f, %+.2f, %.2f) grain %-8s turned %+7.1f deg |"
+            " stretch %.2fx, grain off by %4.1f deg avg | %s%s" % (
+                len(faces), a3, centre.x, centre.y, centre.z, label, angle, stretch, spread,
+                method, ", was mirrored" if mirrored else ""))
+    if small:
+        log("    + %d small pieces (buttons, trims)" % small)
+
+
+def _fan(face):
+    loops = list(face.loops)
+    for k in range(1, len(loops) - 1):
+        yield loops[0], loops[k], loops[k + 1]
+
+
+def _grads(faces, uv, axis):
+    """Per triangle: (UV area, signed det, UV gradient of the height along `axis`)."""
+    for f in faces:
+        for t in _fan(f):
+            (p0, u0), (p1, u1), (p2, u2) = [(l.vert.co, l[uv].uv) for l in t]
+            d1, d2 = u1 - u0, u2 - u0
+            det = d1.x * d2.y - d1.y * d2.x
+            if abs(det) < 1e-14:
+                continue
+            f1, f2 = (p1 - p0).dot(axis), (p2 - p0).dot(axis)
+            grad = Vector(((f1 * d2.y - f2 * d1.y) / det, (d1.x * f2 - d2.x * f1) / det))
+            yield abs(det) * 0.5, det, grad, (p1 - p0).cross(p2 - p0).length * 0.5
+
+
+def _flipped_share(faces, uv) -> float:
+    total = flipped = 0.0
+    for area, det, _, _ in _grads(faces, uv, Vector((0, 0, 1))):
+        total += area
+        if det < 0:
+            flipped += area
+    return flipped / total if total else 0.0
+
+
+def _align_grain(faces, uv, axis, a3) -> float:
+    """Rotate + scale one piece in place; returns the turn in degrees."""
+    c2 = s2 = 0.0
+    a2 = 0.0
+    for area, _, g, _ in _grads(faces, uv, axis):
+        n2 = g.length_squared
+        if n2 < 1e-16:
+            continue
+        # doubled angle: a direction and its opposite vote the same way
+        c2 += area * (g.x * g.x - g.y * g.y) / n2
+        s2 += area * (2.0 * g.x * g.y) / n2
+        a2 += area
+    if a2 <= 0.0:
+        return 0.0
+    phi = 0.5 * math.atan2(s2, c2)
+    angle = math.pi * 0.5 - phi
+    luvs = [l[uv] for f in faces for l in f.loops]
+    uc = sum((x.uv for x in luvs), Vector((0.0, 0.0))) / len(luvs)
+    rot = Matrix.Rotation(angle, 2)
+    for x in luvs:
+        x.uv = rot @ (x.uv - uc)
+    up = sum(g.y * area for area, _, g, _ in _grads(faces, uv, axis))
+    if up < 0.0:  # most of the piece has "up the bone" pointing down V: turn it round
+        for x in luvs:
+            x.uv = -x.uv
+        angle += math.pi
+    _to_metres(faces, uv, a3)
+    return (math.degrees(angle) + 180.0) % 360.0 - 180.0
+
+
+def _to_metres(faces, uv, a3) -> None:
+    a2 = sum(area for area, _, _, _ in _grads(faces, uv, Vector((0, 0, 1))))
+    if a2 <= 0.0:
+        return
+    k = math.sqrt(a3 / a2)
+    for f in faces:
+        for l in f.loops:
+            l[uv].uv = l[uv].uv * k
+
+
+def _piece_quality(faces, uv, axis):
+    """(texel-density spread 95th/5th percentile, area-weighted mean angle in degrees
+    between the local grain and the V axis, ignoring its sign)."""
+    density = []
+    off = weight = 0.0
+    for area, _, g, a3 in _grads(faces, uv, axis):
+        if a3 > 1e-12:
+            density.append(math.sqrt(area / a3))
+        if g.length_squared < 1e-16:
+            continue
+        a = abs(math.degrees(math.atan2(g.x, g.y)))
+        off += min(a, 180.0 - a) * area
+        weight += area
+    if not density:
+        return 99.0, 90.0
+    density.sort()
+    stretch = density[int(len(density) * 0.95)] / max(density[int(len(density) * 0.05)], 1e-9)
+    return stretch, (off / weight if weight else 90.0)
+
+
+def _cylinder(faces, uv, axis, centre, a3) -> None:
+    """Project one piece onto a cylinder around `axis` through its centre: U = arc length
+    round the axis, V = height along it (so the grain is exact). The cut falls at the back
+    for the vertical axis and underneath for an arm."""
+    ref = Vector((0, -1, 0)) if abs(axis.z) > 0.7 else Vector((0, 0, 1))
+    e1 = (ref - axis * ref.dot(axis)).normalized()
+    e2 = axis.cross(e1)
+    verts = {v for f in faces for v in f.verts}
+    radius = sum(((v.co - centre) - axis * (v.co - centre).dot(axis)).length for v in verts)
+    radius /= max(len(verts), 1)
+    for f in faces:
+        thetas = []
+        for l in f.loops:
+            d = l.vert.co - centre
+            thetas.append(math.atan2(d.dot(e2), d.dot(e1)))
+        if max(thetas) - min(thetas) > math.pi:
+            thetas = [t + 2.0 * math.pi if t < 0.0 else t for t in thetas]
+        for l, t in zip(f.loops, thetas):
+            l[uv].uv = Vector((t * radius, (l.vert.co - centre).dot(axis)))
+    if _flipped_share(faces, uv) > 0.5:
+        for f in faces:
+            for l in f.loops:
+                l[uv].uv = Vector((-l[uv].uv.x, l[uv].uv.y))
+    del a3
+
+
+def _shelf_pack(rows, uv, margin=0.02) -> None:
+    boxes = []
+    for r in rows:
+        luvs = [l[uv] for f in r[0] for l in f.loops]
+        lo = Vector((min(x.uv.x for x in luvs), min(x.uv.y for x in luvs)))
+        hi = Vector((max(x.uv.x for x in luvs), max(x.uv.y for x in luvs)))
+        boxes.append((luvs, lo, hi))
+    width = math.sqrt(sum((hi.x - lo.x) * (hi.y - lo.y) for _, lo, hi in boxes)) * 1.4
+    x = y = row_h = 0.0
+    for luvs, lo, hi in sorted(boxes, key=lambda b: -(b[2].y - b[1].y)):
+        w, h = hi.x - lo.x, hi.y - lo.y
+        if x > 0.0 and x + w > width:
+            x, y, row_h = 0.0, y + row_h + margin, 0.0
+        shift = Vector((x, y)) - lo
+        for item in luvs:
+            item.uv = item.uv + shift
+        x += w + margin
+        row_h = max(row_h, h)
+
+
+def _smart_project(obj) -> None:
+    if not obj.data.uv_layers:
+        obj.data.uv_layers.new(name="UVMap")
+    _select_only([obj])
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66.0), island_margin=0.02)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def _triangles(obj):
+    mesh = obj.data
+    uvd = mesh.uv_layers.active.data
+    for poly in mesh.polygons:
+        loops = list(poly.loop_indices)
+        for k in range(1, len(loops) - 1):
+            i0, i1, i2 = loops[0], loops[k], loops[k + 1]
+            p0 = mesh.vertices[mesh.loops[i0].vertex_index].co
+            p1 = mesh.vertices[mesh.loops[i1].vertex_index].co
+            p2 = mesh.vertices[mesh.loops[i2].vertex_index].co
+            e1 = uvd[i1].uv - uvd[i0].uv
+            e2 = uvd[i2].uv - uvd[i0].uv
+            yield (p1 - p0).cross(p2 - p0).length * 0.5, abs(e1.x * e2.y - e1.y * e2.x) * 0.5
+
+
+def _stretch(obj, label) -> float:
+    """Texel-density spread (95th / 5th percentile), measured like fix_garment_uvs."""
+    density = [math.sqrt(a2 / a3) for a3, a2 in _triangles(obj) if a3 > 1e-9 and a2 > 1e-12]
+    if not density:
+        log("  %-7s %-9s no usable triangles" % (obj.name, label))
+        return 99.0
+    density.sort()
+    low = density[int(len(density) * 0.05)]
+    high = density[int(len(density) * 0.95)]
+    mid = density[len(density) // 2]
+    a3 = sum(t[0] for t in _triangles(obj))
+    a2 = sum(t[1] for t in _triangles(obj))
+    stretch = high / max(low, 1e-9)
+    # the same spread weighted by surface area, so a hundred tiny cuff-button triangles
+    # count for what they cover rather than for their number
+    pairs = sorted((math.sqrt(t2 / t3), t3) for t3, t2 in _triangles(obj) if t3 > 1e-9 and t2 > 1e-12)
+    total = sum(w for _, w in pairs)
+    acc, lo_w, hi_w = 0.0, pairs[0][0], pairs[-1][0]
+    for d, w in pairs:
+        acc += w
+        if acc <= 0.05 * total:
+            lo_w = d
+        if acc <= 0.95 * total:
+            hi_w = d
+    by_area = hi_w / max(lo_w, 1e-9)
+    log("  %-7s %-9s %5d tris | density %.2f..%.2f (median %.2f) UV/m | UV/3D area %.3f |"
+        " stretch %.2fx (by area %.2fx) %s" % (
+            obj.name, label, len(density), low, high, mid, a2 / max(a3, 1e-9), stretch, by_area,
+            "" if stretch <= STRETCH_LIMIT else "SMEARS"))
+    return stretch
+
+
+# ---------------------------------------------------------------------------------------
+# step 3: decimate (runs after the unwrap)
+
+
+def step_decimate(ns) -> None:
+    log("\n== decimate")
+    log("  %-7s %7s %7s %7s  %s" % ("mesh", "before", "target", "after", "method"))
+    for role, obj in _role_objects().items():
+        target = ns.budgets.get(role, 0)
+        before = _tris(obj)
+        method = "kept"
+        if target and before > target * 1.15:
+            method = _reduce(obj, target, not ns.no_unsubdiv)
+        log("  %-7s %7d %7d %7d  %s" % (role, before, target, _tris(obj), method))
+    arm = _armature()
+    for role, obj in _role_objects().items():
+        if role in CLOTH_ROLES:
+            obj["stretch_low"] = _stretch(obj, "decimated")
+            _reflatten(obj, arm, ns.sleeve_x)
+
+
+def _reflatten(obj, arm, sleeve_x) -> None:
+    """Collapse drags UVs along with the vertices it merges, which smears the corners of
+    the pieces. So the decimated mesh is flattened again, cut along the SAME pieces
+    (seams taken from the full-resolution UV islands), and kept if it measures better."""
+    keep = [d.uv.copy() for d in obj.data.uv_layers.active.data]
+    before = _quiet_stretch(obj)
+    _select_only([obj])
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.select_all(action="SELECT")
+    bpy.ops.uv.seams_from_islands(mark_seams=True, mark_sharp=False)
+    bpy.ops.uv.unwrap(method="ANGLE_BASED", fill_holes=True, correct_aspect=True, margin=0.0)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    _orient_islands(obj, arm, sleeve_x, quiet=True)
+    after = _quiet_stretch(obj)
+    if after < before:
+        _stretch(obj, "re-flat")
+    else:
+        for d, uv in zip(obj.data.uv_layers.active.data, keep):
+            d.uv = uv
+        log("  %-7s re-flattening measured %.2fx, kept the decimated UVs" % (obj.name, after))
+
+
+def _reduce(obj, target, try_unsubdiv) -> str:
+    steps = []
+    tris = _tris(obj)
+    quads = sum(1 for p in obj.data.polygons if len(p.vertices) == 4)
+    iterations = 0
+    while tris / 4 ** (iterations + 1) >= target * 0.7:
+        iterations += 1
+    if try_unsubdiv and iterations and quads <= 0.9 * len(obj.data.polygons):
+        steps.append("no unsubdiv (%d%% quads)" % (100 * quads // max(len(obj.data.polygons), 1)))
+    if try_unsubdiv and iterations and quads > 0.9 * len(obj.data.polygons):
+        backup = obj.data.copy()
+        stretch_before = _quiet_stretch(obj) if obj.data.uv_layers else 0.0
+        _apply_decimate(obj, "UNSUBDIV", iterations=iterations)
+        after = _tris(obj)
+        expect = tris / 4 ** iterations
+        stretch_after = _quiet_stretch(obj) if obj.data.uv_layers else 0.0
+        ok = after <= expect * 1.6 and (not obj.data.uv_layers or
+                                        stretch_after <= max(stretch_before * 1.25, 1.3))
+        if ok:
+            steps.append("unsubdiv x%d (%d)" % (iterations, after))
+            bpy.data.meshes.remove(backup)
+        else:
+            steps.append("unsubdiv x%d rejected (%d tris, expected ~%d, stretch %.2f->%.2f)"
+                         % (iterations, after, expect, stretch_before, stretch_after))
+            old = obj.data
+            obj.data = backup
+            backup.name = old.name
+            bpy.data.meshes.remove(old)
+            obj.data.name = obj.name
+    if _tris(obj) > target * 1.15:
+        parts = _collapse_by_part(obj, target)
+        steps.append("collapse" + (" over %d parts by area" % parts if parts > 1 else ""))
+    return ", ".join(steps)
+
+
+def _collapse_by_part(obj, target, floor=12) -> int:
+    """Collapse each loose part to its share of the budget by surface area (at least
+    `floor` triangles), so a cuff button does not keep as many triangles as a sleeve.
+    Returns the number of parts."""
+    _select_only([obj])
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.separate(type="LOOSE")
+    bpy.ops.object.mode_set(mode="OBJECT")
+    parts = [o for o in bpy.context.selected_objects]
+    if obj not in parts:
+        parts.append(obj)
+    areas = {o: sum(p.area for p in o.data.polygons) for o in parts}
+    total = sum(areas.values()) or 1.0
+    floors = sum(min(floor, _tris(o)) for o in parts)
+    spare = max(target - floors, 0)
+    for o in parts:
+        want = min(floor, _tris(o)) + spare * areas[o] / total
+        if _tris(o) > want * 1.05:
+            _apply_decimate(o, "COLLAPSE", ratio=max(want / _tris(o), 0.001))
+    _select_only(parts, obj)
+    if len(parts) > 1:
+        bpy.ops.object.join()
+    return len(parts)
+
+
+def _apply_decimate(obj, mode, iterations=1, ratio=1.0) -> None:
+    _select_only([obj])
+    mod = obj.modifiers.new("decimate", "DECIMATE")
+    mod.decimate_type = mode
+    if mode == "UNSUBDIV":
+        mod.iterations = iterations
+    else:
+        mod.ratio = ratio
+        mod.use_collapse_triangulate = True
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+
+
+def _quiet_stretch(obj) -> float:
+    density = [math.sqrt(a2 / a3) for a3, a2 in _triangles(obj) if a3 > 1e-9 and a2 > 1e-12]
+    if not density:
+        return 99.0
+    density.sort()
+    return density[int(len(density) * 0.95)] / max(density[int(len(density) * 0.05)], 1e-9)
+
+
+# ---------------------------------------------------------------------------------------
+# step 5: skin
+
+
+def step_skin(ns) -> None:
+    log("\n== skin")
+    arm = _armature()
+    arm.data.pose_position = "REST"
+    rig = _rig_objects()
+    bones = [b.name for b in arm.data.bones]
+    for role, obj in _role_objects().items():
+        obj.vertex_groups.clear()
+        for name in bones:
+            obj.vertex_groups.new(name=name)
+        src_names = WEIGHT_SOURCE.get(role)
+        if src_names is None:
+            obj.vertex_groups[HEAD_BONE].add(range(len(obj.data.vertices)), 1.0, "REPLACE")
+            how = "hard bind to %s" % HEAD_BONE
+        else:
+            src = _weight_source(rig, src_names)
+            _transfer_weights(obj, src)
+            if src.name.startswith("TMP_"):
+                bpy.data.objects.remove(src, do_unlink=True)
+            how = "from rig %s" % " + ".join(src_names)
+            _select_only([obj])
+            bpy.ops.object.vertex_group_clean(group_select_mode="ALL", limit=0.01)
+            bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=4)
+            bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL", lock_active=False)
+            if role in GARMENT_ROLES:
+                _smooth_weights(obj, 0.5, 2)
+                bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=4)
+                bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL", lock_active=False)
+                how += ", smoothed x2"
+        _parent_to(obj, arm)
+        log("  %-7s %s | %s" % (role, how, _bones_used(obj)))
+    arm.data.pose_position = "POSE"
+
+
+def _smooth_weights(obj, factor, repeat) -> None:
+    """Relax every bone's weights towards the average of each vertex's neighbours
+    (vertex_group_smooth only runs in weight-paint/edit mode, not headless)."""
+    me = obj.data
+    n = len(me.vertices)
+    ring = [[] for _ in range(n)]
+    for e in me.edges:
+        a, b = e.vertices
+        ring[a].append(b)
+        ring[b].append(a)
+    weights = [{g.group: g.weight for g in v.groups} for v in me.vertices]
+    for _ in range(repeat):
+        new = []
+        for i in range(n):
+            if not ring[i]:
+                new.append(weights[i])
+                continue
+            avg = {}
+            for j in ring[i]:
+                for g, w in weights[j].items():
+                    avg[g] = avg.get(g, 0.0) + w
+            k = 1.0 / len(ring[i])
+            groups = set(avg) | set(weights[i])
+            new.append({g: (1.0 - factor) * weights[i].get(g, 0.0) + factor * avg.get(g, 0.0) * k
+                        for g in groups})
+        weights = new
+    for vg in obj.vertex_groups:
+        vg.remove(range(n))
+    for i, wmap in enumerate(weights):
+        for g, w in wmap.items():
+            if w > 1e-4:
+                obj.vertex_groups[g].add([i], w, "REPLACE")
+
+
+def _weight_source(rig, names):
+    if len(names) == 1:
+        return rig[names[0]]
+    copies = []
+    for n in names:
+        c = rig[n].copy()
+        c.data = rig[n].data.copy()
+        c.modifiers.clear()
+        bpy.context.scene.collection.objects.link(c)
+        copies.append(c)
+    _select_only(copies)
+    bpy.ops.object.join()
+    joined = bpy.context.view_layer.objects.active
+    joined.name = "TMP_" + "+".join(names)
+    return joined
+
+
+def _transfer_weights(obj, src) -> None:
+    _select_only([obj])
+    mod = obj.modifiers.new("weights", "DATA_TRANSFER")
+    mod.object = src
+    mod.use_object_transform = True
+    mod.use_vert_data = True
+    mod.data_types_verts = {"VGROUP_WEIGHTS"}
+    mod.vert_mapping = "POLYINTERP_NEAREST"
+    mod.layers_vgroup_select_src = "ALL"
+    mod.layers_vgroup_select_dst = "NAME"
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+
+
+def _parent_to(obj, arm) -> None:
+    for m in list(obj.modifiers):
+        obj.modifiers.remove(m)
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.matrix_world = world
+    mod = obj.modifiers.new("Armature", "ARMATURE")
+    mod.object = arm
+
+
+def _bones_used(obj) -> str:
+    counts = {}
+    for v in obj.data.vertices:
+        for g in v.groups:
+            if g.weight > 0.01:
+                name = obj.vertex_groups[g.group].name
+                counts[name] = counts.get(name, 0) + 1
+    unweighted = sum(1 for v in obj.data.vertices if not any(g.weight > 0.01 for g in v.groups))
+    text = ", ".join("%s %d" % (k, counts[k]) for k in sorted(counts, key=lambda k: -counts[k]))
+    return text + (" | %d verts UNWEIGHTED" % unweighted if unweighted else "")
+
+
+# ---------------------------------------------------------------------------------------
+# step 6: export
+
+
+def step_export(ns) -> bool:
+    log("\n== export -> %s" % ns.out)
+    arm = _armature()
+    keep = set(_role_objects().values()) | {arm}
+    for o in list(bpy.data.objects):
+        if o in keep:
+            continue
+        if o.users_collection and any(c.name == "glTF_not_exported" for c in o.users_collection):
+            continue
+        bpy.data.objects.remove(o, do_unlink=True)
+    for role, obj in _role_objects().items():
+        name = MATERIAL[role]
+        mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+        colour = REPORT_COLOUR[role]
+        mat.diffuse_color = (colour[0], colour[1], colour[2], 1.0)
+        if mat.node_tree is None:
+            mat.use_nodes = True
+        for node in mat.node_tree.nodes:
+            if node.type == "BSDF_PRINCIPLED":  # what the glTF exporter reads
+                node.inputs["Base Color"].default_value = (colour[0], colour[1], colour[2], 1.0)
+                node.inputs["Roughness"].default_value = 1.0
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
+    stage = ns.out.with_suffix(".staged.glb")
+    _select_only([])
+    bpy.ops.export_scene.gltf(
+        filepath=str(stage),
+        export_format="GLB",
+        use_selection=False,
+        export_yup=True,
+        export_apply=False,  # never bake the armature modifier into the mesh
+        export_skins=True,
+        export_animations=False,  # animations live in the rig scene, not the model
+        export_materials="EXPORT",
+        export_cameras=False,
+        export_lights=False,
+    )
+    ok = _verify(stage, ns.rig)
+    if not ok:
+        log("  ABORT: export failed the check; %s left alone (staged file kept)" % ns.out.name)
+        return False
+    os.replace(stage, ns.out)
+    log("  wrote %s (%d KB)" % (ns.out, ns.out.stat().st_size // 1024))
+    return True
+
+
+def _glb_json(path):
+    data = path.read_bytes()
+    length = struct.unpack("<I", data[12:16])[0]
+    return json.loads(data[20 : 20 + length])
+
+
+def _verify(path, rig_path) -> bool:
+    ours, ref = _glb_json(path), _glb_json(rig_path)
+    ok = True
+
+    def check(cond, text):
+        nonlocal ok
+        log("  %s %s" % ("ok  " if cond else "FAIL", text))
+        ok = ok and cond
+
+    nodes = ours["nodes"]
+    roots = [nodes[r].get("name") for r in ours["scenes"][0]["nodes"]]
+    check(roots == ["Rig_Medium"], "scene root %s" % roots)
+    joints = [nodes[j].get("name") for j in ours["skins"][0]["joints"]] if ours.get("skins") else []
+    ref_joints = [ref["nodes"][j].get("name") for j in ref["skins"][0]["joints"]]
+    check(sorted(joints) == sorted(ref_joints) and len(joints) == 22,
+          "%d joints, same names as %s" % (len(joints), rig_path.name))
+    meshes = {n.get("name"): n for n in nodes if "mesh" in n}
+    check(sorted(meshes) == sorted(ROLES), "mesh nodes %s" % sorted(meshes))
+    for name, n in sorted(meshes.items()):
+        prims = ours["meshes"][n["mesh"]]["primitives"]
+        tris = sum(ours["accessors"][p["indices"]]["count"] // 3 for p in prims if "indices" in p)
+        attrs = set().union(*(p["attributes"].keys() for p in prims))
+        skinned = "skin" in n and "JOINTS_0" in attrs and "WEIGHTS_0" in attrs
+        check(skinned and "TEXCOORD_0" in attrs, "%-8s %5d tris, skinned, UVs" % (name, tris))
+    check(not ours.get("animations"), "no animations")
+    # and back through Blender's importer, as the game's importer would see it
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=str(path))
+    arms = [o for o in bpy.data.objects if o.type == "ARMATURE"]
+    check(len(arms) == 1 and arms[0].name == "Rig_Medium" and len(arms[0].data.bones) == 22,
+          "re-import: armature %s" % [(a.name, len(a.data.bones)) for a in arms])
+    for role in ROLES:
+        o = bpy.data.objects.get(role)
+        good = o is not None and any(m.type == "ARMATURE" for m in o.modifiers)
+        check(good, "re-import: %s bound to the armature" % role)
+    return ok
+
+
+# ---------------------------------------------------------------------------------------
+# step 7: report
+
+
+def step_report(ns) -> None:
+    out = ns.report_dir
+    out.mkdir(parents=True, exist_ok=True)
+    log("\n== report -> %s" % out)
+    if ns.out.is_file() and ns.stop_after == "export":
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.import_scene.gltf(filepath=str(ns.out))
+    objs = _role_objects()
+    stripes = _stripe_image()
+    for role, obj in objs.items():
+        mat = bpy.data.materials.new("report_" + role)
+        c = REPORT_COLOUR[role]
+        mat.diffuse_color = (c[0], c[1], c[2], 1.0)
+        if role in CLOTH_ROLES:
+            if mat.node_tree is None:
+                mat.use_nodes = True
+            tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+            tex.image = stripes
+            tex.extension = "REPEAT"
+            mat.node_tree.nodes.active = tex
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
+    scene = bpy.context.scene
+    scene.render.engine = "BLENDER_WORKBENCH"
+    scene.display.shading.light = "STUDIO"
+    scene.display.shading.color_type = "TEXTURE"
+    scene.display.shading.show_object_outline = True
+    scene.view_settings.view_transform = "Standard"
+    scene.render.resolution_x = 900
+    scene.render.resolution_y = 1100
+    pts = [p for o in objs.values() for p in _world_verts(o)]
+    lo, hi = _bounds(pts)
+    centre = (lo + hi) * 0.5
+    size = max(hi - lo)
+    cam_data = bpy.data.cameras.new("report_cam")
+    cam_data.type = "ORTHO"
+    cam_data.ortho_scale = size * 1.1
+    cam = bpy.data.objects.new("report_cam", cam_data)
+    scene.collection.objects.link(cam)
+    scene.camera = cam
+    images = []
+    for name, yaw, frame in (
+        ("front", 0, None), ("side", 90, None), ("back", 180, None), ("three_quarter", 35, None),
+        ("sleeve_closeup", 20, (Vector((0.5, 0, 1.1)), 0.7)),
+        ("trousers_closeup", 25, (Vector((0.0, 0, 0.45)), 0.9)),
+    ):
+        r = math.radians(yaw)
+        view = Vector((math.sin(r), -math.cos(r), 0))
+        target, scale = frame if frame else (centre, size * 1.1)
+        cam_data.ortho_scale = scale
+        cam.location = target + view * size * 3
+        cam.rotation_euler = (math.radians(90), 0, r)
+        scene.render.filepath = str(out / ("blender_%s.png" % name))
+        bpy.ops.render.render(write_still=True)
+        images.append(scene.render.filepath)
+    for role in CLOTH_ROLES:
+        if role in objs:
+            images.append(_uv_layout(objs[role], out / ("uv_%s.png" % role)))
+    log("  images:")
+    for path in images:
+        log("    %s" % path)
+    summary = out / "summary.txt"
+    _LOG.append("")
+    summary.write_text("\n".join(_LOG), encoding="utf-8")
+    print("  summary: %s" % summary)
+
+
+def _stripe_image():
+    """A 1x1 UV tile (= 1 m of cloth) with 6 dark pinstripes along V and faint rules
+    across it, so the grain and the metre scale read in a workbench render."""
+    size = 240
+    img = bpy.data.images.new("report_stripes", size, size)
+    px = []
+    for y in range(size):
+        for x in range(size):
+            v = 0.85
+            if (x % 40) < 5:
+                v = 0.1
+            elif (y % 40) < 1:
+                v = 0.6
+            px += [v, v, v * 1.05 if v < 0.5 else v, 1.0]
+    img.pixels.foreach_set(px)
+    img.pack()
+    return img
+
+
+def _uv_layout(obj, path) -> str:
+    """Draw a mesh's UV edges to a PNG (fitted to the layout, with a 1 m grid, and a red
+    stroke up the grain of each island) without needing a GPU."""
+    import numpy as np
+
+    size = 1024
+    img = np.zeros((size, size, 4), dtype=np.float32)
+    img[:, :, 3] = 1.0
+    img[:, :, :3] = 0.08
+    uvd = obj.data.uv_layers.active.data
+    uvs = [uvd[i].uv.copy() for i in range(len(uvd))]
+    lo = Vector((min(u.x for u in uvs), min(u.y for u in uvs)))
+    hi = Vector((max(u.x for u in uvs), max(u.y for u in uvs)))
+    span = max(hi.x - lo.x, hi.y - lo.y, 1e-6) * 1.04
+
+    def px(u):
+        return ((u.x - lo.x) / span * (size - 1), (u.y - lo.y) / span * (size - 1))
+
+    def line(a, b, colour):
+        (x0, y0), (x1, y1) = px(a), px(b)
+        n = int(max(abs(x1 - x0), abs(y1 - y0), 1)) + 1
+        for k in range(n + 1):
+            t = k / n
+            x, y = int(x0 + (x1 - x0) * t), int(y0 + (y1 - y0) * t)
+            if 0 <= x < size and 0 <= y < size:
+                img[y, x, :3] = np.maximum(img[y, x, :3], colour)
+
+    m = math.floor(lo.x)
+    while m <= hi.x:
+        line(Vector((m, lo.y)), Vector((m, hi.y)), (0.25, 0.25, 0.3))
+        m += 1.0
+    m = math.floor(lo.y)
+    while m <= hi.y:
+        line(Vector((lo.x, m)), Vector((hi.x, m)), (0.25, 0.25, 0.3))
+        m += 1.0
+    for poly in obj.data.polygons:
+        loops = list(poly.loop_indices)
+        for a, b in zip(loops, loops[1:] + loops[:1]):
+            line(uvs[a], uvs[b], (0.3, 0.85, 0.45))
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    uvl = bm.loops.layers.uv.active
+    for faces in _uv_islands(bm, uvl):
+        pts = [l[uvl].uv for f in faces for l in f.loops]
+        c = sum(pts, Vector((0.0, 0.0))) / len(pts)
+        h = (max(p.y for p in pts) - min(p.y for p in pts)) * 0.3
+        line(c - Vector((0, h)), c + Vector((0, h)), (1.0, 0.25, 0.2))
+        line(c + Vector((0, h)), c + Vector((-h * 0.2, h * 0.8)), (1.0, 0.25, 0.2))
+        line(c + Vector((0, h)), c + Vector((h * 0.2, h * 0.8)), (1.0, 0.25, 0.2))
+    bm.free()
+    image = bpy.data.images.new("uv_" + obj.name, size, size)
+    image.pixels.foreach_set(img.ravel())
+    image.filepath_raw = str(path)
+    image.file_format = "PNG"
+    image.save()
+    return str(path)
+
+
+def _uv_islands(bm, uvl):
+    """Islands by UV continuity (the exported glb has no seam flags)."""
+    bm.faces.ensure_lookup_table()
+    parent = list(range(len(bm.faces)))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for e in bm.edges:
+        if len(e.link_faces) != 2:
+            continue
+        f0, f1 = e.link_faces
+        same = True
+        for v in e.verts:
+            a = next(l[uvl].uv for l in f0.loops if l.vert is v)
+            b = next(l[uvl].uv for l in f1.loops if l.vert is v)
+            if (a - b).length > 1e-5:
+                same = False
+        if same:
+            ra, rb = find(f0.index), find(f1.index)
+            if ra != rb:
+                parent[ra] = rb
+    groups = {}
+    for f in bm.faces:
+        groups.setdefault(find(f.index), []).append(f)
+    return list(groups.values())
+
+
+# ---------------------------------------------------------------------------------------
+
+
+def main(argv) -> int:
+    ns = _arguments(argv)
+    log("tripo_character: %s -> %s (stop after %s)" % (ns.src.name, ns.out.name, ns.stop_after))
+    runs = (
+        ("classify", step_classify),
+        ("align", step_align),
+        ("uv", step_uv),
+        ("decimate", step_decimate),
+        ("skin", step_skin),
+        ("export", step_export),
+    )
+    for name, fn in runs:
+        result = fn(ns)
+        if result is False:
+            return 1
+        if name == ns.stop_after:
+            if name != "export":
+                ns.report_dir.mkdir(parents=True, exist_ok=True)
+                blend = ns.report_dir / ("stage_%s.blend" % name)
+                bpy.ops.wm.save_as_mainfile(filepath=str(blend), copy=True)
+                log("\nstopped after %s; working file saved to %s" % (name, blend))
+            break
+    if ns.report:
+        step_report(ns)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
