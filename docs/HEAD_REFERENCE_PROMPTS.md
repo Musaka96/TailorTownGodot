@@ -119,7 +119,7 @@ Batch plan (gentlemen dark brown `#2c1e18`, older silver `#8e9196`, all on cream
 |---|---|
 | G1 | slick_back, pompadour, curly_crop, textured_crop |
 | G2 | crew_cut, buzz, quiff, undercut |
-| G3 | curtains, wavy_mop, flat_top, short_coils |
+| G3 | curtains, textured_crop, flat_top, short_coils |
 | G4 | ivy_league, taper, waves, bro_flow |
 | O1 | receding_part, comb_over, grey_neat, side_wings |
 | O2 | thinning_slick, widows_peak, grey_curls, bald_fringe |
@@ -167,7 +167,6 @@ carries the back view. Labels on the sheet:
 | `undercut` | "Undercut" |
 | `waves` | "Wavy Business" |
 | `curtains` | "Curtains" |
-| `textured_crop` | "Textured Crop" |
 | `wavy_mop` | "Soft Waves" |
 | `curly_crop` | "Curly" |
 | `buzz` | "Buzz Cut" |
@@ -308,6 +307,15 @@ like roof tiles". The suffix now gives a count and a size (about a dozen locks, 
 thick as a thumb, blunt rounded tips) and bans comb lines, thin strands, scales and
 feathering. The curly crop, textured crop, slick back and coils lines were reworded to
 name big shapes. Target is the owner's single side-part result and his AC-style sheet.
+
+## Round 4 (2026-09-25)
+
+G1 with the chunky suffix and the labelled AC sheet as the second image: the target
+chunkiness, first try. Slick back and pompadour kept; curly kept, though the curls came
+as perfect spheres (say "flat rounded scrolls, not balls" to soften that); the cell
+pointed at the sheet's "Textured Crop" came back as a wavy mop instead, kept as
+`wavy_mop`, and that label was dropped from the map. Textured crop moved to G3 as a
+plain line.
 
 ## Check before Tripo
 
