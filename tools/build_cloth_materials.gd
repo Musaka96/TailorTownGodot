@@ -8,16 +8,42 @@ extends SceneTree
 ## colour/pattern/fabric, so editing these .tres (fabric/pattern strength, adding a
 ## normal map, tweaking defaults) or the shader itself changes how ALL cloth renders
 ## while each roll/piece/suit still shows the fabric the customer chose.
+## Also the shoe leather base, res://materials/leather.tres (leather.gdshader), which
+## ShoeMaterial.build() duplicates the same way (colour + finish per shoe).
 ##   godot --headless --path . --script res://tools/build_cloth_materials.gd
 
 const CLOTH := "res://materials/cloth.tres"
 const CLOTH_TRI := "res://materials/cloth_triplanar.tres"
+const LEATHER := "res://materials/leather.tres"
 
 
 func _initialize() -> void:
 	_write(CLOTH, "res://materials/cloth.gdshader", "uv_scale", 2.5)
 	_write(CLOTH_TRI, "res://materials/cloth_triplanar.gdshader", "tri_scale", 3.0)
+	_write_leather()
 	quit(0)
+
+
+## Leather: standard PBR, the grain drives roughness. Defaults = black calf; the
+## per-finish values (roughness, clearcoat, normal depth, grain) are ShoeMaterial.FINISH_PARAMS.
+func _write_leather() -> void:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://materials/leather.gdshader")
+	mat.set_shader_parameter("leather_color", Color("141416"))
+	mat.set_shader_parameter("grain_tex", load("res://assets/textures/grain/leather_calf.png"))
+	mat.set_shader_parameter("grain_normal", load("res://assets/textures/grain/leather_calf_n.png"))
+	mat.set_shader_parameter("grain_mean", 0.25)
+	mat.set_shader_parameter("grain_scale", 4.0)
+	mat.set_shader_parameter("grain_strength", 1.0)
+	mat.set_shader_parameter("grain_contrast", 1.0)
+	mat.set_shader_parameter("normal_depth", 1.0)
+	mat.set_shader_parameter("roughness_base", 0.45)
+	mat.set_shader_parameter("roughness_grain", 0.25)
+	mat.set_shader_parameter("specular", 0.5)
+	mat.set_shader_parameter("clearcoat", 0.0)
+	mat.set_shader_parameter("clearcoat_roughness", 0.2)
+	var err := ResourceSaver.save(mat, LEATHER)
+	print("build_cloth_materials: %s -> %s" % [LEATHER, "ok" if err == OK else "FAIL %d" % err])
 
 
 func _write(path: String, shader_path: String, scale_param: String, scale: float) -> void:
@@ -51,7 +77,8 @@ func _write(path: String, shader_path: String, scale_param: String, scale: float
 	mat.set_shader_parameter("sheen_roughness", 0.8)
 	mat.set_shader_parameter("sheen_tint", 0.5)
 	mat.set_shader_parameter("aniso_shine", 40.0)
-	mat.set_shader_parameter("aniso_tint", 0.6)
+	# Mohair's streak takes the cloth colour, not a white glint.
+	mat.set_shader_parameter("aniso_tint", 0.9)
 	mat.set_shader_parameter(scale_param, scale)
 	var err := ResourceSaver.save(mat, path)
 	print("build_cloth_materials: %s -> %s" % [path, "ok" if err == OK else "FAIL %d" % err])

@@ -38,6 +38,9 @@ const SPRINT_ANIM_MULT := 1.6
 @export var suit_cloth: StringName = &"navy_worsted_pinstripe"
 @export var jacket_style: int = 1  # Double-Breasted
 @export var trouser_style: int = 1  # Pleated
+## The tailor's shoes: a ShoeMaterial colour id and finish.
+@export var shoes_color: String = "black"
+@export var shoes_finish: String = "calf"
 
 # Read the gravity from Project Settings so it stays consistent with the rest of
 # the physics world instead of being a magic number.
@@ -78,6 +81,8 @@ func _dress() -> void:
 		var suit: MaterialType = Catalog.get_material(suit_cloth)
 		if suit != null:
 			_model.set_outfit(suit, null, suit, jacket_style, trouser_style)
+	if _model is CharacterRig:
+		(_model as CharacterRig).shoes = {"color": shoes_color, "finish": shoes_finish}
 
 
 ## `head_combo` if it's switched on, else the first combo that is (0 if none are).

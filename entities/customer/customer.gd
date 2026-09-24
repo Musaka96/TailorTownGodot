@@ -39,6 +39,8 @@ var gender := Enums.Gender.MALE
 ## Face look, remembered so the speech-bubble portrait can match this customer.
 var eye_color := "brown"
 var glasses := ""
+## Their own shoes: {"color", "finish"} (ShoeMaterial); empty means black calf.
+var shoes: Dictionary = {}
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -145,6 +147,7 @@ func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 	_rig.set_head(head)
 	_rig.set_palette(skin)
 	_rig.set_face_look(eyes, glasses_kind)
+	_rig.set("shoes", shoes)
 
 
 ## Pick a hairstyle from the wardrobe library.

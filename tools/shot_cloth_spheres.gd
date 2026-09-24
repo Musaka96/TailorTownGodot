@@ -10,6 +10,8 @@ extends "res://tools/shot_cloth_light.gd"
 ## Rows go to .dev/sphere_rows/<phase>_<A|B|C>.png. Once both phases exist the "new"
 ## run lays out .dev/spheres_<A|B|C>.png (CURRENT above NEW, cloth names under each
 ## row) with tools/cloth_sheets.py and copies the new A row to spheres_A_full_new.png.
+## Set D is shoe leather (ShoeMaterial.build) and renders on its own, one row, no
+## CURRENT/NEW: -- D writes .dev/spheres_D.png and the raw row .dev/spheres_D_full.png.
 ## NOT headless (needs a GPU), and it must quit.
 
 const SPHERE_DIR := "res://.dev/sphere_rows/"
@@ -77,22 +79,40 @@ const SETS := {
 		[6, 13, WHITE, ACC_SKY, "End-on-end, sky on white poplin"],
 	],
 }
+# Solo sets (rendered alone with -- <set>): [ShoeMaterial colour id, finish, label].
+const SOLO_SETS := {
+	"D":
+	[
+		["black", "calf", "Calf, black"],
+		["dark_brown", "calf", "Calf, dark brown"],
+		["oxblood", "calf", "Calf, oxblood"],
+		["tan", "calf", "Calf, tan"],
+		["chestnut", "calf", "Calf, chestnut"],
+		["black", "pebble", "Pebble, black"],
+		["chestnut", "pebble", "Pebble, chestnut"],
+		["black", "patent", "Patent, black"],
+	],
+}
 const SET_TITLES := {
 	"A": "SPHERES, SET A: SUITINGS",
 	"B": "SPHERES, SET B: SUITING PATTERNS ON WORSTED",
 	"C": "SPHERES, SET C: SHIRTINGS",
+	"D": "SPHERES, SET D: LEATHER (procedural stand-in grain)",
 }
 const SET_ORDER: Array[String] = ["A", "B", "C"]
 
 var _phase := "new"
 var _spheres: Node3D
 var _set_idx := 0
+var _order: Array[String] = SET_ORDER
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	if not args.is_empty():
 		_phase = args[0]
+	if SOLO_SETS.has(_phase):
+		_order = [_phase]
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SPHERE_DIR))
 	_vp = SubViewport.new()
 	_vp.size = Vector2i(SPHERE_W, SPHERE_H)
@@ -124,7 +144,7 @@ func _place_sphere_camera() -> void:
 func _build_set(set_name: String) -> void:
 	for c in _spheres.get_children():
 		c.free()
-	var items: Array = SETS[set_name]
+	var items := _items(set_name)
 	for i in items.size():
 		var it: Array = items[i]
 		var mesh := SphereMesh.new()
@@ -132,7 +152,10 @@ func _build_set(set_name: String) -> void:
 		mesh.height = RADIUS * 2.0
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
-		mi.material_override = ClothMaterial.build(_sphere_cloth(it), SPHERE_UV, true)
+		if SOLO_SETS.has(set_name):
+			mi.material_override = ShoeMaterial.build(String(it[0]), String(it[1]), SPHERE_UV, true)
+		else:
+			mi.material_override = ClothMaterial.build(_sphere_cloth(it), SPHERE_UV, true)
 		mi.position = _sphere_pos(i, items.size())
 		_spheres.add_child(mi)
 
@@ -166,19 +189,19 @@ func _on_frame() -> void:
 		_built = true
 		_build_postfx()
 		_apply_variant("game_live")
-		_build_set(SET_ORDER[0])
+		_build_set(_order[0])
 		_frames = 0
 		return
 	if _frames < SETTLE_FRAMES:
 		return
-	var set_name := SET_ORDER[_set_idx]
+	var set_name := _order[_set_idx]
 	var img := _vp.get_texture().get_image()
 	img.convert(Image.FORMAT_RGB8)
 	img.save_png(_row_path(_phase, set_name))
 	print("Saved ", _row_path(_phase, set_name))
 	_set_idx += 1
-	if _set_idx < SET_ORDER.size():
-		_build_set(SET_ORDER[_set_idx])
+	if _set_idx < _order.size():
+		_build_set(_order[_set_idx])
 		_frames = 0
 		return
 	quit(_compose_spheres())
@@ -190,6 +213,8 @@ func _row_path(phase: String, set_name: String) -> String:
 
 ## Both phases on disk: CURRENT over NEW per set, cloth names under each row.
 func _compose_spheres() -> int:
+	if SOLO_SETS.has(_phase):
+		return _compose_solo(_phase)
 	if _phase != "new":
 		print("shot_cloth_spheres: %s rows saved; run with -- new to compose." % _phase)
 		return 0
@@ -227,6 +252,25 @@ func _compose_spheres() -> int:
 	DirAccess.copy_absolute(
 		ProjectSettings.globalize_path(_row_path("new", "A")), _dev("spheres_A_full_new.png")
 	)
+	return _run_composer(sheets)
+
+
+## A solo set: its one row with the names under it, plus the raw frame.
+func _compose_solo(set_name: String) -> int:
+	var row := ProjectSettings.globalize_path(_row_path(_phase, set_name))
+	var sheet := {
+		"out": _dev("spheres_%s.png" % set_name),
+		"width": SPHERE_W,
+		"title": SET_TITLES[set_name],
+		"subtitle": _summaries.get("game_live", ""),
+		"rows": [{"image": row, "below": _labels(set_name)}],
+	}
+	DirAccess.copy_absolute(row, _dev("spheres_%s_full.png" % set_name))
+	var sheets: Array[Dictionary] = [sheet]
+	return _run_composer(sheets)
+
+
+func _run_composer(sheets: Array[Dictionary]) -> int:
 	var manifest := SPHERE_DIR + "manifest.json"
 	var f := FileAccess.open(manifest, FileAccess.WRITE)
 	f.store_string(JSON.stringify({"sheets": sheets}, "\t"))
@@ -240,12 +284,16 @@ func _compose_spheres() -> int:
 	return code
 
 
+func _items(set_name: String) -> Array:
+	return SOLO_SETS[set_name] if SOLO_SETS.has(set_name) else SETS[set_name]
+
+
 ## Each sphere's label and its centre across the frame (0..1), for the caption strip.
 func _labels(set_name: String) -> Dictionary:
-	var items: Array = SETS[set_name]
+	var items := _items(set_name)
 	var labels: Array[String] = []
 	var xs: Array[float] = []
 	for i in items.size():
-		labels.append(String(items[i][4]))
+		labels.append(String((items[i] as Array).back()))
 		xs.append(_cam.unproject_position(_sphere_pos(i, items.size())).x / SPHERE_W)
 	return {"labels": labels, "xs": xs}

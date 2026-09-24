@@ -39,6 +39,9 @@ func note_customer(cust: Node) -> void:
 		"glasses": str(cust.get("glasses")),
 		"gender": int(cust.get("gender")),
 	}
+	var shoes: Variant = cust.get("shoes")
+	if shoes is Dictionary and not (shoes as Dictionary).is_empty():
+		entry["look"]["shoes"] = (shoes as Dictionary).duplicate()
 	_remember_taste(entry, cust.preference)
 	_people[nm] = entry
 

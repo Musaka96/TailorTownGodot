@@ -311,6 +311,9 @@ func _dress() -> void:
 	_rig.set_hair(2)
 	_rig.set_hair_color(Style.BROWN)
 	_rig.wear_street()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = NAME.hash()  # the same pair of shoes every day
+	_rig.set("shoes", ShoeMaterial.random(rng))
 
 
 func _say(line: String) -> void:

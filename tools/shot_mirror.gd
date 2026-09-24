@@ -140,6 +140,7 @@ func _street(main: Node) -> void:
 		* 0.5
 	)
 	print("street spot %s, jacket luma %.3f" % [spot, luma])
+	print("shoes %s" % [cust.get("shoes")])
 
 
 func _street_spot(main: Node) -> Vector3:

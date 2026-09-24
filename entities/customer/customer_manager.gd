@@ -400,6 +400,7 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 		head = maxi(0, Wardrobe.random_head_index(want, seeded))
 		hair = head
 	cust.gender = want as Enums.Gender
+	cust.shoes = ShoeMaterial.from_dict(look.get("shoes", {}))
 	cust.apply_look(
 		look.get("skin", cust.skin_color),
 		str(look.get("eyes", "brown")),
@@ -424,6 +425,7 @@ func _dress(cust: Customer) -> void:
 	# A head and its own hair are one combo (same glb, same index) — never mixed. Only
 	# the skin and hair COLOURS vary independently.
 	var combo := maxi(0, Wardrobe.random_head_index(gender, _rng))
+	cust.shoes = ShoeMaterial.random(_rng)
 	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses, combo)
 	cust.set_hair(combo)
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))

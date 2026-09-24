@@ -18,6 +18,11 @@ const BAKED_HEAD := {"head": "head"}
 const BAKED_TOP := {"jacket": "jacket", "shirt": "shirt"}
 const BAKED_BOTTOM := {"pants": "legs"}
 const BAKED_HAIR := {"hair": "Hair"}
+# The shoes are baked into the base model under these (misleading) node names.
+const BAKED_SHOES := ["left leg", "right leg"]
+# Leather grain density on the shoe UVs. The shoe islands cover ~0.27 UV units per
+# metre, so 18 puts the calf grain ~7 times along a 0.37 m shoe.
+const SHOE_UV_SCALE := 18.0
 
 # Two-layer hair: a flat base-colour mesh with a transparent strand-detail copy laid
 # just over it (grown slightly so it never z-fights). Swap the PNG for real hair art.
@@ -119,6 +124,13 @@ var face_style: FaceStyle:
 		return _face_style
 	set(style):
 		_set_face_style(style)
+## The leather on the baked shoes: {"color", "finish"} (ShoeMaterial; missing or
+## unknown values mean black calf). Also a property for the public-method limit.
+var shoes: Dictionary:
+	get:
+		return _shoes
+	set(value):
+		_set_shoes(value)
 
 var _tree: AnimationTree
 var _loco := 0.0  # current idle(0)->walk(1) blend
@@ -173,6 +185,7 @@ var _hair_index := 0
 var _skin_color := DEFAULT_SKIN
 # Tint applied to the hair mesh (kept so it survives a hairstyle swap).
 var _hair_color := DEFAULT_HAIR
+var _shoes: Dictionary = {}
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
 
@@ -183,6 +196,7 @@ func _ready() -> void:
 	_top = _adopt(BAKED_TOP)
 	_bottom = _adopt(BAKED_BOTTOM)
 	_hair = _adopt(BAKED_HAIR)
+	_set_shoes({})  # black calf until someone says otherwise
 	if _anim != null:
 		# Install the animation set from the editable asset (shared, cached), so
 		# changing data/animations/default_animations.tres takes effect next run.
@@ -999,6 +1013,17 @@ func wear_street() -> void:
 	_apply_flat(_top.get("jacket"), CASUAL_TOPS[randi() % CASUAL_TOPS.size()], 0.85)
 	_apply_flat(_top.get("shirt"), Color(0.9, 0.9, 0.88), 0.7)
 	_apply_flat(_bottom.get("pants"), CASUAL_BOTTOMS[randi() % CASUAL_BOTTOMS.size()], 0.85)
+
+
+## One leather material, shared by both feet (see `shoes`).
+func _set_shoes(value: Dictionary) -> void:
+	var d := ShoeMaterial.from_dict(value)
+	_shoes = d
+	var mat := ShoeMaterial.build(d["color"], d["finish"], SHOE_UV_SCALE, true)
+	for shoe_name: String in BAKED_SHOES:
+		var mi := find_child(shoe_name, true, false) as MeshInstance3D
+		if mi != null:
+			mi.material_override = mat
 
 
 func _swap_top(style: int) -> void:
