@@ -11,6 +11,8 @@ extends SceneTree
 ## --arm-drop=<deg>: no animation; the skeleton at rest except both upperarms, turned down
 ## by that many degrees along the calm idle's own rotation (90 = the calm idle's arms).
 ## "shoulder_" shots go to IMPORT/CHARREWORK/report/shoulder/shoulder_<tag><view>.png.
+## --third=<glb>: a third rig beside the two, and each of the three in its own suit (see
+## THREE_SUITS); only the "three_" shots run, saved as report/three_<view>.png.
 ## Writes engine_<tag>_<view>.png to IMPORT/CHARREWORK/report/ (git-ignored).
 ##
 ## The outfit goes on through the rig's own set_outfit one frame after the rigs enter
@@ -28,6 +30,13 @@ const CLOTH := "res://data/materials/navy_worsted_pinstripe.tres"
 const CLOTH_UV_SCALE := 6.0
 const SKIN := Color(0.86, 0.72, 0.60)
 const SEPARATION := 0.9
+const THREE_GAP := 1.35
+# --third mode: [suit MaterialType, tie colour] for the owner's rig, the second and the third
+const THREE_SUITS := [
+	["res://data/materials/navy_worsted_pinstripe.tres", Color(0.55, 0.12, 0.14)],
+	["res://data/materials/grey_tweed_herringbone.tres", Color(0.42, 0.07, 0.12)],
+	["res://data/materials/charcoal_worsted_solid.tres", Color(0.10, 0.14, 0.30)],
+]
 const SHIRT_COLOR := Color(0.94, 0.93, 0.89)
 const POPLIN := 6  # Enums.Fabric.POPLIN (autoload enums are not resolved in a --script run)
 const SOLID := 0  # Enums.Pattern.SOLID
@@ -241,6 +250,19 @@ const SHOTS := [
 	["hands_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, true],
 	["rise_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, false],
 	["knee_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, false],
+	# --third mode: all three rigs side by side (THREE_GAP apart)
+	["three_front", "idle", 0.3, Vector3(0.0, 1.1, 7.2), Vector3(0.0, 1.05, 0.0), "all"],
+	["three_back", "idle", 0.3, Vector3(0.0, 1.1, -7.2), Vector3(0.0, 1.05, 0.0), "all"],
+	["three_three_quarter", "idle", 0.3, Vector3(4.6, 2.2, 5.6), Vector3(0.0, 1.0, 0.0), "all"],
+	["three_walk", "walk", 0.25, Vector3(4.8, 2.0, 5.4), Vector3(0.0, 0.95, 0.0), "all"],
+	[
+		"three_sleeve",
+		"idle",
+		0.3,
+		Vector3(THREE_GAP + 0.85, 1.25, 1.0),
+		Vector3(THREE_GAP + 0.45, 0.95, 0.0),
+		"all"
+	],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -250,6 +272,7 @@ var _shot := 0
 var _tag := ""
 var _only := ""
 var _arm_drop := -1.0
+var _third := ""
 
 
 func _initialize() -> void:
@@ -264,6 +287,9 @@ func _initialize() -> void:
 			_only = arg.trim_prefix("--only=")
 		elif arg.begins_with("--arm-drop="):
 			_arm_drop = float(arg.trim_prefix("--arm-drop="))
+		elif arg.begins_with("--third="):
+			_third = arg.trim_prefix("--third=")
+			_only = "three_"
 	RenderingServer.set_debug_generate_wireframes(true)
 	# test renders stand in the calm idle (arms straight down); the game keeps the KayKit
 	# idle. Must be set before the first rig builds (and caches) the animation library.
@@ -288,6 +314,17 @@ func _initialize() -> void:
 	_rigs.append(new_rig)
 
 	_report(new_rig, glb)
+	if _third != "":
+		var third_model := _load_model(_third)
+		if third_model == null:
+			push_error("could not load " + _third)
+			quit(1)
+			return
+		var third_rig := _build_rig(third_model)
+		third_rig.name = "CharacterRig3"
+		world.add_child(third_rig)
+		_rigs.append(third_rig)
+		_report(third_rig, _third)
 
 	_cam = Camera3D.new()
 	_cam.fov = 30.0
@@ -325,7 +362,13 @@ func _build_rig(model: Node3D) -> Node3D:
 
 
 func _dress(rig: Node3D) -> void:
-	var suit := load(CLOTH) as Resource
+	var suit_path := CLOTH
+	var tie := Color(0.55, 0.12, 0.14)
+	if _third != "":
+		var combo: Array = THREE_SUITS[_rigs.find(rig)]
+		suit_path = combo[0]
+		tie = combo[1]
+	var suit := load(suit_path) as Resource
 	var shirt: Resource = load("res://data/scripts/material_type.gd").new()
 	shirt.set("id", &"shot_cream_poplin")
 	shirt.set("fabric", POPLIN)
@@ -337,7 +380,7 @@ func _dress(rig: Node3D) -> void:
 	var flats := {
 		"shoes": Color(0.16, 0.12, 0.10),
 		"buttons": Color(0.75, 0.62, 0.35),
-		"tie": Color(0.55, 0.12, 0.14),
+		"tie": tie,
 		"square": Color(0.92, 0.92, 0.9),
 		"left leg": Color(0.16, 0.12, 0.10),
 		"right leg": Color(0.16, 0.12, 0.10),
@@ -392,6 +435,9 @@ func _pose(shot: Array) -> void:
 	_rigs[1].position = Vector3(
 		0.0 if side_view else (HEM_GAP if hem else SEPARATION), 0.0, -HEM_GAP if side_view else 0.0
 	)
+	if _rigs.size() > 2:
+		for k in _rigs.size():
+			_rigs[k].position = Vector3((k - 1) * THREE_GAP, 0.0, 0.0)
 	root.debug_draw = (
 		Viewport.DEBUG_DRAW_WIREFRAME if name.contains("_wire") else Viewport.DEBUG_DRAW_DISABLED
 	)
@@ -401,6 +447,8 @@ func _pose(shot: Array) -> void:
 	var who: String = shot[5] if shot.size() > 5 else "both"
 	_rigs[0].visible = who != "new"
 	_rigs[1].visible = who != "old"
+	for k in range(2, _rigs.size()):
+		_rigs[k].visible = who == "all"
 	var ortho: float = shot[6] if shot.size() > 6 else 0.0
 	if ortho > 0.0:
 		_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -459,7 +507,7 @@ func _measure(shot: Array) -> void:
 		var legs := rig.find_child("legs", true, false) as MeshInstance3D
 		if skel == null or jacket == null or legs == null:
 			continue
-		print("  %s" % ("CHARTGEN1 (owner)" if rig == _rigs[0] else "CHARTGEN2 (new)"))
+		print("  %s" % ["CHARTGEN1 (owner)", "CHARTGEN2 (new)", "third rig"][_rigs.find(rig)])
 		# the owner's jacket has no vertices between |x| 0.30 and 0.45 (one long ring)
 		var jp := _skinned(jacket, skel)
 		for side in [1.0, -1.0]:
@@ -785,7 +833,7 @@ func _on_frame() -> void:
 				(tree as AnimationTree).active = false
 			var player := rig.get_node("AnimationPlayer") as AnimationPlayer
 			print("%s animations: %s" % [rig.name, player.get_animation_list()])
-	if _frame == 3 and _only != "" and not String(SHOTS[_shot][0]).begins_with(_only):
+	if _frame == 3 and _skip(String(SHOTS[_shot][0])):
 		_shot += 1
 		_frame = 2
 		if _shot >= SHOTS.size():
@@ -798,7 +846,11 @@ func _on_frame() -> void:
 	elif _frame == 10:
 		var image := root.get_texture().get_image()
 		var name := String(SHOTS[_shot][0])
-		var bare := name.begins_with("hem_") or name in ["hands_walk", "rise_walk", "knee_walk"]
+		var bare := (
+			name.begins_with("hem_")
+			or (_third != "" and name.begins_with("three_"))
+			or name in ["hands_walk", "rise_walk", "knee_walk"]
+		)
 		var prefix := "" if bare else "engine_"
 		var path := "%s/%s%s%s.png" % [OUT_DIR, prefix, _tag, name]
 		if name.begins_with("shoulder_"):
@@ -812,6 +864,16 @@ func _on_frame() -> void:
 		_frame = 0
 		if _shot >= SHOTS.size():
 			quit(0)
+
+
+## Whether --only (or --third) leaves this shot out. "three_quarter" is the two-rig view,
+## not one of the --third shots.
+func _skip(name: String) -> bool:
+	if _only == "":
+		return false
+	if _third != "" and name == "three_quarter":
+		return true
+	return not name.begins_with(_only)
 
 
 ## The game's autoloads bring their HUD along; the comparison is about the models.

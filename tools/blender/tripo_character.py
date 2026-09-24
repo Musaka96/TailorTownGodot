@@ -289,6 +289,12 @@ def _arguments(argv):
             default=None,
             help="metres of hand-over at the %s (default %.2f)" % (joint, width),
         )
+    p.add_argument(
+        "--fold-seams",
+        type=float,
+        default=0.0,
+        help="also cut the cloth along folds sharper than this many degrees (0 = off)",
+    )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
     ns = p.parse_args(args)
@@ -414,10 +420,66 @@ def step_classify(ns) -> None:
                 bpy.ops.mesh.customdata_custom_splitnormals_clear()
         for poly in obj.data.polygons:
             poly.use_smooth = True
+    if "legs" in bpy.data.objects and "shoes" in bpy.data.objects:
+        _shoe_bits_off_trousers(bpy.data.objects["legs"], bpy.data.objects["shoes"])
+    missing = [r for r in ROLES if r not in bpy.data.objects]
+    if missing:
+        log("  roles this model has no shell for (left out of the glb): %s" % ", ".join(missing))
     leftovers = [o for o in bpy.data.objects if o.type == "MESH"
                  and o.name not in ROLES and o not in rig_objects]
     for o in leftovers:
         bpy.data.objects.remove(o, do_unlink=True)
+
+
+def _shoe_bits_off_trousers(legs, shoes) -> None:
+    """Tripo sometimes fuses a bit of a shoe (a lace) into the trouser shell. A trouser
+    leg never reaches lower than its mirror twin, so faces below the other leg's lowest
+    point (less a small margin) are shoe, and move to the shoes mesh."""
+    me = legs.data
+    pts = [legs.matrix_world @ v.co for v in me.vertices]
+    height = max(p.z for p in pts) - min(p.z for p in pts)
+    lows = {}
+    for p in pts:
+        side = 1 if p.x > 0 else -1
+        lows[side] = min(lows.get(side, 1e9), p.z)
+    if len(lows) < 2:
+        return
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    moved = []
+    for f in bm.faces:
+        c = legs.matrix_world @ f.calc_center_median()
+        side = 1 if c.x > 0 else -1
+        if c.z < lows[-side] - 0.002 * height:
+            moved.append(f)
+    if not moved:
+        bm.free()
+        return
+    lo = min((legs.matrix_world @ f.calc_center_median()).z for f in moved)
+    hi = max((legs.matrix_world @ f.calc_center_median()).z for f in moved)
+    part = bmesh.new()
+    vmap = {}
+    for f in moved:
+        vs = []
+        for v in f.verts:
+            if v not in vmap:
+                vmap[v] = part.verts.new(legs.matrix_world @ v.co)
+            vs.append(vmap[v])
+        part.faces.new(vs)
+    bmesh.ops.delete(bm, geom=moved, context="FACES")
+    bm.to_mesh(me)
+    bm.free()
+    bit = bpy.data.meshes.new("shoe_bit")
+    part.to_mesh(bit)
+    part.free()
+    ob = bpy.data.objects.new("shoe_bit", bit)
+    bpy.context.scene.collection.objects.link(ob)
+    _select_only([shoes, ob], shoes)
+    bpy.ops.object.join()
+    for poly in shoes.data.polygons:
+        poly.use_smooth = True
+    log("  %d trouser faces below the other leg's hem (z %.3f..%.3f) are shoe: moved to shoes"
+        % (len(moved), lo, hi))
 
 
 def _import_rig(path) -> set:
@@ -539,13 +601,15 @@ def _classify(shells, named):
                    % (size, reach - sleeve_end))
         else:
             assign(s, "jacket", "sleeve zone (cuff button / trim)")
-    collar = [s for s in free() if abs(s["nc"].x) < CENTRE_X and s["nhi"].z > top - 0.05]
-    if collar and "shirt" not in named:
-        assign(max(collar, key=lambda s: s["nf"]), "shirt", "largest centred shell at the collar")
+    # the tie first: a long narrow centred shell is the tie even when it reaches the
+    # collar (a tie modelled with its knot in one piece does)
     for s in free():
         d = s["dims"]
         if abs(s["nc"].x) < CENTRE_X and d.z > 0.05 and d.z > 3.0 * max(d.x, 1e-6):
             assign(s, "tie", "centred, long and narrow (blade)")
+    collar = [s for s in free() if abs(s["nc"].x) < CENTRE_X and s["nhi"].z > top - 0.05]
+    if collar and "shirt" not in named:
+        assign(max(collar, key=lambda s: s["nf"]), "shirt", "largest centred shell at the collar")
     grew = True
     while grew:
         grew = False
@@ -563,9 +627,10 @@ def _classify(shells, named):
     chest = (hem + top) * 0.5
     pocket = [s for s in free() if s["pair"] is None and abs(s["nc"].x) > CENTRE_X
               and s["nc"].z > chest]
-    if len(pocket) >= 2:
+    if pocket:
         sq = min(pocket, key=lambda s: s["dims"].x)
-        assign(sq, "square", "unpaired chest piece, the narrowest (the welt is wider)")
+        assign(sq, "square", "unpaired chest piece, the narrowest (the welt is wider)"
+               if len(pocket) > 1 else "the only unpaired piece on the chest")
     for s in free():
         assign(s, "jacket", "torso default (flap / welt / trim)")
 
@@ -802,6 +867,23 @@ def step_uv(ns) -> None:
     log("  smart-projected (0..1): %s" % ", ".join(r for r in objs if r not in CLOTH_ROLES))
 
 
+def _fold_seams(bm, name, degrees) -> int:
+    """Seams along folds sharper than `degrees`: a trouser leg closed at the bottom, a
+    turned-up cuff, a lapel's roll edge. Flattening a tube together with the cap or the
+    fold on its end smears the whole piece; cut there, each part flattens on its own."""
+    limit = math.radians(degrees)
+    n = 0
+    for e in bm.edges:
+        if e.seam or len(e.link_faces) != 2:
+            continue
+        if e.calc_face_angle(0.0) > limit:
+            e.seam = True
+            n += 1
+    if n:
+        log("    %-7s %d edges on folds sharper than %.0f deg marked as seams" % (name, n, degrees))
+    return n
+
+
 def _unwrap_cloth(ns, obj, arm) -> None:
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -811,6 +893,8 @@ def _unwrap_cloth(ns, obj, arm) -> None:
         added += _auto_seams(bm, obj.name)
     if ns.shoulder_seams and obj.name == "jacket":
         added += _shoulder_seams(bm, obj.name)
+    if ns.fold_seams > 0.0:
+        added += _fold_seams(bm, obj.name, ns.fold_seams)
     added += _cut_to_disks(bm, obj.name, ns.sleeve_x, not ns.no_centre_cut)
     bm.to_mesh(obj.data)
     bm.free()
@@ -2589,7 +2673,7 @@ def step_export(ns) -> bool:
         export_cameras=False,
         export_lights=False,
     )
-    ok = _verify(stage, ns.rig)
+    ok = _verify(stage, ns.rig, [r for r in ROLES if r in _role_objects()])
     if not ok:
         log("  ABORT: export failed the check; %s left alone (staged file kept)" % ns.out.name)
         return False
@@ -2604,7 +2688,7 @@ def _glb_json(path):
     return json.loads(data[20 : 20 + length])
 
 
-def _verify(path, rig_path) -> bool:
+def _verify(path, rig_path, roles) -> bool:
     ours, ref = _glb_json(path), _glb_json(rig_path)
     ok = True
 
@@ -2621,7 +2705,7 @@ def _verify(path, rig_path) -> bool:
     check(sorted(joints) == sorted(ref_joints) and len(joints) == 22,
           "%d joints, same names as %s" % (len(joints), rig_path.name))
     meshes = {n.get("name"): n for n in nodes if "mesh" in n}
-    check(sorted(meshes) == sorted(ROLES), "mesh nodes %s" % sorted(meshes))
+    check(sorted(meshes) == sorted(roles), "mesh nodes %s" % sorted(meshes))
     for name, n in sorted(meshes.items()):
         prims = ours["meshes"][n["mesh"]]["primitives"]
         tris = sum(ours["accessors"][p["indices"]]["count"] // 3 for p in prims if "indices" in p)
@@ -2635,7 +2719,7 @@ def _verify(path, rig_path) -> bool:
     arms = [o for o in bpy.data.objects if o.type == "ARMATURE"]
     check(len(arms) == 1 and arms[0].name == "Rig_Medium" and len(arms[0].data.bones) == 22,
           "re-import: armature %s" % [(a.name, len(a.data.bones)) for a in arms])
-    for role in ROLES:
+    for role in roles:
         o = bpy.data.objects.get(role)
         good = o is not None and any(m.type == "ARMATURE" for m in o.modifiers)
         check(good, "re-import: %s bound to the armature" % role)
@@ -2762,6 +2846,8 @@ def _uv_layout(obj, path) -> str:
     img = np.zeros((size, size, 4), dtype=np.float32)
     img[:, :, 3] = 1.0
     img[:, :, :3] = 0.08
+    if obj.data.uv_layers.active is None:
+        return "(no UVs yet on %s)" % obj.name
     uvd = obj.data.uv_layers.active.data
     uvs = [uvd[i].uv.copy() for i in range(len(uvd))]
     lo = Vector((min(u.x for u in uvs), min(u.y for u in uvs)))
