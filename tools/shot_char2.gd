@@ -237,6 +237,9 @@ const SHOTS := [
 		0.0,
 		false
 	],
+	# walk-frame close-ups, new rig only; the camera is aimed from the bones (see _aim)
+	["hands_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, true],
+	["rise_walk", "walk", 0.25, Vector3.ZERO, Vector3.ZERO, "new", 0.0, false],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -404,6 +407,23 @@ func _pose(shot: Array) -> void:
 	else:
 		_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_cam.look_at_from_position(shot[3], shot[4], Vector3.UP)
+	if String(shot[0]) in ["hands_walk", "rise_walk"]:
+		_aim(String(shot[0]))
+
+
+## Point the camera at the new rig's left hand (hands_walk) or its crotch (rise_walk).
+func _aim(name: String) -> void:
+	var rig := _rigs[1]
+	var skel := rig.find_child("Skeleton3D", true, false) as Skeleton3D
+	if name == "hands_walk":
+		var hand := (
+			skel.global_transform * skel.get_bone_global_pose(skel.find_bone("hand.l")).origin
+		)
+		_cam.look_at_from_position(hand + Vector3(0.55, 0.2, 0.75), hand, Vector3.UP)
+	else:
+		var hips := skel.global_transform * skel.get_bone_global_pose(skel.find_bone("hips")).origin
+		var crotch := hips + Vector3(0.0, 0.12, 0.0)
+		_cam.look_at_from_position(crotch + Vector3(0.1, 0.05, 1.1), crotch, Vector3.UP)
 
 
 ## Rest pose except both upperarms, turned down `deg` degrees along the calm idle's arm
@@ -466,6 +486,11 @@ func _measure(shot: Array) -> void:
 				)
 			)
 		_hem_radii(lp, skel)
+		_hands_at_cuffs(rig, skel)
+		for part in ["legs", "jacket", "shirt"]:
+			var mi := rig.find_child(part, true, false) as MeshInstance3D
+			if mi != null:
+				_split_gaps(part, _skinned(mi, skel))
 		if rig == _rigs[1]:
 			_bone_angles(skel)
 
@@ -549,6 +574,87 @@ func _ring_tilt(points: Array, skel: Skeleton3D, side: float) -> float:
 	var shin := skel.get_bone_global_pose(b).origin - skel.get_bone_global_pose(a).origin
 	var ang := rad_to_deg(n.angle_to(shin))
 	return minf(ang, 180.0 - ang)
+
+
+## How far each hand ball's centre sits from the shirt cuff and the sleeve end (centres
+## of the vertices past |x| 0.60 / 0.66 at rest), at rest and in the current pose.
+func _hands_at_cuffs(rig: Node3D, skel: Skeleton3D) -> void:
+	var arms := rig.find_child("arms", true, false) as MeshInstance3D
+	var shirt := rig.find_child("shirt", true, false) as MeshInstance3D
+	var jacket := rig.find_child("jacket", true, false) as MeshInstance3D
+	if arms == null or shirt == null or jacket == null:
+		return
+	var ap := _skinned(arms, skel)
+	var sp := _skinned(shirt, skel)
+	var jp := _skinned(jacket, skel)
+	for side in [1.0, -1.0]:
+		var ball := _centre(ap, side, 0.0)
+		var cuff := _centre(sp, side, 0.60)
+		var sleeve := _centre(jp, side, 0.66)
+		var fore := skel.find_bone("lowerarm" + (".l" if side > 0 else ".r"))
+		var move := (
+			skel.get_bone_global_pose(fore) * skel.get_bone_global_rest(fore).affine_inverse()
+		)
+		print(
+			(
+				"    hand %s: ball centre %.1f cm off where a rigid forearm would carry it"
+				% ["+x" if side > 0 else "-x", (move * ball[0]).distance_to(ball[1]) * 100.0]
+			)
+		)
+		print(
+			(
+				(
+					"    hand %s: ball to shirt cuff %.3f m (rest %.3f), ball to sleeve end %.3f m"
+					+ " (rest %.3f)"
+				)
+				% [
+					"+x" if side > 0 else "-x",
+					ball[1].distance_to(cuff[1]),
+					ball[0].distance_to(cuff[0]),
+					ball[1].distance_to(sleeve[1]),
+					ball[0].distance_to(sleeve[0]),
+				]
+			)
+		)
+
+
+## [rest centre, posed centre] of one side's vertices with rest |x| past `min_x`.
+func _centre(points: Array, side: float, min_x: float) -> Array:
+	var rest := Vector3.ZERO
+	var posed := Vector3.ZERO
+	var n := 0
+	for pair in points:
+		var r: Vector3 = pair[0]
+		if r.x * side > 0.0 and absf(r.x) >= min_x:
+			rest += r
+			posed += pair[1]
+			n += 1
+	return [rest / maxf(n, 1), posed / maxf(n, 1)]
+
+
+## Vertices that coincide at rest (a split seam) but part in the pose: the widest gap and
+## how many such seams open by more than 1 mm.
+func _split_gaps(name: String, points: Array) -> void:
+	var groups := {}
+	for pair in points:
+		var r: Vector3 = pair[0]
+		var key := Vector3i(roundi(r.x * 10000.0), roundi(r.y * 10000.0), roundi(r.z * 10000.0))
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(pair[1])
+	var widest := 0.0
+	var opened := 0
+	for key in groups:
+		var ps: Array = groups[key]
+		if ps.size() < 2:
+			continue
+		var gap := 0.0
+		for p in ps:
+			gap = maxf(gap, (p as Vector3).distance_to(ps[0]))
+		widest = maxf(widest, gap)
+		if gap > 0.001:
+			opened += 1
+	print("    %s split seams: %d open by > 1 mm, widest %.1f cm" % [name, opened, widest * 100.0])
 
 
 ## Skeleton-space positions of a skinned mesh in the current pose, each paired with its
@@ -684,7 +790,8 @@ func _on_frame() -> void:
 	elif _frame == 10:
 		var image := root.get_texture().get_image()
 		var name := String(SHOTS[_shot][0])
-		var prefix := "" if name.begins_with("hem_") else "engine_"
+		var bare := name.begins_with("hem_") or name in ["hands_walk", "rise_walk"]
+		var prefix := "" if bare else "engine_"
 		var path := "%s/%s%s%s.png" % [OUT_DIR, prefix, _tag, name]
 		if name.begins_with("shoulder_"):
 			DirAccess.make_dir_recursive_absolute(

@@ -1597,7 +1597,7 @@ RIGID_BONES = {
     "buttons": {"chest", "spine"},
     "square": {"chest", "spine"},
     "shirt": {"chest", "lowerarm.l", "lowerarm.r"},
-    "arms": {"hand.l", "hand.r"},
+    "arms": {"lowerarm.l", "lowerarm.r"},
     "legs": {"hips", "upperleg.l", "upperleg.r", "lowerleg.l", "lowerleg.r"},
     "shoes": {"foot.l", "foot.r"},
     "head": {"head"},
@@ -1646,11 +1646,13 @@ def step_skin_rigid(ns) -> None:
         note = ""
         if role in ("jacket", "shirt", "legs"):
             mode = "legs" if role == "legs" else "sleeves"
+            # the trousers stay one piece (their seams are UV seams only); the jacket is
+            # split at the armholes so sleeves and body carry their own weights
             want = set()
             if role == "jacket":
                 want = ({"body"} if ns.body_caps else set()) | (
                     {"sleeve"} if ns.sleeve_caps else set())
-            labels, split, caps = _split_regions(obj, mode, ns.sleeve_x, want, True)
+            labels, split, caps = _split_regions(obj, mode, ns.sleeve_x, want, role != "legs")
             note = " | split along %d seam edges (%s)%s" % (
                 split, " / ".join(sorted(set(labels))),
                 (", %d armhole caps (%s)" % (len(caps), " + ".join(sorted(want)))) if caps else "")
@@ -1713,14 +1715,26 @@ def step_skin_rigid(ns) -> None:
             elif role == "shirt":
                 w = {"lowerarm" + sd: 1.0} if lab.startswith("sleeve") else {"chest": 1.0}
             elif role == "arms":
-                w = {"hand" + side(co.x): 1.0}
+                # the ball rides the forearm with the cuff: on `hand` it pivots at the
+                # wrist and the walk's wrist turn swings it off the sleeve end
+                w = {"lowerarm" + side(co.x): 1.0}
             elif role == "shoes":
                 w = {"foot" + side(co.x): 1.0}
             elif role == "legs":
-                if co.z >= knee_z + JOINT_BLEND / 2:
-                    w = hand_over(co.z, hip_z, "upperleg" + sd, "hips")
-                else:
-                    w = hand_over(co.z, knee_z, "lowerleg" + sd, "upperleg" + sd)
+                # one mesh, no split: each side's rule, blended across x = 0 over
+                # JOINT_BLEND so the rise and inseams stay closed when the legs part
+                def leg(sfx):
+                    if co.z >= knee_z + JOINT_BLEND / 2:
+                        return hand_over(co.z, hip_z, "upperleg" + sfx, "hips")
+                    return hand_over(co.z, knee_z, "lowerleg" + sfx, "upperleg" + sfx)
+
+                lx = co.x * math.copysign(1.0, head("upperarm.l").x)
+                t = min(max((lx + JOINT_BLEND / 2) / JOINT_BLEND, 0.0), 1.0)
+                w = {}
+                for sfx, share in ((".l", t), (".r", 1.0 - t)):
+                    if share > 0.0:
+                        for k, x in leg(sfx).items():
+                            w[k] = w.get(k, 0.0) + x * share
             else:
                 w = {HEAD_BONE: 1.0}
             for name, value in w.items():
