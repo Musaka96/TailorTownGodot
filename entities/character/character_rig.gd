@@ -94,6 +94,31 @@ const EXPR_HAPPY_MOUTH := 1.2  # mouth grows into a grin when pleased
 const NOD_ANGLE := 0.30
 const SHAKE_ANGLE := 0.34
 const GESTURE_STEP := 0.13
+# --- Procedural faces (proof of concept, off unless procedural_faces is set) ------
+# Each face sprite shows a blank square and draws its element with face_element.gdshader
+# from a FaceStyle (data/face_styles/); blinks, talking and expressions tween the style's
+# dials (openness, squint, mouth_open, mouth_curve, brow_raise ...) instead of swapping art.
+const FACE_SHADER := "res://assets/shaders/face_element.gdshader"
+const DEFAULT_FACE_STYLE := "res://data/face_styles/round.tres"
+const PROC_BLINK_CLOSE := 0.05
+const PROC_BLINK_HOLD := 0.05
+const PROC_BLINK_OPEN := 0.07
+const PROC_EXPR_TIME := 0.18
+const PROC_TALK_SPEED := 14.0  # mouth_open units per second while flapping
+
+## Read once when a rig builds its face: true = procedural faces (FaceStyle) instead of
+## the painted sprites. Flip it before the rig enters the tree.
+static var procedural_faces := false
+static var _face_mat: ShaderMaterial
+
+## Procedural faces only: the FaceStyle the face draws (null until set = round.tres).
+## Setting it clears any expression but keeps set_face_look()'s iris colour and nose. A
+## property rather than set_face_style(): this class is at gdlint's public-method limit.
+var face_style: FaceStyle:
+	get:
+		return _face_style
+	set(style):
+		_set_face_style(style)
 
 var _tree: AnimationTree
 var _loco := 0.0  # current idle(0)->walk(1) blend
@@ -126,6 +151,14 @@ var _talk_timer := 0.0
 var _talk_open := false
 var _syllable_left := 0.0  # > 0 while a syllable() holds the mouth open
 var _blink: Timer
+var _proc := false  # this rig's face is procedural (procedural_faces when it was built)
+var _face_style: FaceStyle
+var _look_set := false  # set_face_look() was called (its iris/nose override the style)
+var _dials := {}  # current values of the animated FaceStyle fields
+var _expr_target := {}  # the expression's dials the face is heading to / holding
+var _blink_tween: Tween
+var _expr_tween: Tween
+var _mouth_open_target := 0.0
 # Each slot maps role -> MeshInstance3D currently filling it.
 var _head: Dictionary = {}
 var _top: Dictionary = {}
@@ -207,6 +240,9 @@ func _build_face() -> void:
 	_nose.name = "nose"
 	_mouth.name = "mouth"
 	_glasses.name = "glasses"
+	_proc = procedural_faces
+	if _proc:
+		_make_procedural()
 	apply_layout(_layout)
 	_apply_glasses()  # honour any look set before the face was built
 	_blink = Timer.new()
@@ -292,6 +328,10 @@ func _place_pair(
 func set_talking(on: bool) -> void:
 	_talking = on
 	_talk_timer = 0.0
+	if _proc:
+		if not on and _syllable_left <= 0.0:
+			_mouth_open_target = 0.0
+		return
 	if not on and _syllable_left <= 0.0:
 		_show_mouth(_mouth_index)
 
@@ -299,11 +339,17 @@ func set_talking(on: bool) -> void:
 ## Open the mouth for one syllable (lip-sync to a talk sound), then close it again.
 func syllable() -> void:
 	_syllable_left = SYLLABLE_TIME
+	if _proc:
+		_mouth_open_target = randf_range(0.5, 0.9)
+		return
 	_show_mouth(_open_frame())
 
 
 func _update_mouth(delta: float) -> void:
 	if _mouth == null:
+		return
+	if _proc:
+		_update_mouth_proc(delta)
 		return
 	if _syllable_left > 0.0:
 		_syllable_left -= delta
@@ -373,6 +419,9 @@ func _shake() -> void:
 
 func _apply_expression(mood: int) -> void:
 	_expr = mood
+	if _proc:
+		_proc_expression("happy" if mood > 0 else ("displeased" if mood < 0 else ""))
+		return
 	if _layout == null:
 		return
 	var lift := EXPR_BROW_LIFT * mood
@@ -459,6 +508,10 @@ func _schedule_blink() -> void:
 
 ## Blink by swapping the eyes to the squashed "closed" frame for a moment.
 func _do_blink() -> void:
+	if _proc:
+		_proc_blink()
+		_schedule_blink()
+		return
 	_set_eye_tex(_tex("eye_closed"))
 	get_tree().create_timer(BLINK_TIME).timeout.connect(_open_eyes)
 	_schedule_blink()
@@ -480,6 +533,13 @@ func _set_eye_tex(tex: Texture2D) -> void:
 func set_face_look(eye_color: String, glasses: String, nose := -1, mouth := -1) -> void:
 	_eye_color = eye_color if eye_color in EYE_COLORS else "brown"
 	_glasses_kind = glasses
+	_look_set = true
+	if _proc:
+		if nose >= 0:
+			_nose_index = nose
+		_proc_look()
+		_apply_glasses()
+		return
 	if nose >= 0:
 		_set_nose(nose)
 	if mouth >= 0:
@@ -534,6 +594,140 @@ func _set_mouth(index: int) -> void:
 	_mouth_index = posmod(index, maxi(1, variant_count("mouth")))
 	if _mouth != null:
 		_mouth.texture = _tex("mouth_%d" % _mouth_index)
+
+
+# --- Procedural face (POC) -------------------------------------------------
+
+
+func _set_face_style(style: FaceStyle) -> void:
+	_face_style = style
+	_dials.clear()
+	_expr_target = {}
+	if _look_set:
+		_proc_look()
+	if _proc:
+		_push_face()
+
+
+## Swap every face sprite (not the glasses) to a blank square of its element's size,
+## drawn by the one shared face shader, and push the style into it.
+func _make_procedural() -> void:
+	if _face_mat == null:
+		_face_mat = ShaderMaterial.new()
+		_face_mat.shader = load(FACE_SHADER) as Shader
+	if _face_style == null:
+		_face_style = load(DEFAULT_FACE_STYLE) as FaceStyle
+	for part: Array in _face_parts():
+		var s := part[0] as Sprite3D
+		s.texture = FaceStyle.blank_texture(part[1])
+		s.material_override = _face_mat
+	if _look_set:
+		_proc_look()
+	_push_face()
+
+
+## [sprite, FaceStyle.Element, mirrored] for every procedural face element.
+func _face_parts() -> Array:
+	var e := FaceStyle.Element
+	return [
+		[_eye_l, e.EYE, false],
+		[_eye_r, e.EYE, true],
+		[_brow_l, e.BROW, false],
+		[_brow_r, e.BROW, true],
+		[_nose, e.NOSE, false],
+		[_mouth, e.MOUTH, false],
+	]
+
+
+## Push the style + current dials into the face (only `element` when >= 0).
+func _push_face(element := -1) -> void:
+	if not _proc or _face_style == null:
+		return
+	for part: Array in _face_parts():
+		if part[0] != null and (element < 0 or part[1] == element):
+			_face_style.apply(part[0], part[1], _dials, part[2])
+
+
+## set_face_look() in procedural terms: the named eye colour tints the iris and the nose
+## index picks a nose kind; the mouth stays the style's.
+func _proc_look() -> void:
+	var fallback := _face_style_or_default().iris_color
+	_dials["iris_color"] = FaceStyle.IRIS_COLORS.get(_eye_color, fallback)
+	_dials["nose_kind"] = posmod(_nose_index, FaceStyle.NOSE_KINDS)
+	_push_face()
+
+
+func _face_style_or_default() -> FaceStyle:
+	if _face_style == null:
+		_face_style = load(DEFAULT_FACE_STYLE) as FaceStyle
+	return _face_style
+
+
+## Resting value of a dial: the held expression's, else the style's own.
+func _rest(key: String) -> Variant:
+	return _expr_target.get(key, _face_style_or_default().get(key))
+
+
+func _set_dial(value: Variant, key: String, element: int) -> void:
+	_dials[key] = value
+	_push_face(element)
+
+
+func _proc_blink() -> void:
+	if _blink_tween != null and _blink_tween.is_valid():
+		_blink_tween.kill()
+	var rest: float = _rest("openness")
+	var set_open := _set_dial.bind("openness", FaceStyle.Element.EYE)
+	_blink_tween = create_tween()
+	_blink_tween.tween_method(set_open, rest, 0.0, PROC_BLINK_CLOSE)
+	_blink_tween.tween_interval(PROC_BLINK_HOLD)
+	_blink_tween.tween_method(set_open, 0.0, rest, PROC_BLINK_OPEN)
+
+
+## Tween the face to a named FaceStyle.expression() ("" = back to the resting style).
+func _proc_expression(state: String) -> void:
+	var style := _face_style_or_default()
+	var target := style.expression(state) if state != "" else {}
+	var from := {}
+	var to := {}
+	for k: String in _expr_target.keys() + target.keys():
+		var goal: Variant = target.get(k, style.get(k))
+		if goal is int:
+			_dials[k] = goal  # kinds switch, they don't blend
+			continue
+		from[k] = _dials.get(k, style.get(k))
+		to[k] = goal
+	_expr_target = target
+	if _expr_tween != null and _expr_tween.is_valid():
+		_expr_tween.kill()
+	_expr_tween = create_tween()
+	_expr_tween.tween_method(_blend_dials.bind(from, to), 0.0, 1.0, PROC_EXPR_TIME)
+
+
+func _blend_dials(t: float, from: Dictionary, to: Dictionary) -> void:
+	for k: String in to:
+		_dials[k] = lerp(from[k], to[k], t)
+	_push_face()
+
+
+## Talking on a procedural face: the mouth_open dial chases a flapping target.
+func _update_mouth_proc(delta: float) -> void:
+	if _syllable_left > 0.0:
+		_syllable_left -= delta
+		if _syllable_left <= 0.0:
+			_mouth_open_target = 0.0
+	elif _talking:
+		_talk_timer -= delta
+		if _talk_timer <= 0.0:
+			_talk_open = not _talk_open
+			_talk_timer = randf_range(0.07, 0.12)
+			_mouth_open_target = randf_range(0.45, 0.9) if _talk_open else 0.05
+	var rest: float = _rest("mouth_open")
+	var goal := maxf(_mouth_open_target, rest)
+	var cur: float = _dials.get("mouth_open", rest)
+	if not is_equal_approx(cur, goal):
+		_dials["mouth_open"] = move_toward(cur, goal, PROC_TALK_SPEED * delta)
+		_push_face(FaceStyle.Element.MOUTH)
 
 
 # --- Carrying --------------------------------------------------------------

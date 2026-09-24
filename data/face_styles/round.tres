@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_enb1x"]
+
+[resource]
+script = ExtResource("1_enb1x")

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_wfw3c"]
+
+[resource]
+script = ExtResource("1_wfw3c")
+eye_radii = Vector2(0.64, 0.82)
+iris_radius = 0.54
+pupil_radius = 0.3
+highlight2_radius = 0.16
+iris_color = Color(0.24705882, 0.37254903, 0.56078434, 1)
+pupil_color = Color(0.10980392, 0.14901961, 0.2509804, 1)
+brow_thickness = 0.34
+brow_arch = 0.2
+nose_size = 1.0
+mouth_kind = 3
+mouth_curve = 0.7

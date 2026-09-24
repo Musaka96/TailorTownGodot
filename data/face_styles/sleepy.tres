@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_1mc1k"]
+
+[resource]
+script = ExtResource("1_1mc1k")
+gaze = Vector2(0, -0.2)
+openness = 0.55
+iris_color = Color(0.47843137, 0.3529412, 0.1882353, 1)
+pupil_color = Color(0.18039216, 0.12156863, 0.0627451, 1)
+brow_thickness = 0.36
+brow_arch = 0.05
+brow_raise = -0.14
+nose_kind = 4
+nose_color = Color(0.6901961, 0.4392157, 0.3529412, 1)
+mouth_width = 1.0
+mouth_curve = 0.1
