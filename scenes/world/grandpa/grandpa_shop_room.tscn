@@ -242,21 +242,40 @@ cut_height = 0.96
 up_height = 3.4
 
 [node name="FacadeFader" type="Node3D" parent="." unique_id=1500852302]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 1, 5.34)
 script = ExtResource("40_roofm")
 roof_path = NodePath("../GrandpaShell/Spots/front_boards")
-interior_extents = Vector3(9.4, 1.8, 5.1)
+interior_extents = Vector3(4, 1.8, 3.05)
 
 [node name="GrandpaShell" parent="." unique_id=2136563322 instance=ExtResource("gp_shell")]
 
 [node name="RenovationDirector" type="Node3D" parent="." unique_id=306452030]
 script = ExtResource("gp_director")
 
-[node name="ShopFrontFade" type="Node3D" parent="." unique_id=1417368224]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.65, 1, 3.34)
+[node name="FrontFade" type="Node3D" parent="." unique_id=169495625]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 1, 5.34)
 script = ExtResource("70_wallcut")
-walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Body")
-skip_prefixes = PackedStringArray()
+walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Front_front")
+skip_prefixes = PackedStringArray("wall_cap", "cornice", "band")
+interior_extents = Vector3(4, 1.8, 3.05)
+cut_height = 0.96
+up_height = 3.4
+
+[node name="NookFade" type="Node3D" parent="." unique_id=297702175]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.65, 1, 5.34)
+script = ExtResource("70_wallcut")
+walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Front_nook")
+skip_prefixes = PackedStringArray("wall_cap", "cornice", "band")
+interior_extents = Vector3(2, 1.8, 3.05)
+cut_height = 0.96
+up_height = 3.4
+
+[node name="NextFade" type="Node3D" parent="." unique_id=642926865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.65, 1, 2.34)
+script = ExtResource("70_wallcut")
+walls_path = NodePath("../GrandpaShop/grandpa_shop_v8/grandpa_shop_v8_Front_next")
+skip_prefixes = PackedStringArray("wall_cap", "cornice", "band")
+interior_extents = Vector3(3, 1.8, 4)
 cut_height = 0.96
 up_height = 3.4
 

@@ -6,7 +6,7 @@ extends Node3D
 ## `fade_band` metres; when they step out, the walls come back solid.
 ##
 ## Why: the street fronts are cut at 1.1 m in Blender (build_v8_grandpa.py, CUT = 1.1)
-## and RoofManager hides the upper half while you are inside. What is left ends in a hard
+## and the upper half used to simply vanish while you were inside. What is left ends in a hard
 ## horizontal line with a dark cap on it, and from inside the shop it reads as a wall
 ## somebody sawed in half rather than as a wall the camera is seeing past. The fade turns
 ## that edge into an effect. See materials/wall_cutaway.gdshader.
@@ -64,6 +64,11 @@ var _cut_mats: Array[ShaderMaterial] = []
 var _by_src := {}
 var _plain: Array[GeometryInstance3D] = []
 var _faded: Array[MeshInstance3D] = []
+## Glass is see-through already and has no fade of its own, so a pane reaching up into the
+## fading band would hang there over a wall that has gone: those go while the wall is
+## down and come back once it stands whole. Pairs of [MeshInstance3D, surface].
+var _glass: Array = []
+var _gone: StandardMaterial3D
 var _inside := false
 var _established := false
 var _tween: Tween
@@ -149,8 +154,13 @@ func _convert(root: Node, skip: PackedStringArray, only: PackedStringArray) -> v
 			continue
 		for s in mi.mesh.get_surface_count():
 			var src := mi.get_active_material(s) as BaseMaterial3D
-			if src == null or src.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
-				continue  # glass and the like stay exactly as imported
+			if src == null:
+				continue
+			if src.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+				# Glass and the like stay exactly as imported while the wall is whole.
+				if _top_of(mi, s) > cut_height - fade_band():
+					_glass.append([mi, s])
+				continue
 			mi.set_surface_override_material(s, _material_for(src))
 			if not _faded.has(mi):
 				_faded.append(mi)
@@ -158,6 +168,15 @@ func _convert(root: Node, skip: PackedStringArray, only: PackedStringArray) -> v
 				# wainscot, its window) otherwise swap order from frame to frame and the
 				# fading band flickers.
 				mi.sorting_offset = SORT_STEP * _faded.size()
+
+
+## World height of the top of one surface of a piece.
+func _top_of(mi: MeshInstance3D, surface: int) -> float:
+	var verts: PackedVector3Array = mi.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+	var top := -1e9
+	for v in verts:
+		top = maxf(top, (mi.global_transform * v).y)
+	return top
 
 
 func _matches(piece: String, prefixes: PackedStringArray) -> bool:
@@ -258,19 +277,23 @@ func _contains(world_pos: Vector3) -> bool:
 func _apply_instant(cut: bool) -> void:
 	_set_cut(cut_height if cut else up_height)
 	_show_plain(not cut and not held)
+	_show_glass(not cut)
 
 
 func _slide_to(cut: bool) -> void:
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	# The roof goes the moment the walls start sinking and only lands once they are back
-	# up — either way it is never left hanging over open air.
+	# up — either way it is never left hanging over open air. The glass the same.
 	if cut:
 		_show_plain(false)
+		_show_glass(false)
 	var from: float = _cut_mats[0].get_shader_parameter("cut_height") if _cut_mats else up_height
 	var to := cut_height if cut else up_height
 	_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tween.tween_method(_set_cut, from, to, fade_time)
+	if not cut:
+		_tween.tween_callback(_show_glass.bind(true))
 	if not cut and not held:  # a hold brings the walls back, never the roof
 		_tween.tween_callback(_show_plain.bind(true))
 
@@ -283,3 +306,15 @@ func _set_cut(height: float) -> void:
 func _show_plain(on: bool) -> void:
 	for gi in _plain:
 		gi.visible = on
+
+
+func _show_glass(on: bool) -> void:
+	if _glass.is_empty():
+		return
+	if _gone == null:  # draws nothing: the pane is simply not there
+		_gone = StandardMaterial3D.new()
+		_gone.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_gone.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_gone.albedo_color = Color(1, 1, 1, 0)
+	for pane: Array in _glass:
+		(pane[0] as MeshInstance3D).set_surface_override_material(pane[1], null if on else _gone)
