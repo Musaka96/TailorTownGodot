@@ -206,3 +206,19 @@ sky, 12 tattersall crimson and ink on ecru, 13 tattersall sky and forest on whit
 14 end-on-end sky, 15 end-on-end lavender. Palette: white `#f2f0e8`, ecru `#e9e1cf`,
 sky `#9fc0e0`, blue `#3a4a63`, pink `#c98a96`, mint `#7fae8f`, lavender `#9a8fc0`,
 crimson `#7a2230`, ink `#20222a`, forest `#2f5d3e`.
+
+---
+
+## Experiment scene (2026-09-24)
+
+`scenes/dev/cloth_refs.tscn` rebuilds a reference sheet in-engine, swatch for swatch, with
+`materials/cloth_experiment.gdshader` (photo-derived linear grain under a flat dye, Charlie
+sheen + wrapped diffuse + optional warp anisotropy in `light()`). Nothing in the game uses it.
+
+- `python tools/cloth_refs/make_grain.py` cuts the 15 squares from each sheet in
+  `IMPORT/cloth_refs/S_sheet_*.webp`, writes linear grain (mean 0.25) + normal maps to
+  `assets/dev/cloth_refs/` and the mean dye colours to `refs.json`.
+- Shot: `godot --path . --script res://tools/screenshot.gd -- res://scenes/dev/cloth_refs.tscn res://.dev/x.png 90 sheet=suitings mode=direct` (`mode=game` swaps squares 6/7/8/10 for
+  solid grain + the game's pattern tiles; `flat=1` disables the cloth lighting; `energy=`).
+- `python tools/cloth_refs/compare.py compose` writes `IMPORT/cloth_refs/compare_*.png`.
+- Exposure calibrated to the scan: ambient = sun = 0.546, linear tonemap.

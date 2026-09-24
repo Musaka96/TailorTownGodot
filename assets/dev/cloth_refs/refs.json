@@ -1,0 +1,152 @@
+{
+ "layout": {
+  "suitings": {
+   "cell_aspect": 1.0473,
+   "gap": 0.015,
+   "sheet_aspect": 1.75,
+   "fill_h": 0.9863,
+   "offset_x": -0.0073,
+   "offset_y": -0.0049,
+   "grid_px": [
+    1773,
+    1010
+   ]
+  },
+  "shirtings": {
+   "cell_aspect": 1.0244,
+   "gap": 0.015,
+   "sheet_aspect": 1.75,
+   "fill_h": 0.9873,
+   "offset_x": -0.0078,
+   "offset_y": -0.0015,
+   "grid_px": [
+    1750,
+    1011
+   ]
+  }
+ },
+ "suitings": [
+  {
+   "n": 1,
+   "color": "#202836"
+  },
+  {
+   "n": 2,
+   "color": "#585858"
+  },
+  {
+   "n": 3,
+   "color": "#504136"
+  },
+  {
+   "n": 4,
+   "color": "#393b3d"
+  },
+  {
+   "n": 5,
+   "color": "#9c8973"
+  },
+  {
+   "n": 6,
+   "color": "#282c36"
+  },
+  {
+   "n": 7,
+   "color": "#575857"
+  },
+  {
+   "n": 8,
+   "color": "#6a655d"
+  },
+  {
+   "n": 9,
+   "color": "#4c4d42"
+  },
+  {
+   "n": 10,
+   "color": "#3c2529"
+  },
+  {
+   "n": 11,
+   "color": "#beae98"
+  },
+  {
+   "n": 12,
+   "color": "#556373"
+  },
+  {
+   "n": 13,
+   "color": "#1d282f"
+  },
+  {
+   "n": 14,
+   "color": "#887d6e"
+  },
+  {
+   "n": 15,
+   "color": "#343433"
+  }
+ ],
+ "shirtings": [
+  {
+   "n": 1,
+   "color": "#d0cfd2"
+  },
+  {
+   "n": 2,
+   "color": "#81a5d0"
+  },
+  {
+   "n": 3,
+   "color": "#d3d1cf"
+  },
+  {
+   "n": 4,
+   "color": "#a2b4ce"
+  },
+  {
+   "n": 5,
+   "color": "#cec9bc"
+  },
+  {
+   "n": 6,
+   "color": "#a2b6d1"
+  },
+  {
+   "n": 7,
+   "color": "#d3b8c2"
+  },
+  {
+   "n": 8,
+   "color": "#aab6ca"
+  },
+  {
+   "n": 9,
+   "color": "#b3c2ba"
+  },
+  {
+   "n": 10,
+   "color": "#d3a4b1"
+  },
+  {
+   "n": 11,
+   "color": "#96b3d5"
+  },
+  {
+   "n": 12,
+   "color": "#9fbbac"
+  },
+  {
+   "n": 13,
+   "color": "#d3cbab"
+  },
+  {
+   "n": 14,
+   "color": "#b3bfce"
+  },
+  {
+   "n": 15,
+   "color": "#a7a7a6"
+  }
+ ]
+}
