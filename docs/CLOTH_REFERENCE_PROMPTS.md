@@ -164,3 +164,45 @@ Palettes below always end with form `#d9cfb8` and wall `#e8e3d8`.
   in-game swatch without a colour shift getting in the way of a weave comparison. Where
   a real cloth needs a second tone the game does not name (flannel melange, tweed rust,
   glen check overcheck), the value is picked to sit inside the game palette family.
+
+---
+
+## Contact sheets: 15 swatches in one image
+
+Same prefix and suffix idea, but the subject is a numbered list in a fixed reading
+order (left to right, top to bottom, three rows of five). Generate at 1536x1024 landscape.
+Models drop or merge items past about twelve, so run each sheet two or three times and
+keep the one where the order held. Save as `S_sheet_suitings.png` and
+`S_sheet_shirtings.png`.
+
+Sheet prefix (replaces the S prefix):
+
+```
+A flatbed scanner capture of fifteen tailor's cloth-bunch swatches laid face down on the
+glass in three rows of five, each swatch a ten centimetre square, all the same size,
+sitting edge to edge with only a thin line of the black scanner lid showing between them.
+Flat, even, frontal light with no single light source, as a scanner gives. True top-down
+capture with no perspective. Every swatch shows its weave at scanner scale so individual
+threads are just visible. A few swatches sit a degree off square and two have a loose
+thread end at one edge.
+
+Reading left to right, top to bottom, the swatches are:
+```
+
+Then the numbered list, then the S suffix with the union of the palettes and
+`scanner lid black #0a0a0a` added.
+
+**Suitings sheet order:** 1 worsted navy solid, 2 flannel mid grey solid, 3 tweed brown
+solid, 4 mohair charcoal solid, 5 linen tan solid, 6 pinstripe navy, 7 herringbone grey,
+8 houndstooth charcoal/chalk, 9 windowpane navy, 10 glen check grey with sky overcheck,
+11 birdseye burgundy, 12 sharkskin light grey, 13 nailhead charcoal, 14 cotton drill
+white solid, 15 tweed grey herringbone. Subject wording per item is the S1/S2 table
+line, shortened to one clause.
+
+**Shirtings sheet order:** 1 poplin white, 2 poplin sky, 3 oxford white, 4 oxford sky,
+5 poplin ecru, 6 Bengal stripe sky on white, 7 Bengal stripe pink on white, 8 university
+stripe blue on oxford, 9 university stripe mint on oxford, 10 gingham pink, 11 gingham
+sky, 12 tattersall crimson and ink on ecru, 13 tattersall sky and forest on white,
+14 end-on-end sky, 15 end-on-end lavender. Palette: white `#f2f0e8`, ecru `#e9e1cf`,
+sky `#9fc0e0`, blue `#3a4a63`, pink `#c98a96`, mint `#7fae8f`, lavender `#9a8fc0`,
+crimson `#7a2230`, ink `#20222a`, forest `#2f5d3e`.
