@@ -222,3 +222,38 @@ sheen + wrapped diffuse + optional warp anisotropy in `light()`). Nothing in the
   solid grain + the game's pattern tiles; `flat=1` disables the cloth lighting; `energy=`).
 - `python tools/cloth_refs/compare.py compose` writes `IMPORT/cloth_refs/compare_*.png`.
 - Exposure calibrated to the scan: ambient = sun = 0.546, linear tonemap.
+
+---
+
+## Leather sheet: shoes (8 swatches in one image)
+
+Same scanner idea as the cloth sheets, but leather is glossy, so the scan is replaced by a
+copy-stand photograph under one soft light. Generate at 1536x1024 landscape. Save as
+`IMPORT/cloth_refs/S_sheet_leather.png`. Reading order left to right, top to bottom, two rows
+of four.
+
+```
+A copy-stand photograph of eight shoemaker's leather swatches laid flat on a black felt
+board in two rows of four, each swatch a ten centimetre square, all the same size, edge to
+edge with only a thin line of the black felt between them. One large soft light from above
+and slightly to the left, so the grain of each leather shows as small highlights and the
+polished ones show one soft broad reflection, never a hard glare. True top-down view with no
+perspective. The threads and grain are seen at real size. Two swatches have a slightly
+skived edge and one has a faint crease across a corner.
+
+Reading left to right, top to bottom, the swatches are:
+1. black box calf, smooth, tight fine grain, high polish, deep soft reflection;
+2. dark brown calf, smooth, medium polish, warm undertone;
+3. oxblood shell cordovan, very smooth, glassy polish, deep red-brown;
+4. tan calf, smooth, light polish, honey colour;
+5. black pebble grain, embossed pebbled surface, low polish, matte between the pebbles;
+6. chestnut Scotch grain, coarse embossed grain, medium polish;
+7. dark brown suede, short velvet nap, completely matte, lighter where the nap is brushed;
+8. black patent, mirror gloss, the reflection of the softbox visible as one white shape.
+
+Real leather, not a drawing and not a render. No bloom, no lens blur, no depth of field, no
+vignette, no added drop shadow, no floating particles. The colours are only: black #141416,
+dark brown #3a2a1e, oxblood #4a1d1e, tan #a8743f, chestnut #6b3f24, suede brown #4a3627,
+felt black #0a0a0a, highlight white #f2f0e8. No text, no watermark, no signature, no border,
+no frame, no horizon, no people.
+```
