@@ -83,7 +83,7 @@ the face is blank.
 
 | shape | line |
 |---|---|
-| `egg` | The skull is an egg about as tall as it is wide with the ears, widest at the ear line, with a full round crown and a small soft chin. |
+| `egg` | The skull is a squat wide egg, wider than it is tall once the ears are counted, the crown a wide low dome, the cheeks full and the jaw broad so the head keeps almost its full width down to a wide soft chin, the front of the face gently flattened, the ears centred on the middle of the head's height. |
 | `round` | The skull is a ball, as wide as it is tall, the cheeks and chin one continuous curve with no jaw corners. |
 | `square` | The skull is a rounded box: a flat top, nearly straight sides and a wide square jaw with rounded corners. |
 | `long` | The skull is a tall oval, clearly taller than it is wide, with a high forehead and a long chin. |
@@ -179,6 +179,15 @@ sit too close to `#e4b083` and get merged into the skull, so leave them out.
 | hair, old | silver `#8e9196`, white `#e9e6df` |
 | background with dark hair | cream `#e5dbd1` (the suit sheets used it) |
 | background with silver or white hair | slate `#3e4a55` |
+
+## Round 1 (2026-09-24)
+
+First egg run with the original egg line ("about as tall as it is wide"): the layout,
+blank face, disc ears, neck cut and flat background all held on the first try. The skull
+came back as a tall egg (widest at the ear line, then tapering fast to a narrow chin, the
+skull 0.84 as wide as tall without ears), which is the model's default head. The egg line
+above was rewritten to push the width down into the cheeks and jaw and to put the ears at
+mid height; the prefix was left alone since everything in it worked.
 
 ## Check before Tripo
 
