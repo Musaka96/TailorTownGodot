@@ -16,6 +16,13 @@ uniform float pattern_strength = 0.85;
 uniform float pattern_scale = 1.0;
 uniform float pattern_intensity = 1.0;
 uniform float pattern_relief = 0.85;
+// Scanned-swatch photo grain (Cloth Look v3), the same multiply as cloth.gdshader:
+// a linear ratio tile with mean grain_mean, under the dye. 0 = off (the old swatch).
+uniform sampler2D grain_tex : filter_linear_mipmap, repeat_enable;
+uniform float grain_strength = 0.0;
+uniform float grain_mean = 0.25;
+uniform float grain_scale = 1.85;
+uniform float grain_contrast = 1.0;
 uniform vec2 rect_size = vec2(84.0, 84.0);
 uniform float corner_radius = 16.0;
 
@@ -32,6 +39,8 @@ void fragment() {
 	vec3 col = mix(cloth_color.rgb, pattern_color.rgb, cover);
 	col = mix(col, pattern_color2.rgb, cover2);
 	col *= grain;
+	vec3 photo = texture(grain_tex, UV * grain_scale).rgb;
+	col *= mix(vec3(1.0), mix(vec3(grain_mean), photo, grain_contrast) / grain_mean, grain_strength);
 	col *= mix(1.0, pat.g * 2.0, pattern_relief);
 
 	// Rounded-rectangle mask (signed distance) with 1px anti-aliasing.

@@ -110,6 +110,10 @@ func setup(mat: MaterialType, remaining: float) -> void:
 	)
 	var fabric_name := ClothMaterial.fabric_tex_name(int(mat.fabric))
 	_shader_mat.set_shader_parameter("fabric_tex", ClothMaterial.texture("fabrics", fabric_name))
+	# The scanned photo grain under the dye, as on the 3D cloth (Cloth Look v3).
+	var grain_name := ClothMaterial.fabric_grain_name(int(mat.fabric))
+	_shader_mat.set_shader_parameter("grain_tex", ClothMaterial.texture("grain", grain_name))
+	_shader_mat.set_shader_parameter("grain_strength", 1.0)
 	var pattern_name := ClothMaterial.pattern_tex_name(pat)
 	_shader_mat.set_shader_parameter("pattern_tex", ClothMaterial.texture("patterns", pattern_name))
 	# One tile fills the swatch, so the garment's density and intensity carry over.

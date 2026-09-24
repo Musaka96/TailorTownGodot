@@ -10,8 +10,9 @@ extends Control
 ## Judge everything at the "Gameplay cam" preset — close-ups lie.
 ##
 ## Command-line (for automated shots via tools/screenshot.gd, after the scene/out/frames
-## args): subject=N fabric=N pattern=N color=N preset=live|off|tier1 cam=game light=raking
-## rim=V (selected fabric), or any global dial as key=V (e.g. rim_tint=0.3). Order matters.
+## args): subject=N fabric=N pattern=N color=N preset=live|off|tier1|v2|photo cam=game
+## light=raking rim=V (selected fabric), or any global dial as key=V (e.g. rim_tint=0.3).
+## Order matters.
 
 const RIG_SCENE := preload("res://entities/character/character_rig.tscn")
 const ROLL_SCENE := preload("res://entities/items/material_roll.tscn")
@@ -37,9 +38,37 @@ const GAME_FOV := 75.0
 # Tier 1 bundle: the tuned values the "Tier 1" preset switches on. Features whose
 # uniform isn't in the shader yet are shown greyed out and never sent.
 const TIER1 := {"normal_depth": 1.8, "macro_strength": 0.12}
+# Cloth Look v2 (before the photo grain) and v3 "photo" (what the .tres ships now):
+# the "v2" / "photo" presets. Cloth sheen (per fabric) is off in v2, on in photo.
+const LOOK_V2 := {
+	"fabric_strength": 0.5,
+	"normal_depth": 1.8,
+	"grain_strength": 0.0,
+	"pattern_fuzz": 0.0,
+	"wrap": 0.0,
+}
+const LOOK_PHOTO := {
+	"fabric_strength": 0.2,
+	"normal_depth": 1.2,
+	"grain_strength": 1.0,
+	"grain_scale": 1.85,
+	"grain_contrast": 1.0,
+	"pattern_fuzz": 1.0,
+	"wrap": 0.25,
+	"sheen_roughness": 0.8,
+	"sheen_tint": 0.5,
+}
 # Globals that live on the base .tres (tools/build_cloth_materials.gd).
 const BASE_KEYS := [
-	"fabric_strength", "pattern_strength", "pattern_relief", "rim_power", "rim_tint"
+	"fabric_strength",
+	"pattern_strength",
+	"pattern_relief",
+	"rim_power",
+	"rim_tint",
+	"grain_scale",
+	"grain_contrast",
+	"sheen_roughness",
+	"sheen_tint",
 ]
 # Global shader dials: [key, label, min, max, step].
 const GLOBAL_DIALS := [
@@ -47,12 +76,19 @@ const GLOBAL_DIALS := [
 	["pattern_strength", "pattern_strength", 0.0, 1.0, 0.01],
 	["pattern_relief", "pattern_relief", 0.0, 1.0, 0.01],
 	["scale_mult", "uv/tri scale  x", 0.25, 3.0, 0.05],
+	["grain_scale", "grain_scale  (grain tiles per weave tile)", 0.5, 4.0, 0.05],
+	["grain_contrast", "grain_contrast", 0.0, 2.0, 0.05],
+	["sheen_roughness", "sheen_roughness", 0.1, 1.0, 0.01],
+	["sheen_tint", "sheen_tint  (0 white, 1 cloth colour)", 0.0, 1.0, 0.05],
 ]
 # Feature dials with an enable checkbox: [key, label, min, max, step].
 const FEATURE_DIALS := [
 	["normal_depth", "normal_depth  (B2)", 0.0, 3.0, 0.05],
 	["macro_strength", "macro_strength  (B4)", 0.0, 0.3, 0.005],
 	["shot_strength", "shot_strength  (C2)", 0.0, 0.5, 0.01],
+	["grain_strength", "grain_strength  (v3 photo grain)", 0.0, 1.0, 0.01],
+	["pattern_fuzz", "pattern_fuzz  (v3)", 0.0, 2.0, 0.05],
+	["wrap", "wrap  (v3 light wrap)", 0.0, 1.0, 0.01],
 ]
 
 var _view: SubViewport
@@ -251,6 +287,10 @@ func _build_dial_controls(col: VBoxContainer) -> void:
 	presets.add_child(_button("Everything off", _preset_off))
 	presets.add_child(_button("Tier 1", _preset_tier1))
 	col.add_child(presets)
+	var looks := HBoxContainer.new()
+	looks.add_child(_button("v2 look", _preset_v2))
+	looks.add_child(_button("Photo look", _preset_photo))
+	col.add_child(looks)
 	col.add_child(_button("A / B  old-new  (Tab)", _ab_toggle))
 	col.add_child(_heading("Global dials"))
 	for d: Array in GLOBAL_DIALS:
@@ -280,6 +320,8 @@ func _build_dial_controls(col: VBoxContainer) -> void:
 		col.add_child(_check("Enable", key, _on[key], _on_feature.bind(key)))
 		col.add_child(_slider(d[1], d[2], d[3], d[4], _g[key], _on_global.bind(key), key))
 		_grey_if_missing(key)
+	var sheen_label := "Cloth sheen + aniso  (v3, per fabric: ClothMaterial tables)"
+	col.add_child(_check(sheen_label, "sheen", _on["sheen"], _on_feature.bind("sheen")))
 	col.add_child(_pattern_color2_row())
 
 
@@ -626,6 +668,8 @@ func _push(e: Dictionary, accent: Color) -> void:
 	_set_param(sm, "pattern_scale", _pscale[p])
 	_set_param(sm, "pattern_intensity", _pint[p])
 	_set_param(sm, "rim_strength", _rim[f] if _on["rim"] else 0.0)
+	_set_param(sm, "sheen_strength", ClothMaterial.fabric_sheen(f) if _on["sheen"] else 0.0)
+	_set_param(sm, "aniso", ClothMaterial.fabric_aniso(f) if _on["sheen"] else 0.0)
 	for d: Array in FEATURE_DIALS:
 		var key: String = d[0]
 		_set_param(sm, key, _g[key] if _on[key] else 0.0)
@@ -792,6 +836,7 @@ func _load_live() -> void:
 	_pscale = ClothMaterial.PATTERN_SCALE.duplicate()
 	_pint = ClothMaterial.PATTERN_INTENSITY.duplicate()
 	_on["rim"] = true
+	_on["sheen"] = true
 	_on["pattern_color2"] = false
 	# Feature dials read their LIVE values off the base .tres too (B2/B4 ship on);
 	# a Tier 2 stub that isn't on the .tres yet stays 0/off.
@@ -811,10 +856,33 @@ func _preset_live() -> void:
 func _preset_off() -> void:
 	_load_live()
 	_on["rim"] = false
+	_on["sheen"] = false
 	for d: Array in FEATURE_DIALS:
 		_on[d[0]] = false
 	_sync_dials()
 	_status.text = "Preset: everything off (pre-Tier-1)"
+
+
+## Cloth Look v2: the look before the scanned photo grain (LOOK_V2, sheen off).
+func _preset_v2() -> void:
+	_apply_look(LOOK_V2, false)
+	_status.text = "Preset: v2 (before the photo grain)"
+
+
+## Cloth Look v3: photo grain, fuzzed pattern edges, wrap light and cloth sheen.
+func _preset_photo() -> void:
+	_apply_look(LOOK_PHOTO, true)
+	_status.text = "Preset: photo (Cloth Look v3)"
+
+
+func _apply_look(look: Dictionary, sheen: bool) -> void:
+	_load_live()
+	for key: String in look:
+		_g[key] = look[key]
+		if _on.has(key):
+			_on[key] = float(look[key]) > 0.0
+	_on["sheen"] = sheen
+	_sync_dials()
 
 
 ## One-key flip between the old look and the Tier 1 bundle — stare at the suit
@@ -858,6 +926,7 @@ func _sync_dials() -> void:
 	_set_slider("pattern_scale", _pscale[_pattern])
 	_set_slider("pattern_intensity", _pint[_pattern])
 	_set_check("rim", _on["rim"])
+	_set_check("sheen", _on["sheen"])
 	_set_check("pattern_color2", _on["pattern_color2"])
 	_push_all()
 
@@ -939,7 +1008,13 @@ func _apply_arg(key: String, value: String) -> void:
 		"color":
 			_on_mill_color(int(value))
 		"preset":
-			var presets := {"live": _preset_live, "off": _preset_off, "tier1": _preset_tier1}
+			var presets := {
+				"live": _preset_live,
+				"off": _preset_off,
+				"tier1": _preset_tier1,
+				"v2": _preset_v2,
+				"photo": _preset_photo,
+			}
 			if presets.has(value):
 				(presets[value] as Callable).call()
 		"cam":
@@ -973,6 +1048,7 @@ func _copy_tuning() -> void:
 		var state := "on" if _on[d[0]] else "off"
 		out += "#   %s = %s  (%s)\n" % [d[0], _num(_g[d[0]]), state]
 	out += "#   rim sheen: %s\n" % ("on" if _on["rim"] else "off")
+	out += "#   cloth sheen + aniso: %s\n" % ("on" if _on["sheen"] else "off")
 	DisplayServer.clipboard_set(out)
 	print(out)
 	_status.text = "Tuning copied to the clipboard (also printed to Output)"

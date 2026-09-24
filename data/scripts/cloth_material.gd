@@ -94,6 +94,44 @@ const FABRIC_RIM := [
 	0.1,  # poplin
 	0.06,  # oxford cloth
 ]
+# Scanned-swatch grain tile per fabric (assets/textures/grain/<name>.png + _n), which
+# multiplies under the dye when the base material's grain_strength is on. Indexed by
+# Enums.Fabric.
+const FABRIC_GRAIN := [
+	"worsted",  # worsted wool
+	"flannel",  # flannel
+	"tweed",  # tweed
+	"mohair",  # mohair blend
+	"linen",  # linen
+	"cotton",  # cotton
+	"poplin",  # poplin
+	"oxford",  # oxford cloth
+]
+# Cloth sheen: the soft fuzz glow a napped fabric catches across its whole face (the
+# shader's sheen_strength). Flannel's raised nap has the most; a smooth poplin least.
+# Indexed by Enums.Fabric.
+const FABRIC_SHEEN := [
+	0.25,  # worsted wool
+	0.9,  # flannel — the nap is the look
+	0.7,  # tweed
+	0.5,  # mohair blend
+	0.35,  # linen
+	0.3,  # cotton
+	0.2,  # poplin
+	0.3,  # oxford cloth
+]
+# Anisotropic highlight streak along the threads (the shader's aniso). Only mohair's
+# long lustrous fibre shows one. Indexed by Enums.Fabric.
+const FABRIC_ANISO := [
+	0.0,  # worsted wool
+	0.0,  # flannel
+	0.0,  # tweed
+	0.35,  # mohair blend
+	0.0,  # linen
+	0.0,  # cotton
+	0.0,  # poplin
+	0.0,  # oxford cloth
+]
 
 # Pattern textures that are woven (tools/build_textures.gd WEAVES) and so ship a
 # baked <name>_n.png thread-relief normal map.
@@ -177,6 +215,10 @@ static func _apply(sm: ShaderMaterial, mat: MaterialType) -> void:
 	sm.set_shader_parameter("pattern_scale", pattern_scale(mat.pattern))
 	sm.set_shader_parameter("pattern_intensity", pattern_intensity(mat.pattern))
 	sm.set_shader_parameter("rim_strength", fabric_rim(mat.fabric))
+	sm.set_shader_parameter("grain_tex", texture("grain", fabric_grain_name(mat.fabric)))
+	sm.set_shader_parameter("grain_normal", texture("grain", fabric_grain_name(mat.fabric) + "_n"))
+	sm.set_shader_parameter("sheen_strength", fabric_sheen(mat.fabric))
+	sm.set_shader_parameter("aniso", fabric_aniso(mat.fabric))
 	sm.set_shader_parameter(
 		"pattern_color2", MaterialFactory.derive_pattern_color2(mat.cloth_color, mat.pattern_color)
 	)
@@ -209,6 +251,18 @@ static func pattern_intensity(p: int) -> float:
 
 static func fabric_rim(f: int) -> float:
 	return FABRIC_RIM[f] if f >= 0 and f < FABRIC_RIM.size() else 0.0
+
+
+static func fabric_grain_name(f: int) -> String:
+	return FABRIC_GRAIN[f] if f >= 0 and f < FABRIC_GRAIN.size() else "linen"
+
+
+static func fabric_sheen(f: int) -> float:
+	return FABRIC_SHEEN[f] if f >= 0 and f < FABRIC_SHEEN.size() else 0.0
+
+
+static func fabric_aniso(f: int) -> float:
+	return FABRIC_ANISO[f] if f >= 0 and f < FABRIC_ANISO.size() else 0.0
 
 
 static func pattern_shot(p: int) -> float:
