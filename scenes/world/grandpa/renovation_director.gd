@@ -196,6 +196,13 @@ const WALL_OFF := 0.3  # how far in from the room's edge a wall patch sits
 const WALL_MID := 1.48  # its centre height
 const WALL_H := 2.64  # and how far up the wall it reaches
 const WALL_DEPTH := 0.7  # how deep it projects (it only has the one wall to find)
+## A room with lower walls (the workshop's stand 2.4 m) keeps its patches this far under its
+## own wall tops, about where the shop's rooms have theirs: a full-height patch climbed past
+## the workshop's ceiling and showed as brick above the lean-to, outside.
+const WALL_TOP_CLEAR := 0.06
+## A patch stops this short of the far face of the wall it wears, so it never reaches the
+## outside of the building (it used to stand 5 cm past every outer wall).
+const WALL_SKIN := 0.02
 const DAMP_WIDE := 2.4  # how broad one streak of damp runs
 
 ## Floor colour by Renovation.RoomState (SHUT, ENTERED, CLEARED, DONE), until the real
@@ -915,28 +922,64 @@ func _build_wear() -> void:
 ## (high z), 2 west (low x), 3 east (high x).
 func _bare_wall(room: String, side: int, lo: Vector2, span: Vector2) -> Array[Decal]:
 	var out: Array[Decal] = []
+	var bottom := WALL_MID - WALL_H / 2.0
+	var top := minf(WALL_MID + WALL_H / 2.0, _wall_top(lo, span) - WALL_TOP_CLEAR)
+	# across the wall: from WALL_OFF + WALL_DEPTH / 2 inside the room's edge out to its far face
+	var inner := WALL_OFF + WALL_DEPTH / 2.0
+	var outer := maxf(WALL_OFF - WALL_DEPTH / 2.0, WALL_SKIN - _beyond_edge(side, lo, span))
+	var into: Vector3 = [Vector3.BACK, Vector3.FORWARD, Vector3.RIGHT, Vector3.LEFT][side]
+	var wall: float = [lo.y, lo.y + span.y, lo.x, lo.x + span.x][side]
+	var edge := Vector3(0, 0, wall) if side <= 1 else Vector3(wall, 0, 0)
 	for run: Vector2 in _solid_spans(side, lo, span):
 		# a long stretch takes several lengths side by side, so the bricks keep their size
 		var lengths := maxi(1, roundi((run.y - run.x) / PLASTER_LENGTH))
 		var each := (run.y - run.x) / lengths
 		for n in lengths:
 			var mid := run.x + each * (n + 0.5)
-			var at := Vector3(mid, WALL_MID, lo.y + WALL_OFF)
-			var turn := Vector3(90, 0, 0)
-			match side:
-				1:
-					at.z = lo.y + span.y - WALL_OFF
-					turn = Vector3(90, 180, 0)
-				2:
-					at = Vector3(lo.x + WALL_OFF, WALL_MID, mid)
-					turn = Vector3(90, 90, 0)
-				3:
-					at = Vector3(lo.x + span.x - WALL_OFF, WALL_MID, mid)
-					turn = Vector3(90, -90, 0)
+			var along := Vector3(mid, 0, 0) if side <= 1 else Vector3(0, 0, mid)
+			var at := edge + along + into * (inner + outer) / 2.0
+			at.y = (bottom + top) / 2.0
+			var turn: Vector3 = [
+				Vector3(90, 0, 0), Vector3(90, 180, 0), Vector3(90, 90, 0), Vector3(90, -90, 0)
+			][side]
 			var tex := PLASTER[(out.size() + side) % PLASTER.size()]
-			var size := Vector3(each, WALL_DEPTH, WALL_H)
+			var size := Vector3(each, inner - outer, top - bottom)
 			out.append(_decal("bare%d_%d" % [side, out.size()], room, tex, at, size, turn))
 	return out
+
+
+## The top of the lowest blind panel standing on the room's edges: how high its walls go.
+func _wall_top(lo: Vector2, span: Vector2) -> float:
+	var room := Rect2(lo, span).grow(WALL_OFF)
+	var low := INF
+	for box: AABB in _solid_panels():
+		var at := box.get_center()
+		if room.has_point(Vector2(at.x, at.z)):
+			low = minf(low, box.end.y)
+	return low
+
+
+## How far past the room's edge on `side` the wall standing there reaches (its far face).
+func _beyond_edge(side: int, lo: Vector2, span: Vector2) -> float:
+	var along_x := side <= 1
+	var wall: float = [lo.y, lo.y + span.y, lo.x, lo.x + span.x][side]
+	var beyond := -INF
+	for box: AABB in _solid_panels():
+		if (box.size.x > box.size.z) != along_x:
+			continue  # a wall across this one
+		var across := box.get_center().z if along_x else box.get_center().x
+		if absf(across - wall) > PANEL_REACH:
+			continue
+		match side:
+			0:
+				beyond = maxf(beyond, wall - box.position.z)
+			1:
+				beyond = maxf(beyond, box.end.z - wall)
+			2:
+				beyond = maxf(beyond, wall - box.position.x)
+			3:
+				beyond = maxf(beyond, box.end.x - wall)
+	return beyond if beyond > -INF else INF
 
 
 ## Every blind wall panel the shop is built from, in world space. Gathered once — the
