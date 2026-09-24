@@ -105,9 +105,8 @@ The hairstyles, in reading order, are:
 4. {HAIR line}
 ```
 
-Then the SUFFIX, with "The hair is sculpted" changed to "All the hair is sculpted", and
-"one hair colour, no lighter streaks" added after "no fuzz". Add divider #3e4a55 to the
-palette.
+Then the SUFFIX, with "The hair is chunky" changed to "All the hair is chunky" and "the
+whole head" to "each head". Add divider #3e4a55 to the palette.
 
 Batch plan (gentlemen dark brown `#2c1e18`, older silver `#8e9196`, all on cream):
 
@@ -155,18 +154,18 @@ Default hair colour dark brown `#2c1e18` on the cream background.
 | style | line |
 |---|---|
 | `side_part` | Hair: a classic side part, combed flat and neat, the parting a straight carved groove on the left of the crown, the larger side swept across to the right, short at the sides and back, both ears fully showing, a clean straight hairline at the nape. |
-| `slick_back` | Hair: slicked straight back from the forehead in one smooth mass with parallel comb grooves, tight at the sides, a straight front hairline, the back one rounded cap ending in a clean line at the nape. |
+| `slick_back` | Hair: slicked straight back from the forehead in a few fat locks lying side by side, tight at the sides, a straight front hairline, the back one rounded cap ending in a clean line at the nape. |
 | `pompadour` | Hair: a pompadour, a tall rounded mass swept up and back off the forehead, the volume sitting above the forehead, short tapered sides, the back smooth and swept down toward the nape. |
 | `quiff` | Hair: a short quiff, the front lifted up into one soft forward wave, the rest short and neat with a low taper at the sides, ears clear. |
 | `crew_cut` | Hair: a crew cut, very short all over, a tight cap that follows the skull with a slightly higher front, a straight low hairline at the nape. |
 | `buzz` | Hair: a buzz cut, a thin skin-tight layer over the whole skull, the hairline drawn as a crisp edge across the forehead, around the temples and at the nape. |
-| `curly_crop` | Hair: a short curly crop, a cap of round curls moulded as small stacked lumps, the silhouette a little taller at the top, the sides trimmed close, ears clear. |
+| `curly_crop` | Hair: a short curly crop, a cap of big round curls each as big as the ear, moulded as fat scrolls stacked over the crown, about ten curls visible from the front, the silhouette a little taller at the top, the sides trimmed close, ears clear. |
 | `wavy_mop` | Hair: a loose wavy mop of medium length, a few thick soft waves sweeping across the forehead and over the tops of the ears, the back reaching the nape in rounded clumps. |
 | `curtains` | Hair: a centre part with curtains, medium length, parted straight down the middle, two smooth masses falling to either side over the temples, the back full and rounded down to the nape. |
 | `undercut` | Hair: an undercut, the sides and back shaved to a thin layer with a hard step up to a long top swept over to one side in one thick wave. |
 | `flat_top` | Hair: a flat top, the top cut dead flat and square with sharp corners at the temples, the sides short and straight, a straight front hairline. |
-| `short_coils` | Hair: short natural coils, a dense even cap of tightly coiled hair moulded as a fine pebbled surface close to the skull, with a crisp lined-up hairline across the forehead and temples. |
-| `textured_crop` | Hair: a short textured crop, the top a layer of short forward-brushed clumps ending in a choppy fringe across the forehead, the sides faded short. |
+| `short_coils` | Hair: short natural coils, an even cap of coiled hair moulded as a soft bumpy surface of marble-sized knots close to the skull, with a crisp lined-up hairline across the forehead and temples. |
+| `textured_crop` | Hair: a short textured crop, the top a layer of a few fat forward-brushed tufts ending in a choppy fringe of four or five blunt points across the forehead, the sides faded short. |
 | `ivy_league` | Hair: an ivy league cut, short and neat with the top just long enough to be brushed to one side in small layered locks, a soft side part, the sides tapered short, ears clear. |
 | `taper` | Hair: a taper cut, a full textured top of short forward-brushed locks with a choppy fringe, the sides and back tapering steadily shorter down to a clean edge at the nape. |
 | `waves` | Hair: short wavy hair, a full cap of thick S-shaped locks rolling across the top and sides, one wave lifting off the forehead, the back in rounded rows down to the nape. |
@@ -209,12 +208,13 @@ Generate them now if you want the option in the pool.
 ## SUFFIX
 
 ```
-The hair is sculpted the way a collectible toy figure's hair is, with real thickness
-standing off the skull: built from many overlapping locks, each lock a distinct rounded
-clump with its own tip, laid over one another like roof tiles in the direction the hair
-is combed, with deep hollows between them so the surface has ridges and depth. The
-fringe, the temples and the nape end in separate tufts, not one smooth edge. Solid
-moulded shapes, no single hairs, no fuzz. Both views show the same hairstyle from
+The hair is chunky, sculpted like modelling clay on a collectible toy figure, with real
+thickness standing off the skull: the whole head has only about a dozen big fat locks,
+each lock as thick as a thumb, a soft rounded clump with one blunt rounded tip, the
+locks overlapping in the direction the hair is combed with a deep soft groove where two
+locks meet. The fringe, the temples and the nape end in a few big tufts, not one smooth
+edge. Big simple shapes: no fine comb lines, no thin strands, no scales, no feathering,
+no fuzz, one hair colour with no lighter streaks. Both views show the same hairstyle from
 opposite sides, and the back view shows the nape and the backs of the ears. The image has
 a plain flat background of one colour, no floor, no shadow, no gradient, no glow, no
 bloom, no rim light, no lens blur, no depth of field, no vignette, no specular
@@ -265,6 +265,16 @@ overlapping locks laid like roof tiles with tufted edges, and the edit prefix ta
 sheet as a second image to set the level of detail. At gameplay distance (head about 25
 px tall) only the silhouette and the outline read, so detail that changes the outline
 (tufts at the fringe and nape, lift off the forehead) matters more than surface grooves.
+
+## Round 3 (2026-09-25)
+
+First four-up batch (G1): grid, cells, styles and blank faces all held, so batches
+are the way to spend generations. The hair overshot into fine detail: comb lines on
+the slick back, pea-sized curls, scale-like tufts. Cause: "many overlapping locks laid
+like roof tiles". The suffix now gives a count and a size (about a dozen locks, each as
+thick as a thumb, blunt rounded tips) and bans comb lines, thin strands, scales and
+feathering. The curly crop, textured crop, slick back and coils lines were reworded to
+name big shapes. Target is the owner's single side-part result and his AC-style sheet.
 
 ## Check before Tripo
 
