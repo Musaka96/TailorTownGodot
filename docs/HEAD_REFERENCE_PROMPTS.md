@@ -117,10 +117,10 @@ Batch plan (gentlemen dark brown `#2c1e18`, older silver `#8e9196`, all on cream
 
 | batch | styles |
 |---|---|
-| G1 | slick_back, pompadour, curly_crop, textured_crop |
-| G2 | crew_cut, buzz, quiff, undercut |
-| G3 | curtains, textured_crop, flat_top, short_coils |
-| G4 | ivy_league, taper, waves, bro_flow |
+| G1 (done) | slick_back, pompadour, curly_crop, wavy_mop |
+| G2 | side_part, deep_part, brushed_back, ivy_league |
+| G3 | wavy_side, centre_part, long_swept, short_neat |
+| G4 | curly_side, plus three of the same on the `squat` or `heavy` base once one exists |
 | O1 | receding_part, comb_over, grey_neat, side_wings |
 | O2 | thinning_slick, widows_peak, grey_curls, bald_fringe |
 | O3 (white `#e9e6df`, background slate `#3e4a55`, divider cream `#e5dbd1`) | white_swept, wild_white, plus two facial hair heads: horseshoe + full_beard, grey_neat + moustache |
@@ -162,46 +162,42 @@ carries the back view. Labels on the sheet:
 |---|---|
 | `side_part` | "Classic Part" |
 | `slick_back` | "Slick Back" |
-| `taper` | "Taper Fade" |
 | `ivy_league` | "Ivy League" |
-| `undercut` | "Undercut" |
-| `waves` | "Wavy Business" |
-| `curtains` | "Curtains" |
+| `wavy_side` | "Wavy Business" |
+| `short_neat` | "Short Professional" |
+| `deep_part` | "Side Swept" |
 | `wavy_mop` | "Soft Waves" |
 | `curly_crop` | "Curly" |
-| `buzz` | "Buzz Cut" |
 | `receding_part` | "Receding" |
 | `grey_neat` | "Short & Gray" |
 | `white_swept` | "Silver Sweep" |
 | `wild_white` | "Wise & Wispy" |
 | `horseshoe` | "Horseshoe" |
 
-Pompadour, quiff, crew cut, flat top, coils, comb-over, widow's peak, side wings and the
-rest have no cell; their lines stand alone.
+Pompadour, brushed back, centre part, long swept, curly side, comb-over, widow's peak,
+side wings and the rest have no cell; their lines stand alone.
 
 ## Hairstyles, gentlemen (Stage 2 subject lines)
 
-Default hair colour dark brown `#2c1e18` on the cream background.
+Old money, not the barbershop: every cut is scissor cut and combed, long enough to lie in
+locks everywhere it grows, tapered by scissors at the neck and ears. No fades, no
+undercuts, no buzz cuts, no cropped or spiked tops. Default hair colour dark brown
+`#2c1e18` on the cream background. Done and kept: `slick_back`, `pompadour`,
+`curly_crop`, `wavy_mop` (round 4).
 
 | style | line |
 |---|---|
-| `side_part` | Hair: a classic side part, combed flat and neat, the parting a straight carved groove on the left of the crown, the larger side swept across to the right, short at the sides and back, both ears fully showing, a clean straight hairline at the nape. |
+| `side_part` | Hair: a classic side part, combed flat and neat, the parting a straight carved groove on the left of the crown, the larger side swept across to the right in a few fat locks, short and tapered at the sides and back, both ears fully showing, a soft scissor-tapered hairline at the nape. |
+| `deep_part` | Hair: a deep side part, the parting low on the left, the heavy side combed across the crown to the right in one thick rolling wave that lifts a little above the forehead, the small side combed flat, sides and back short and tapered, ears clear. |
 | `slick_back` | Hair: slicked straight back from the forehead in a few fat locks lying side by side, tight at the sides, a straight front hairline, the back one rounded cap ending in a clean line at the nape. |
-| `pompadour` | Hair: a pompadour, a tall rounded mass swept up and back off the forehead, the volume sitting above the forehead, short tapered sides, the back smooth and swept down toward the nape. |
-| `quiff` | Hair: a short quiff, the front lifted up into one soft forward wave, the rest short and neat with a low taper at the sides, ears clear. |
-| `crew_cut` | Hair: a crew cut, very short all over, a tight cap that follows the skull with a slightly higher front, a straight low hairline at the nape. |
-| `buzz` | Hair: a buzz cut, a thin skin-tight layer over the whole skull, the hairline drawn as a crisp edge across the forehead, around the temples and at the nape. |
-| `curly_crop` | Hair: a short curly crop, a cap of big round curls each as big as the ear, moulded as fat scrolls stacked over the crown, about ten curls visible from the front, the silhouette a little taller at the top, the sides trimmed close, ears clear. |
-| `wavy_mop` | Hair: a loose wavy mop of medium length, a few thick soft waves sweeping across the forehead and over the tops of the ears, the back reaching the nape in rounded clumps. |
-| `curtains` | Hair: a centre part with curtains, medium length, parted straight down the middle, two smooth masses falling to either side over the temples, the back full and rounded down to the nape. |
-| `undercut` | Hair: an undercut, the sides and back shaved to a thin layer with a hard step up to a long top swept over to one side in one thick wave. |
-| `flat_top` | Hair: a flat top, the top cut dead flat and square with sharp corners at the temples, the sides short and straight, a straight front hairline. |
-| `short_coils` | Hair: short natural coils, an even cap of coiled hair moulded as a soft bumpy surface of marble-sized knots close to the skull, with a crisp lined-up hairline across the forehead and temples. |
-| `textured_crop` | Hair: a short textured crop, the top a layer of a few fat forward-brushed tufts ending in a choppy fringe of four or five blunt points across the forehead, the sides faded short. |
-| `ivy_league` | Hair: an ivy league cut, short and neat with the top just long enough to be brushed to one side in small layered locks, a soft side part, the sides tapered short, ears clear. |
-| `taper` | Hair: a taper cut, a full textured top of short forward-brushed locks with a choppy fringe, the sides and back tapering steadily shorter down to a clean edge at the nape. |
-| `waves` | Hair: short wavy hair, a full cap of thick S-shaped locks rolling across the top and sides, one wave lifting off the forehead, the back in rounded rows down to the nape. |
-| `bro_flow` | Hair: a bro flow, medium-long hair pushed back off the forehead and flowing back in thick loose locks that curl out over the ears and at the nape. |
+| `brushed_back` | Hair: brushed straight back from the forehead with volume, longer than a slick back, the locks lifting off the forehead and rolling back over the crown, reaching the tops of the ears at the sides and curling a little at the nape. |
+| `pompadour` | Hair: a classic pompadour, a tall rounded mass swept up and back off the forehead, the volume sitting above the forehead, the sides combed back and tapered by scissors, the back smooth and swept down toward the nape. |
+| `ivy_league` | Hair: an ivy league cut, short and neat with the top just long enough to be brushed to one side in a few soft locks, a light side part, the sides combed down and tapered, ears clear. |
+| `wavy_side` | Hair: wavy hair with a side part, combed over from the left in big soft rolling waves that lift off the forehead, the sides combed back over the tops of the ears, the back in rounded waves down to a tapered nape. |
+| `centre_part` | Hair: a nineteen twenties centre part, parted straight down the middle and combed flat to both sides in a few smooth locks, short at the sides and back, ears clear, a straight front hairline. |
+| `long_swept` | Hair: collar-length hair swept back behind the ears in thick loose locks, the front lifting off the forehead, the ends curling out at the nape and behind the ears. |
+| `short_neat` | Hair: short neat hair, scissor cut, the top combed forward and a little to one side in soft locks, the sides combed down and tapered, a natural hairline, ears clear. |
+| `curly_side` | Hair: short natural curls combed to one side, big soft rounded curls over the crown and forehead, tidy and trimmed close at the ears and nape. |
 
 ## Hairstyles, older gentlemen (Stage 2 subject lines)
 
@@ -244,8 +240,10 @@ The hair is chunky, sculpted like modelling clay on a collectible toy figure, wi
 thickness standing off the skull: the whole head has only about a dozen big fat locks,
 each lock as thick as a thumb, a soft rounded clump with one blunt rounded tip, the
 locks overlapping in the direction the hair is combed with a deep soft groove where two
-locks meet. The fringe, the temples and the nape end in a few big tufts, not one smooth
-edge. Big simple shapes: no fine comb lines, no thin strands, no scales, no feathering,
+locks meet. Every style is scissor cut and combed: the hair is long enough to lie in
+locks everywhere it grows, and nowhere is it shaved, faded, stubbled or shorter than a
+finger's width. The fringe, the temples and the nape end in a few big tufts, not one
+smooth edge. Big simple shapes: no fine comb lines, no thin strands, no scales, no feathering,
 no fuzz, one hair colour with no lighter streaks. Both views show the same hairstyle from
 opposite sides, and the back view shows the nape and the backs of the ears. The image has
 a plain flat background of one colour, no floor, no shadow, no gradient, no glow, no
@@ -316,6 +314,16 @@ as perfect spheres (say "flat rounded scrolls, not balls" to soften that); the c
 pointed at the sheet's "Textured Crop" came back as a wavy mop instead, kept as
 `wavy_mop`, and that label was dropped from the map. Textured crop moved to G3 as a
 plain line.
+
+## Round 5 (2026-09-25)
+
+G2 (crew cut, buzz, quiff, undercut) came back fuzzy and clipper-textured, and the owner
+does not want those cuts at all: "gentlemen's and old money haircuts, not teenage ones".
+The gentlemen list was rebuilt around scissor-cut, combed styles (deep part, brushed
+back, wavy side, twenties centre part, collar-length swept back, short neat, curly side)
+and the suffix now bans shaved, faded and stubbled hair on every run. The four styles
+kept from round 4 stay. Also seen: with four styles the model sometimes lays out fronts
+on the top row and backs on the bottom row instead of the grid; crop accordingly.
 
 ## Check before Tripo
 
