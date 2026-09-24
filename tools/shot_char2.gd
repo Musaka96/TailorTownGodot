@@ -8,8 +8,12 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_char2.gd -- --glb=res://.dev/x.glb --tag=x
 ## Writes engine_<tag>_<view>.png to IMPORT/CHARREWORK/report/ (git-ignored).
 ##
-## Cloth is applied here with ClothMaterial.build, because a bare --script run does not
-## get the game's outfit pass (see the shot_rig.gd gotcha in the garment-UV notes).
+## The outfit goes on through the rig's own set_outfit one frame after the rigs enter
+## the tree: called earlier, the rig's mesh slots are still empty (they are filled in its
+## _ready), so the cloth and the skin tint silently miss. The suit is a pinstripe so the
+## grain reads; the shirt is a plain cream poplin, as a shirt would be.
+## "rest_back" is the back view in the rest pose (no animation), to tell faceting in the
+## mesh from bad weights in the idle pose.
 
 const RIG_SCRIPT := "res://entities/character/character_rig.gd"
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
@@ -19,6 +23,9 @@ const CLOTH := "res://data/materials/navy_worsted_pinstripe.tres"
 const CLOTH_UV_SCALE := 6.0
 const SKIN := Color(0.86, 0.72, 0.60)
 const SEPARATION := 0.9
+const SHIRT_COLOR := Color(0.94, 0.93, 0.89)
+const POPLIN := 6  # Enums.Fabric.POPLIN (autoload enums are not resolved in a --script run)
+const SOLID := 0  # Enums.Pattern.SOLID
 # name, animation, time fraction, camera position, look-at target
 const SHOTS := [
 	["front", "idle", 0.3, Vector3(0.0, 1.1, 5.2), Vector3(0.0, 1.05, 0.0)],
@@ -26,6 +33,9 @@ const SHOTS := [
 	["three_quarter", "idle", 0.3, Vector3(3.4, 1.9, 3.9), Vector3(0.0, 1.0, 0.0)],
 	["walk", "walk", 0.25, Vector3(3.6, 1.6, 3.6), Vector3(0.0, 0.95, 0.0)],
 	["sleeve", "idle", 0.3, Vector3(1.75, 1.25, 1.0), Vector3(1.35, 0.95, 0.0)],
+	["rest_back", "", 0.0, Vector3(0.0, 1.1, -5.2), Vector3(0.0, 1.05, 0.0)],
+	["back_close", "idle", 0.3, Vector3(0.9, 0.95, -2.6), Vector3(0.9, 0.85, 0.0)],
+	["rest_back_close", "", 0.0, Vector3(0.9, 0.95, -2.6), Vector3(0.9, 0.85, 0.0)],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -62,12 +72,6 @@ func _initialize() -> void:
 	world.add_child(new_rig)
 	_rigs.append(new_rig)
 
-	var cloth := load(CLOTH) as Resource
-	var cloth_script := load("res://data/scripts/cloth_material.gd")
-	for rig in _rigs:
-		rig.call("set_palette", SKIN)
-		rig.call("set_hair_color", Color(0.25, 0.16, 0.10))
-		_dress(rig, cloth_script.call("build", cloth, CLOTH_UV_SCALE, true))
 	_report(new_rig, glb)
 
 	_cam = Camera3D.new()
@@ -105,7 +109,16 @@ func _build_rig(model: Node3D) -> Node3D:
 	return rig
 
 
-func _dress(rig: Node3D, cloth: Material) -> void:
+func _dress(rig: Node3D) -> void:
+	var suit := load(CLOTH) as Resource
+	var shirt: Resource = load("res://data/scripts/material_type.gd").new()
+	shirt.set("id", &"shot_cream_poplin")
+	shirt.set("fabric", POPLIN)
+	shirt.set("pattern", SOLID)
+	shirt.set("cloth_color", SHIRT_COLOR)
+	rig.call("set_palette", SKIN)
+	rig.call("set_hair_color", Color(0.25, 0.16, 0.10))
+	rig.call("set_outfit", suit, shirt, suit)
 	var flats := {
 		"shoes": Color(0.16, 0.12, 0.10),
 		"buttons": Color(0.75, 0.62, 0.35),
@@ -116,9 +129,7 @@ func _dress(rig: Node3D, cloth: Material) -> void:
 	}
 	for mi in rig.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		if m.name in ["jacket", "legs", "shirt"]:
-			m.material_override = cloth
-		elif flats.has(String(m.name)):
+		if flats.has(String(m.name)):
 			var flat := StandardMaterial3D.new()
 			flat.albedo_color = flats[String(m.name)]
 			flat.roughness = 1.0
@@ -146,6 +157,12 @@ func _pose(shot: Array) -> void:
 	for rig in _rigs:
 		var player := rig.get_node("AnimationPlayer") as AnimationPlayer
 		var clip := String(shot[1])
+		if clip == "":
+			player.stop()
+			var skel := rig.find_child("Skeleton3D", true, false) as Skeleton3D
+			if skel != null:
+				skel.reset_bone_poses()
+			continue
 		if not player.has_animation(clip):
 			continue
 		player.play(clip)
@@ -159,6 +176,7 @@ func _on_frame() -> void:
 	if _frame == 2 and _shot == 0:
 		_hide_hud(root)
 		for rig in _rigs:
+			_dress(rig)
 			# the rig's AnimationTree owns the skeleton; switch it off to pose by hand
 			for tree in rig.find_children("*", "AnimationTree", true, false):
 				(tree as AnimationTree).active = false

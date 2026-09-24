@@ -73,26 +73,42 @@ DEFAULT_BUDGET = {
     "Hair": 1800,
     "jacket": 2300,
     "legs": 800,
-    "shirt": 300,
+    "shirt": 380,  # front + collar + the two cuffs
     "shoes": 800,
     "arms": 500,
     "tie": 160,
     "buttons": 80,
     "square": 60,
 }
-# Rig meshes each role's skin weights are copied from; None = hard bind to HEAD_BONE.
-WEIGHT_SOURCE = {
-    "jacket": ["jacket"],
-    "shirt": ["shirt"],
-    "legs": ["legs"],
-    "arms": ["arms"],
-    "shoes": ["left leg", "right leg"],
-    "tie": ["jacket"],
-    "buttons": ["jacket"],
-    "square": ["jacket"],
-    "head": None,
-    "Hair": None,
+# Where each mesh's skin weights come from, and which bones it may use. The bone set is
+# read off the rig meshes named in "src" (the owner hand-cleaned CHARTGEN1's weights, so
+# the bones a rig mesh uses ARE the truth for that part), unless "allow" names it. "bind"
+# hard-binds the whole mesh to one bone. "sleeve_src" samples the sleeve zone from other
+# rig meshes (shirt cuffs follow the jacket's sleeve end) and may add their ARM bones.
+# "hem" makes the bottom loops of the trousers 100% that bone, so the hem stays flat.
+# "own" samples OUR finished mesh of that name instead (the tie and buttons ride on the
+# new jacket, so they move with the cloth they sit on); the bone set still comes from src.
+WEIGHT_RULES = {
+    "jacket": {"src": ("jacket",)},
+    "shirt": {"src": ("shirt",), "sleeve_src": ("jacket",)},
+    "legs": {
+        "src": ("legs",),
+        "allow": ("hips", "upperleg.l", "upperleg.r", "lowerleg.l", "lowerleg.r"),
+        "hem": "lowerleg",
+    },
+    "arms": {"src": ("arms",)},
+    "shoes": {"src": ("left leg", "right leg")},
+    "tie": {"src": ("jacket",), "own": "jacket", "allow": ("chest", "spine")},
+    "buttons": {"src": ("jacket",), "own": "jacket", "allow": ("chest", "spine")},
+    "square": {"src": ("jacket",), "own": "jacket", "allow": ("chest", "spine")},
+    "head": {"bind": "head"},
+    "Hair": {"bind": "head"},
 }
+ARM_BONES = (
+    "upperarm.l", "lowerarm.l", "wrist.l", "hand.l",
+    "upperarm.r", "lowerarm.r", "wrist.r", "hand.r",
+)
+HEM_BAND = 0.05  # metres of trouser hem that are 100% lowerleg, blended over as much again
 HEAD_BONE = "head"
 MATERIAL = {
     "head": "skin",
@@ -179,6 +195,12 @@ def _arguments(argv):
         help="cut the jacket from each armhole top to the neckline when the owner marked no "
         "shoulder seam, so front and back are separate pieces with their own grain "
         "(default on; without it the stripes form a V over the back)",
+    )
+    p.add_argument(
+        "--weight-smooth",
+        type=int,
+        default=8,
+        help="smoothing passes on the garment weights (within each mesh's bone set)",
     )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
@@ -417,9 +439,19 @@ def _classify(shells, named):
     if low and "legs" not in named:
         assign(max(low, key=lambda s: s["nf"]), "legs", "largest shell below the jacket hem")
     sleeve_x = 0.5 * maxabs
+    sleeve_end = max(abs(jacket["nlo"].x), abs(jacket["nhi"].x)) if jacket else maxabs
     for s in free():
-        if abs(s["nc"].x) > sleeve_x:
-            assign(s, "jacket", "sleeve zone (cuff ring / cuff button)")
+        if abs(s["nc"].x) <= sleeve_x:
+            continue
+        reach = max(abs(s["nlo"].x), abs(s["nhi"].x))
+        size = max(s["dims"].y, s["dims"].z)
+        if size > 2.0 * BUTTON_SIZE and s["open"] > 0 and reach > sleeve_end:
+            # a ring round the wrist that sits in the sleeve opening and pokes out past
+            # the jacket's sleeve end: the shirt cuff, not part of the jacket
+            assign(s, "shirt", "shirt cuff: %.3f wide ring, reaches %.3f past the sleeve end"
+                   % (size, reach - sleeve_end))
+        else:
+            assign(s, "jacket", "sleeve zone (cuff button / trim)")
     collar = [s for s in free() if abs(s["nc"].x) < CENTRE_X and s["nhi"].z > top - 0.05]
     if collar and "shirt" not in named:
         assign(max(collar, key=lambda s: s["nf"]), "shirt", "largest centred shell at the collar")
@@ -1037,10 +1069,12 @@ def _orient_islands(obj, arm, sleeve_x, quiet=False) -> None:
             keep = [x.uv.copy() for x in luvs]
             _cylinder(faces, uv, axis, centre, a3)
             cyl = _piece_quality(faces, uv, axis)
-            if cyl[0] * (1.0 + cyl[1] / 45.0) < abf[0] * (1.0 + abf[1] / 45.0):
+            # a degree of wandering grain costs about as much as 3% of density spread
+            if cyl[0] * (1.0 + cyl[1] / 30.0) < abf[0] * (1.0 + abf[1] / 30.0):
                 method = "cylinder (abf was %.2fx, %.0f deg)" % abf
                 turned = 0.0
             else:
+                method = "abf (cylinder scored %.2fx, %.0f deg)" % cyl
                 for x, k in zip(luvs, keep):
                     x.uv = k
         stretch, spread = _piece_quality(faces, uv, axis)
@@ -1388,101 +1422,285 @@ def _quiet_stretch(obj) -> float:
 
 
 def step_skin(ns) -> None:
+    """Weights by nearest point on the matching rig mesh (barycentric), then cut down to
+    the bones that rig mesh uses, with each side's bones kept to its own side."""
     log("\n== skin")
     arm = _armature()
     arm.data.pose_position = "REST"
     rig = _rig_objects()
     bones = [b.name for b in arm.data.bones]
+    side_of = {b.name: math.copysign(1.0, (arm.matrix_world @ b.head_local).x)
+               for b in arm.data.bones if b.name[-2:] in (".l", ".r")}
+    samplers = {}
     for role, obj in _role_objects().items():
+        rule = WEIGHT_RULES[role]
         obj.vertex_groups.clear()
         for name in bones:
             obj.vertex_groups.new(name=name)
-        src_names = WEIGHT_SOURCE.get(role)
-        if src_names is None:
-            obj.vertex_groups[HEAD_BONE].add(range(len(obj.data.vertices)), 1.0, "REPLACE")
-            how = "hard bind to %s" % HEAD_BONE
-        else:
-            src = _weight_source(rig, src_names)
-            _transfer_weights(obj, src)
-            if src.name.startswith("TMP_"):
-                bpy.data.objects.remove(src, do_unlink=True)
-            how = "from rig %s" % " + ".join(src_names)
-            _select_only([obj])
-            bpy.ops.object.vertex_group_clean(group_select_mode="ALL", limit=0.01)
-            bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=4)
-            bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL", lock_active=False)
-            if role in GARMENT_ROLES:
-                _smooth_weights(obj, 0.5, 2)
-                bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=4)
-                bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL", lock_active=False)
-                how += ", smoothed x2"
+        if "bind" in rule:
+            obj.vertex_groups[rule["bind"]].add(range(len(obj.data.vertices)), 1.0, "REPLACE")
+            _parent_to(obj, arm)
+            log("  %-7s hard bind to %s | %s" % (role, rule["bind"], _bones_used(obj)))
+            continue
+        main = _sampler(samplers, rig, rule["src"])
+        allowed = set(rule.get("allow") or main.bones)
+        if "own" in rule:
+            main = _Sampler([bpy.data.objects[rule["own"]]])
+        sleeve = None
+        if "sleeve_src" in rule:
+            sleeve = _sampler(samplers, rig, rule["sleeve_src"])
+            allowed |= sleeve.bones & set(ARM_BONES)
+        stats = {"bone": 0, "side": 0, "empty": 0}
+        weights = []
+        for v in obj.data.vertices:
+            co = obj.matrix_world @ v.co
+            in_sleeve = sleeve is not None and abs(co.x) > ns.sleeve_x
+            raw = (sleeve if in_sleeve else main).sample(co)
+            ok = allowed & set(ARM_BONES) if in_sleeve else allowed
+            weights.append(_clip(raw, ok, side_of, co, arm, stats))
+        smoothed = role in GARMENT_ROLES
+        rough = _roughness(obj, weights)
+        if smoothed:
+            weights = _smooth(obj, weights, 0.5, ns.weight_smooth)
+            weights = [_clip(w, allowed, side_of, obj.matrix_world @ v.co, arm, None)
+                       for w, v in zip(weights, obj.data.vertices)]
+        trims = _stick_trims(obj, weights)
+        if trims:
+            weights = [_clip(w, allowed, side_of, obj.matrix_world @ v.co, arm, None)
+                       for w, v in zip(weights, obj.data.vertices)]
+        hem = 0
+        if "hem" in rule:
+            hem = _rigid_hem(obj, weights, rule["hem"], side_of)
+        for i, w in enumerate(weights):
+            for name, value in _top4(w).items():
+                obj.vertex_groups[name].add([i], value, "REPLACE")
         _parent_to(obj, arm)
-        log("  %-7s %s | %s" % (role, how, _bones_used(obj)))
+        log("  %-7s from rig %s%s%s | allowed %s" % (
+            role, " + ".join(rule["src"]),
+            (", sleeve zone from rig " + " + ".join(rule["sleeve_src"])) if sleeve else "",
+            (", smoothed x%d within the set" % ns.weight_smooth) if smoothed else "",
+            ", ".join(sorted(allowed))))
+        log("  %-7s weight roughness (mean jump to the neighbours' average) %.3f -> %.3f" % (
+            "", rough, _roughness(obj, weights)))
+        log("  %-7s clipped: %d verts had weight on bones outside the set, %d on the other"
+            " side's bones, %d fell back to the nearest allowed bone%s%s" % (
+                "", stats["bone"], stats["side"], stats["empty"],
+                (", %d trim verts copy the cloth under them" % trims) if trims else "",
+                (", %d hem verts rigid to %s" % (hem, rule["hem"])) if hem else ""))
+        log("  %-7s final: %s" % ("", _bones_used(obj)))
     arm.data.pose_position = "POSE"
 
 
-def _smooth_weights(obj, factor, repeat) -> None:
-    """Relax every bone's weights towards the average of each vertex's neighbours
-    (vertex_group_smooth only runs in weight-paint/edit mode, not headless)."""
+class _Sampler:
+    """Weights at the nearest point of some rig meshes, interpolated across the face."""
+
+    def __init__(self, objs):
+        from mathutils.bvhtree import BVHTree
+
+        self.points, self.tris, self.weights = [], [], []
+        self.bones = set()
+        for o in objs:
+            me = o.data
+            me.calc_loop_triangles()
+            base = len(self.points)
+            names = {g.index: g.name for g in o.vertex_groups}
+            for v in me.vertices:
+                self.points.append(o.matrix_world @ v.co)
+                w = {names[g.group]: g.weight for g in v.groups if g.weight > 0.001}
+                self.bones |= set(w)
+                self.weights.append(w)
+            for t in me.loop_triangles:
+                self.tris.append(tuple(base + i for i in t.vertices))
+        self.tree = BVHTree.FromPolygons(self.points, self.tris)
+
+    def sample(self, co):
+        from mathutils.interpolate import poly_3d_calc
+
+        loc, _, index, _ = self.tree.find_nearest(co)
+        tri = self.tris[index]
+        bary = poly_3d_calc([self.points[i] for i in tri], loc)
+        out = {}
+        for i, b in zip(tri, bary):
+            for name, w in self.weights[i].items():
+                out[name] = out.get(name, 0.0) + w * b
+        return out
+
+
+def _sampler(cache, rig, names):
+    key = tuple(names)
+    if key not in cache:
+        cache[key] = _Sampler([rig[n] for n in names])
+    return cache[key]
+
+
+def _clip(w, allowed, side_of, co, arm, stats):
+    """Keep only allowed bones, and only bones of the vertex's own side (past 2 cm from
+    the centre line); an emptied vertex takes the nearest allowed bone. Normalised."""
+    out = {}
+    cut_bone = cut_side = False
+    for name, value in w.items():
+        if value <= 0.001:
+            continue
+        if name not in allowed:
+            cut_bone = cut_bone or value > 0.01
+            continue
+        side = side_of.get(name)
+        if side is not None and co.x * side < -0.02:
+            cut_side = cut_side or value > 0.01
+            continue
+        out[name] = value
+    if stats is not None:
+        stats["bone"] += cut_bone
+        stats["side"] += cut_side
+    if sum(out.values()) <= 1e-6:
+        if stats is not None:
+            stats["empty"] += 1
+        out = {_nearest_bone(arm, co, allowed, side_of): 1.0}
+    total = sum(out.values())
+    return {k: v / total for k, v in out.items()}
+
+
+def _nearest_bone(arm, co, allowed, side_of):
+    from mathutils.geometry import intersect_point_line
+
+    best, best_d = None, math.inf
+    for b in arm.data.bones:
+        if b.name not in allowed:
+            continue
+        side = side_of.get(b.name)
+        if side is not None and co.x * side < -0.02:
+            continue
+        a = arm.matrix_world @ b.head_local
+        t = arm.matrix_world @ b.tail_local
+        p, f = intersect_point_line(co, a, t)
+        p = a if f < 0 else (t if f > 1 else p)
+        if (p - co).length < best_d:
+            best, best_d = b.name, (p - co).length
+    return best
+
+
+def _stick_trims(obj, weights) -> int:
+    """Small loose parts (pocket flaps, welt, cuff buttons) take the weights of the
+    nearest point on the garment's main surfaces, so they cannot drift off them in a pose.
+    A part is trim when its area is under a tenth of the largest part's; everything else
+    (both shoe uppers, not just the bigger one) is a surface a trim can stick to."""
+    from mathutils.bvhtree import BVHTree
+    from mathutils.interpolate import poly_3d_calc
+
     me = obj.data
-    n = len(me.vertices)
-    ring = [[] for _ in range(n)]
+    parent = list(range(len(me.vertices)))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for e in me.edges:
+        a, b = find(e.vertices[0]), find(e.vertices[1])
+        if a != b:
+            parent[a] = b
+    area = {}
+    for poly in me.polygons:
+        r = find(poly.vertices[0])
+        area[r] = area.get(r, 0.0) + poly.area
+    if len(area) < 2:
+        return 0
+    main = max(area, key=area.get)
+    trims = {r for r, a in area.items() if a < 0.1 * area[main]}
+    if not trims:
+        return 0
+    me.calc_loop_triangles()
+    points = [obj.matrix_world @ v.co for v in me.vertices]
+    tris = [tuple(t.vertices) for t in me.loop_triangles if find(t.vertices[0]) not in trims]
+    tree = BVHTree.FromPolygons(points, tris)
+    count = 0
+    for i in range(len(me.vertices)):
+        if find(i) not in trims:
+            continue
+        loc, _, index, _ = tree.find_nearest(points[i])
+        tri = tris[index]
+        bary = poly_3d_calc([points[j] for j in tri], loc)
+        out = {}
+        for j, b in zip(tri, bary):
+            for name, w in weights[j].items():
+                out[name] = out.get(name, 0.0) + w * b
+        weights[i] = out
+        count += 1
+    return count
+
+
+def _roughness(obj, weights) -> float:
+    """Mean distance between a vertex's weights and its neighbours' average: weights that
+    jump from vertex to vertex bend a low-poly sleeve into kinks once the arm moves."""
+    ring = [[] for _ in obj.data.vertices]
+    for e in obj.data.edges:
+        a, b = e.vertices
+        ring[a].append(b)
+        ring[b].append(a)
+    total = 0.0
+    for i, own in enumerate(weights):
+        if not ring[i]:
+            continue
+        avg = {}
+        for j in ring[i]:
+            for g, w in weights[j].items():
+                avg[g] = avg.get(g, 0.0) + w / len(ring[i])
+        total += sum(abs(own.get(g, 0.0) - avg.get(g, 0.0)) for g in set(own) | set(avg))
+    return total / max(len(weights), 1)
+
+
+def _top4(w):
+    top = dict(sorted(w.items(), key=lambda kv: -kv[1])[:4])
+    total = sum(top.values()) or 1.0
+    return {k: v / total for k, v in top.items() if v / total > 0.001}
+
+
+def _smooth(obj, weights, factor, repeat):
+    """Relax each vertex's weights towards its neighbours' average. It only mixes bones
+    already present, so it stays inside the allowed set."""
+    me = obj.data
+    ring = [[] for _ in me.vertices]
     for e in me.edges:
         a, b = e.vertices
         ring[a].append(b)
         ring[b].append(a)
-    weights = [{g.group: g.weight for g in v.groups} for v in me.vertices]
     for _ in range(repeat):
         new = []
-        for i in range(n):
+        for i, own in enumerate(weights):
             if not ring[i]:
-                new.append(weights[i])
+                new.append(own)
                 continue
             avg = {}
             for j in ring[i]:
                 for g, w in weights[j].items():
-                    avg[g] = avg.get(g, 0.0) + w
-            k = 1.0 / len(ring[i])
-            groups = set(avg) | set(weights[i])
-            new.append({g: (1.0 - factor) * weights[i].get(g, 0.0) + factor * avg.get(g, 0.0) * k
-                        for g in groups})
+                    avg[g] = avg.get(g, 0.0) + w / len(ring[i])
+            keys = set(avg) | set(own)
+            new.append({g: (1.0 - factor) * own.get(g, 0.0) + factor * avg.get(g, 0.0)
+                        for g in keys})
         weights = new
-    for vg in obj.vertex_groups:
-        vg.remove(range(n))
-    for i, wmap in enumerate(weights):
-        for g, w in wmap.items():
-            if w > 1e-4:
-                obj.vertex_groups[g].add([i], w, "REPLACE")
+    return weights
 
 
-def _weight_source(rig, names):
-    if len(names) == 1:
-        return rig[names[0]]
-    copies = []
-    for n in names:
-        c = rig[n].copy()
-        c.data = rig[n].data.copy()
-        c.modifiers.clear()
-        bpy.context.scene.collection.objects.link(c)
-        copies.append(c)
-    _select_only(copies)
-    bpy.ops.object.join()
-    joined = bpy.context.view_layer.objects.active
-    joined.name = "TMP_" + "+".join(names)
-    return joined
-
-
-def _transfer_weights(obj, src) -> None:
-    _select_only([obj])
-    mod = obj.modifiers.new("weights", "DATA_TRANSFER")
-    mod.object = src
-    mod.use_object_transform = True
-    mod.use_vert_data = True
-    mod.data_types_verts = {"VGROUP_WEIGHTS"}
-    mod.vert_mapping = "POLYINTERP_NEAREST"
-    mod.layers_vgroup_select_src = "ALL"
-    mod.layers_vgroup_select_dst = "NAME"
-    bpy.ops.object.modifier_apply(modifier=mod.name)
+def _rigid_hem(obj, weights, bone, side_of) -> int:
+    """The trouser hem follows only the shin: the bottom HEM_BAND is 100% lowerleg of its
+    side, blended back to the transferred weights over the next HEM_BAND. (A hem that
+    carries foot weight curls in towards the leg in the idle pose.)"""
+    zs = [(obj.matrix_world @ v.co).z for v in obj.data.vertices]
+    bottom = min(zs)
+    count = 0
+    for i, v in enumerate(obj.data.vertices):
+        z = zs[i]
+        if z > bottom + 2.0 * HEM_BAND:
+            continue
+        x = (obj.matrix_world @ v.co).x
+        name = next(n for n, sd in side_of.items() if n.startswith(bone) and sd * x > 0)
+        t = min(max((z - bottom - HEM_BAND) / HEM_BAND, 0.0), 1.0)
+        mixed = {k: w * t for k, w in weights[i].items()}
+        mixed[name] = mixed.get(name, 0.0) + (1.0 - t)
+        weights[i] = mixed
+        count += 1 if t == 0.0 else 0
+    return count
 
 
 def _parent_to(obj, arm) -> None:
