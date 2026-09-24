@@ -2,13 +2,14 @@ extends SceneTree
 
 ## Lighting / post-processing study for Cloth Look v3: the same three cloths (navy
 ## worsted pinstripe, brown tweed, mid-grey flannel) on the real garment meshes and on
-## material_roll bolts, under eight light + post setups. Render study only: nothing in
+## material_roll bolts, under eleven light + post setups. Render study only: nothing in
 ## the game is changed; the game's own values are read from its scenes.
 ##   light_<variant>.png   title + settings line, then figures close / rolls close /
 ##                         figures from the gameplay camera / its centre zoomed 4x
 ##   light_ALL.png         every variant's figures-close row, stacked with name bands
 ##   light_ALL_rolls.png   the same for the rolls rows
 ##   light_ALL_game.png    the same for the 4x gameplay-camera zooms
+##   light_RAKING_<figures|rolls|game>.png   the same, for game_live against the raking variants
 ## Raw rows go to .dev/light_rows/; tools/cloth_sheets.py (PIL) lays out the sheets.
 ## NOT headless (needs a GPU), and it must quit:
 ##   timeout 300 godot --path . --script res://tools/shot_cloth_light.gd
@@ -73,6 +74,24 @@ const VARIANTS: Array[String] = [
 	"window_ssao",
 	"raking",
 	"soft_sky",
+	"raking_crt",
+	"raking_ingame",
+	"raking_ingame_fill",
+]
+# The variants with the PostFX filter over them, as the player sees it.
+const POSTFX_ON: Array[String] = [
+	"game_live",
+	"raking_crt",
+	"raking_ingame",
+	"raking_ingame_fill",
+]
+# The raking follow-up, compared on its own sheets (light_RAKING*.png).
+const RAKING_SET: Array[String] = [
+	"game_live",
+	"raking",
+	"raking_crt",
+	"raking_ingame",
+	"raking_ingame_fill",
 ]
 const SUMMARY := {
 	"window":
@@ -103,6 +122,9 @@ const SHORT := {
 	"window_ssao": "window + SSAO 2.0 + SSIL 1.5",
 	"raking": "key at 18°",
 	"soft_sky": "sky ambient, key 0.9, AgX 1.1",
+	"raking_crt": "raking + PostFX + outline",
+	"raking_ingame": "raking key in the full game look",
+	"raking_ingame_fill": "raking_ingame + cool fill 0.3",
 }
 const TONEMAPS: Array[String] = ["Linear", "Reinhard", "Filmic", "ACES", "AgX"]
 # [row id, subject, camera, caption]
@@ -365,18 +387,29 @@ func _apply_variant(name: String) -> void:
 	for c in _lights.get_children():
 		c.free()
 	var game := name.begins_with("game_")
+	# The full shop environment + camera DoF: the game variants and the raking key
+	# dropped into the shop.
+	var shop := game or name.begins_with("raking_ingame")
 	if _postfx != null:
-		_postfx.visible = name == "game_live"
-	_outline.visible = game and not _outline.has_meta("off")
-	_cam.attributes = _game_cam.get("attributes") if game else null
-	if game:
+		_postfx.visible = name in POSTFX_ON
+	var outlined := game or name.begins_with("raking_")
+	_outline.visible = outlined and not _outline.has_meta("off")
+	_cam.attributes = _game_cam.get("attributes") if shop else null
+	if shop:
 		_we.environment = _game_env.duplicate()
-		_game_sun()
-		_summaries[name] = _game_summary(name == "game_live")
+		if game:
+			_game_sun()
+		else:
+			_key(18.0, 1.2, 2.0)
+			if name == "raking_ingame_fill":
+				_add_light(_source(30.0, KEY_AZIMUTH, true), 0.3, FILL_COLOR, false, 0.0)
+		_summaries[name] = _shop_summary(name)
 		return
 	var env := _window_env()
 	_we.environment = env
-	_summaries[name] = SUMMARY[name]
+	_summaries[name] = SUMMARY.get(name, "")
+	if name == "raking_crt":
+		_summaries[name] = SUMMARY["raking"] + "; outline; " + _postfx_summary()
 	match name:
 		"window", "window_agx", "window_ssao":
 			_key(45.0, 1.2, 2.0)
@@ -393,7 +426,7 @@ func _apply_variant(name: String) -> void:
 			_key(45.0, 1.2, 2.0)
 			_add_light(_source(30.0, KEY_AZIMUTH, true), 0.35, FILL_COLOR, false, 0.0)
 			_add_light(Vector3(0, sin(deg_to_rad(60.0)), -cos(deg_to_rad(60.0))), 0.6, KEY_COLOR)
-		"raking":
+		"raking", "raking_crt":
 			_key(18.0, 1.2, 2.0)
 		"soft_sky":
 			_key(45.0, 0.9, 3.0)
@@ -476,9 +509,23 @@ func _add_light(
 	_lights.add_child(light)
 
 
-func _game_summary(with_postfx: bool) -> String:
+## The settings line for a variant lit in the full shop environment.
+func _shop_summary(name: String) -> String:
 	var e := _game_env
 	var dir: Vector3 = -(_game_light.get("transform", Transform3D()) as Transform3D).basis.z
+	var light := (
+		"sun %.0f° up from the camera side, e%.2f, blur %.1f;"
+		% [
+			rad_to_deg(asin(-dir.y)),
+			float(_game_light.get("light_energy", 1.0)),
+			float(_game_light.get("shadow_blur", 1.0)),
+		]
+	)
+	if name.begins_with("raking_ingame"):
+		light = "shop light swapped for the raking key (18° up, camera-left, e1.2, blur 2.0)"
+		if name == "raking_ingame_fill":
+			light += " + cool fill from camera-right (e0.3, 30° up, no shadow)"
+		light += ";"
 	var parts: PackedStringArray = [
 		(
 			"Shop env: %s exp %.2f, ambient colour e%.2f, SSAO %.1f, glow %.2f, fog %.3f,"
@@ -491,37 +538,27 @@ func _game_summary(with_postfx: bool) -> String:
 				e.fog_density,
 			]
 		),
-		(
-			"contrast %.2f sat %.2f; sun %.0f° up from the camera side, e%.2f, blur %.1f;"
-			% [
-				e.adjustment_contrast,
-				e.adjustment_saturation,
-				rad_to_deg(asin(-dir.y)),
-				float(_game_light.get("light_energy", 1.0)),
-				float(_game_light.get("shadow_blur", 1.0)),
-			]
-		),
+		"contrast %.2f sat %.2f;" % [e.adjustment_contrast, e.adjustment_saturation],
+		light,
 		"DOF far 12 m; outline;",
+		_postfx_summary() if name in POSTFX_ON else "PostFX off",
 	]
-	if with_postfx and _pfx_profile != null:
-		var p := _pfx_profile
-		(
-			parts
-			. append(
-				(
-					"PostFX: grain %.3f, scanlines %.3f, CA %.3f, barrel %.3f"
-					% [
-						p.get("film_strength"),
-						p.get("scanline_strength"),
-						p.get("chromatic_aberration"),
-						p.get("barrel_distortion"),
-					]
-				)
-			)
-		)
-	else:
-		parts.append("PostFX off")
 	return " ".join(parts)
+
+
+func _postfx_summary() -> String:
+	var p := _pfx_profile
+	if p == null or _postfx == null:
+		return "PostFX not available"
+	return (
+		"PostFX: grain %.3f, scanlines %.3f, CA %.3f, barrel %.3f"
+		% [
+			p.get("film_strength"),
+			p.get("scanline_strength"),
+			p.get("chromatic_aberration"),
+			p.get("barrel_distortion"),
+		]
+	)
 
 
 # --- Cameras + capture -----------------------------------------------------------
@@ -620,11 +657,18 @@ func _compose() -> int:
 				}
 			)
 		)
-	sheets.append(_contact("light_ALL.png", "ALL VARIANTS, FIGURES CLOSE", "figures_close"))
-	sheets.append(_contact("light_ALL_rolls.png", "ALL VARIANTS, ROLLS CLOSE", "rolls_close"))
-	sheets.append(
-		_contact("light_ALL_game.png", "ALL VARIANTS, GAMEPLAY CAMERA 4x", "figures_game_zoom")
-	)
+	# [file, title, row id, variants]
+	var contacts := [
+		["light_ALL.png", "ALL VARIANTS, FIGURES CLOSE", "figures_close", VARIANTS],
+		["light_ALL_rolls.png", "ALL VARIANTS, ROLLS CLOSE", "rolls_close", VARIANTS],
+		["light_ALL_game.png", "ALL VARIANTS, GAMEPLAY CAMERA 4x", "figures_game_zoom", VARIANTS],
+		# Not light_RAKING.png: on Windows that is the same file as light_raking.png.
+		["light_RAKING_figures.png", "RAKING, FIGURES CLOSE", "figures_close", RAKING_SET],
+		["light_RAKING_rolls.png", "RAKING, ROLLS CLOSE", "rolls_close", RAKING_SET],
+		["light_RAKING_game.png", "RAKING, GAMEPLAY CAMERA 4x", "figures_game_zoom", RAKING_SET],
+	]
+	for c: Array in contacts:
+		sheets.append(_contact(c[0], c[1], c[2], c[3]))
 	var manifest := ROW_DIR + "manifest.json"
 	var f := FileAccess.open(manifest, FileAccess.WRITE)
 	f.store_string(JSON.stringify({"sheets": sheets}, "\t"))
@@ -640,9 +684,9 @@ func _compose() -> int:
 	return code
 
 
-func _contact(file: String, title: String, row_id: String) -> Dictionary:
+func _contact(file: String, title: String, row_id: String, names: Array[String]) -> Dictionary:
 	var rows: Array[Dictionary] = []
-	for name in VARIANTS:
+	for name in names:
 		(
 			rows
 			. append(
