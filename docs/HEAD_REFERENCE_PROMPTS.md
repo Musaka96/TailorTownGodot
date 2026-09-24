@@ -119,14 +119,38 @@ Batch plan (gentlemen dark brown `#2c1e18`, older silver `#8e9196`, all on cream
 |---|---|
 | G1 (done) | slick_back, pompadour, curly_crop, wavy_mop |
 | G2 (done) | side_part, deep_part, wavy_side, plus a shaggy miss |
-| G3 | brushed_back, ivy_league, centre_part, long_swept |
-| G4 | short_neat, curly_side, plus two of the same on the `squat` or `heavy` base once one exists |
+| G3 (done) | brushed_back kept; ivy league faded, centre part came long, long swept spiked |
+| V1 (from `egg_side_part`) | ivy_league, short_neat |
+| V2 (from `egg_brushed_back`) | long_swept, centre_part |
+| G4 | curly_side, plus three on the `squat` or `heavy` base once one exists |
 | O1 | receding_part, comb_over, grey_neat, side_wings |
 | O2 | thinning_slick, widows_peak, grey_curls, bald_fringe |
 | O3 (white `#e9e6df`, background slate `#3e4a55`, divider cream `#e5dbd1`) | white_swept, wild_white, plus two facial hair heads: horseshoe + full_beard, grey_neat + moustache |
 
 If a batch mixes styles between cells or repeats one, drop to two per image (one row)
 rather than back to singles.
+
+## VARIANT PREFIX (Stage 3, a new style edited from a keeper)
+
+For styles the model keeps getting wrong from words, edit one of the kept sheets instead.
+Attach the cropped keeper cell (its own front and back pair) as the only image. Two
+variants per image, side by side, each its own front and back pair.
+
+```
+The attached image is the character with a hairstyle. Keep the skull shape, the blank
+face with no features, the disc ears, the neck cut, the colours and the flat background
+exactly as they are, and keep the hair's sculpting: the same big fat locks and the same
+volume. Make one image with two versions of this head side by side, the left version
+and the right version, each shown twice at the same size on the same baseline, its
+front view on the left and its back view on the right, a thin straight line of colour
+#3e4a55 between the two versions. Each version changes the hairstyle in one way only:
+Left: {change}
+Right: {change}
+```
+
+Then the SUFFIX. Changes are written as differences from the keeper, for example "the
+same cut but the top cut short, no longer than two finger widths, the sides and back
+kept as they are, scissor cut, no fade".
 
 ---
 
@@ -183,7 +207,8 @@ Old money, not the barbershop: every cut is scissor cut and combed, long enough 
 locks everywhere it grows, tapered by scissors at the neck and ears. No fades, no
 undercuts, no buzz cuts, no cropped or spiked tops. Default hair colour dark brown
 `#2c1e18` on the cream background. Done and kept: `slick_back`, `pompadour`,
-`curly_crop`, `wavy_mop` (round 4), `side_part`, `deep_part`, `wavy_side` (round 6).
+`curly_crop`, `wavy_mop` (round 4), `side_part`, `deep_part`, `wavy_side` (round 6),
+`brushed_back` (round 7).
 
 | style | line |
 |---|---|
@@ -333,6 +358,15 @@ ivy league came out as a shaggy mop (dropped). "Rolling back" and "curling at th
 read as waves and a fringe; "just long enough" read as long. Both lines now say what
 must NOT be there (no fringe, forehead clear, nothing shaggy) and give lengths. The
 model also drifts the hair hex lighter each run; harmless, the game recolours.
+
+## Round 7 (2026-09-25)
+
+G3: brushed back kept. Ivy league came with a fade (the sheet's cell has clipped sides,
+the label pulled it in), the twenties centre part came as a floppy long centre part
+(owner to decide), long swept became spikes. Pattern over three batches: styles the
+model knows by name land first time, styles built from length descriptions drift. Added
+the VARIANT PREFIX: edit a cropped keeper and ask for the difference. Remaining
+gentlemen styles go that way (V1, V2 in the batch plan).
 
 ## Check before Tripo
 
