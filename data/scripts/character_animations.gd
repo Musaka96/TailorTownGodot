@@ -12,10 +12,6 @@ extends Resource
 ## one: append a row with a new `name`, then play it from code by that name.
 
 const _ANIM_DIR := "res://assets/characters/anim/"
-## Calm idle: the "idle" row keeps Idle_A's breathing (spine / chest / head) but hangs
-## both arms straight down at the sides and stands the legs as straight columns, a
-## figurine stance. false plays the untouched KayKit clip (loose arms, wide left foot).
-const CALM_IDLE := true
 ## How far each calm arm splays out from vertical, so the sleeve clears the jacket.
 const CALM_ARM_SPLAY_DEG := 6.0
 ## Limb bones the calm idle holds still: upper arms in the arms-down pose, the rest at
@@ -42,6 +38,13 @@ const _CALM_BONES := [
 ## with the head), so the figure faces straight ahead; their nod / breathing stays.
 const _CALM_FACE_FRONT := ["hips", "head"]
 
+## Calm idle, TEST RENDERS ONLY: the "idle" row keeps Idle_A's breathing (spine / chest /
+## head) but hangs both arms straight down at the sides and stands the legs as straight
+## columns, a figurine stance for judging rigs and cloth. The game plays the untouched
+## KayKit clip. A shot script opts in with `CharacterAnimations.calm_idle = true` BEFORE
+## the first CharAnims.library() call (the library is built once and cached).
+static var calm_idle := false
+
 ## The mapping rows. Order is display-only; the code plays by `name`.
 @export var entries: Array[AnimEntry] = []
 
@@ -53,7 +56,7 @@ func build_library() -> AnimationLibrary:
 	for entry in entries:
 		if entry == null or entry.source == null or entry.name == "":
 			continue
-		var clip := _extract(entry.source, entry.clip, CALM_IDLE and entry.name == "idle")
+		var clip := _extract(entry.source, entry.clip, calm_idle and entry.name == "idle")
 		if clip != null:
 			clip.loop_mode = Animation.LOOP_LINEAR if entry.loop else Animation.LOOP_NONE
 			lib.add_animation(entry.name, clip)
@@ -75,7 +78,7 @@ func _extract(source: PackedScene, clip_name: String, calm := false) -> Animatio
 	return out
 
 
-## Turn an idle clip into the calm idle (see CALM_IDLE), in place. Every track keeps its
+## Turn an idle clip into the calm idle (see calm_idle), in place. Every track keeps its
 ## path and type so the idle<->walk blend still lines up; only the key values change.
 ## Poses come from `skel`'s rest, the skeleton the clip was authored on.
 static func _calm(anim: Animation, skel: Skeleton3D) -> void:
