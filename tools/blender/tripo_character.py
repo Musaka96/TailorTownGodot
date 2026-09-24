@@ -237,8 +237,10 @@ def _arguments(argv):
     )
     p.add_argument(
         "--body-caps",
-        action="store_true",
-        help="split the jacket at the armholes and cap the body's openings (doll shoulder)",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="cap the jacket body's armholes with a fan set inside the body (a doll shoulder),"
+        " so a dropped sleeve shows a closed shoulder (default on)",
     )
     p.add_argument(
         "--sleeve-caps",
@@ -251,6 +253,17 @@ def _arguments(argv):
         default=False,
         help="make the bottom 10 cm of each trouser leg a straight column (off: measured, the"
         " Tripo legs are already straight at rest)",
+    )
+    p.add_argument(
+        "--decimate",
+        action="store_true",
+        help="reduce each mesh to its --budget (off: the full Tripo mesh is exported)",
+    )
+    p.add_argument(
+        "--copy-weights",
+        action="store_true",
+        help="copy the owner's CHARTGEN1 weights by position instead of the rigid per-part"
+        " assignment (the default)",
     )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
@@ -1431,6 +1444,11 @@ def _stretch(obj, label) -> float:
 
 def step_decimate(ns) -> None:
     log("\n== decimate")
+    if not ns.decimate:
+        log("  off (--decimate to reduce): the full mesh is exported")
+        for role, obj in _role_objects().items():
+            log("  %-7s %7d tris" % (role, _tris(obj)))
+        return
     log("  %-7s %7s %7s %7s  %s" % ("mesh", "before", "target", "after", "method"))
     for role, obj in _role_objects().items():
         target = ns.budgets.get(role, 0)
@@ -1552,6 +1570,114 @@ def _quiet_stretch(obj) -> float:
 
 # ---------------------------------------------------------------------------------------
 # step 5: skin
+
+
+JOINT_BLEND = 0.04  # metres over which a joint hands one bone to the next (centred on it)
+# Each mesh's bones in the rigid assignment; anything else must be exactly zero.
+RIGID_BONES = {
+    "jacket": {"chest", "spine", "upperarm.l", "lowerarm.l", "upperarm.r", "lowerarm.r"},
+    "tie": {"chest", "spine"},
+    "buttons": {"chest", "spine"},
+    "square": {"chest", "spine"},
+    "shirt": {"chest", "lowerarm.l", "lowerarm.r"},
+    "arms": {"hand.l", "hand.r"},
+    "legs": {"hips", "upperleg.l", "upperleg.r", "lowerleg.l", "lowerleg.r"},
+    "shoes": {"foot.l", "foot.r"},
+    "head": {"head"},
+    "Hair": {"head"},
+}
+
+
+def step_skin_rigid(ns) -> None:
+    """The most basic skin: each part on its own bones by height or along the limb, with a
+    JOINT_BLEND-wide linear hand-over at each joint and nothing else.
+      jacket body pieces, tie, buttons, square: chest above the chest bone, spine below
+      jacket sleeve pieces: upperarm to the elbow, lowerarm past it, own side only
+      shirt: chest; its cuffs: lowerarm of their side
+      arms (hands): hand; shoes: foot; head, Hair: head
+      trousers: hips above the upperleg head, upperleg to the knee, lowerleg below
+    Joint heights come from the armature's rest pose. Every bone outside a mesh's list is
+    asserted to be zero."""
+    log("\n== skin (rigid by part)")
+    arm = _armature()
+    arm.data.pose_position = "REST"
+    bones = [b.name for b in arm.data.bones]
+
+    def head(name):
+        return arm.matrix_world @ arm.data.bones[name].head_local
+
+    chest_z = head("chest").z
+    elbow_x = abs(head("lowerarm.l").x)
+    hip_z = head("upperleg.l").z
+    knee_z = head("lowerleg.l").z
+    log("  joints from the rig: chest %.3f m, elbow |x| %.3f, upperleg %.3f m, knee %.3f m;"
+        " blend %.0f cm across each" % (chest_z, elbow_x, hip_z, knee_z, JOINT_BLEND * 100))
+
+    def hand_over(value, joint, below, above):
+        t = min(max((value - (joint - JOINT_BLEND / 2)) / JOINT_BLEND, 0.0), 1.0)
+        if t <= 0.0:
+            return {below: 1.0}
+        if t >= 1.0:
+            return {above: 1.0}
+        return {below: 1.0 - t, above: t}
+
+    def side(x):
+        return ".l" if x * math.copysign(1.0, head("upperarm.l").x) > 0 else ".r"
+
+    for role, obj in _role_objects().items():
+        labels = ["all"] * len(obj.data.vertices)
+        note = ""
+        if role in ("jacket", "shirt", "legs"):
+            mode = "legs" if role == "legs" else "sleeves"
+            want = {"body"} if (role == "jacket" and ns.body_caps) else set()
+            labels, split, caps = _split_regions(obj, mode, ns.sleeve_x, want, True)
+            note = " | split along %d seam edges (%s)%s" % (
+                split, " / ".join(sorted(set(labels))),
+                (", %d body armhole caps" % len(caps)) if caps else "")
+        obj.vertex_groups.clear()
+        for name in bones:
+            obj.vertex_groups.new(name=name)
+        for i, v in enumerate(obj.data.vertices):
+            co = obj.matrix_world @ v.co
+            lab = labels[i]
+            # a labelled piece (sleeve, trouser leg) takes its piece's side, anything else
+            # the side its vertex is on
+            if lab[-2:] in ("+x", "-x"):
+                sd = side(1.0 if lab.endswith("+x") else -1.0)
+            else:
+                sd = side(co.x)
+            if role in ("jacket", "tie", "buttons", "square"):
+                if lab.startswith("sleeve"):
+                    w = hand_over(abs(co.x), elbow_x, "upperarm" + sd, "lowerarm" + sd)
+                else:
+                    w = hand_over(co.z, chest_z, "spine", "chest")
+            elif role == "shirt":
+                w = {"lowerarm" + sd: 1.0} if lab.startswith("sleeve") else {"chest": 1.0}
+            elif role == "arms":
+                w = {"hand" + side(co.x): 1.0}
+            elif role == "shoes":
+                w = {"foot" + side(co.x): 1.0}
+            elif role == "legs":
+                if co.z >= knee_z + JOINT_BLEND / 2:
+                    w = hand_over(co.z, hip_z, "upperleg" + sd, "hips")
+                else:
+                    w = hand_over(co.z, knee_z, "lowerleg" + sd, "upperleg" + sd)
+            else:
+                w = {HEAD_BONE: 1.0}
+            for name, value in w.items():
+                obj.vertex_groups[name].add([i], value, "REPLACE")
+        _parent_to(obj, arm)
+        used = set()
+        for v in obj.data.vertices:
+            for g in v.groups:
+                if g.weight > 0.0:
+                    used.add(obj.vertex_groups[g.group].name)
+        stray = used - RIGID_BONES[role]
+        assert not stray, "%s carries weight on %s" % (role, sorted(stray))
+        log("  %-7s %s%s" % (role, _bones_used(obj), note))
+        log("  %-7s   allowed %s; every other bone is zero (checked)" % (
+            "", ", ".join(sorted(RIGID_BONES[role]))))
+    arm.data.pose_position = "POSE"
 
 
 def step_skin(ns) -> None:
@@ -2611,7 +2737,7 @@ def main(argv) -> int:
         ("align", step_align),
         ("uv", step_uv),
         ("decimate", step_decimate),
-        ("skin", step_skin),
+        ("skin", lambda ns: step_skin(ns) if ns.copy_weights else step_skin_rigid(ns)),
         ("export", step_export),
     )
     for name, fn in runs:

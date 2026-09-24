@@ -223,6 +223,9 @@ func _initialize() -> void:
 		elif arg.begins_with("--only="):
 			_only = arg.trim_prefix("--only=")
 	RenderingServer.set_debug_generate_wireframes(true)
+	# test renders stand in the calm idle (arms straight down); the game keeps the KayKit
+	# idle. Must be set before the first rig builds (and caches) the animation library.
+	CharacterAnimations.calm_idle = true
 	var world := Node3D.new()
 	root.add_child(world)
 	_add_lights(world)

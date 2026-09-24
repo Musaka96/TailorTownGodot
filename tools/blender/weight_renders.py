@@ -139,7 +139,9 @@ def _wire_copy(obj, size):
         d.color = (0.0, 0.0, 0.0, 1.0)
     mesh.color_attributes.active_color = col
     mod = wire.modifiers.new("wire", "WIREFRAME")
-    mod.thickness = size * 0.0009
+    tris = sum(len(poly.vertices) - 2 for poly in mesh.polygons)
+    # thinner on a dense mesh, or the wire hides the colours
+    mod.thickness = size * 0.0009 * min(1.0, (3000.0 / max(tris, 1)) ** 0.5)
     mod.offset = 1.0
     mod.use_replace = True
     wire.hide_render = False
