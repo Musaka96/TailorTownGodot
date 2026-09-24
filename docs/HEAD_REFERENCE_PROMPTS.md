@@ -79,6 +79,51 @@ but not its head shape, colours or layout. Change only one thing on the characte
 the head this hairstyle.
 ```
 
+## BATCH PREFIX (Stage 2, four styles per image)
+
+Same two attached images. One image gives four styles on the base head, in a two by two
+grid, each cell its own front and back pair. Crop the cells along the dividing lines,
+then the halves. Keep one hair colour per batch, so the palette stays closed.
+
+```
+The first attached image is the character. Keep its skull shape, blank face with no
+features, disc ears, neck cut, colours and flat background exactly as they are. The
+second attached image shows how richly the hair must be sculpted: match that amount of
+lock detail, layering and volume, but not its head shape, colours or layout.
+
+Make one image holding four versions of this same head, each with a different hairstyle,
+in a two by two grid: top left, top right, bottom left, bottom right. Every cell shows
+its head twice at the same size on the same baseline, the front view on the left and the
+back view on the right, with a clear gap between them. All four heads are the same size.
+A thin straight line of colour #3e4a55 separates the four cells. Each cell has exactly
+one hairstyle and no hairstyle is repeated.
+
+The hairstyles, in reading order, are:
+1. {HAIR line}
+2. {HAIR line}
+3. {HAIR line}
+4. {HAIR line}
+```
+
+Then the SUFFIX, with "The hair is sculpted" changed to "All the hair is sculpted", and
+"one hair colour, no lighter streaks" added after "no fuzz". Add divider #3e4a55 to the
+palette.
+
+Batch plan (gentlemen dark brown `#2c1e18`, older silver `#8e9196`, all on cream):
+
+| batch | styles |
+|---|---|
+| G1 | slick_back, pompadour, curly_crop, textured_crop |
+| G2 | crew_cut, buzz, quiff, undercut |
+| G3 | curtains, wavy_mop, flat_top, short_coils |
+| G4 | ivy_league, taper, waves, bro_flow |
+| O1 | receding_part, comb_over, grey_neat, side_wings |
+| O2 | thinning_slick, widows_peak, grey_curls, bald_fringe |
+| O3 (white `#e9e6df`, background slate `#3e4a55`, divider cream `#e5dbd1`) | white_swept, wild_white, plus two facial hair heads: horseshoe + full_beard, grey_neat + moustache |
+
+If a batch mixes styles between cells or repeats one, drop to two per image (one row)
+rather than back to singles.
+
 ---
 
 ## Head shapes (Stage 1 subject lines)
