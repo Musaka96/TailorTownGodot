@@ -26,7 +26,12 @@ const SEPARATION := 0.9
 const SHIRT_COLOR := Color(0.94, 0.93, 0.89)
 const POPLIN := 6  # Enums.Fabric.POPLIN (autoload enums are not resolved in a --script run)
 const SOLID := 0  # Enums.Pattern.SOLID
-# name, animation, time fraction, camera position, look-at target
+const ORTHO_SIZE := 2.4
+const ARM_CHAIN := [["upperarm", "lowerarm"], ["lowerarm", "wrist"]]
+const LEG_CHAIN := [["upperleg", "lowerleg"], ["lowerleg", "foot"], ["foot", "toes"]]
+# name, animation, time fraction, camera position, look-at target, and optionally:
+# which rig to show ("both" / "new" / "old"), orthographic size (0 = perspective), and
+# whether to print the pose measurements (sleeve / trouser-leg axes, bone angles)
 const SHOTS := [
 	["front", "idle", 0.3, Vector3(0.0, 1.1, 5.2), Vector3(0.0, 1.05, 0.0)],
 	["back", "idle", 0.3, Vector3(0.0, 1.1, -5.2), Vector3(0.0, 1.05, 0.0)],
@@ -37,11 +42,61 @@ const SHOTS := [
 	["back_close", "idle", 0.3, Vector3(0.9, 0.95, -2.6), Vector3(0.9, 0.85, 0.0)],
 	["rest_back_close", "", 0.0, Vector3(0.9, 0.95, -2.6), Vector3(0.9, 0.85, 0.0)],
 	# both torsos at one framing, arms down, so the armhole and shoulders compare 1:1
-	["torso_front", "idle", 0.3, Vector3(0.0, 1.0, 4.0), Vector3(0.0, 0.95, 0.0)],
+	[
+		"torso_front",
+		"idle",
+		0.3,
+		Vector3(0.0, 1.0, 4.0),
+		Vector3(0.0, 0.95, 0.0),
+		"both",
+		0.0,
+		true
+	],
 	["torso_back", "idle", 0.3, Vector3(0.0, 1.0, -4.0), Vector3(0.0, 0.95, 0.0)],
 	# the sleeve / body junction of each rig from the front three-quarter
 	["junction_new", "idle", 0.3, Vector3(1.75, 1.15, 1.35), Vector3(1.1, 0.95, 0.0)],
 	["junction_old", "idle", 0.3, Vector3(-0.05, 1.15, 1.35), Vector3(-0.7, 0.95, 0.0)],
+	# orthographic, one rig at a time, for overlays on the owner's reference sheets
+	[
+		"ortho_idle_front_new",
+		"idle",
+		0.0,
+		Vector3(0.9, 1.124, 6.0),
+		Vector3(0.9, 1.124, 0.0),
+		"new",
+		ORTHO_SIZE,
+		true
+	],
+	[
+		"ortho_idle_back_new",
+		"idle",
+		0.0,
+		Vector3(0.9, 1.124, -6.0),
+		Vector3(0.9, 1.124, 0.0),
+		"new",
+		ORTHO_SIZE,
+		false
+	],
+	[
+		"ortho_idle_front_old",
+		"idle",
+		0.0,
+		Vector3(-0.9, 1.124, 6.0),
+		Vector3(-0.9, 1.124, 0.0),
+		"old",
+		ORTHO_SIZE,
+		false
+	],
+	[
+		"ortho_rest_front_new",
+		"",
+		0.0,
+		Vector3(0.9, 1.124, 6.0),
+		Vector3(0.9, 1.124, 0.0),
+		"new",
+		ORTHO_SIZE,
+		false
+	],
 ]
 
 var _rigs: Array[Node3D] = []
@@ -174,7 +229,173 @@ func _pose(shot: Array) -> void:
 		player.play(clip)
 		player.seek(player.get_animation(clip).length * float(shot[2]), true)
 		player.pause()
+	var who: String = shot[5] if shot.size() > 5 else "both"
+	_rigs[0].visible = who != "new"
+	_rigs[1].visible = who != "old"
+	var ortho: float = shot[6] if shot.size() > 6 else 0.0
+	if ortho > 0.0:
+		_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		_cam.size = ortho
+	else:
+		_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_cam.look_at_from_position(shot[3], shot[4], Vector3.UP)
+
+
+## Where the pose puts the sleeves and trouser legs, from the skinned vertices, and how
+## far the clip turns the limb bones: to tell the pose from the weights.
+func _measure(shot: Array) -> void:
+	print("== pose %s (%s at %.0f%% of the clip)" % [shot[0], shot[1], float(shot[2]) * 100.0])
+	for rig in _rigs:
+		var skel := rig.find_child("Skeleton3D", true, false) as Skeleton3D
+		var jacket := rig.find_child("jacket", true, false) as MeshInstance3D
+		var legs := rig.find_child("legs", true, false) as MeshInstance3D
+		if skel == null or jacket == null or legs == null:
+			continue
+		print("  %s" % ("CHARTGEN1 (owner)" if rig == _rigs[0] else "CHARTGEN2 (new)"))
+		# the owner's jacket has no vertices between |x| 0.30 and 0.45 (one long ring)
+		var jp := _skinned(jacket, skel)
+		for side in [1.0, -1.0]:
+			var bone := "lowerarm" + (".l" if side > 0 else ".r")
+			print(
+				(
+					"    sleeve %s off a rigid forearm tube: |x| .45-.70 %s, |x| .30-.45 %s"
+					% [
+						"+x" if side > 0 else "-x",
+						_rigid_gap(jp, skel, bone, side, 0.45, 0.70),
+						_rigid_gap(jp, skel, bone, side, 0.30, 0.45),
+					]
+				)
+			)
+		var lp := _skinned(legs, skel)
+		for side in [1.0, -1.0]:
+			var top := _band(lp, 1, side, 0.50, 0.62)
+			var knee := _band(lp, 1, side, 0.33, 0.43)
+			var hem := _band(lp, 1, side, 0.13, 0.22)
+			print(
+				(
+					(
+						"    trouser leg %s: axis %5.1f deg off vertical (front view %+5.1f),"
+						+ " bend at the knee %5.1f deg"
+					)
+					% [
+						"+x" if side > 0 else "-x",
+						_off_vertical(hem - top),
+						_front_tilt(hem - top),
+						rad_to_deg((knee - top).angle_to(hem - knee)),
+					]
+				)
+			)
+		if rig == _rigs[1]:
+			_bone_angles(skel)
+
+
+## Skeleton-space positions of a skinned mesh in the current pose, each paired with its
+## rest position: [[rest, posed], ...].
+func _skinned(mi: MeshInstance3D, skel: Skeleton3D) -> Array:
+	var out := []
+	var skin := mi.skin
+	var mats: Array[Transform3D] = []
+	for b in skin.get_bind_count():
+		var bone := skin.get_bind_bone(b)
+		if bone < 0:
+			bone = skel.find_bone(skin.get_bind_name(b))
+		mats.append(skel.get_bone_global_pose(bone) * skin.get_bind_pose(b))
+	for surf in mi.mesh.get_surface_count():
+		var arrays := mi.mesh.surface_get_arrays(surf)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+		var per: int = bones.size() / maxi(verts.size(), 1)
+		for i in verts.size():
+			var p := Vector3.ZERO
+			for k in per:
+				var w: float = weights[i * per + k]
+				if w > 0.0:
+					p += (mats[bones[i * per + k]] * verts[i]) * w
+			out.append([verts[i], p])
+	return out
+
+
+## Posed centre (bounding box, so dense trims such as cuff buttons do not drag it) of
+## the vertices whose REST coordinate `axis` (0 = |x|, 1 = y) lies in [lo, hi] on one
+## side (x sign).
+func _band(points: Array, axis: int, side: float, lo: float, hi: float) -> Vector3:
+	var box := AABB()
+	var first := true
+	for pair in points:
+		var rest: Vector3 = pair[0]
+		if rest.x * side <= 0.0:
+			continue
+		var c: float = absf(rest.x) if axis == 0 else rest.y
+		if c >= lo and c <= hi:
+			if first:
+				box = AABB(pair[1], Vector3.ZERO)
+				first = false
+			else:
+				box = box.expand(pair[1])
+	return box.get_center()
+
+
+## How far (cm, mean / max) the posed vertices with rest |x| in [lo, hi] sit from where
+## they would be if they moved rigidly with `bone`: 0 means a rigid tube on that bone.
+func _rigid_gap(
+	points: Array, skel: Skeleton3D, bone: String, side: float, lo: float, hi: float
+) -> String:
+	var b := skel.find_bone(bone)
+	var move := skel.get_bone_global_pose(b) * skel.get_bone_global_rest(b).affine_inverse()
+	var total := 0.0
+	var most := 0.0
+	var n := 0
+	for pair in points:
+		var rest: Vector3 = pair[0]
+		if rest.x * side <= 0.0 or absf(rest.x) < lo or absf(rest.x) > hi:
+			continue
+		var gap: float = (move * rest).distance_to(pair[1]) * 100.0
+		total += gap
+		most = maxf(most, gap)
+		n += 1
+	if n == 0:
+		return "no verts"
+	return "%.1f / %.1f cm (%d verts)" % [total / n, most, n]
+
+
+func _off_vertical(d: Vector3) -> float:
+	return rad_to_deg(d.angle_to(Vector3.DOWN))
+
+
+## Signed lean seen from the front (+ = the lower end is further from the centre line).
+func _front_tilt(d: Vector3) -> float:
+	return rad_to_deg(atan2(d.x, -d.y))
+
+
+## How the clip turns each limb bone: its direction off straight down, and how far it
+## has turned from the rest pose.
+func _bone_angles(skel: Skeleton3D) -> void:
+	print("    bones (direction head -> child head): off vertical in the pose | turned from rest")
+	for side in [".l", ".r"]:
+		for chain in [ARM_CHAIN, LEG_CHAIN]:
+			for pair in chain:
+				var a := skel.find_bone(String(pair[0]) + side)
+				var b := skel.find_bone(String(pair[1]) + side)
+				if a < 0 or b < 0:
+					continue
+				var pose: Vector3 = (
+					skel.get_bone_global_pose(b).origin - skel.get_bone_global_pose(a).origin
+				)
+				var rest: Vector3 = (
+					skel.get_bone_global_rest(b).origin - skel.get_bone_global_rest(a).origin
+				)
+				print(
+					(
+						"      %-11s %5.1f deg off vertical (front view %+6.1f) | turned %5.1f deg"
+						% [
+							String(pair[0]) + side,
+							_off_vertical(pose),
+							_front_tilt(pose),
+							rad_to_deg(pose.angle_to(rest)),
+						]
+					)
+				)
 
 
 func _on_frame() -> void:
@@ -190,6 +411,8 @@ func _on_frame() -> void:
 			print("%s animations: %s" % [rig.name, player.get_animation_list()])
 	if _frame == 4:
 		_pose(SHOTS[_shot])
+	elif _frame == 7 and SHOTS[_shot].size() > 7 and SHOTS[_shot][7]:
+		_measure(SHOTS[_shot])
 	elif _frame == 10:
 		var image := root.get_texture().get_image()
 		var path := "%s/engine_%s%s.png" % [OUT_DIR, _tag, SHOTS[_shot][0]]
