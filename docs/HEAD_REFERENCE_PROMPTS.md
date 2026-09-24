@@ -65,12 +65,18 @@ more: no shoulders, no body.
 
 ## EDIT PREFIX (Stage 2, with the bald sheet attached)
 
+Attach two images: the bald base sheet first, the hairstyle sheet
+(`IMPORT/CHARREWORK/ref/heads/style_sheet_gentlemen.png`, the "A More Refined Tomorrow"
+sheet) second. The second one only sets how richly the hair is sculpted.
+
 ```
-Use the attached image as the character. Keep everything exactly as it is: the skull
-shape, the blank face with no features, the disc ears, the neck cut, the two-view layout
-with the front view on the left and the back view on the right, the size, the baseline,
-the colours and the flat background. Change only one thing: give the head this
-hairstyle.
+The first attached image is the character. Keep everything in it exactly as it is: the
+skull shape, the blank face with no features, the disc ears, the neck cut, the two-view
+layout with the front view on the left and the back view on the right, the size, the
+baseline, the colours and the flat background. The second attached image shows how
+richly the hair must be sculpted: match that amount of lock detail, layering and volume,
+but not its head shape, colours or layout. Change only one thing on the character: give
+the head this hairstyle.
 ```
 
 ---
@@ -116,6 +122,10 @@ Default hair colour dark brown `#2c1e18` on the cream background.
 | `flat_top` | Hair: a flat top, the top cut dead flat and square with sharp corners at the temples, the sides short and straight, a straight front hairline. |
 | `short_coils` | Hair: short natural coils, a dense even cap of tightly coiled hair moulded as a fine pebbled surface close to the skull, with a crisp lined-up hairline across the forehead and temples. |
 | `textured_crop` | Hair: a short textured crop, the top a layer of short forward-brushed clumps ending in a choppy fringe across the forehead, the sides faded short. |
+| `ivy_league` | Hair: an ivy league cut, short and neat with the top just long enough to be brushed to one side in small layered locks, a soft side part, the sides tapered short, ears clear. |
+| `taper` | Hair: a taper cut, a full textured top of short forward-brushed locks with a choppy fringe, the sides and back tapering steadily shorter down to a clean edge at the nape. |
+| `waves` | Hair: short wavy hair, a full cap of thick S-shaped locks rolling across the top and sides, one wave lifting off the forehead, the back in rounded rows down to the nape. |
+| `bro_flow` | Hair: a bro flow, medium-long hair pushed back off the forehead and flowing back in thick loose locks that curl out over the ears and at the nape. |
 
 ## Hairstyles, older gentlemen (Stage 2 subject lines)
 
@@ -154,8 +164,12 @@ Generate them now if you want the option in the pool.
 ## SUFFIX
 
 ```
-Hair is moulded the way toy figure hair is: a few solid masses with carved grooves and
-crisp edges, not separate strands and not fuzzy. Both views show the same hairstyle from
+The hair is sculpted the way a collectible toy figure's hair is, with real thickness
+standing off the skull: built from many overlapping locks, each lock a distinct rounded
+clump with its own tip, laid over one another like roof tiles in the direction the hair
+is combed, with deep hollows between them so the surface has ridges and depth. The
+fringe, the temples and the nape end in separate tufts, not one smooth edge. Solid
+moulded shapes, no single hairs, no fuzz. Both views show the same hairstyle from
 opposite sides, and the back view shows the nape and the backs of the ears. The image has
 a plain flat background of one colour, no floor, no shadow, no gradient, no glow, no
 bloom, no rim light, no lens blur, no depth of field, no vignette, no specular
@@ -163,6 +177,9 @@ highlights. The colours are only: skin #e4b083, hair {HAIR}, background {BG}. No
 eyebrows, no nose, no mouth, no glasses, no hat, no shoulders, no body, no text, no
 watermark, no signature, no border, no frame.
 ```
+
+For a bald sheet use the short form: drop the two hair sentences and "hair {HAIR}," from
+the palette.
 
 For a bald sheet drop "hair {HAIR}," from the palette.
 
@@ -192,6 +209,17 @@ above is the wider, fuller-cheeked alternative if a second base is ever wanted.
 Stage 2 with the base attached keeps the cream background, so use silver `#8e9196` for
 older hair on it. For white hair add "and change the background to a flat slate
 #3e4a55" to the edit prefix, since white on cream has no edge.
+
+## Round 2 (2026-09-25)
+
+Horseshoe (silver) and side part (dark brown) on the base: layout, blank face, colours
+and keyable edges all held. The hair came out as one smooth helmet with three grooves,
+because the old suffix asked for "a few solid masses". The owner wants the hair as rich
+as his own AC-style sheet (many layered locks, tufts, volume). The suffix now asks for
+overlapping locks laid like roof tiles with tufted edges, and the edit prefix takes that
+sheet as a second image to set the level of detail. At gameplay distance (head about 25
+px tall) only the silhouette and the outline read, so detail that changes the outline
+(tufts at the fringe and nape, lift off the forehead) matters more than surface grooves.
 
 ## Check before Tripo
 
