@@ -68,7 +68,7 @@ The result is capped at 1–5 days. Rush orders are due tomorrow.
 ## Client types
 | Type | From | Effect |
 |---|---|---|
-| **Regular ★N** | `Clientele` | Same face; budget +10% per loyalty (see ECONOMY) |
+| **Regular ★N** | `Clientele` | Same face (the saved look, `face_style` included: their cut-paper preset, see `FaceCast`); budget +10% per loyalty (see ECONOMY) |
 | **Rush** | 15% growing / 20% established, only when load < 0.6 | Due tomorrow, pays **+30%** (agreed in the quote) |
 | **Picky** | 10% / 15% | Budget −15%; judged 0.2 harsher for full pay, **double tips** |
 | **Appointment** | Booked earlier | Arrives early on the booked day, even with the sign up |

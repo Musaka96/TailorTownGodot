@@ -374,6 +374,7 @@ func _look() -> Dictionary:
 		"hair_color": LOOK_HAIR,
 		"eyes": "brown",
 		"glasses": "wire",
+		"face_style": FaceCast.MENTOR,
 		"mouth": 0,  # a closed smile at rest (see data/mouth_shapes.tres)
 		"suit": suit,
 	}

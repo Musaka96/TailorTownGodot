@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_2jr6i"]
+
+[resource]
+script = ExtResource("1_2jr6i")
+white_radius = 0.155
+white_aspect = 1.0
+pupil_radius = 0.1
+pupil_wedge = 0.8
+brow_spacing = 0.26
+brow_height = 0.21
+brow_length = 0.22
+brow_thickness = 0.085
+brow_angle = 6.0
+brow_arch = 0.15
+brow_color = Color(0.56078434, 0.5411765, 0.5176471, 1)
+nose_kind = 1
+nose_size = Vector2(0.09, 0.07)
+nose_height = 0.665
+mouth_height = 0.815
+mouth_width = 0.17
+mouth_thickness = 0.03

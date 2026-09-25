@@ -42,6 +42,8 @@ var eye_color := "brown"
 ## (CharacterRig.GLASSES_COLORS key).
 var glasses := ""
 var glasses_color := "black"
+## Their cut-paper face: a FaceCast preset name (data/face_styles/); set before apply_look().
+var face_style := ""
 ## Their own shoes: {"color", "finish"} (ShoeMaterial); empty means black calf. Worn
 ## with a suit; their street outfit brings its own pair.
 var shoes: Dictionary = {}
@@ -142,7 +144,8 @@ func offer_greeting() -> void:
 
 
 ## Set skin colour, head mesh, and optionally eye colour + glasses (called by the
-## manager on spawn). Empty eye_color / glasses keep the rig defaults.
+## manager on spawn). Empty eye_color / glasses keep the rig defaults. The face is
+## `face_style`'s (empty = the rig's default).
 func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 	skin_color = skin
 	head_index = head
@@ -154,6 +157,8 @@ func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 	_rig.set_palette(skin)
 	_rig.set("glasses_color", glasses_color)
 	_rig.set_face_look(eyes, glasses_kind)
+	if face_style != "":
+		_rig.set("face_style", FaceCast.style(face_style))
 	_rig.set("shoes", shoes)
 
 

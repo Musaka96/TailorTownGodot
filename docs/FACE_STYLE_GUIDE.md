@@ -279,6 +279,12 @@ frames come in black, tortoise, gold and silver only, so no bright fashion frame
 | Mr. Bellamy | `paper_bellamy` | dark grey `#4a4746` | none | | the thespian: "a big face for the back row of a theatre" | large round whites 0.18 set wide 0.27, wedge pupils 0.12; the highest, most arched long brows (0.14 from the top, arch 0.35, 0.26 long), grey brow paper `#3a3634`; big shield nose 0.15 × 0.10; the widest mouth 0.22; small cheeks 0.06 |
 | Miss Hartley | `paper_hartley` | chestnut `#7a4326` | none | Mr. Rossi, Mr. Penrose | the romantic: "hopeful and a bit worried" | big whites 0.16 taller than wide (aspect 1.18), wedge pupils 0.11; medium brows (0.19) close set 0.21, inner ends up +18 and all but straight (arch 0), her resting shape; small disc nose; small mouth 0.13; cheeks 0.08 |
 | Dr. Vance | `paper_vance` | black `#15110f` | round, black | | business: "doing sums while talking to you; tight and level" | dot eyes (pupils 0.06 alone, close set 0.18, a touch high at 0.47); long thick dead-straight brows (0.26 × 0.10, angle 0, arch 0) low at 0.30, black brow paper `#1f1611`; narrow strip nose; narrow mouth 0.12. The other try, small close-set whites 0.11 (`paper_vance_whites`), lost: behind the lenses the cream barely parts from the skin and the dot-in-a-ring stares |
+| Mr. Hemming | `paper_hemming` | grey (the mentor's look) | round, black | | the tutorial's master tailor, kindly (first draft, owner to check) | J1 with the straight gaze: medium round whites 0.155 at 0.23, wedge pupils 0.10; grey brow paper `#8f8a84`, medium thick (0.22 × 0.085), gentle arch 0.15, inner ends up 6; small oval nose 0.09 × 0.07; medium mouth 0.17, curve 0.2; no cheeks |
+
+In the game `data/scripts/face_cast.gd` (`FaceCast`) hands these out (live since 2026-09-27):
+the player is J1, a customer named after a cast member (by surname, the "same face" names
+included; Lady Ashcombe and Lord Tewkesbury wear the noble's) gets that face with its hair
+colour and glasses, anyone else one of the seven cast faces picked by their name.
 
 The owner's brow angles were written with the other sign ("−10°, down at the outer ends"); here a
 positive angle lifts the inner end, so Pettigrew's +10 and Hartley's +18 are the same slants.

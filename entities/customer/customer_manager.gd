@@ -210,6 +210,7 @@ func hold_for(cust: Customer) -> bool:
 ## bring them to the counter to be greeted.
 func invite_in(cust: Customer) -> void:
 	cust.preference = CustomerPreference.random_pref(_rng, "", cust.gender)  # named to fit
+	_wear_cast(cust, cust.preference.display_name)  # a cast name brings its own face
 	var biased := _apply_event_bias(cust.preference)
 	FrontDesk.season_brief(cust.preference)
 	_briefs.shape(cust.preference, _rng, "", biased)
@@ -266,9 +267,11 @@ func _on_order_due(order: SuitOrder) -> void:
 	var known: Dictionary = Clientele.look(order.customer_name) if Clientele != null else {}
 	if known.is_empty():
 		# Head and hair are one combo (same index), so the hair gives back the head too.
+		cust.face_style = FaceCast.preset_for(order.customer_name)
 		cust.apply_look(order.skin, "", "", order.hair_index)
 		cust.set_hair(order.hair_index)  # match the customer who ordered
 		cust.set_hair_color(order.hair_color)
+		_wear_cast(cust, order.customer_name)
 	else:
 		_dress_as(cust, known, order.customer_name)
 	cust.walk([_door_out, _door_in, _collect_spot()], func() -> void: _on_collector_arrived(cust))
@@ -404,6 +407,9 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 	# Older looks hold the sprite kinds ("round" / "sun") and no frame colour: black.
 	cust.glasses_color = str(look.get("glasses_color", "black"))
 	var street := int(look.get("street", cust.street_index))  # older saves: keep today's
+	# Older looks have no face: the name picks it (FaceCast), the same one every load.
+	var face := str(look.get("face_style", ""))
+	cust.face_style = face if FaceCast.exists(face) else FaceCast.preset_for(nm)
 	if street != cust.street_index:
 		cust.street_index = street
 		cust.wear_street()
@@ -415,14 +421,19 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 	)
 	cust.set_hair(hair)
 	cust.set_hair_color(look.get("hair_color", cust.hair_color))
+	_wear_cast(cust, nm)
 
 
 ## A fresh face and street clothes. Someone with a brief gets the body it settles on
-## (CustomerPreference.settle_gender), so the name and the figure always agree.
+## (CustomerPreference.settle_gender), so the name and the figure always agree, and the
+## cut-paper face their name picks (FaceCast; a cast member's own, with their hair colour
+## and glasses). A passer-by with no name yet gets one at random.
 func _dress(cust: Customer) -> void:
 	var gender := Enums.Gender.MALE if _rng.randf() < 0.5 else Enums.Gender.FEMALE
+	var nm := ""
 	if cust.preference != null:
 		gender = cust.preference.settle_gender(_rng) as Enums.Gender
+		nm = cust.preference.display_name
 	cust.gender = gender
 	var eye: String = CharacterRig.EYE_COLORS[_rng.randi() % CharacterRig.EYE_COLORS.size()]
 	var glasses := ""
@@ -435,11 +446,27 @@ func _dress(cust: Customer) -> void:
 	# the skin and hair COLOURS vary independently.
 	var combo := maxi(0, Wardrobe.random_head_index(gender, _rng))
 	cust.shoes = ShoeMaterial.random(_rng)
+	cust.face_style = FaceCast.preset_for(nm) if nm != "" else FaceCast.random_preset(_rng)
 	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses, combo)
 	cust.set_hair(combo)
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
 	cust.street_index = maxi(0, Wardrobe.random_street_index(gender, _rng))
 	cust.wear_street()
+	_wear_cast(cust, nm)
+
+
+## A cast member (FaceCast.BY_NAME) always wears their own face, hair colour and glasses,
+## whatever the dice or an older save gave them. Anyone else is left as they are.
+func _wear_cast(cust: Customer, nm: String) -> void:
+	var cast := FaceCast.cast_of(nm)
+	if cast.is_empty():
+		return
+	cust.face_style = cast["preset"]
+	var glasses := Wardrobe.glasses_style(cast["glasses"])
+	if glasses != "":
+		cust.glasses_color = cast["glasses_color"]
+	cust.apply_look(cust.skin_color, cust.eye_color, glasses, cust.head_index)
+	cust.set_hair_color(cast["hair"])
 
 
 # --- Routing (called by Customer / UI) -------------------------------------

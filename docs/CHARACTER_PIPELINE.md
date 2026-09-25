@@ -101,7 +101,27 @@ mouth at that UV from `assets/shaders/face_sdf.gdshaderinc`; one material copy p
 plain uniforms. A `FaceStyle` (`data/face_styles/*.tres`) places the pieces in FACE UNITS
 (fractions of the rect), so one preset lands the same on every head; `FaceFrame` holds the
 optional per-head nudges. Blink, talk and expressions tween dials on the material. Glasses
-remain a sprite in front. `CharacterRig.procedural_faces` switches the mode.
+are 3D parts on the head bone. `CharacterRig.procedural_faces` switches the mode.
+
+**Live since 2026-09-27:** `procedural_faces` defaults to true, so every rig (player,
+customers, portraits, the apprentice, tools) wears a paper face; the painted sprites stay
+behind the flag as the fallback. `data/scripts/face_cast.gd` (`FaceCast`) is the cast
+registry: `PLAYER` = `paper_j1` (set in `player.gd _dress()`), `MENTOR` = `paper_hemming`
+(the tutorial portrait, `mentor_dialog._look()`), `CUSTOMER_PRESETS` = the seven cast faces,
+`BY_NAME` = surname -> preset, hair colour, glasses and frame colour (guide section 8, with the
+aliases Applegarth, Zanetti, Rossi, Penrose, and the titled nobles Ashcombe and Tewkesbury on
+`paper_noble`). `preset_for(name)` gives a cast member their own face and anyone else a
+stable pick by a hash of the name; `style(preset)` loads and caches the `FaceStyle` (unknown =
+J1). A customer carries `face_style` (a preset name) with the rest of their look:
+`CustomerManager._dress()` picks it from the brief's name (a passer-by with no name yet gets
+one at random, and a pitch that names them after a cast member puts that face on), a named
+cast member always wears their hair colour and glasses (`_wear_cast`, also over older saved
+looks), `Clientele.note_customer()` stores it, and a regular's look without it (older saves)
+falls back to `preset_for(name)`, so no save version bump. The glasses parts are fitted to
+J1's eye spacing (0.226); `_place_glasses()` scales them across by the face's `eye_spacing`
+over that (Portobello 0.84, Vance 0.80, Pettigrew 1.15, Bellamy 1.19). Check sheet:
+`tools/shot_live_cast.gd` -> `IMPORT/faces_proc/live_cast.png` (everyone dressed through the
+game's own path); test: `tools/test_face_cast.gd`.
 
 Why this over sprites and decals: the face sits on the skin, follows the head to 180 degrees
 with no float, no sorting against hair, no per-head hand placement; Godot decals take no

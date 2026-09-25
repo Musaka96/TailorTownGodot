@@ -69,12 +69,14 @@ func configure(customer: Node) -> void:
 	_rig.set_hair_color(customer.get("hair_color"))
 	_rig.set("glasses_color", str(customer.get("glasses_color")))
 	_rig.set_face_look(str(customer.get("eye_color")), str(customer.get("glasses")))
+	_set_face(str(customer.get("face_style")))
 	_rig.wear_street(Wardrobe.street_outfit(int(customer.get("street_index"))))
 
 
 ## Match the portrait to a plain look (for characters that aren't customers, e.g. the
-## tutorial mentor). Keys: head, hair (int), skin, hair_color (Color), eyes, glasses
-## (String), suit (MaterialType, optional — worn as jacket + trousers).
+## tutorial mentor). Keys: head, hair (int), skin, hair_color (Color), eyes, glasses,
+## face_style (String, a FaceCast preset), suit (MaterialType, optional — worn as jacket +
+## trousers).
 func configure_look(look: Dictionary) -> void:
 	if _rig == null:
 		return
@@ -91,6 +93,7 @@ func configure_look(look: Dictionary) -> void:
 		int(look.get("nose", -1)),
 		int(look.get("mouth", -1))
 	)
+	_set_face(str(look.get("face_style", "")))
 	var suit: MaterialType = look.get("suit")
 	if suit != null:
 		_rig.set_outfit(suit, null, suit)
@@ -124,3 +127,9 @@ func set_live(on: bool) -> void:
 func react(liked: bool) -> void:
 	if _rig != null and _rig.has_method("express_once"):
 		_rig.express_once(liked)
+
+
+## The cut-paper face (a FaceCast preset name; empty or unknown = left as it is).
+func _set_face(preset: String) -> void:
+	if FaceCast.exists(preset):
+		_rig.set("face_style", FaceCast.style(preset))

@@ -113,6 +113,8 @@ const GLASSES_COLORS := {
 ## The face depth the glasses parts are modelled for (the shaved base skull at eye
 ## height); each head moves them forward by its own face depth minus this.
 const GLASSES_FACE_Z := 0.421
+## The eye spacing the glasses are fitted to (paper_j1's); other faces scale them across.
+const GLASSES_EYE_SPACING := 0.226
 const LENS_TINT := Color(0.62, 0.72, 0.78, 0.25)
 const BLINK_MIN := 2.4
 const BLINK_MAX := 6.0
@@ -128,7 +130,7 @@ const EXPR_HAPPY_MOUTH := 1.2  # mouth grows into a grin when pleased
 const NOD_ANGLE := 0.30
 const SHAKE_ANGLE := 0.34
 const GESTURE_STEP := 0.13
-# --- Procedural faces (off unless procedural_faces is set) -------------------------
+# --- Procedural faces (the game's faces; the sprites return if procedural_faces is off) ---
 # The face is drawn IN THE HEAD'S SKIN MATERIAL (skin_face.gdshader) at a baked face UV
 # (FaceUvBaker: UV2 = the head's flat front mapped to 0..1), from a FaceStyle
 # (data/face_styles/, cut-paper pieces: docs/FACE_STYLE_GUIDE.md) laid out in face units, so
@@ -154,9 +156,9 @@ const PAPER_TILE_HAIR := 3.6
 # "Papier-mache surface"): a PaperSurface preset, the same on the head, arms and hair.
 const DEFAULT_PAPER_SURFACE := "res://data/paper_surfaces/paper_mache.tres"
 
-## Read once when a rig builds its face: true = procedural faces (FaceStyle) instead of
-## the painted sprites. Flip it before the rig enters the tree.
-static var procedural_faces := false
+## Read once when a rig builds its face: true (live since 2026-09-27) = FaceStyle faces,
+## false = the painted sprites (the fallback). Flip it before the rig enters the tree.
+static var procedural_faces := true
 ## Procedural faces only: keep the strand overlay over the paper hair (false = the hair is
 ## pure flat paper). Read whenever the hair colour is applied.
 static var paper_hair_strands := true
@@ -706,13 +708,17 @@ func _head_bind(src: MeshInstance3D) -> Transform3D:
 	return rest.affine_inverse() * src.transform
 
 
-## Move the glasses forward (skeleton +z) onto this head's face plane.
+## Move the glasses forward (skeleton +z) onto this head's face plane and, on a procedural
+## face, scale them across (x) to its eye spacing so the lenses land on the eyes.
 func _place_glasses() -> void:
 	if _glasses_meshes.is_empty():
 		return
 	var layout := _layout if _layout != null else FaceProfiles.load_or_default().layout_for(0)
 	var dz := layout.face_z_for(_head_index) - GLASSES_FACE_Z
-	var shift := Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, dz))
+	var across := 1.0
+	if _proc:
+		across = _face_style_or_default().eye_spacing / GLASSES_EYE_SPACING
+	var shift := Transform3D(Basis.from_scale(Vector3(across, 1.0, 1.0)), Vector3(0.0, 0.0, dz))
 	for mi in _glasses_meshes:
 		mi.transform = (mi.get_meta("bind") as Transform3D) * shift
 
@@ -785,6 +791,7 @@ func _set_face_style(style: FaceStyle) -> void:
 		_proc_look()
 	if _proc:
 		_push_face()
+		_place_glasses()  # their width follows the face's eye spacing
 
 
 ## Put the face on the head: bake the current head's face UV, give it the face skin and

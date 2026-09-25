@@ -48,6 +48,9 @@ func note_customer(cust: Node) -> void:
 	var shoes: Variant = cust.get("shoes")
 	if shoes is Dictionary and not (shoes as Dictionary).is_empty():
 		entry["look"]["shoes"] = (shoes as Dictionary).duplicate()
+	var face: Variant = cust.get("face_style")  # their cut-paper face (FaceCast preset)
+	if face != null and str(face) != "":
+		entry["look"]["face_style"] = str(face)
 	_remember_taste(entry, cust.preference)
 	_people[nm] = entry
 

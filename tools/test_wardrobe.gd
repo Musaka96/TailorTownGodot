@@ -235,6 +235,9 @@ func _standin_glasses() -> PackedScene:
 ## The flat albedo on a skin mesh (head / arms).
 func _skin(node: Node) -> Color:
 	var mi := node as MeshInstance3D
+	var paper := mi.material_override as ShaderMaterial if mi != null else null
+	if paper != null:  # procedural faces: the paper skin (paper_skin.gdshader)
+		return paper.get_shader_parameter("fill_color")
 	var mat := mi.material_override as StandardMaterial3D if mi != null else null
 	return mat.albedo_color if mat != null else Color(0, 0, 0, 0)
 

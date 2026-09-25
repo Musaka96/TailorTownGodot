@@ -310,6 +310,7 @@ func _dress() -> void:
 	_rig.set_palette(Style.LINEN.lightened(0.35))
 	_rig.set_hair(2)
 	_rig.set_hair_color(Style.BROWN)
+	_rig.set("face_style", FaceCast.style(FaceCast.preset_for(NAME)))  # not the player's J1
 	var rng := RandomNumberGenerator.new()
 	rng.seed = NAME.hash()  # the same pair of shoes and street clothes every day
 	_rig.set("shoes", ShoeMaterial.random(rng))

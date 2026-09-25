@@ -68,7 +68,8 @@ func _ready() -> void:
 			carry.set_hold_point(point)
 
 
-## The shopkeeper's look: an enabled head/hair combo and a sharp suit over a white shirt.
+## The shopkeeper's look: an enabled head/hair combo, J1's paper face and a sharp suit over
+## a white shirt.
 func _dress() -> void:
 	if _model.has_method("set_head"):
 		var combo := _usable_combo()
@@ -83,6 +84,7 @@ func _dress() -> void:
 			_model.set_outfit(suit, null, suit, jacket_style, trouser_style)
 	if _model is CharacterRig:
 		(_model as CharacterRig).shoes = {"color": shoes_color, "finish": shoes_finish}
+		(_model as CharacterRig).face_style = FaceCast.style(FaceCast.PLAYER)  # J1
 
 
 ## `head_combo` if it's switched on, else the first combo that is (0 if none are).
