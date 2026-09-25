@@ -372,7 +372,18 @@ def _pt(v):
 # step 3: export
 
 
+MATERIAL_OF = {"head": ("skin", (0.93, 0.76, 0.62)), "Hair": ("hair", (0.30, 0.19, 0.11)),
+               "frames": ("frames", (0.12, 0.10, 0.09)), "lenses": ("lenses", (0.75, 0.85, 0.9))}
+
+
 def _export(ns, name, parts):
+    return _export_parts(ns, ns.out_dir / ("tripo_%s_m.glb" % name),
+                         {k: v for k, v in parts.items() if k in ("head", "Hair")})
+
+
+def _export_parts(ns, path, parts):
+    """Write `parts` (mesh name -> (verts, faces) in rig space) to a glb on Rig_Medium,
+    every mesh bound 100% to bone `head`, then re-read it and check it."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(ns.rig))
@@ -380,9 +391,7 @@ def _export(ns, name, parts):
     for o in set(bpy.data.objects) - before:
         if o.type == "MESH":
             bpy.data.objects.remove(o, do_unlink=True)
-    colours = {"head": (0.93, 0.76, 0.62), "Hair": (0.30, 0.19, 0.11)}
-    for role in ("head", "Hair"):
-        verts, faces = parts[role]
+    for role, (verts, faces) in parts.items():
         me = bpy.data.meshes.new(role)
         me.from_pydata([tuple(v) for v in verts], [], faces)
         me.validate()
@@ -396,14 +405,14 @@ def _export(ns, name, parts):
         bpy.ops.mesh.select_all(action="SELECT")
         bpy.ops.uv.smart_project(angle_limit=math.radians(66.0), island_margin=0.02)
         bpy.ops.object.mode_set(mode="OBJECT")
-        mat = bpy.data.materials.new("skin" if role == "head" else "hair")
-        mat.diffuse_color = colours[role] + (1.0,)
+        mat_name, colour = MATERIAL_OF.get(role, (role, (0.5, 0.5, 0.5)))
+        mat = bpy.data.materials.new(mat_name)
+        mat.diffuse_color = colour + (1.0,)
         me.materials.append(mat)
         for bone in arm.data.bones:
             ob.vertex_groups.new(name=bone.name)
         ob.vertex_groups["head"].add(range(len(me.vertices)), 1.0, "REPLACE")
         tc._parent_to(ob, arm)
-    path = ns.out_dir / ("tripo_%s_m.glb" % name)
     tc._select_only([])
     bpy.ops.export_scene.gltf(
         filepath=str(path), export_format="GLB", use_selection=False, export_yup=True,
@@ -418,9 +427,10 @@ def _export(ns, name, parts):
     tris = {n.get("name"): sum(g["accessors"][p["indices"]]["count"] // 3
                                for p in g["meshes"][n["mesh"]]["primitives"])
             for n in nodes if "mesh" in n}
-    ok = roots == ["Rig_Medium"] and len(joints) == 22 and meshes == ["Hair", "head"] and skinned
-    log("  %s %-26s head %5d tris, Hair %5d tris, %d KB" % (
-        "ok  " if ok else "FAIL", path.name, tris.get("head", 0), tris.get("Hair", 0),
+    ok = roots == ["Rig_Medium"] and len(joints) == 22 and meshes == sorted(parts) and skinned
+    log("  %s %-26s %s, %d KB" % (
+        "ok  " if ok else "FAIL", path.name,
+        ", ".join("%s %d tris" % (k, tris.get(k, 0)) for k in sorted(parts)),
         path.stat().st_size // 1024))
     return ok
 

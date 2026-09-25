@@ -39,6 +39,9 @@ func note_customer(cust: Node) -> void:
 		"glasses": str(cust.get("glasses")),
 		"gender": int(cust.get("gender")),
 	}
+	var frames: Variant = cust.get("glasses_color")  # their glasses' frame colour
+	if frames != null:
+		entry["look"]["glasses_color"] = str(frames)
 	var street: Variant = cust.get("street_index")  # their street clothes
 	if street != null:
 		entry["look"]["street"] = int(street)

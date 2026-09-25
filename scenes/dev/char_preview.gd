@@ -9,7 +9,6 @@ extends Control
 const RIG_SCENE := preload("res://entities/character/character_rig.tscn")
 const SUIT_MAT := preload("res://data/materials/navy_worsted_pinstripe.tres")
 const GENDERS := [Enums.Gender.ANY, Enums.Gender.MALE, Enums.Gender.FEMALE]
-const GLASSES := ["", "sun", "round"]
 const EXPRS := ["neutral", "happy", "sad"]
 const SKINS := [
 	Color(0.9, 0.76, 0.66), Color(0.8, 0.62, 0.48), Color(0.66, 0.48, 0.35), Color(0.55, 0.38, 0.27)
@@ -48,11 +47,6 @@ const FIELDS := [
 	["mouth_px", 0.0005, 0.01, 0.0001, false],
 	["mouth_z", -0.15, 0.2, 0.002, false],
 	["mouth_curve", -8.0, 8.0, 0.05, false],
-	["glasses_y", -0.3, 0.4, 0.002, false],
-	["glasses_x", -0.3, 0.3, 0.002, false],
-	["glasses_px", 0.0005, 0.01, 0.0001, false],
-	["glasses_z", -0.05, 0.25, 0.002, false],
-	["glasses_curve", -8.0, 8.0, 0.05, false],
 ]
 
 # Elements the gizmo can grab: [label, representative rig node name, field key prefix].
@@ -63,7 +57,6 @@ const ELEMENTS := [
 	["Brows", "brow_l", "brow"],
 	["Nose", "nose", "nose"],
 	["Mouth", "mouth", "mouth"],
-	["Glasses", "glasses", "glasses"],
 ]
 const GIZ_MODES := ["Move", "Rotate", "Scale"]
 const AXIS_NAMES := ["x", "y", "z"]
@@ -194,7 +187,9 @@ func _build_controls(col: VBoxContainer) -> void:
 	col.add_child(_dropdown("Gender (random)", ["Any", "Male", "Female"], _gender_i, _on_gender))
 	col.add_child(_heading("Face"))
 	col.add_child(_dropdown("Eyes", CharacterRig.EYE_COLORS, _eye_i, _on_eye))
-	col.add_child(_dropdown("Glasses", ["none", "sun", "round"], _glasses_i, _on_glasses))
+	var glasses: Array[String] = ["none"]
+	glasses.append_array(Wardrobe.glasses_kinds())
+	col.add_child(_dropdown("Glasses", glasses, _glasses_i, _on_glasses))
 	var noses := _range_names(CharacterRig.variant_count("nose"), "Nose")
 	var mouths := _range_names(CharacterRig.variant_count("mouth"), "Mouth")
 	col.add_child(_dropdown("Nose", noses, _nose_i, _on_nose))
@@ -519,7 +514,11 @@ func _apply() -> void:
 	_rig.set_palette(SKINS[_skin_i])
 	_rig.set_hair_color(HAIR_COLORS[_hairc_i])
 	_rig.set_outfit(SUIT_MAT, null, SUIT_MAT, _top, _bottom)
-	_rig.set_face_look(CharacterRig.EYE_COLORS[_eye_i], GLASSES[_glasses_i], _nose_i, _mouth_i)
+	var kinds := Wardrobe.glasses_kinds()
+	var glasses := ""
+	if _glasses_i > 0 and _glasses_i <= kinds.size():
+		glasses = kinds[_glasses_i - 1]
+	_rig.set_face_look(CharacterRig.EYE_COLORS[_eye_i], glasses, _nose_i, _mouth_i)
 	# set_head loaded the head's stored profile; re-assert the editor's working layout so
 	# unsaved edits (and a duplicated default for a new combo) stay visible.
 	_rig.apply_layout(_layout)

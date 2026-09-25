@@ -38,7 +38,10 @@ var head_index := 0
 var gender := Enums.Gender.MALE
 ## Face look, remembered so the speech-bubble portrait can match this customer.
 var eye_color := "brown"
+## Glasses: a Wardrobe glasses style ("" = none) and the frames' colour
+## (CharacterRig.GLASSES_COLORS key).
 var glasses := ""
+var glasses_color := "black"
 ## Their own shoes: {"color", "finish"} (ShoeMaterial); empty means black calf. Worn
 ## with a suit; their street outfit brings its own pair.
 var shoes: Dictionary = {}
@@ -149,6 +152,7 @@ func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 		return
 	_rig.set_head(head)
 	_rig.set_palette(skin)
+	_rig.set("glasses_color", glasses_color)
 	_rig.set_face_look(eyes, glasses_kind)
 	_rig.set("shoes", shoes)
 

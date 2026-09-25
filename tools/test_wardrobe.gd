@@ -122,6 +122,7 @@ func _run() -> void:
 		"style 0 swaps back to the single-breasted jacket model"
 	)
 	await _check_regular()
+	await _check_glasses(rig)
 
 	# The Tuxedo is listed but its top is a placeholder, so menus must skip it.
 	var jacket := Enums.GarmentType.JACKET
@@ -168,6 +169,67 @@ func _check_regular() -> void:
 ## into this --script compile).
 func _dye(id: String) -> Color:
 	return load("res://data/scripts/shoe_material.gd").COLORS[id]
+
+
+## Glasses are 3D parts on the head bone: a style attaches its frames mesh, "" takes
+## them off, the frame colour applies, and the old sprite keys map onto today's styles.
+## Until the real parts exist the check runs on stand-ins named like them.
+func _check_glasses(rig: Node) -> void:
+	var lib := Wardrobe.library()
+	if lib.glasses_part("wire") == null or lib.glasses_part("square") == null:
+		print("  (no glasses parts yet: stand-ins)")
+		for kind in ["wire", "square"]:
+			if lib.glasses_part(kind) == null:
+				lib.glasses.append(WardrobePart.make(kind, _standin_glasses(), _glass_roles()))
+	var wire := lib.glasses_part("wire")
+	rig.set_face_look("brown", "wire")
+	await process_frame
+	var frames := _glasses_mesh(rig, "frames")
+	_check(
+		frames != null and frames.mesh == _source_mesh(wire, "frames").mesh,
+		"glasses attach the part's frames mesh on the head bone"
+	)
+	_check(frames != null and frames.skin == null, "as a plain (unskinned) mesh")
+	rig.glasses_color = "gold"
+	var gold: Color = rig.GLASSES_COLORS["gold"]
+	_check(frames != null and _skin(frames).is_equal_approx(gold), "in the frame colour")
+	rig.set_face_look("brown", "")
+	await process_frame
+	_check(_glasses_mesh(rig, "frames") == null, "no glasses takes them off")
+	rig.set_face_look("brown", "round")  # a look saved before the 3D parts
+	await process_frame
+	frames = _glasses_mesh(rig, "frames")
+	_check(frames != null and frames.mesh == _source_mesh(wire, "frames").mesh, "round -> wire")
+	_check(Wardrobe.glasses_style("sun") == "square", "sun -> square")
+	_check(Wardrobe.glasses_style("monocle") == "", "an unknown style -> none")
+	rig.set_face_look("brown", "")
+
+
+func _glasses_mesh(rig: Node, role: String) -> MeshInstance3D:
+	var attach := rig.find_child("GlassesAttach", true, false)
+	return attach.get_node_or_null(role) as MeshInstance3D if attach != null else null
+
+
+func _glass_roles() -> Dictionary:
+	return {"frames": "frames", "lenses": "lenses"}
+
+
+## A stand-in glasses model: a flat frames bar and a lens plate at eye height.
+func _standin_glasses() -> PackedScene:
+	var top := Node3D.new()
+	for role in ["frames", "lenses"]:
+		var mi := MeshInstance3D.new()
+		mi.name = role
+		var box := BoxMesh.new()
+		box.size = Vector3(0.36, 0.1, 0.01 if role == "lenses" else 0.02)
+		mi.mesh = box
+		mi.position = Vector3(0.0, 1.66, 0.421)
+		top.add_child(mi)
+		mi.owner = top
+	var packed := PackedScene.new()
+	packed.pack(top)
+	top.free()
+	return packed
 
 
 ## The flat albedo on a skin mesh (head / arms).

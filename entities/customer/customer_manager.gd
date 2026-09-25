@@ -8,7 +8,7 @@ extends Node3D
 ## new comes in, and nobody else can take the mirror, while someone holds that slot.
 
 const CUSTOMER_SCENE := preload("res://entities/customer/customer.tscn")
-## Roughly one in five customers wears glasses, split between shades and readers.
+## Roughly one in five customers wears glasses, any style, any frame colour.
 const GLASSES_CHANCE := 0.2
 
 @export var mirror_path: NodePath
@@ -401,6 +401,8 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 		hair = head
 	cust.gender = want as Enums.Gender
 	cust.shoes = ShoeMaterial.from_dict(look.get("shoes", {}))
+	# Older looks hold the sprite kinds ("round" / "sun") and no frame colour: black.
+	cust.glasses_color = str(look.get("glasses_color", "black"))
 	var street := int(look.get("street", cust.street_index))  # older saves: keep today's
 	if street != cust.street_index:
 		cust.street_index = street
@@ -408,7 +410,7 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 	cust.apply_look(
 		look.get("skin", cust.skin_color),
 		str(look.get("eyes", "brown")),
-		str(look.get("glasses", "")),
+		Wardrobe.glasses_style(str(look.get("glasses", ""))),
 		head
 	)
 	cust.set_hair(hair)
@@ -424,8 +426,11 @@ func _dress(cust: Customer) -> void:
 	cust.gender = gender
 	var eye: String = CharacterRig.EYE_COLORS[_rng.randi() % CharacterRig.EYE_COLORS.size()]
 	var glasses := ""
-	if _rng.randf() < GLASSES_CHANCE:
-		glasses = "sun" if _rng.randf() < 0.5 else "round"
+	var kinds := Wardrobe.glasses_kinds()
+	if _rng.randf() < GLASSES_CHANCE and not kinds.is_empty():
+		glasses = kinds[_rng.randi() % kinds.size()]
+		var colors: Array = CharacterRig.GLASSES_COLORS.keys()
+		cust.glasses_color = colors[_rng.randi() % colors.size()]
 	# A head and its own hair are one combo (same glb, same index) — never mixed. Only
 	# the skin and hair COLOURS vary independently.
 	var combo := maxi(0, Wardrobe.random_head_index(gender, _rng))

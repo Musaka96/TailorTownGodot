@@ -373,7 +373,7 @@ func _look() -> Dictionary:
 		"skin": LOOK_SKIN,
 		"hair_color": LOOK_HAIR,
 		"eyes": "brown",
-		"glasses": "round",
+		"glasses": "wire",
 		"mouth": 0,  # a closed smile at rest (see data/mouth_shapes.tres)
 		"suit": suit,
 	}

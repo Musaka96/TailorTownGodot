@@ -8,6 +8,8 @@ class_name Wardrobe
 ## change is needed to add a new hairstyle, suit style, skin tone or hair colour.
 
 const LIBRARY_PATH := "res://data/wardrobe/default_wardrobe.tres"
+## Glasses keys from before the 3D parts (the face sprites) -> today's style keys.
+const LEGACY_GLASSES := {"round": "wire", "sun": "square"}
 
 static var _lib: WardrobeLibrary
 
@@ -69,6 +71,17 @@ static func street_outfit(index: int) -> StreetOutfit:
 ## A random street outfit index fitting `gender` (-1 if the library has none).
 static func random_street_index(gender: int, rng: RandomNumberGenerator) -> int:
 	return library().random_street_index(gender, rng)
+
+
+static func glasses_kinds() -> Array[String]:
+	return library().glasses_kinds()
+
+
+## A glasses value as stored in a look, made current: the old sprite kinds map onto the
+## 3D parts ("round" -> "wire", "sun" -> "square"); anything not in the library -> "".
+static func glasses_style(kind: String) -> String:
+	var mapped: String = LEGACY_GLASSES.get(kind, kind)
+	return mapped if mapped in glasses_kinds() else ""
 
 
 static func hair_count() -> int:

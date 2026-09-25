@@ -60,15 +60,6 @@ const PATH := "res://data/face_layout.tres"
 @export var mouth_rot := Vector3.ZERO
 @export var mouth_scale := Vector3.ONE
 
-@export_group("Glasses")
-## Glasses sit centred over the eyes; a single wide sprite (not paired).
-@export var glasses_y := 0.085
-@export var glasses_px := 0.0036
-@export var glasses_x := 0.0
-@export var glasses_curve := 0.0
-@export var glasses_rot := Vector3.ZERO
-@export var glasses_scale := Vector3.ONE
-
 @export_group("Depth & curve")
 ## Per-element depth offset from the head's face_z (metres; + = toward the viewer),
 ## to seat each part on a rounded head.
@@ -76,7 +67,6 @@ const PATH := "res://data/face_layout.tres"
 @export var brow_z := 0.0
 @export var nose_z := 0.0
 @export var mouth_z := 0.0
-@export var glasses_z := 0.03
 ## Convex wrap: the face bends around the head's horizontal round. Each element is set
 ## on a cylinder about the head's vertical axis, so it curves back AND tilts to face
 ## outward (not perpendicular-flat). face_curve is the curvature 1/radius: 0 = flat,

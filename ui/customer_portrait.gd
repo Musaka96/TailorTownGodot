@@ -67,6 +67,7 @@ func configure(customer: Node) -> void:
 	_rig.set_hair(int(customer.get("hair_index")))
 	_rig.set_palette(customer.get("skin_color"))
 	_rig.set_hair_color(customer.get("hair_color"))
+	_rig.set("glasses_color", str(customer.get("glasses_color")))
 	_rig.set_face_look(str(customer.get("eye_color")), str(customer.get("glasses")))
 	_rig.wear_street(Wardrobe.street_outfit(int(customer.get("street_index"))))
 
@@ -83,6 +84,7 @@ func configure_look(look: Dictionary) -> void:
 		_rig.set_palette(look["skin"])
 	if look.has("hair_color"):
 		_rig.set_hair_color(look["hair_color"])
+	_rig.set("glasses_color", str(look.get("glasses_color", "black")))
 	_rig.set_face_look(
 		str(look.get("eyes", "brown")),
 		str(look.get("glasses", "")),

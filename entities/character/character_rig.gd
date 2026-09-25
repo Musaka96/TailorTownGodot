@@ -103,8 +103,17 @@ const FACE_BONE := "head_2"
 const FACE_DIR := "res://assets/textures/faces/"
 ## Eye colours the art ships with; a customer is given one at random on spawn.
 const EYE_COLORS := ["brown", "green", "blue", "amber", "olive", "steel"]
-## Glasses overlays a customer may wear ("" = none), keyed to the sliced sprite name.
-const GLASSES_KINDS := {"sun": "glasses_sun", "round": "glasses_round"}
+## Glasses are 3D parts (Wardrobe glasses, keyed by style); their frames come in these.
+const GLASSES_COLORS := {
+	"black": Color("1f1d21"),
+	"tortoise": Color("5b3a22"),
+	"gold": Color("c7a04c"),
+	"silver": Color("b4b8bf"),
+}
+## The face depth the glasses parts are modelled for (the shaved base skull at eye
+## height); each head moves them forward by its own face depth minus this.
+const GLASSES_FACE_Z := 0.421
+const LENS_TINT := Color(0.62, 0.72, 0.78, 0.25)
 const BLINK_MIN := 2.4
 const BLINK_MAX := 6.0
 const BLINK_TIME := 0.11
@@ -123,7 +132,7 @@ const GESTURE_STEP := 0.13
 # The face is drawn IN THE HEAD'S SKIN MATERIAL (skin_face.gdshader) at a baked face UV
 # (FaceUvBaker: UV2 = the head's flat front mapped to 0..1), from a FaceStyle
 # (data/face_styles/, cut-paper pieces: docs/FACE_STYLE_GUIDE.md) laid out in face units, so
-# one preset lands on every head. Only the glasses stay a sprite. Blinks, talking and
+# one preset lands on every head. The glasses are 3D parts. Blinks, talking and
 # expressions tween the style's dials (lid, mouth_open, mouth_curve, brow_height ...)
 # instead of swapping art.
 const SKIN_FACE_SHADER := "res://assets/shaders/skin_face.gdshader"
@@ -141,6 +150,9 @@ const PROC_TALK_SPEED := 14.0  # mouth_open units per second while flapping
 const PAPER_SKIN_SHADER := "res://assets/shaders/paper_skin.gdshader"
 const PAPER_TILE_ARMS := 1.35
 const PAPER_TILE_HAIR := 3.6
+# Over the grain, the papier-mache surface (scan + torn strips, FACE_STYLE_GUIDE
+# "Papier-mache surface"): a PaperSurface preset, the same on the head, arms and hair.
+const DEFAULT_PAPER_SURFACE := "res://data/paper_surfaces/paper_mache.tres"
 
 ## Read once when a rig builds its face: true = procedural faces (FaceStyle) instead of
 ## the painted sprites. Flip it before the rig enters the tree.
@@ -148,6 +160,9 @@ static var procedural_faces := false
 ## Procedural faces only: keep the strand overlay over the paper hair (false = the hair is
 ## pure flat paper). Read whenever the hair colour is applied.
 static var paper_hair_strands := true
+## Procedural faces only: the papier-mache surface of the skin and hair (null =
+## DEFAULT_PAPER_SURFACE). Read whenever the skin or hair material is applied.
+static var paper_surface: PaperSurface
 static var _skin_face_shader: Shader
 static var _paper_shader: Shader
 
@@ -176,6 +191,14 @@ var tie_color: Color:
 	set(value):
 		_tie_color = value
 		_dress_extras()
+## The glasses frames' colour: a GLASSES_COLORS key (unknown = black). A property for
+## the public-method limit; set it before or after set_face_look().
+var glasses_color: String:
+	get:
+		return _glasses_color
+	set(value):
+		_glasses_color = value if GLASSES_COLORS.has(value) else "black"
+		_paint_glasses()
 
 var _tree: AnimationTree
 var _loco := 0.0  # current idle(0)->walk(1) blend
@@ -198,9 +221,12 @@ var _brow_l: Sprite3D
 var _brow_r: Sprite3D
 var _nose: Sprite3D
 var _mouth: Sprite3D
-var _glasses: Sprite3D
 var _eye_color := "brown"
-var _glasses_kind := ""  # "", "sun" or "round"; applied once the face is built
+var _glasses_kind := ""  # "" or a Wardrobe glasses style; applied once the rig is ready
+var _glasses_color := "black"
+var _glasses_shown := ""  # the style whose meshes are attached now
+var _glasses_attach: BoneAttachment3D  # on the head bone; the glasses meshes ride it
+var _glasses_meshes: Array[MeshInstance3D] = []
 var _nose_index := 0  # which nose_N sprite (see assets/textures/faces/)
 var _mouth_index := 0  # which mouth_N sprite
 var _talking := false  # auto-flap between closed/open mouth shapes (set_talking)
@@ -316,8 +342,6 @@ func _build_face() -> void:
 		_brow_l.name = "brow_l"
 		_nose.name = "nose"
 		_mouth.name = "mouth"
-	_glasses = _sprite(attach, null, false)
-	_glasses.name = "glasses"
 	if _proc:
 		_make_procedural()
 	apply_layout(_layout)
@@ -364,7 +388,7 @@ func apply_layout(layout: FaceLayout) -> void:
 	)
 	_place_one(_nose, layout, "nose", base)
 	_place_one(_mouth, layout, "mouth", base)
-	_place_one(_glasses, layout, "glasses", base)
+	_place_glasses()
 
 
 ## Place a single (centred) element by name, reading its x/y/px/z/curve/rot/scale fields.
@@ -606,10 +630,11 @@ func _set_eye_tex(tex: Texture2D) -> void:
 
 
 ## Set eye colour (one of EYE_COLORS; unknown falls back to brown so blinks never
-## break) and glasses ("sun" / "round", or "" for none) — the per-customer face look.
+## break) and glasses (a Wardrobe glasses style, or "" for none; the old sprite keys
+## "round" / "sun" still work) — the per-customer face look.
 func set_face_look(eye_color: String, glasses: String, nose := -1, mouth := -1) -> void:
 	_eye_color = eye_color if eye_color in EYE_COLORS else "brown"
-	_glasses_kind = glasses
+	_glasses_kind = Wardrobe.glasses_style(glasses)
 	_look_set = true
 	if _proc:
 		if nose >= 0:
@@ -626,16 +651,92 @@ func set_face_look(eye_color: String, glasses: String, nose := -1, mouth := -1) 
 	_apply_glasses()
 
 
-## Show/hide the glasses overlay for the stored kind. Safe before the face is built
-## (the builder calls it again), so spawn-time set_face_look() never misses.
+## Put on the stored glasses style (or take them off for ""). Safe before the rig is
+## ready (the face builder calls it again), so spawn-time set_face_look() never misses.
 func _apply_glasses() -> void:
-	if _glasses == null:
+	if _skel == null or _skel.find_bone(FACE_BONE) < 0:
 		return
-	if GLASSES_KINDS.has(_glasses_kind):
-		_glasses.texture = _tex(GLASSES_KINDS[_glasses_kind])
-		_glasses.visible = true
-	else:
-		_glasses.visible = false
+	if _glasses_kind != _glasses_shown:
+		_clear_glasses()
+		var part := Wardrobe.library().glasses_part(_glasses_kind)
+		if part != null and part.model != null:
+			_attach_glasses(part)
+		_glasses_shown = _glasses_kind
+	_place_glasses()
+	_paint_glasses()
+
+
+## The glasses meshes ride a head-bone attachment as plain (unskinned) meshes, so they
+## can be moved onto each head's face plane; the part's skin bind for the head bone
+## puts them where the skinned mesh would sit.
+func _attach_glasses(part: WardrobePart) -> void:
+	if _glasses_attach == null:
+		_glasses_attach = BoneAttachment3D.new()
+		_glasses_attach.name = "GlassesAttach"
+		_glasses_attach.bone_name = FACE_BONE
+		_skel.add_child(_glasses_attach)
+	var inst := part.model.instantiate()
+	for role in part.roles:
+		var src := inst.find_child(part.roles[role], true, false) as MeshInstance3D
+		if src == null or src.mesh == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.name = role
+		mi.mesh = src.mesh
+		mi.set_meta("role", role)
+		mi.set_meta("bind", _head_bind(src))
+		_glasses_attach.add_child(mi)
+		_glasses_meshes.append(mi)
+	inst.free()
+
+
+## Mesh space -> head-bone space for a part's mesh: its skin's bind pose for the head
+## bone ("head" in the part's own rig, "head_2" once renamed), else the rest pose.
+func _head_bind(src: MeshInstance3D) -> Transform3D:
+	var skin := src.skin
+	if skin != null:
+		var src_skel := src.get_node_or_null(src.skeleton) as Skeleton3D
+		for i in skin.get_bind_count():
+			var bn := String(skin.get_bind_name(i))
+			if bn == "" and src_skel != null and skin.get_bind_bone(i) >= 0:
+				bn = src_skel.get_bone_name(skin.get_bind_bone(i))
+			if bn in ["head", FACE_BONE] or skin.get_bind_count() == 1:
+				return skin.get_bind_pose(i)
+	var rest := _skel.get_bone_global_rest(_skel.find_bone(FACE_BONE))
+	return rest.affine_inverse() * src.transform
+
+
+## Move the glasses forward (skeleton +z) onto this head's face plane.
+func _place_glasses() -> void:
+	if _glasses_meshes.is_empty():
+		return
+	var layout := _layout if _layout != null else FaceProfiles.load_or_default().layout_for(0)
+	var dz := layout.face_z_for(_head_index) - GLASSES_FACE_Z
+	var shift := Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, dz))
+	for mi in _glasses_meshes:
+		mi.transform = (mi.get_meta("bind") as Transform3D) * shift
+
+
+## Frames: a flat outlined colour from GLASSES_COLORS. Lenses: a light transparent tint.
+func _paint_glasses() -> void:
+	for mi in _glasses_meshes:
+		if mi.get_meta("role") == "lenses":
+			var lens := StandardMaterial3D.new()
+			lens.albedo_color = LENS_TINT
+			lens.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			lens.roughness = 0.2
+			lens.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+			mi.material_override = lens
+		else:
+			_apply_flat(mi, GLASSES_COLORS.get(_glasses_color, GLASSES_COLORS["black"]), 1.0)
+
+
+func _clear_glasses() -> void:
+	for mi in _glasses_meshes:
+		if is_instance_valid(mi):
+			mi.get_parent().remove_child(mi)
+			mi.queue_free()
+	_glasses_meshes.clear()
 
 
 func _eye_tex() -> Texture2D:
@@ -724,6 +825,7 @@ func _face_skin() -> ShaderMaterial:
 		_skin_face.shader = _skin_face_shader
 	_skin_face.set_shader_parameter("skin_color", _skin_color)
 	_skin_face.set_shader_parameter("face_enabled", _face_frame != null)
+	_paper_look().apply_to(_skin_face)
 	_push_face()
 	return _skin_face
 
@@ -1058,7 +1160,17 @@ func _paper(color: Color, tile: float, seed: float) -> ShaderMaterial:
 	mat.set_shader_parameter("fill_color", color)
 	mat.set_shader_parameter("tile", tile)
 	mat.set_shader_parameter("seed", seed)
+	_paper_look().apply_to(mat)
 	return mat
+
+
+## The papier-mache surface in use (paper_surface, loaded from DEFAULT_PAPER_SURFACE once).
+static func _paper_look() -> PaperSurface:
+	if paper_surface == null:
+		paper_surface = load(DEFAULT_PAPER_SURFACE) as PaperSurface
+	if paper_surface == null:
+		paper_surface = PaperSurface.new()
+	return paper_surface
 
 
 ## The strand overlay: the base hair colour multiplied by a transparent strand texture,

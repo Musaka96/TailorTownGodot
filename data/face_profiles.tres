@@ -30,14 +30,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_m55k8"]
 script = ExtResource("1_m55k8")
@@ -59,14 +55,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_ldd3y"]
 script = ExtResource("1_m55k8")
@@ -88,14 +80,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_2udn6"]
 script = ExtResource("1_m55k8")
@@ -117,14 +105,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_s8m7m"]
 script = ExtResource("1_m55k8")
@@ -146,14 +130,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_ke65b"]
 script = ExtResource("1_m55k8")
@@ -175,14 +155,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_kxv7y"]
 script = ExtResource("1_m55k8")
@@ -204,14 +180,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_h4j3r"]
 script = ExtResource("1_m55k8")
@@ -233,14 +205,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [sub_resource type="Resource" id="Resource_ck3yj"]
 script = ExtResource("1_m55k8")
@@ -262,14 +230,10 @@ nose_curve = -0.7000000000000002
 mouth_y = -0.25
 mouth_px = 0.0021
 mouth_curve = -0.25
-glasses_y = 0.01600000000000001
-glasses_px = 0.0047
-glasses_x = 0.002
 eye_z = -0.02045138596011295
 brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
-glasses_z = 0.02
 
 [resource]
 script = ExtResource("2_ldd3y")

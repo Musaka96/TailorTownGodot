@@ -16,6 +16,11 @@ extends SceneTree
 ##   street_<outfit>_front / _three_quarter / _back / _walk   each street outfit on a rig
 ##   street_customer_1_street / _2_suit / _3_street   one customer (customer.tscn) in
 ##       street clothes, then wear_suit (their own shoes come back), then street again
+##
+## With `-- --glasses` it shoots the 3D glasses, to IMPORT/CHARREWORK/report/glasses_game/:
+##   glasses_<style>_base_front / _side     each style on head 0 (the base head)
+##   glasses_<style>_tripo_front / _side    and on a tripo head with a deeper face
+##   glasses_lineup_front / _three_quarter  customers (customer.tscn) with random glasses
 
 # rig slots in the row
 enum Slot { PLAYER, SB, DB, TUX, STREET, CARRY }
@@ -25,6 +30,9 @@ const PLAYER_SCENE := "res://scenes/player/player.tscn"
 const SUIT := "res://data/materials/navy_worsted_solid.tres"
 const OUT_DIR := "res://IMPORT/CHARREWORK/report/integration"
 const STREET_DIR := "res://IMPORT/CHARREWORK/report/street_game"
+const GLASSES_DIR := "res://IMPORT/CHARREWORK/report/glasses_game"
+const GLASSES_TRIPO_HEAD := 5  # tripo_head_bl: face depth 0.467, well in front of 0.421
+const LINEUP := 6
 const CUSTOMER_SCENE := "res://entities/customer/customer.tscn"
 const STREET_HEADS := [3, 6]
 const SKIN := Color(0.86, 0.72, 0.60)
@@ -41,6 +49,7 @@ var _shots: Array = []
 var _shot := 0
 var _frame := 0
 var _street := false
+var _glasses := false
 var _out_dir := OUT_DIR
 
 
@@ -58,6 +67,11 @@ func _initialize() -> void:
 		_street = true
 		_out_dir = STREET_DIR
 		_init_street(world)
+		return
+	if "--glasses" in OS.get_cmdline_user_args():
+		_glasses = true
+		_out_dir = GLASSES_DIR
+		_init_glasses(world)
 		return
 	var rig_scene := load(RIG_SCENE) as PackedScene
 	for slot in Slot.size():
@@ -130,6 +144,71 @@ func _plan_street() -> void:
 	_shots.append(["street_customer_1_street", [c], cam, cx + target, 30.0])
 	_shots.append(["street_customer_2_suit", [c], cam, cx + target, 30.0, to_suit])
 	_shots.append(["street_customer_3_street", [c], cam, cx + target, 30.0, to_street])
+
+
+## Glasses mode: per style a base-head rig and a tripo-head rig, then a customer lineup.
+func _init_glasses(world: Node3D) -> void:
+	var rig_scene := load(RIG_SCENE) as PackedScene
+	for k in Wardrobe.glasses_kinds().size() * 2:
+		var rig := rig_scene.instantiate() as Node3D
+		rig.position.x = k * GAP * 2.0
+		world.add_child(rig)
+		_rigs.append(rig)
+	var start := _rigs.size() * GAP * 2.0 + 4.0
+	var cust_scene := load(CUSTOMER_SCENE) as PackedScene
+	for k in LINEUP:
+		var cust := cust_scene.instantiate() as Node3D
+		cust.position.x = start + k * 1.1
+		world.add_child(cust)
+		_rigs.append(cust)
+
+
+func _dress_glasses() -> void:
+	var kinds := Wardrobe.glasses_kinds()
+	# By path: the class name drags Config-dependent scripts into this --script compile.
+	var colors: Array = load("res://entities/character/character_rig.gd").GLASSES_COLORS.keys()
+	for k in kinds.size() * 2:
+		var rig := _rigs[k]
+		var head: int = 0 if k % 2 == 0 else GLASSES_TRIPO_HEAD
+		rig.call("set_head", head)
+		rig.call("set_hair", head)
+		rig.call("set_palette", SKIN)
+		rig.call("set_hair_color", HAIR)
+		rig.call("wear_street", Wardrobe.street_outfit(0))
+		rig.set("glasses_color", colors[floori(k / 2.0) % colors.size()])
+		rig.call("set_face_look", "brown", kinds[floori(k / 2.0)], 0, 0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for k in LINEUP:
+		var cust := _rigs[kinds.size() * 2 + k]
+		var head := 1 + rng.randi() % (Wardrobe.head_count() - 1)
+		cust.set("street_index", rng.randi() % Wardrobe.library().street_outfits.size())
+		cust.set("glasses_color", colors[rng.randi() % colors.size()])
+		var skin := Wardrobe.skin(rng.randi_range(0, Wardrobe.skin_count() - 1))
+		cust.call("apply_look", skin, "brown", kinds[k % kinds.size()], head)
+		cust.call("set_hair", head)
+		cust.call("set_hair_color", Wardrobe.hair_color(rng.randi_range(0, 5)))
+		cust.call("wear_street")
+		cust.rotation.y = rng.randf_range(-0.4, 0.4)
+
+
+func _plan_glasses() -> void:
+	var kinds := Wardrobe.glasses_kinds()
+	for i in kinds.size():
+		for v in 2:
+			var k := i * 2 + v
+			var head := _head_position(_rigs[k])
+			var tag := "glasses_%s_%s" % [kinds[i], "base" if v == 0 else "tripo"]
+			var front := head + Vector3(0.0, 0.05, 2.3)
+			_shots.append([tag + "_front", [k], front, head, 30.0])
+			_shots.append([tag + "_side", [k], head + Vector3(2.3, 0.05, 0.0), head, 30.0])
+	var first := kinds.size() * 2
+	var group: Array = range(first, first + LINEUP)
+	var mid := (_x(first) + _x(first + LINEUP - 1)) * 0.5
+	var look := mid + Vector3(0, 1.2, 0)
+	_shots.append(["glasses_lineup_front", group, mid + Vector3(0, 1.4, 9.0), look, 30.0])
+	var quarter := mid + Vector3(4.0, 3.0, 8.0)
+	_shots.append(["glasses_lineup_three_quarter", group, quarter, look, 30.0])
 
 
 func _dress() -> void:
@@ -219,11 +298,15 @@ func _on_frame() -> void:
 		_hide_hud(root)
 		if _street:
 			_dress_street()
+		elif _glasses:
+			_dress_glasses()
 		else:
 			_dress()
 	if _frame == SETTLE and _shots.is_empty():
 		if _street:
 			_plan_street()
+		elif _glasses:
+			_plan_glasses()
 		else:
 			_plan()
 	if _shots.is_empty() or _frame < SETTLE:
@@ -262,13 +345,13 @@ func _add_floor(world: Node3D) -> void:
 	var body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(40.0, 0.2, 40.0)
+	box.size = Vector3(120.0, 0.2, 120.0)
 	shape.shape = box
 	shape.position.y = -0.1
 	body.add_child(shape)
 	var floor_mesh := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(40.0, 40.0)
+	plane.size = Vector2(120.0, 120.0)
 	floor_mesh.mesh = plane
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.62, 0.58, 0.52)

@@ -32,6 +32,9 @@ const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 @export var shoes: Array[WardrobePart] = []
 ## Street clothes customers walk in wearing, before a suit is made.
 @export var street_outfits: Array[StreetOutfit] = []
+## Glasses (roles "frames" and optionally "lenses", bound to the head bone); each part's
+## display_name is its style key ("round", "wire", ...), the value customers carry.
+@export var glasses: Array[WardrobePart] = []
 ## Skin tones customers spawn with.
 @export var skin_colors: PackedColorArray = PackedColorArray()
 ## Natural hair colours customers spawn with.
@@ -88,6 +91,23 @@ func random_street_index(want: int, rng: RandomNumberGenerator) -> int:
 
 func random_street_outfit(want: int, rng: RandomNumberGenerator) -> StreetOutfit:
 	return street_outfit(random_street_index(want, rng))
+
+
+## The style keys of every pair of glasses, in library order.
+func glasses_kinds() -> Array[String]:
+	var out: Array[String] = []
+	for part in glasses:
+		if part != null:
+			out.append(part.display_name)
+	return out
+
+
+## The glasses part for a style key, or null ("" or an unknown key).
+func glasses_part(kind: String) -> WardrobePart:
+	for part in glasses:
+		if part != null and part.display_name == kind:
+			return part
+	return null
 
 
 func skin(index: int) -> Color:
