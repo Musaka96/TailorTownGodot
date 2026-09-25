@@ -279,7 +279,8 @@ background `#e5dbd1`, divider `#3e4a55`.
 | `square_tortoise` | Glasses: square tortoiseshell frames, thick acetate, slightly rounded corners, a flat bridge, thick arms. |
 | `monocle` | Glasses: a single gold monocle over the right eye, a thick gold ring with a short gold chain hanging down beside the cheek, nothing over the left eye. |
 
-Facial hair, dark brown `#2c1e18` for gentlemen or silver `#8e9196` for older. Each line
+Facial hair, dark brown `#2c1e18` for gentlemen or silver `#8e9196` for older. The owner
+wants the modern groomed set (boxed, groomed, circle, old beard) over the retro set. Each line
 ends with "the face stays blank above it: no nose, no mouth, no eyes".
 
 | facial hair | line |
@@ -292,6 +293,10 @@ ends with "the face stays blank above it: no nose, no mouth, no eyes".
 | `long_beard` | Facial hair: a long full beard, one solid mass from ear to ear reaching well below the chin and cut square at the bottom, with a thick moustache. |
 | `walrus` | Facial hair: a walrus moustache, one big solid mass hanging over the upper lip and the corners of the mouth, nothing on the chin. |
 | `chin_curtain` | Facial hair: a chin curtain, a band of beard running along the jaw line from ear to ear under the chin, the upper lip and cheeks bare. |
+| `boxed_beard` | Facial hair: a short boxed beard, neatly trimmed close with clean straight edges along the cheeks and under the jaw, joined to a tidy moustache, the same short length everywhere. |
+| `groomed_beard` | Facial hair: a medium full beard, well groomed, rounded and a little fuller at the chin, the cheek line clean, joined to a thick moustache, no stray locks. |
+| `circle_beard` | Facial hair: a circle beard, a moustache and a rounded chin beard joined into one ring around where the mouth would be, the cheeks and jaw line clean. |
+| `old_beard` | Facial hair: an old man's full beard, medium length and soft, rounded at the bottom, covering jaw and chin from ear to ear with a thick moustache, in silver. |
 
 ---
 
