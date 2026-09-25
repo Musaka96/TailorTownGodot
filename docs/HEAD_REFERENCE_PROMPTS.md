@@ -256,6 +256,43 @@ Generate them now if you want the option in the pool.
 | `goatee` | Add a small goatee, one solid piece on the chin only, with a thin moustache. |
 | `mutton_chops` | Add mutton chops, two solid masses of sideburn running down the cheeks to the jaw, the chin bare. |
 
+## Glasses and facial hair (on the bald base)
+
+Both sets use the BATCH PREFIX with `egg_bald` as the first image and no second image,
+so the split from skin is one colour step. The face stays blank: glasses sit on a blank
+face, a moustache sits where the nose would be with no nose and no mouth drawn.
+
+Glasses are for Tripo, so frames are as thick as a pencil and lenses are solid flat
+plates of one keyable colour (`#a9c7de`), to be deleted or made clear in Blender. Arms
+hook over the ears and show in the back view. Palette: skin `#e4b083`, black `#1a1512`,
+gold `#b08d57`, tortoiseshell brown `#5a2a1e` with amber `#c9a24a`, lens `#a9c7de`,
+background `#e5dbd1`, divider `#3e4a55`.
+
+| glasses | line |
+|---|---|
+| `round_tortoise` | Glasses: round tortoiseshell spectacles, thick acetate frames as thick as a pencil, mottled dark brown and amber, round lenses, a keyhole bridge, straight arms hooking over the ears. |
+| `rect_black` | Glasses: thick rectangular black acetate frames, bold and square-cornered, wide lenses, a flat bridge, thick straight arms over the ears. |
+| `round_gold` | Glasses: small round gold wire spectacles, a thin round frame made thick enough to read as a solid gold ring, a curved gold bridge, thin gold arms curling behind the ears. |
+| `half_moon` | Glasses: half-moon reading spectacles in gold, the lenses cut flat along the top, sitting low on the face, thin arms over the ears. |
+| `browline` | Glasses: browline frames, a thick black bar across the top of each lens and a thin gold rim around the bottom, a black bridge, black arms. |
+| `aviator_gold` | Glasses: gold aviator frames, large teardrop lenses, a double bridge, thin gold arms. |
+| `square_tortoise` | Glasses: square tortoiseshell frames, thick acetate, slightly rounded corners, a flat bridge, thick arms. |
+| `monocle` | Glasses: a single gold monocle over the right eye, a thick gold ring with a short gold chain hanging down beside the cheek, nothing over the left eye. |
+
+Facial hair, dark brown `#2c1e18` for gentlemen or silver `#8e9196` for older. Each line
+ends with "the face stays blank above it: no nose, no mouth, no eyes".
+
+| facial hair | line |
+|---|---|
+| `moustache` | Facial hair: a thick moustache moulded as one solid piece across the middle of the face where the nose would sit, the ends turned down, nothing on the chin. |
+| `handlebar` | Facial hair: a handlebar moustache, one solid piece with the ends curling up and out into two round hooks, nothing on the chin. |
+| `full_beard` | Facial hair: a short full beard, one solid moulded mass covering the jaw and chin from ear to ear, with a thick moustache joined to it, trimmed close. |
+| `goatee` | Facial hair: a goatee, one solid piece on the chin only, with a thin moustache above it, the cheeks bare. |
+| `mutton_chops` | Facial hair: mutton chops, two solid masses of sideburn running down the cheeks to the jaw line, the chin and upper lip bare. |
+| `long_beard` | Facial hair: a long full beard, one solid mass from ear to ear reaching well below the chin and cut square at the bottom, with a thick moustache. |
+| `walrus` | Facial hair: a walrus moustache, one big solid mass hanging over the upper lip and the corners of the mouth, nothing on the chin. |
+| `chin_curtain` | Facial hair: a chin curtain, a band of beard running along the jaw line from ear to ear under the chin, the upper lip and cheeks bare. |
+
 ---
 
 ## SUFFIX
