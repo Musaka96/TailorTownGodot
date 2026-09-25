@@ -11,9 +11,11 @@
 // Paper treatment (guide section 1, the numbers are the uniforms' defaults): the cut edge is
 // HAND-CUT, `paper_jag` deep on a full-size piece (thin strips get less): straight scissor
 // facets (linear value noise, two octaves) with the odd small nick, a different seed per
-// piece so no two edges match. The edge is crisp (antialiased over one pixel), the fill
-// carries paper grain of `paper_grain` contrast fixed in face space (mottling, speckle and
-// fibre streaks), light pieces show a `paper_rim` wide band of cream inside the cut, and the
+// piece so no two edges match. An edge that is one real straight snip (the pupil wedge's
+// two sides) is cut clean: the primitives take the cut and a per-edge `straight` flag. The
+// edge is crisp (antialiased over one pixel), the fill carries paper grain of `paper_grain`
+// contrast fixed in face space (soft mottling, a few specks, long soft fibres; the skin and
+// hair carry the same grain at their own UV1, paper_surface()), light pieces show a `paper_rim` wide band of cream inside the cut, and the
 // piece throws a soft shadow of the dark paper on the layer below, offset down and to the
 // character's right (the viewer's left). Treatments finer than a pixel fade out, so at the
 // gameplay camera only the shapes are left.
@@ -28,7 +30,20 @@ uniform float paper_shadow_soft = 0.008;
 uniform float paper_rim = 0.003;
 uniform float paper_rim_alpha = 0.25;
 uniform float paper_jag = 0.005;
-uniform float paper_grain = 0.15;
+uniform float paper_grain = 0.1;
+
+// the grain's make-up (paper_fibres): mottling amplitude at 60 / 170 / 420 waves per face
+// unit; dark specks (amount, smoothstep from, to); fibres: waves per face unit along and
+// across a streak, the noise band that draws one, how far a streak bends (face units),
+// light and dark streak strength
+const vec3 PAPER_MOTTLE = vec3(0.15, 0.35, 0.3);
+const vec3 PAPER_SPECK = vec3(0.35, 0.85, 0.99);
+const float FIBRE_LONG = 32.0;
+const float FIBRE_WIDE = 300.0;
+const vec2 FIBRE_EDGE = vec2(0.78, 0.98);
+const float FIBRE_BEND = 0.02;
+const float FIBRE_LIGHT = 0.3;
+const float FIBRE_DARK = 0.25;
 
 // the nose shield (nose kind 4), measured on J1: x in half-widths, y in half-heights (down),
 // wide flat top, the left shoulder cut a little wider than the right, the point down
@@ -248,25 +263,49 @@ float paper_fade(float freq, float px) {
 	return 1.0 - smoothstep(0.25, 0.6, freq * px);
 }
 
-// Paper grain, about -1..1 (x) plus light fibre streaks, 0..1 (y): mottling, speckle and a
-// finer speckle (each fading out once it gets finer than a pixel), and short fibres along
-// two crossing directions.
+// Paper grain, about -1..1 (x) plus light fibre streaks, 0..1 (y): soft mottling in three
+// octaves (each fading out once it gets finer than a pixel), a few soft dark specks, and
+// long soft fibres along two crossing directions (and a few dark ones across them).
 vec2 paper_fibres(vec2 p, float seed, float px) {
 	vec2 o = vec2(seed * 17.3, seed * 9.1);
-	float g = 0.15 * (2.0 * paper_noise(p * 60.0 + o) - 1.0) * paper_fade(60.0, px);
-	g += 0.5 * (2.0 * paper_noise(p * 170.0 - o) - 1.0) * paper_fade(170.0, px);
-	g += 0.5 * (2.0 * paper_noise(p * 420.0 + o.yx) - 1.0) * paper_fade(420.0, px);
+	float g = PAPER_MOTTLE.x * (2.0 * paper_noise(p * 60.0 + o) - 1.0) * paper_fade(60.0, px);
+	g += PAPER_MOTTLE.y * (2.0 * paper_noise(p * 170.0 - o) - 1.0) * paper_fade(170.0, px);
+	g += PAPER_MOTTLE.z * (2.0 * paper_noise(p * 420.0 + o.yx) - 1.0) * paper_fade(420.0, px);
 	// dark specks
-	g -= 0.7 * smoothstep(0.86, 0.96, paper_noise(p * 260.0 + o.yx * 1.7)) * paper_fade(260.0, px);
-	// fibres: short thin streaks, light ones on two crossing directions, a few dark ones
-	vec2 a = mat2(vec2(0.94, 0.34), vec2(-0.34, 0.94)) * p;
-	vec2 b = mat2(vec2(0.5, -0.87), vec2(0.87, 0.5)) * p;
-	float fade = paper_fade(380.0, px);
-	float f1 = smoothstep(0.82, 0.95, paper_noise(a * vec2(80.0, 380.0) + o));
-	float f2 = smoothstep(0.84, 0.96, paper_noise(b * vec2(70.0, 360.0) - o));
-	float f3 = smoothstep(0.86, 0.96, paper_noise(a.yx * vec2(90.0, 400.0) + o.yx));
-	g -= 0.5 * f3 * fade;
-	return vec2(g, 0.5 * (f1 + f2) * fade);
+	float sk = smoothstep(PAPER_SPECK.y, PAPER_SPECK.z, paper_noise(p * 260.0 + o.yx * 1.7));
+	g -= PAPER_SPECK.x * sk * paper_fade(260.0, px);
+	// fibres: long thin soft streaks (FIBRE_LONG waves per face unit along them, FIBRE_WIDE
+	// across), light ones on two crossing directions, a few dark ones across those
+	// each streak bends gently (FIBRE_BEND face units over ~0.04), so they read as fibres,
+	// not a woven grid
+	vec2 bend = FIBRE_BEND * (vec2(paper_noise(p * 25.0 + o), paper_noise(p * 21.0 - o)) - 0.5);
+	vec2 a = mat2(vec2(0.94, 0.34), vec2(-0.34, 0.94)) * p + vec2(0.0, bend.x);
+	vec2 b = mat2(vec2(0.97, -0.26), vec2(0.26, 0.97)) * p + vec2(0.0, bend.y);
+	float fade = paper_fade(FIBRE_WIDE, px);
+	vec2 k = vec2(FIBRE_LONG, FIBRE_WIDE);
+	float lo = FIBRE_EDGE.x;
+	float hi = FIBRE_EDGE.y;
+	float f1 = smoothstep(lo, hi, paper_noise(a * k + o));
+	float f2 = smoothstep(lo + 0.02, hi, paper_noise(b * k * vec2(0.9, 0.95) - o));
+	float f3 = smoothstep(lo + 0.04, hi, paper_noise(a.yx * k * vec2(1.1, 1.05) + o.yx));
+	g -= FIBRE_DARK * f3 * fade;
+	return vec2(g, FIBRE_LIGHT * (f1 + f2) * fade);
+}
+
+// A fill with grain `grain` laid on it (g from paper_fibres). The light fibres lift a dark
+// paper less (to 0.3 of a white one's), else they read as scratches on pupils and hair.
+vec3 paper_grained(vec3 fill, vec2 g, float grain) {
+	float lum = dot(fill, vec3(0.299, 0.587, 0.114));
+	return fill * (1.0 + grain * g.x) + vec3(0.9 * grain * g.y * (0.3 + 0.7 * lum));
+}
+
+// A whole paper surface (skin, hair): `fill` with the grain at the mesh's own UV1, `tile`
+// face units per UV unit (so the fibres come out face-sized on any mesh), fixed to the
+// surface (it never swims as the rig walks or turns). Seams only break the noise.
+vec3 paper_surface(vec3 fill, vec2 uv, float tile, float grain, float seed) {
+	vec2 q = uv * tile;
+	float px = 0.5 * (fwidth(q.x) + fwidth(q.y));
+	return paper_grained(fill, paper_fibres(q, seed, px), grain);
 }
 
 // Lay one paper piece on `under`: `d` is the piece's (cut) distance at p, `d_rim` the
@@ -285,8 +324,7 @@ vec3 paper_piece_ex(
 	if (cover <= 0.0) {
 		return col;
 	}
-	vec2 g = paper_fibres(p, seed, px);
-	vec3 f = fill * (1.0 + grain * g.x) + vec3(0.9 * grain * g.y);
+	vec3 f = paper_grained(fill, paper_fibres(p, seed, px), grain);
 	// the cream core shows at the cut of light papers only, skin and cream (on darker ones
 	// it reads as an outline)
 	float light = smoothstep(0.62, 0.8, dot(fill, vec3(0.299, 0.587, 0.114)));
@@ -310,9 +348,11 @@ vec3 paper_piece(vec3 under, float d, float d_shadow, vec3 fill, vec2 p, float s
 // `corner` x half the thickness (1 = round ends). `angle` (radians, > 0 lifts the
 // inner end), `arch` = how far the middle rises, as a fraction of half the core length,
 // `taper` = how much thicker the inner end is than the outer, as a fraction of `thick`.
+// `cut` is the hand-cut displacement (paper_cut); with `ends_straight` the two ends are
+// clean straight cuts and only the long edges take it.
 float piece_brow(
 	vec2 p, vec2 c, float side, float len, float thick, float angle, float arch, float corner,
-	float taper
+	float taper, float cut, bool ends_straight
 ) {
 	vec2 e = p - c;
 	e.x *= -side;  // +x = inner end
@@ -327,20 +367,27 @@ float piece_brow(
 	vec2 h = fs_sd_bezier(e, A, B, C);  // y: 0 at the outer end, 1 at the inner
 	float body = h.x - (0.5 * thick * (1.0 + taper * (h.y - 0.5)) - rc);
 	float ends = max(dot(e - A, -dir), dot(e - C, dir));
+	if (ends_straight) {
+		vec2 v = vec2(body + cut, ends);
+		return length(max(v, vec2(0.0))) + min(max(v.x, v.y), 0.0) - rc;
+	}
 	vec2 v = vec2(body, ends);
-	return length(max(v, vec2(0.0))) + min(max(v.x, v.y), 0.0) - rc;
+	return length(max(v, vec2(0.0))) + min(max(v.x, v.y), 0.0) - rc + cut;
 }
 
 // Pupil: a dark ellipse with an optional 60 degree wedge cut out of it, opening along `dir`
-// (y down); `wedge` = how far into the pupil it cuts, as a fraction of the radius.
-float piece_pupil(vec2 p, vec2 c, vec2 dir, vec2 r, float wedge) {
+// (y down); `wedge` = how far into the pupil it cuts, as a fraction of the radius. `cut` is
+// the hand-cut displacement (paper_cut) for the round edge; the wedge's two edges take it
+// too, or with `wedge_straight` they are clean straight cuts (a real snip is straight).
+float piece_pupil(vec2 p, vec2 c, vec2 dir, vec2 r, float wedge, float cut, bool wedge_straight) {
 	vec2 e = p - c;
-	float d = fs_sd_ellipse(e, r);
+	float d = fs_sd_ellipse(e, r) + cut;
 	if (wedge > 0.01) {
 		vec2 apex = dir * min(r.x, r.y) * (1.0 - clamp(wedge, 0.0, 1.0));
 		vec2 q = e - apex;
 		vec2 w = vec2(dot(q, vec2(-dir.y, dir.x)), dot(q, dir));
-		d = max(d, -fs_sd_pie(w, vec2(0.5, 0.866), 4.0 * max(r.x, r.y)));
+		float pie = fs_sd_pie(w, vec2(0.5, 0.866), 4.0 * max(r.x, r.y));
+		d = max(d, -pie + (wedge_straight ? 0.0 : cut));
 	}
 	return d;
 }

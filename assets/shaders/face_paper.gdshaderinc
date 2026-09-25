@@ -116,8 +116,11 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 		vec2 pc = c + pupil_offset;
 		float per_p = 3.1416 * (pr.x + pr.y);
 		float sz_p = 2.0 * min(pr.x, pr.y);
-		float dp = piece_pupil(p, pc, wdir, pr, pupil_wedge) + paper_cut(p, per_p, sz_p, 5.0 + fi);
-		float dps = piece_pupil(sh, pc, wdir, pr, pupil_wedge) + paper_cut(sh, per_p, sz_p, 5.0 + fi);
+		// the wedge is two straight snips: its edges are cut clean, the round edge by hand
+		float cp = paper_cut(p, per_p, sz_p, 5.0 + fi);
+		float cps = paper_cut(sh, per_p, sz_p, 5.0 + fi);
+		float dp = piece_pupil(p, pc, wdir, pr, pupil_wedge, cp, true);
+		float dps = piece_pupil(sh, pc, wdir, pr, pupil_wedge, cps, true);
 		dp = max(dp, d_white);
 		dps = max(dps, d_white_s);
 		col = paper_piece(col, dp, dps, paper_dark.rgb, p, 5.0 + fi, px);
@@ -154,10 +157,14 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 		vec2 c = vec2(s * brow_spacing, fp_y(brow_height, stretch));
 		float fi = float(i);
 		float bt = brow_thickness;
-		float d = piece_brow(p, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper);
-		float ds = piece_brow(sh, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper);
-		d += paper_cut(p, per_b, brow_thickness, 11.0 + fi);
-		ds += paper_cut(sh, per_b, brow_thickness, 11.0 + fi);
+		float cb = paper_cut(p, per_b, bt, 11.0 + fi);
+		float cbs = paper_cut(sh, per_b, bt, 11.0 + fi);
+		float d = piece_brow(
+			p, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper, cb, false
+		);
+		float ds = piece_brow(
+			sh, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper, cbs, false
+		);
 		col = paper_piece(col, d, ds, paper_brow.rgb, p, 11.0 + fi, px);
 	}
 	// nose

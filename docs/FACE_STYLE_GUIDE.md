@@ -11,7 +11,10 @@ customers look like they were cut from the same stack of paper. The face is draw
 - Every feature is a **flat piece of coloured paper** laid on the skin. There are no drawn lines,
   no outlines, no highlights, no gradients, no shading inside a piece.
 - A piece has a **crisp, hand-cut edge**: short straight scissor facets and the odd small nick,
-  never a perfect curve, and no two edges alike. It carries clearly visible **paper grain** (speckle
+  never a perfect curve, and no two edges alike. The exception is an edge that is one real
+  straight snip: it is cut clean, with no jag and no nick. Today that is the pupil wedge's two
+  sides (`piece_pupil`, `wedge_straight`); the brow ends can go the same way (`piece_brow`,
+  `ends_straight`, off). Every other edge stays jagged. It carries clearly visible **paper grain** (speckle
   and short fibres) over its fill, a faint **lighter rim** where the paper core shows at the cut
   (light papers only), and a **soft shadow** under it where it lies on the layer below. That
   shadow is what makes the face read as layered paper.
@@ -25,7 +28,7 @@ Paper treatment numbers, in fractions of face height unless stated (tune once, t
 | Shadow         | dark paper colour at 22 % alpha, 0.008 soft  |
 | Cut rim        | 0.003 wide, cream at 25 % alpha, inside edge, skin and cream pieces only (on dark ones it read as a grey ring) |
 | Hand-cut edge  | `paper_jag` 0.005: linear value noise, 2 octaves, facets 0.02–0.06 long (a twelfth of the perimeter) and a third of that; about 1 cell in 6 has a V nick one jag deep, 2.5 × as wide; pieces thinner than 0.09 get less, down to a third; seeded per piece |
-| Grain          | `paper_grain` 0.15: 3 octaves of hashed value noise (60 / 170 / 420 per face unit), dark specks and short light and dark fibre streaks; about 10–11 % contrast (5–95 % spread) on the skin at a 580 px disc; fixed in face space |
+| Grain          | `paper_grain` 0.10 (was 0.15): soft mottling in 3 octaves of hashed value noise (60 / 170 / 420 per face unit at 0.15 / 0.35 / 0.3), a few soft dark specks (0.35), and long soft fibres: 32 waves per face unit along a streak, 300 across (2.5 × the old length), gently bent (0.02), light ones (0.3) on two directions 35° apart, a few dark ones (0.25) across them; light fibres lift a dark paper less (0.3 of a white one's), so pupils and hair show no scratches. About 5 % contrast (5–95 % spread) on the skin at a 580 px disc, the reference J1 paper 4–4.6 % (the old grain was 10–11 %). Fixed in face space; the constants sit at the top of `face_sdf.gdshaderinc` |
 
 On the head, the reference disc maps to 2.1 × `FaceStyle.face_scale` face-rect widths centred
 0.44 down the rect (at 2.35 / 0.38 the brows hid under most fringes). `face_scale` is 0.8: at
@@ -33,6 +36,18 @@ On the head, the reference disc maps to 2.1 × `FaceStyle.face_scale` face-rect 
 the chin (`IMPORT/faces_proc/j1_heads.png` compares 1.0 / 0.85 / 0.8 / 0.75). Lids carry their rim and shadow along the lower
 edge only, else a closed eye shows a ghost ring; a shadow fades out below one pixel of offset so
 25 px faces get no dark outline.
+
+**Paper skin and hair.** With a procedural face the whole character is paper: the head skin all
+round the head (`skin_face.gdshader`, `skin_grain` 0.10, `skin_tile` 4.0), the hands and arms and
+the hair (`paper_skin.gdshader`, `CharacterRig._paper()`) carry the same grain
+(`paper_surface()`). It is sampled at the mesh's own UV1, times a per-material tile (face units per
+UV unit, so the fibres come out face-sized): heads 4.0, hair 3.6, the base arms 1.35 (measured:
+tripo heads UV1 ~0.47 per mesh unit and the face rect 5.2 × denser in UV2, hair ~0.42, arms 1.39).
+UV1 stays on the surface, so the grain never swims when the rig walks or turns; model-space vertex
+positions would, on a skinned mesh. Seams only break the noise. The hair keeps `hair_color`; the
+strand overlay stays on top by default (`CharacterRig.paper_hair_strands`, false = pure flat
+paper hair; owner's pick pending, `IMPORT/faces_proc/paper_char.png`). No cut rim on the head
+silhouette. Without a procedural face (the painted sprites) skin and hair keep the flat material.
 
 At the gameplay camera (head ≈ 25 px) only the shapes survive; the treatment shows in the customer
 portrait, the fitting screen and any close-up. That is intended.

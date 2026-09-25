@@ -15,6 +15,11 @@ render_mode cull_back, specular_disabled;
 #include "res://assets/shaders/face_paper.gdshaderinc"
 
 uniform vec4 skin_color : source_color = vec4(0.86, 0.72, 0.6, 1.0);
+// the skin is paper too, all round the head: the face's grain (paper_surface) at the mesh's
+// UV1, `skin_tile` face units per UV unit (tripo heads: ~4, measured on UV1 against the
+// face UV), `skin_grain` its contrast (0 = the old flat skin)
+uniform float skin_tile = 4.0;
+uniform float skin_grain = 0.1;
 uniform bool face_enabled = false;
 // rect width / height
 uniform float face_aspect = 0.58;
@@ -40,7 +45,8 @@ vec3 debug_rect(vec3 col, vec2 f) {
 }
 
 void fragment() {
-	vec3 col = skin_color.rgb;
+	vec3 skin = skin_color.rgb;
+	vec3 col = paper_surface(skin, UV, skin_tile, skin_grain, 0.0);
 	// rect units, then face units (disc diameters from the disc centre, y down); one screen
 	// pixel in face units is taken outside any branch
 	vec2 f = (UV2 - 0.5 - frame_offset) / max(frame_scale, 1e-3) + 0.5;
@@ -50,7 +56,7 @@ void fragment() {
 	if (debug_uv) {
 		col = debug_rect(col, f);
 	} else if (face_enabled && abs(p.x) < 0.6 && abs(p.y) < 0.6) {
-		col = face_paper(col, col, 0.0, p, px, layout_aspect / max(face_aspect, 1e-3));
+		col = face_paper(col, skin, skin_grain, p, px, layout_aspect / max(face_aspect, 1e-3));
 	}
 	ALBEDO = col;
 	ROUGHNESS = 1.0;

@@ -133,11 +133,23 @@ const PROC_BLINK_HOLD := 0.05
 const PROC_BLINK_OPEN := 0.07
 const PROC_EXPR_TIME := 0.18
 const PROC_TALK_SPEED := 14.0  # mouth_open units per second while flapping
+# With a procedural face the rest of the character is paper too (FACE_STYLE_GUIDE, "Paper
+# skin and hair"): hands/arms and hair get paper_skin.gdshader, the face's grain at the
+# mesh's UV1. Face units per UV unit, measured per mesh family so the fibres match the face
+# (head UV1 ~0.47 per mesh unit, the face rect 1.68 face units wide): heads 4.0 (set in
+# skin_face.gdshader), hair ~0.42 per unit, the base arms 1.39.
+const PAPER_SKIN_SHADER := "res://assets/shaders/paper_skin.gdshader"
+const PAPER_TILE_ARMS := 1.35
+const PAPER_TILE_HAIR := 3.6
 
 ## Read once when a rig builds its face: true = procedural faces (FaceStyle) instead of
 ## the painted sprites. Flip it before the rig enters the tree.
 static var procedural_faces := false
+## Procedural faces only: keep the strand overlay over the paper hair (false = the hair is
+## pure flat paper). Read whenever the hair colour is applied.
+static var paper_hair_strands := true
 static var _skin_face_shader: Shader
+static var _paper_shader: Shader
 
 ## Procedural faces only: the FaceStyle the face draws (null until set = paper_j1.tres).
 ## Setting it clears any expression. A
@@ -681,9 +693,8 @@ func _make_procedural() -> void:
 	if _look_set:
 		_proc_look()
 	_bake_face_head()
-	var head_mi = _head.get("head")
-	if head_mi is MeshInstance3D:
-		head_mi.material_override = _face_skin()
+	_apply_skin()
+	_apply_hair_color()
 
 
 ## Procedural faces: swap the head's mesh for a copy with the face UV (FaceUvBaker, cached
@@ -991,7 +1002,7 @@ func _apply_skin() -> void:
 		head_mi.material_override = _face_skin() if _proc else mat
 	var arms = _top.get("arms", _base_arms)
 	if arms is MeshInstance3D:
-		arms.material_override = _flat(_skin_color, 0.7)
+		arms.material_override = _paper(_skin_color, PAPER_TILE_ARMS, 0.0) if _proc else mat
 
 
 ## Swap to hairstyle `index` from the Wardrobe (no-op if already shown).
@@ -1029,10 +1040,25 @@ func _build_hair_overlay() -> void:
 func _apply_hair_color() -> void:
 	var mi = _hair.get("hair")
 	if mi is MeshInstance3D:
-		mi.material_override = _flat(_hair_color, 0.85)
+		var flat := _flat(_hair_color, 0.85)
+		mi.material_override = _paper(_hair_color, PAPER_TILE_HAIR, 1.0) if _proc else flat
 	var overlay = _hair.get("hair_overlay")
 	if overlay is MeshInstance3D:
 		overlay.material_override = _hair_overlay_mat(_hair_color)
+		overlay.visible = paper_hair_strands or not _proc
+
+
+## Procedural faces: a flat paper surface (paper_skin.gdshader) in `color`, its grain at
+## `tile` face units per UV1 unit; `seed` keeps skin and hair grain apart.
+func _paper(color: Color, tile: float, seed: float) -> ShaderMaterial:
+	if _paper_shader == null:
+		_paper_shader = load(PAPER_SKIN_SHADER) as Shader
+	var mat := ShaderMaterial.new()
+	mat.shader = _paper_shader
+	mat.set_shader_parameter("fill_color", color)
+	mat.set_shader_parameter("tile", tile)
+	mat.set_shader_parameter("seed", seed)
+	return mat
 
 
 ## The strand overlay: the base hair colour multiplied by a transparent strand texture,

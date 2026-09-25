@@ -18,8 +18,8 @@ void fragment() {
 	vec2 p = (UV - 0.5) * pad / max(zoom, 1e-3) + zoom_center;
 	float px = 0.5 * (fwidth(p.x) + fwidth(p.y));
 	vec2 sh = p - paper_shadow_offset;
-	float d = length(p) - 0.5 + paper_cut(p, 3.1416, 0.0);
-	float ds = length(sh) - 0.5 + paper_cut(sh, 3.1416, 0.0);
+	float d = length(p) - 0.5 + paper_cut(p, 3.1416, 1.0, 0.0);
+	float ds = length(sh) - 0.5 + paper_cut(sh, 3.1416, 1.0, 0.0);
 	vec3 col = paper_piece(page_color.rgb, d, ds, skin_color.rgb, p, 0.0, px);
 	if (d < 0.02) {
 		col = face_paper(col, skin_color.rgb, paper_grain, p, px, 1.0);
