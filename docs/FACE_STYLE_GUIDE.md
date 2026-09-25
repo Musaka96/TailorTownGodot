@@ -77,8 +77,9 @@ On the head, the reference disc maps to 2.1 × `FaceStyle.face_scale` face-rect 
 `face_drop` is 0.05 (0.49 in all): the owner wanted the face lower on the head
 (`IMPORT/faces_proc/face_drop.png` compares 0.00 / 0.05 / 0.08 on two heads). `face_scale` is 0.8: at
 1.0 the face took over the whole head; at 0.8 the brows clear the fringe and the mouth sits above
-the chin (`IMPORT/faces_proc/j1_heads.png` compares 1.0 / 0.85 / 0.8 / 0.75). Lids carry their rim and shadow along the lower
-edge only, else a closed eye shows a ghost ring; a shadow fades out below one pixel of offset so
+the chin (`IMPORT/faces_proc/j1_heads.png` compares 1.0 / 0.85 / 0.8 / 0.75). Lids are the skin itself, a layer higher
+(the skin's colour, scan and normal, no sheet paper, no rim): only their lower edge shows, by its
+step and its shadow on the eye, else a heavy or closed lid shows a pale ghost ring; a shadow fades out below one pixel of offset so
 25 px faces get no dark outline.
 
 **Paper skin and hair.** With a procedural face the whole character is paper: the head skin all
@@ -131,7 +132,7 @@ portrait, the fitting screen and any close-up. That is intended.
 | Brow brown   | `#784a2c` | brows                            |
 | Cream        | `#efdcbe` | eye whites, teeth                |
 | Rose         | `#d38464` | nose, cheeks, tongue             |
-| Skin         | per head  | lids (a skin-coloured piece)     |
+| Skin         | per head  | lids (the skin itself)           |
 
 Measured on the J1 disc (2026-09-25; the old cream `#fff4e2` and rose `#d98c7e` were brighter and
 pinker than the reference). No other colours. Eye colour does not tint anything in this style; iris colour is retired.
@@ -157,8 +158,8 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
   `pupil_wedge_mirror` off both open the same way (J1: 3°, both to the viewer's right). A pupil
   pushed past the white's edge is cut by it. A pupil is never smaller than 0.05 fw so it still
   reads at 25 px.
-- **Lid**: a skin-coloured paper piece that slides down over the eye from above, with its own
-  shadow. `lid` 0 = open, 1 = closed. A closed eye shows the lid's lower edge as a gentle
+- **Lid**: the skin itself, a layer higher, sliding down over the eye from above: the same
+  surface as the head round it, so only its lower edge shows (its step and its shadow). `lid` 0 = open, 1 = closed. A closed eye shows the lid's lower edge as a gentle
   downward arc plus a dark paper crescent along it, 0.035 fh thick in the middle and tapering to
   0.4 of that at its round ends (0.012 read as a hairline). Blinks animate this piece.
 - **Nose**: one rose piece, kinds `disc`, `oval`, `teardrop` (point up), `triangle` (flat top,

@@ -27,8 +27,11 @@ void fragment() {
 	vec3 skin = skin_color.rgb;
 	vec3 col = paper_piece_ex(page_color.rgb, d, d, ds, skin, skin_grain, p, 0.0, px, 0.0);
 	if (d < 0.02) {
-		float lift = 0.0;  // flat sheet: the pieces' step is not lit here
-		col = face_paper(col, skin, p, px, 1.0, lift);
+		// flat sheet: the pieces' step is not lit here
+		float lift = 0.0;
+		float sheet = 0.0;
+		float still = 0.0;
+		col = face_paper(col, p, px, 1.0, lift, sheet, still);
 	}
 	COLOR = vec4(col, 1.0);
 }

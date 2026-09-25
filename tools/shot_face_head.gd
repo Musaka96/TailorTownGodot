@@ -15,7 +15,12 @@ extends SceneTree
 ##   noble_head.png       paper_j1 (default hair) beside paper_noble (black hair) on
 ##                        tripo_bald_tr and tripo_head_tl, front, at portrait size and at the
 ##                        dialogue size (head about 140 px)
-## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png.
+##   lid_fix.png          paper_noble and paper_j1 on tripo_head_tl at portrait size, before
+##                        (.dev/before_lid/skin_face.gdshader, when it exists) and after the
+##                        lid-as-skin fix, then 3x zooms of one eye: before and after at lid
+##                        0.45, and after at blink_half and closed
+## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png; with `lid`,
+## only lid_fix.png.
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -37,6 +42,13 @@ const J1_CELL := 400
 const NOBLE_HEADS := ["tripo_bald_tr", "tripo_head_tl"]
 const NOBLE_HAIR := Color("1a1410")
 const DIALOGUE_CELL := 200
+# lid_fix.png: the head, the old head shader, the zoom, and where the viewer's left eye sits
+# in the portrait framing (fraction of the viewport, tripo_head_tl at the default face scale)
+const LID_HEAD := "tripo_head_tl"
+const LID_PRESETS := ["paper_noble", "paper_j1"]
+const BEFORE_LID_SHADER := "res://.dev/before_lid/skin_face.gdshader"
+const LID_ZOOM := 3.0
+const LID_EYE := Vector2(0.425, 0.5)
 # preset -> states to shoot ("neutral" = the resting face, no suffix), `presets` mode
 const SHOTS := {
 	"paper_j1": ["neutral", "happy"],
@@ -117,6 +129,8 @@ func _run() -> void:
 		await _sheet_j1_heads()
 	elif not args.is_empty() and args[0] == "noble":
 		await _sheet_noble_heads()
+	elif not args.is_empty() and args[0] == "lid":
+		await _sheet_lid_fix()
 	else:
 		await _sheet_j1_heads()
 		await _sheet_noble_heads()
@@ -220,6 +234,61 @@ func _sheet_noble_heads() -> void:
 			cells.append([await _grab(DIALOGUE_CELL), k + 2, r, label + " (dialogue)"])
 	_rig.call("set_hair_color", keep_hair)
 	await _save_grid(cells, 4, NOBLE_HEADS.size(), "noble_head.png", J1_CELL)
+
+
+## The lid as skin: before / after at portrait size, then 3x zooms of one eye (lid 0.45 before
+## and after, blink_half and closed after).
+func _sheet_lid_fix() -> void:
+	var keep_hair: Color = _rig.get("_hair_color")
+	var head := _find_head(LID_HEAD)
+	if head < 0:
+		push_error("shot_face_head: no head %s" % LID_HEAD)
+		return
+	_wear(head)
+	var mat: ShaderMaterial = _rig.get("_skin_face")
+	var after := mat.shader
+	var before: Shader = null
+	if FileAccess.file_exists(BEFORE_LID_SHADER):
+		before = load(BEFORE_LID_SHADER) as Shader
+	# [shader is before, zoomed, state, label]
+	var cols := [
+		[true, false, "neutral", "before"],
+		[false, false, "neutral", "after"],
+		[true, true, "lid", "before 3x, lid 0.45"],
+		[false, true, "lid", "after 3x, lid 0.45"],
+		[false, true, "blink_half", "after 3x, blink_half"],
+		[false, true, "closed", "after 3x, closed"],
+	]
+	var cells := []
+	for r in LID_PRESETS.size():
+		var preset: String = LID_PRESETS[r]
+		_rig.call("set_hair_color", NOBLE_HAIR if preset == "paper_noble" else keep_hair)
+		_rig.set("face_style", load(STYLE_DIR + preset + ".tres") as FaceStyle)
+		for c in cols.size():
+			var col: Array = cols[c]
+			mat.shader = before if col[0] and before != null else after
+			_zoom_eye(col[1])
+			var state: String = col[2]
+			await _pose("neutral" if state == "lid" else state, 30)
+			if state == "lid":
+				_rig.call("_set_dial", 0.45, "lid", FaceStyle.Element.EYE)
+				await create_timer(0.3).timeout
+			var label := "%s / %s" % [preset.trim_prefix("paper_"), col[3]]
+			cells.append([await _grab(J1_CELL), c, r, label])
+	mat.shader = after
+	_zoom_eye(false)
+	_rig.call("set_hair_color", keep_hair)
+	await _save_grid(cells, cols.size(), LID_PRESETS.size(), "lid_fix.png", J1_CELL)
+
+
+## Portrait framing, or LID_ZOOM times closer on the eye at LID_EYE (same camera position).
+func _zoom_eye(on: bool) -> void:
+	_cam.fov = 35
+	_frame_camera(DIST)
+	if on:
+		var dir := _cam.project_ray_normal(LID_EYE * Vector2(SIZE))
+		_cam.look_at(_cam.global_position + dir, Vector3.UP)
+		_cam.fov = 35 / LID_ZOOM
 
 
 ## The wardrobe index of the head whose display name starts with `prefix`, -1 if none.

@@ -53,9 +53,10 @@ vec3 debug_rect(vec3 col, vec2 f) {
 }
 
 void fragment() {
-	vec3 skin = skin_color.rgb;
-	vec3 col = paper_surface(skin, UV, skin_tile, skin_grain, 0.0);
+	vec3 col = paper_surface(skin_color.rgb, UV, skin_tile, skin_grain, 0.0);
 	float lift = 0.0;
+	float sheet = 0.0;
+	float still = 0.0;
 	// rect units, then face units (disc diameters from the disc centre, y down); one screen
 	// pixel in face units is taken outside any branch
 	vec2 f = (UV2 - 0.5 - frame_offset) / max(frame_scale, 1e-3) + 0.5;
@@ -66,14 +67,15 @@ void fragment() {
 		col = debug_rect(col, f);
 	} else if (face_enabled && abs(p.x) < 0.6 && abs(p.y) < 0.6) {
 		float stretch = layout_aspect / max(face_aspect, 1e-3);
-		col = face_paper(col, skin, p, px, stretch, lift);
+		col = face_paper(col, p, px, stretch, lift, sheet, still);
 	}
 	// the scan and the strips stop under the pieces (each piece is one sheet of its own paper,
 	// blended out by its coverage, so its edge stays clean; the shadow it casts lies outside
-	// it, on the strips), and each piece adds its own step. The head's UV1 is cut
+	// it, on the strips) but carry on over a lid (the skin itself, `sheet` 0 there), and each
+	// piece adds its own step (a lid only at its lower edge: `still`). The head's UV1 is cut
 	// into islands across the face, so on the front the strips lie in face units (p, the
 	// planar face UV, one sheet) and blend to UV1 round the sides, where p stretches
-	float keep = 1.0 - clamp(lift, 0.0, 1.0);
+	float keep = 1.0 - clamp(sheet, 0.0, 1.0);
 	vec2 q = UV * skin_tile;
 	vec2 grad_q;
 	vec3 col_q = paper_mache(col, q, keep, grad_q);
@@ -87,9 +89,9 @@ void fragment() {
 	float step_on = 1.0 - smoothstep(0.01, 0.02, px);
 	float hp = PIECE_LAYER * piece_relief * step_on * lift;
 	vec2 dh = mix(paper_slope(q, grad_q), paper_slope(p, grad_p), front);
-	dh += vec2(dFdx(hp), dFdy(hp));
+	dh += (1.0 - still) * vec2(dFdx(hp), dFdy(hp));
 	// the pieces' sheet paper, its own normal where a piece lies (face units)
-	dh += paper_slope(p, piece_paper_grad(p, px, clamp(lift, 0.0, 1.0) * front));
+	dh += paper_slope(p, piece_paper_grad(p, px, clamp(sheet, 0.0, 1.0) * front));
 	NORMAL = paper_normal(NORMAL, VERTEX, dh, mix(paper_texel(q), paper_texel(p), front));
 	ALBEDO = col;
 	ROUGHNESS = 1.0;

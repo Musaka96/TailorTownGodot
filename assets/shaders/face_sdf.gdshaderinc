@@ -374,10 +374,16 @@ vec3 paper_piece_ex(
 	return mix(col, f, cover);
 }
 
+// How far a face piece's step ramps either side of its cut (face units), `px` a pixel: a few
+// thousandths, so the step's derivative stays smooth.
+float piece_ramp(float px) {
+	return max(0.003, 1.5 * px);
+}
+
 // Add a face piece's step to `lift` (piece layers): `d` is its distance (face units), `px`
-// a pixel; the step ramps over a few thousandths so its derivative stays smooth.
+// a pixel (the step ramps over piece_ramp).
 float piece_lift(float lift, float d, float px) {
-	float r = max(0.003, 1.5 * px);
+	float r = piece_ramp(px);
 	return lift + 1.0 - smoothstep(-r, r, d);
 }
 
