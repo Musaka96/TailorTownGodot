@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_skmll"]
+
+[resource]
+script = ExtResource("1_skmll")
+eye_spacing = 0.19
+white_radius = 0.14
+white_aspect = 0.77
+pupil_radius = 0.085
+pupil_wedge = 0.86
+pupil_wedge_dir = 3.0
+pupil_wedge_mirror = false
+pupil_offset = Vector2(0.065, 0)
+brow_spacing = 0.23
+brow_length = 0.26
+brow_thickness = 0.065
+brow_angle = -5.0
+brow_arch = 0.3
+brow_asym = 14.0
+brow_color = Color(0.2901961, 0.12156863, 0.078431375, 1)
+nose_kind = 2
+nose_size = Vector2(0.06, 0.09)
+nose_height = 0.65
+mouth_thickness = 0.03

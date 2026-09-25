@@ -153,8 +153,11 @@ vec3 face_paper(
 		float cps = paper_cut(sh, per_p, sz_p, 5.0 + fi);
 		float dp = piece_pupil(p, pc, wdir, pr, pupil_wedge, cp, true);
 		float dps = piece_pupil(sh, pc, wdir, pr, pupil_wedge, cps, true);
-		dp = max(dp, d_white);
-		dps = max(dps, d_white_s);
+		// (a dot eye has no white to cut it: the pupil is the whole eye)
+		if (has_white) {
+			dp = max(dp, d_white);
+			dps = max(dps, d_white_s);
+		}
 		col = paper_piece(col, dp, dps, paper_dark.rgb, p, 5.0 + fi, px);
 		fp_layer(dp, px, 1.0, lift, sheet);
 		if (has_lid) {

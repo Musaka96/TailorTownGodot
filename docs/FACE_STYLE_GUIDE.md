@@ -17,6 +17,7 @@ Everything that makes a character look like this, so it can be rebuilt or moved:
 | Hands, arms, hair | `assets/shaders/paper_skin.gdshader` (same mache include) |
 | 2D review sheets | `assets/shaders/face_canvas.gdshader` |
 | Face preset (J1) | `data/face_styles/paper_j1.tres` (`FaceStyle`, `data/scripts/face_style.gd`; face_scale 0.8, face_drop 0.05, mouth 0.030) |
+| Cast presets | `data/face_styles/paper_<name>.tres`, see section 8 |
 | Surface preset | `data/paper_surfaces/paper_mache.tres` (`PaperSurface`, `data/scripts/paper_surface.gd`): owner's `mache_gpt` at tile 1, normal 1.0, albedo 0.5, no strips; pieces `piece_paper` tile 2, albedo 1.0, normal 1.5, grain 0.03 |
 | Textures (owner-made, project assets) | `assets/textures/paper/mache_gpt_albedo.jpg` + `_normal.jpg`, `piece_paper_albedo.jpg` + `_normal.jpg` (normals derived: 30-40 px high-pass height, strength 4-6) |
 | Textures (ambientCG, CC0, kept as alternatives) | `paper001_*`, `paper003_*`, `cardboard002_*` |
@@ -137,7 +138,8 @@ portrait, the fitting screen and any close-up. That is intended.
 Measured on the J1 disc (2026-09-25; the old cream `#fff4e2` and rose `#d98c7e` were brighter and
 pinker than the reference). No other colours. Eye colour does not tint anything in this style; iris colour is retired.
 The one exception is the brow paper, which may follow a character's hair: `FaceStyle.brow_color`
-(written to `paper_brow`), black `#1f1611` on the noble (`paper_noble`, owner's ask 2026-09-26).
+(written to `paper_brow`), black `#1f1611` on the noble (`paper_noble`, owner's ask 2026-09-26);
+the cast's brow papers are listed in section 8.
 
 ## 3. Pieces
 
@@ -147,12 +149,16 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
 
 - **Brow**: a thick CUT STRIP of even thickness, never a tapered stroke (owner, 2026-09-26: a
   taper reads as drawn). Thickness 0.065–0.105 fh (thick brows, on purpose; J1's measures 0.10),
-  length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35 (a gentle bend), height 0.06–0.30 fh from the
-  top. The ends are cut square to the strip's chord with corners rounded by `brow_corner` × half
+  length 0.16–0.26 fw, angle −15°…+18° (> 0 lifts the inner end; +18 is Miss Hartley's worried
+  slant, which had to clear J1's own +14 to read), arch 0–0.35 (a gentle bend), height 0.06–0.30
+  fh from the top. The ends are cut square to the strip's chord with corners rounded by `brow_corner` × half
   the thickness (0.5 = a quarter of the thickness, the default; J1 0.2, squarer).
   `brow_asym` turns the viewer's right brow alone a few more degrees about its outer end, so it
-  sits higher (the noble's haughty brow, 5°); keep `brow_angle + brow_asym` inside ±15°.
-- **Eye white**: a cream ellipse, 0.10–0.22 fw wide, aspect 0.8–1.4. May be absent ("dot eye").
+  sits higher (the noble's haughty brow, 5°; Ms. Portobello's, 14°); keep
+  `brow_angle + brow_asym` inside −15°…+18°.
+- **Eye white**: a cream ellipse, 0.10–0.22 fw wide, aspect (height over width) 0.75–1.4 (0.77 is
+  Ms. Portobello's wide eye). May be absent ("dot eye": the pupil alone is the eye, never cut;
+  the white used to cut it away entirely, fixed 2026-09-26).
 - **Pupil**: a dark disc, 0.05–0.13 fw. Optional **pie wedge** cut out of it (60°, showing the
   white or the skin below), which is the one G-row detail carried over. It opens at
   `pupil_wedge_dir` on the left eye (45° = up-inward) and the right eye mirrors it, or with
@@ -235,3 +241,37 @@ owner wants them bigger. The 25 px head stays clean with all of them.
 A new preset or a generated reference is accepted only if: every feature is a paper piece with no
 lines; only the five papers are used; sizes sit inside the §3 ranges; the idle matches §4; the
 25 px render in `IMPORT/faces_proc/sheet_scale.png` still reads as a face.
+
+## 8. The cast
+
+Every character is J1 with different pieces (owner, 2026-09-26): the same paper, the §4 idle and
+the §6 expressions; only the §5 pieces change. Unless a character says otherwise the gaze is
+straight ahead and any pupil wedge mirrors (opening up and inward); J1's sideways look is J1's
+own. The presets come from `.dev/make_face_styles.gd`; `tools/shot_faces.gd -- cast` draws
+`IMPORT/faces_proc/cast.png` (states and 25 px) and `cast_zoom.png` (one piece each at 3×),
+`tools/shot_face_head.gd -- cast` draws `cast_heads.png` (tripo_head_tl with each hair colour
+and glasses, portrait and dialogue size). Hair colour and glasses are set on the rig
+(`set_hair_color`, `set_face_look(eye, glasses)`, `glasses_color`); the brow paper follows the
+hair where it says so (`brow_color`). "round" glasses are the `wire` part (the legacy key);
+frames come in black, tortoise, gold and silver only, so no bright fashion frame yet.
+
+| Character | Preset | Hair | Glasses | Same face | Who | What defines the face |
+|-----------|--------|------|---------|-----------|-----|-----------------------|
+| J1 | `paper_j1` | default | none | | the base look | the reference: wedge pupils looking right, shield nose |
+| the noble | `paper_noble` | black `#1a1410` | none | | bored high society | heavy flat lid 0.45, raised black brows, `brow_asym` 5, nose triangle up, flat mouth 0.155 |
+| Mr. Dimmock | `paper_dimmock` | dark `#2a1d15` | never | | the weary: "stopped trying a while ago; almost asleep" | heavy flat lid 0.45 over large whites 0.17, pupils 0.06 sunk 0.07 low, no wedge, set 0.25; long thick straight dark `#2a1d15` brows (0.24 × 0.10, arch 0.03) high at 0.17; small disc nose; the narrowest, flattest mouth (0.10, curve 0.10) |
+| Mr. Pettigrew | `paper_pettigrew` | white `#e9e4da` | round, gold | Mrs. Applegarth | the old dear: "the sweetest face in the game" | the biggest round whites 0.20, low (0.50) and wide (0.26), wedge pupils 0.12; short thick brows (0.17 × 0.10) low at 0.255, drooping at the outer ends (+10); the biggest nose (oval 0.16 × 0.11); mouth 0.18; the largest cheeks 0.10 |
+| Ms. Portobello | `paper_portobello` | dark auburn `#5e2618` | round, tortoise | Mr. Zanetti | fashion: "sharp and quick; she has already judged your suit" | whites 0.14 wider than tall (aspect 0.77), close set 0.19, pupils pushed 0.065 to the side with J1's sideways wedge; thin long brows (0.26 × 0.065) arched 0.3, inner ends down 5°, the right one 14° higher (`brow_asym`), auburn brow paper `#4a1f14`; small teardrop nose up; wide mouth 0.20 |
+| Mr. Bellamy | `paper_bellamy` | dark grey `#4a4746` | none | | the thespian: "a big face for the back row of a theatre" | large round whites 0.18 set wide 0.27, wedge pupils 0.12; the highest, most arched long brows (0.14 from the top, arch 0.35, 0.26 long), grey brow paper `#3a3634`; big shield nose 0.15 × 0.10; the widest mouth 0.22; small cheeks 0.06 |
+| Miss Hartley | `paper_hartley` | chestnut `#7a4326` | none | Mr. Rossi, Mr. Penrose | the romantic: "hopeful and a bit worried" | big whites 0.16 taller than wide (aspect 1.18), wedge pupils 0.11; medium brows (0.19) close set 0.21, inner ends up +18 and all but straight (arch 0), her resting shape; small disc nose; small mouth 0.13; cheeks 0.08 |
+| Dr. Vance | `paper_vance` | black `#15110f` | round, black | | business: "doing sums while talking to you; tight and level" | dot eyes (pupils 0.06 alone, close set 0.18, a touch high at 0.47); long thick dead-straight brows (0.26 × 0.10, angle 0, arch 0) low at 0.30, black brow paper `#1f1611`; narrow strip nose; narrow mouth 0.12. The other try, small close-set whites 0.11 (`paper_vance_whites`), lost: behind the lenses the cream barely parts from the skin and the dot-in-a-ring stares |
+
+The owner's brow angles were written with the other sign ("−10°, down at the outer ends"); here a
+positive angle lifts the inner end, so Pettigrew's +10 and Hartley's +18 are the same slants.
+
+**Future hair meshes (not built; every head above wears tripo_head_tl's hair for now):**
+Mr. Dimmock a messy, grown-out fringe; Mr. Pettigrew white wisps or tufts, or a cloud;
+Mrs. Applegarth a white bun; Ms. Portobello a sharp bob; Mr. Zanetti a slicked quiff;
+Mr. Bellamy long and swept back, or a greying widow's peak; Miss Hartley soft and overdone with
+a stray curl; Mr. Rossi and Mr. Penrose a floppy fringe; Dr. Vance short with a hard side
+parting.

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_sj3eh"]
+
+[resource]
+script = ExtResource("1_sj3eh")
+eye_spacing = 0.25
+white_radius = 0.17
+white_aspect = 1.05
+pupil_radius = 0.06
+pupil_offset = Vector2(0, 0.07)
+lid = 0.45
+lid_curve = 0.0
+brow_spacing = 0.26
+brow_height = 0.17
+brow_thickness = 0.1
+brow_arch = 0.03
+brow_color = Color(0.16470589, 0.11372549, 0.08235294, 1)
+nose_size = Vector2(0.065, 0.065)
+nose_height = 0.66
+mouth_height = 0.82
+mouth_width = 0.1
+mouth_thickness = 0.028
+mouth_curve = 0.1

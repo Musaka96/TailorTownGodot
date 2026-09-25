@@ -16,7 +16,13 @@ extends SceneTree
 ##   j1_paper_zoom.png  paper_j1's nose, eye and brow end at 5x: the cut edges, grain, shadow
 ##   noble.png          paper_j1 beside paper_noble (640 px each), then paper_noble in the
 ##                      states at 400 px and at game size (25 px, 4x)
-## With `j1` after `--`, only the three j1 sheets; with `noble`, only noble.png.
+##   cast.png           the cast (guide section 8): each character (rows) in the states
+##                      (columns) at 256 px, then all eight at game size (25 px, 4x)
+##   cast_zoom.png      one piece per new cast character at 3x: dimmock's lids,
+##                      pettigrew's cheek and nose, portobello's and hartley's brows,
+##                      bellamy's mouth, vance's eyes
+## With `j1` after `--`, only the three j1 sheets; with `noble`, only noble.png; with
+## `cast`, only cast.png and cast_zoom.png (`vance_whites` swaps in paper_vance_whites).
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
@@ -62,6 +68,28 @@ const REFS := {
 	"paper_small": ["J1", Vector2(134, 792), 210.0],
 	"paper_noble": ["J1", Vector2(134, 792), 210.0],
 }
+# the cast (guide section 8): character, preset
+const CAST := [
+	["J1", "paper_j1"],
+	["the noble", "paper_noble"],
+	["Mr. Dimmock", "paper_dimmock"],
+	["Mr. Pettigrew", "paper_pettigrew"],
+	["Ms. Portobello", "paper_portobello"],
+	["Mr. Bellamy", "paper_bellamy"],
+	["Miss Hartley", "paper_hartley"],
+	["Dr. Vance", "paper_vance"],
+]
+# cast_zoom.png: label, preset, centre (face units from the disc centre, y down)
+const CAST_ZOOMS := [
+	["dimmock / lids", "paper_dimmock", Vector2(-0.25, 0.04)],
+	["pettigrew / cheek + nose", "paper_pettigrew", Vector2(-0.18, 0.24)],
+	["portobello / brows", "paper_portobello", Vector2(0.2, -0.28)],
+	["bellamy / mouth", "paper_bellamy", Vector2(0.0, 0.32)],
+	["hartley / brows", "paper_hartley", Vector2(-0.2, -0.3)],
+	["vance / eyes", "paper_vance", Vector2(-0.18, -0.08)],
+]
+const CAST_ZOOM := 3.0
+const CAST_ZOOM_CELL := 420
 const PAPER_CELL := 420
 # J1 on the reference sheet, measured (px): disc centre and diameter
 const J1_CENTER := Vector2(133.98, 792.62)
@@ -106,6 +134,11 @@ func _run() -> void:
 	var styles := {}
 	for p: String in PRESETS:
 		styles[p] = load(STYLE_DIR + p + ".tres") as FaceStyle
+	if OS.get_cmdline_user_args().has("cast"):
+		await _sheet_cast()
+		await _sheet_cast_zoom()
+		quit(0)
+		return
 	if OS.get_cmdline_user_args().has("noble"):
 		await _sheet_pair(styles["paper_j1"], styles["paper_noble"], "paper_noble", "noble.png")
 		quit(0)
@@ -124,6 +157,70 @@ func _run() -> void:
 	await _sheet_paper(styles["paper_j1"])
 	await _sheet_pair(styles["paper_j1"], styles["paper_noble"], "paper_noble", "noble.png")
 	quit(0)
+
+
+## The cast preset for a row: `vance_whites` after `--` shows Dr. Vance's other try.
+func _cast_preset(key: String) -> String:
+	if key == "paper_vance" and OS.get_cmdline_user_args().has("vance_whites"):
+		return "paper_vance_whites"
+	return key
+
+
+## The cast in the states (rows = characters), then every idle at game size (25 px, 4x).
+func _sheet_cast() -> void:
+	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
+	var up := small * UPSCALE
+	var rows_h := (CELL + LABEL_H) * CAST.size()
+	var size := Vector2i(CELL * REF_STATES.size(), rows_h + up + 2 * LABEL_H)
+	var board := _board(size)
+	var tiny_board := _board(Vector2i(small * CAST.size(), small))
+	for r in CAST.size():
+		var who: Array = CAST[r]
+		var key := _cast_preset(who[1])
+		var style := load(STYLE_DIR + key + ".tres") as FaceStyle
+		for c in REF_STATES.size():
+			var pos := Vector2(c * CELL, r * (CELL + LABEL_H))
+			var face := _face(style, style.expression(REF_STATES[c]), CELL)
+			face.position = pos
+			board.add_child(face)
+			var text := "%s / %s" % [who[0], REF_STATES[c]]
+			board.add_child(_label(text, pos + Vector2(0, CELL), CELL))
+		var tiny := _face(style, {}, GAME_HEAD_PX * PAD)
+		tiny.position = Vector2(r * small + 1, 1)
+		tiny_board.add_child(tiny)
+		var x := float(r * size.x) / CAST.size()
+		var y := rows_h + LABEL_H + up
+		board.add_child(_label(String(who[0]), Vector2(x, y), float(size.x) / CAST.size()))
+	var img := await _render(tiny_board, Vector2i(small * CAST.size(), small))
+	for r in CAST.size():
+		var one := img.get_region(Rect2i(r * small, 0, small, small))
+		one.resize(up, up, Image.INTERPOLATE_NEAREST)
+		var tr := TextureRect.new()
+		tr.texture = ImageTexture.create_from_image(one)
+		var cx := (r + 0.5) * size.x / CAST.size()
+		tr.position = Vector2(cx - up * 0.5, rows_h + LABEL_H)
+		board.add_child(tr)
+	board.add_child(_label("game size (25 px head, 4x)", Vector2(0, rows_h), size.x))
+	await _save(board, size, "cast.png")
+
+
+## One distinctive piece per new cast character at 3x.
+func _sheet_cast_zoom() -> void:
+	var cell := CAST_ZOOM_CELL
+	var size := Vector2i(cell * CAST_ZOOMS.size(), cell + LABEL_H)
+	var board := _board(size)
+	for c in CAST_ZOOMS.size():
+		var view: Array = CAST_ZOOMS[c]
+		var style := load(STYLE_DIR + _cast_preset(view[1]) + ".tres") as FaceStyle
+		var face := _face(style, {}, cell)
+		var mat := face.material as ShaderMaterial
+		mat.set_shader_parameter("zoom", CAST_ZOOM)
+		mat.set_shader_parameter("zoom_center", view[2])
+		face.position = Vector2(c * cell, 0)
+		board.add_child(face)
+		var text := "%s x%d" % [view[0], int(CAST_ZOOM)]
+		board.add_child(_label(text, Vector2(c * cell, cell), cell))
+	await _save(board, size, "cast_zoom.png")
 
 
 func _ref_sheet() -> Image:

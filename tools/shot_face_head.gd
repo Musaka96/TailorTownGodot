@@ -19,8 +19,10 @@ extends SceneTree
 ##                        (.dev/before_lid/skin_face.gdshader, when it exists) and after the
 ##                        lid-as-skin fix, then 3x zooms of one eye: before and after at lid
 ##                        0.45, and after at blink_half and closed
+##   cast_heads.png       the cast (guide section 8) on tripo_head_tl, each with its hair
+##                        colour and glasses, at portrait and at dialogue size
 ## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png; with `lid`,
-## only lid_fix.png.
+## only lid_fix.png; with `cast`, only cast_heads.png (`vance_whites` swaps in paper_vance_whites).
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -42,6 +44,20 @@ const J1_CELL := 400
 const NOBLE_HEADS := ["tripo_bald_tr", "tripo_head_tl"]
 const NOBLE_HAIR := Color("1a1410")
 const DIALOGUE_CELL := 200
+# cast_heads.png: the head, and per character: name, preset, hair colour (null = the
+# rig's default), glasses ("" = none; "round" is the wire part), frame colour
+const CAST_HEAD := "tripo_head_tl"
+const CAST := [
+	["J1", "paper_j1", null, "", ""],
+	["the noble", "paper_noble", NOBLE_HAIR, "", ""],
+	["Mr. Dimmock", "paper_dimmock", Color("2a1d15"), "", ""],
+	["Mr. Pettigrew", "paper_pettigrew", Color("e9e4da"), "round", "gold"],
+	["Ms. Portobello", "paper_portobello", Color("5e2618"), "round", "tortoise"],
+	["Mr. Bellamy", "paper_bellamy", Color("4a4746"), "", ""],
+	["Miss Hartley", "paper_hartley", Color("7a4326"), "", ""],
+	["Dr. Vance", "paper_vance", Color("15110f"), "round", "black"],
+]
+const CAST_PER_ROW := 4
 # lid_fix.png: the head, the old head shader, the zoom, and where the viewer's left eye sits
 # in the portrait framing (fraction of the viewport, tripo_head_tl at the default face scale)
 const LID_HEAD := "tripo_head_tl"
@@ -131,6 +147,8 @@ func _run() -> void:
 		await _sheet_noble_heads()
 	elif not args.is_empty() and args[0] == "lid":
 		await _sheet_lid_fix()
+	elif not args.is_empty() and args[0] == "cast":
+		await _sheet_cast_heads(args.has("vance_whites"))
 	else:
 		await _sheet_j1_heads()
 		await _sheet_noble_heads()
@@ -234,6 +252,37 @@ func _sheet_noble_heads() -> void:
 			cells.append([await _grab(DIALOGUE_CELL), k + 2, r, label + " (dialogue)"])
 	_rig.call("set_hair_color", keep_hair)
 	await _save_grid(cells, 4, NOBLE_HEADS.size(), "noble_head.png", J1_CELL)
+
+
+## The cast on one head, each with its hair colour and glasses: portrait and dialogue size
+## side by side, CAST_PER_ROW characters to a row.
+func _sheet_cast_heads(vance_whites: bool) -> void:
+	var keep_hair: Color = _rig.get("_hair_color")
+	var head := _find_head(CAST_HEAD)
+	if head < 0:
+		push_error("shot_face_head: no head %s" % CAST_HEAD)
+		return
+	_wear(head)
+	var cells := []
+	for i in CAST.size():
+		var who: Array = CAST[i]
+		var preset: String = who[1]
+		if vance_whites and preset == "paper_vance":
+			preset = "paper_vance_whites"
+		_rig.call("set_hair_color", keep_hair if who[2] == null else who[2])
+		_rig.call("set_face_look", "brown", who[3])
+		if who[4] != "":
+			_rig.set("glasses_color", who[4])
+		_rig.set("face_style", load(STYLE_DIR + preset + ".tres") as FaceStyle)
+		await _pose("neutral", 4)
+		var c := (i % CAST_PER_ROW) * 2
+		var r := i / CAST_PER_ROW
+		cells.append([await _grab(J1_CELL), c, r, String(who[0])])
+		cells.append([await _grab(DIALOGUE_CELL), c + 1, r, "%s (dialogue)" % who[0]])
+	_rig.call("set_hair_color", keep_hair)
+	_rig.call("set_face_look", "brown", "")
+	var rows := ceili(CAST.size() / float(CAST_PER_ROW))
+	await _save_grid(cells, CAST_PER_ROW * 2, rows, "cast_heads.png", J1_CELL)
 
 
 ## The lid as skin: before / after at portrait size, then 3x zooms of one eye (lid 0.45 before

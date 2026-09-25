@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_85sc3"]
+
+[resource]
+script = ExtResource("1_85sc3")
+eye_spacing = 0.22
+white_radius = 0.16
+white_aspect = 1.18
+pupil_radius = 0.11
+pupil_wedge = 0.8
+brow_spacing = 0.21
+brow_height = 0.21
+brow_length = 0.19
+brow_thickness = 0.09
+brow_angle = 18.0
+brow_arch = 0.0
+nose_size = Vector2(0.06, 0.06)
+nose_height = 0.66
+mouth_width = 0.13
+mouth_thickness = 0.03
+mouth_curve = 0.25
+cheek_radius = 0.08
+cheek_pos = Vector2(0.33, 0.72)
