@@ -1,5 +1,11 @@
 # Environment reference prompts
 
+> **Parked 2026-09-25.** The street and interior sheets were generated and cut, and the
+> short list was previewed in game at runtime (`tools/shot_env_grain.gd -- preset=short`).
+> The owner saw no tangible gain at the gameplay camera and scrapped the bake for now.
+> Nothing in the kit was changed. The tiles stay in `assets/dev/cloth_refs/` and the
+> preview tools stay in `tools/`, so this can be picked up again without redoing the work.
+
 Reference sheets for the tailor shop's surfaces and the street outside, made the same way
 as the cloth sheets in `CLOTH_REFERENCE_PROMPTS.md`: one image, a fixed reading order, a
 closed palette, a real medium named, the anti-AI-look rules from `UI_STYLE_GUIDE.md` §7.1.
