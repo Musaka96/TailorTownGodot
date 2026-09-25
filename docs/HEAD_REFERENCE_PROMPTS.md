@@ -368,6 +368,12 @@ model knows by name land first time, styles built from length descriptions drift
 the VARIANT PREFIX: edit a cropped keeper and ask for the difference. Remaining
 gentlemen styles go that way (V1, V2 in the batch plan).
 
+## Where this stands (2026-09-25, end of the prompt sessions)
+
+Enough for now, by the owner. He runs the remaining batches (V1, V2, O1 to O3), takes
+the kept sheets through Tripo, and hands over one Blender file. What that file must
+hold and what happens next is in `HEAD_POOL_HANDOFF.md`.
+
 ## Check before Tripo
 
 - Both views the same size on one baseline, front left and back right; the back view
