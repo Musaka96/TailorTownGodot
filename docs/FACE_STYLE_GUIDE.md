@@ -73,7 +73,9 @@ strips into squarish patches. Every variant of the 2026-09-25 experiment
 (`IMPORT/faces_proc/mache_variants.png`, `mache_zoom.png`, `tools/shot_mache.gd`) is a preset:
 `a_grain` (grain only), `b_paper001`, `c_cardboard002`, `d_paper003` (a scan alone, albedo and
 normal at 2 tiles; too faint to read at a normal view), `e_mache12` / `e_mache20` (strips alone),
-`f_mache_scan` (the default), `g_mache_strong` (normals and relief 2.0: busy, blotchy highlights).
+`f_mache_scan`, `g_mache_strong` (normals and relief 2.0: busy, blotchy highlights). The
+strip layer described above is off in the shipped default (see the owner's pick in section 6);
+the strips now come from the owner's scan instead.
 
 At the gameplay camera (head ≈ 25 px) only the shapes survive; the treatment shows in the customer
 portrait, the fitting screen and any close-up. That is intended.
@@ -158,8 +160,23 @@ A face whose idle has heavy lids keeps them; states add to the idle, they never 
 
 **Owner's pick (2026-09-26): variant D**, the Paper003 creased-paper scan at 2 tiles with its
 normal at strength 1.0 and no procedural strips; the strip variants E-G read as too large a
-mess of folds. `data/paper_surfaces/paper_mache.tres` (the default) holds D; the others stay
-as presets. A tileable papier-mache scan from the owner replaces Paper003 when it arrives.
+mess of folds.
+
+**Default since 2026-09-26: `h_gpt_t1`, the owner's own papier-mache texture.** The owner
+generated a tileable texture of overlapping torn paper strips
+(`assets/textures/paper/mache_gpt_albedo.jpg`, 1K; `mache_gpt_normal.jpg` is its OpenGL
+normal, derived from a 40 px high-pass of its luminance at strength 6; a project asset, not
+a scan). `data/paper_surfaces/paper_mache.tres` holds it at `scan_scale` 2 tiles per face
+unit, `normal_strength` 1.0, `scan_albedo` 0.5 (the skin colour times the scan's luminance
+over its own mean, so the head keeps its own tone; half of the scan's light and dark) and no
+procedural strips. Compared on `IMPORT/faces_proc/mache_gpt.png` and `mache_gpt_zoom.png`
+(`tools/shot_mache.gd -- variants zoom only=... zoom_only=... out=mache_gpt`) against D and
+the presets `h_gpt_t3`, `h_gpt_t4` (smaller strips: flat at the 140 px view), `h_gpt_t3_n15`
+(normal 1.5), `h_gpt_t3_alb0` / `h_gpt_t3_alb1` (relief only / full light and dark). At 2
+tiles a strip is about 5 px on a 140 px head, so it reads there as a fine crumpled paper
+rather than as separate strips; `h_gpt_t1` and `h_gpt_t15` (1 and 1.5 tiles,
+`mache_gpt_extra.png`) show the strips plainly at that size and are the next step up if the
+owner wants them bigger. The 25 px head stays clean with all of them.
 
 ## 7. Checking an asset
 

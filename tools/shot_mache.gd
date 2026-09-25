@@ -4,14 +4,16 @@ extends SceneTree
 ## guide docs/FACE_STYLE_GUIDE.md, "Papier-mache surface"). NOT headless:
 ##   godot --path . --script res://tools/shot_mache.gd [-- drop | variants | zoom]
 ##   ... -- variants only=a_grain,e_mache12   (columns / zoom rows from those presets instead)
+##   ... -- variants zoom zoom_only=h_gpt_t3 out=mache_gpt   (zoom rows from their own list;
+##   the sheets are then <out>.png and <out>_zoom.png)
 ## Writes to IMPORT/faces_proc/ (git-ignored), all on tripo_head_tl with paper_j1 at face
 ## scale 0.8, lit by the paper_char lights plus one raking key from the viewer's right:
 ##   mache_variants.png  columns = the PaperSurface presets in VARIANTS; rows = portrait
 ##                       (head ~500 px), normal view (head ~140 px, 1:1, like a dialogue
 ##                       portrait or the fitting screen), gameplay (head ~25 px, 4x nearest),
 ##                       and the hair from a raised three-quarter view
-##   mache_zoom.png      3x closer (rendered, not upscaled) on the cheek, the hair and a face
-##                       piece's edge, for the variants in ZOOM_VARIANTS
+##   mache_zoom.png      3x closer (rendered, not upscaled) on the cheek, a hand, the hair and
+##                       a face piece's edge, for the variants in ZOOM_VARIANTS
 ##   face_drop.png       the face 0.00 / 0.05 / 0.08 rect heights lower (FaceStyle.face_drop)
 ##                       on tripo_head_tl and tripo_bald_tr
 ## The hair strand overlay is off throughout (it hides the surface; the owner's strands pick
@@ -55,9 +57,11 @@ const ROWS := ["portrait ~500 px", "normal view ~140 px (1:1)", "gameplay 25 px 
 const HAIR_VIEW := Vector2(40.0, 25.0)  # yaw, elevation (deg) of the hair row's camera
 const ZOOM := 3.0
 const ZOOM_CELL := 420
-# zoom targets: label, point on the DIST portrait (px in the 1000 px view)
+# zoom targets: label, point on the DIST portrait (px in the 1000 px view) or a bone
+# (the camera then sits in front of it at the same distance)
 const ZOOMS := [
 	["cheek", Vector2(628, 600)],
+	["hand", "hand.l"],
 	["hair", Vector2(430, 262)],
 	["nose / brow edge", Vector2(540, 540)],
 ]
@@ -73,6 +77,7 @@ var _cam: Camera3D
 var _head_y := 1.64
 var _variants: Array = VARIANTS
 var _zoom_variants: Array = ZOOM_VARIANTS
+var _out := "mache"
 
 
 func _initialize() -> void:
@@ -129,7 +134,12 @@ func _run() -> void:
 		if a.begins_with("only="):
 			_variants = Array(a.trim_prefix("only=").split(","))
 			_zoom_variants = _variants
-	var all := args.is_empty()
+	for a in args:
+		if a.begins_with("zoom_only="):
+			_zoom_variants = Array(a.trim_prefix("zoom_only=").split(","))
+		elif a.begins_with("out="):
+			_out = a.trim_prefix("out=")
+	var all := not ("variants" in args or "zoom" in args or "drop" in args)
 	if all or "variants" in args:
 		await _sheet_variants()
 	if all or "zoom" in args:
@@ -154,7 +164,8 @@ func _sheet_variants() -> void:
 		cells.append([await _grab_game(), c, 2, label])
 		_hair_view(DIST_HEAD_PX / PORTRAIT_PX)
 		cells.append([await _grab_center(ROW_H[3]), c, 3, label])
-	await _save_rows(cells, "mache_variants.png")
+	var file := "mache_variants.png" if _out == "mache" else _out + ".png"
+	await _save_rows(cells, file)
 
 
 func _sheet_zoom() -> void:
@@ -165,14 +176,28 @@ func _sheet_zoom() -> void:
 		await _settle()
 		for c in ZOOMS.size():
 			var z: Array = ZOOMS[c]
-			_portrait(1.0)
-			var target := _cam.project_position(z[1], DIST - 0.25)
-			_cam.fov = FOV / ZOOM
-			_cam.look_at(target, Vector3.UP)
+			_aim_zoom(z[1])
 			var label := "%s  %s" % [z[0], _zoom_variants[r]]
 			cells.append([await _grab_center(ZOOM_CELL), c, r, label])
 	_cam.fov = FOV
-	await _save_grid(cells, ZOOMS.size(), _zoom_variants.size(), "mache_zoom.png", ZOOM_CELL)
+	var n := _zoom_variants.size()
+	await _save_grid(cells, ZOOMS.size(), n, _out + "_zoom.png", ZOOM_CELL)
+
+
+## Aim the zoom camera at a point on the DIST portrait (Vector2, px) or at a bone (String),
+## from the portrait's distance.
+func _aim_zoom(at: Variant) -> void:
+	_portrait(1.0)
+	var target: Vector3
+	if at is Vector2:
+		target = _cam.project_position(at, DIST - 0.25)
+	else:
+		var skel := _rig.get("_skel") as Skeleton3D
+		var pose := skel.get_bone_global_pose(skel.find_bone(at))
+		target = skel.global_transform * pose.origin
+		_cam.position = target + Vector3(0, 0, DIST - 0.25)
+	_cam.fov = FOV / ZOOM
+	_cam.look_at(target, Vector3.UP)
 
 
 func _sheet_drop() -> void:
@@ -211,7 +236,7 @@ func _surface(key: String) -> PaperSurface:
 func _label(key: String, s: PaperSurface) -> String:
 	var parts: Array[String] = [key]
 	if s.scan_albedo_tex != null:
-		var id := s.scan_albedo_tex.resource_path.get_file().get_slice("_", 0)
+		var id := s.scan_albedo_tex.resource_path.get_file().trim_suffix("_albedo.jpg")
 		parts.append(
 			"%s x%.0f alb %.1f nrm %.1f" % [id, s.scan_scale, s.scan_albedo, s.normal_strength]
 		)
