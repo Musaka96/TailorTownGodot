@@ -7,8 +7,10 @@ render_mode cull_back, specular_disabled;
 // paper grain (face_sdf.gdshaderinc, paper_surface) at the mesh's own UV1, so it stays on
 // the surface as the rig walks and turns. `tile` = face units per UV unit, set per mesh
 // family so the fibres come out the same size as on the face (CharacterRig.PAPER_TILE_*).
+// Over the grain, the head's papier-mache surface (paper_mache.gdshaderinc), same numbers.
 
 #include "res://assets/shaders/face_sdf.gdshaderinc"
+#include "res://assets/shaders/paper_mache.gdshaderinc"
 
 uniform vec4 fill_color : source_color = vec4(0.86, 0.72, 0.6, 1.0);
 uniform float tile = 1.35;
@@ -17,7 +19,13 @@ uniform float grain = 0.1;
 uniform float seed = 0.0;
 
 void fragment() {
-	ALBEDO = paper_surface(fill_color.rgb, UV, tile, grain, seed);
+	vec3 col = paper_surface(fill_color.rgb, UV, tile, grain, seed);
+	vec2 q = UV * tile;
+	vec2 grad;
+	// the seed shifts the strips too, so skin and hair tear apart differently
+	col = paper_mache(col, q + 7.3 * seed, 1.0, grad);
+	NORMAL = paper_normal(NORMAL, VERTEX, paper_slope(q, grad), paper_texel(q));
+	ALBEDO = col;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.0;

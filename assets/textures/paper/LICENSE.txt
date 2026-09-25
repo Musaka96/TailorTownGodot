@@ -1,0 +1,9 @@
+Paper surface scans (1K JPG, colour and OpenGL normal), from ambientCG (https://ambientcg.com),
+licensed CC0 1.0 Universal (public domain). Used by assets/shaders/paper_mache.gdshaderinc
+through data/paper_surfaces/*.tres.
+
+  paper001_*      ambientCG Paper001       plain white paper, fine tooth
+  paper003_*      ambientCG Paper003       creased white paper
+  cardboard002_*  ambientCG Cardboard002   brown kraft cardboard, corrugation showing through
+
+Poly Haven (the first choice) has no paper or cardboard textures.

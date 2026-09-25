@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PaperSurface" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_albedo.jpg" id="1_m1bfu"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_normal.jpg" id="2_mqya7"]
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="3_bnhu6"]
+
+[resource]
+script = ExtResource("3_bnhu6")
+scan_albedo_tex = ExtResource("1_m1bfu")
+scan_normal_tex = ExtResource("2_mqya7")
+normal_strength = 2.0
+mache_scale = 1.2
+mache_strength = 2.0
+mache_seam = 0.3
+mache_tone = 0.04
+piece_relief = 1.0

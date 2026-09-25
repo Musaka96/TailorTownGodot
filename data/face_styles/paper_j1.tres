@@ -25,4 +25,5 @@ nose_size = Vector2(0.108, 0.073)
 nose_height = 0.673
 mouth_height = 0.796
 mouth_width = 0.207
+mouth_thickness = 0.03
 mouth_curve = 0.3

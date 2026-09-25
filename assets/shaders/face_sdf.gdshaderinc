@@ -334,6 +334,13 @@ vec3 paper_piece_ex(
 	return mix(col, f, cover);
 }
 
+// Add a face piece's step to `lift` (piece layers): `d` is its distance (face units), `px`
+// a pixel; the step ramps over a few thousandths so its derivative stays smooth.
+float piece_lift(float lift, float d, float px) {
+	float r = max(0.003, 1.5 * px);
+	return lift + 1.0 - smoothstep(-r, r, d);
+}
+
 // The usual piece: rim along its whole edge, the shared grain.
 vec3 paper_piece(vec3 under, float d, float d_shadow, vec3 fill, vec2 p, float seed, float px) {
 	return paper_piece_ex(under, d, d, d_shadow, fill, paper_grain, p, seed, px);

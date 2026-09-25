@@ -31,7 +31,9 @@ Paper treatment numbers, in fractions of face height unless stated (tune once, t
 | Grain          | `paper_grain` 0.10 (was 0.15): soft mottling in 3 octaves of hashed value noise (60 / 170 / 420 per face unit at 0.15 / 0.35 / 0.3), a few soft dark specks (0.35), and long soft fibres: 32 waves per face unit along a streak, 300 across (2.5 × the old length), gently bent (0.02), light ones (0.3) on two directions 35° apart, a few dark ones (0.25) across them; light fibres lift a dark paper less (0.3 of a white one's), so pupils and hair show no scratches. About 5 % contrast (5–95 % spread) on the skin at a 580 px disc, the reference J1 paper 4–4.6 % (the old grain was 10–11 %). Fixed in face space; the constants sit at the top of `face_sdf.gdshaderinc` |
 
 On the head, the reference disc maps to 2.1 × `FaceStyle.face_scale` face-rect widths centred
-0.44 down the rect (at 2.35 / 0.38 the brows hid under most fringes). `face_scale` is 0.8: at
+0.44 + `FaceStyle.face_drop` down the rect (at 2.35 / 0.38 the brows hid under most fringes).
+`face_drop` is 0.05 (0.49 in all): the owner wanted the face lower on the head
+(`IMPORT/faces_proc/face_drop.png` compares 0.00 / 0.05 / 0.08 on two heads). `face_scale` is 0.8: at
 1.0 the face took over the whole head; at 0.8 the brows clear the fringe and the mouth sits above
 the chin (`IMPORT/faces_proc/j1_heads.png` compares 1.0 / 0.85 / 0.8 / 0.75). Lids carry their rim and shadow along the lower
 edge only, else a closed eye shows a ghost ring; a shadow fades out below one pixel of offset so
@@ -48,6 +50,30 @@ positions would, on a skinned mesh. Seams only break the noise. The hair keeps `
 strand overlay stays on top by default (`CharacterRig.paper_hair_strands`, false = pure flat
 paper hair; owner's pick pending, `IMPORT/faces_proc/paper_char.png`). No cut rim on the head
 silhouette. Without a procedural face (the painted sprites) skin and hair keep the flat material.
+
+**Papier-mache surface.** Over the grain, skin and hair carry a papier-mache surface
+(`assets/shaders/paper_mache.gdshaderinc`, numbers from a `PaperSurface` preset in
+`data/paper_surfaces/`, `CharacterRig.paper_surface`, default `paper_mache.tres`), so the paper
+reads at a normal view (head ≈ 140 px, a dialogue portrait or the fitting screen), not only up
+close. Two parts, both a HEIGHT turned into the lit normal (surface gradient from screen
+derivatives, so no mesh tangents): overlapping torn paper strips (`mache_scale` 1.2 cells per
+face unit, a strip up to 2 cells long and 0.8 wide, 85 % of cells carry one, torn edge ±0.09
+cells; `mache_strength` 1.0 = each strip 0.008 face units, about 1.5 mm, proud of the one
+below, a 0.25-layer lip at the torn edge; `mache_seam` 0.3 = a soft glue shadow just outside
+each visible edge and a lighter torn fringe just inside; `mache_tone` 0.04 = each strip ±4 %)
+and a scanned paper normal (ambientCG Paper003, creased white paper, CC0, at `scan_scale` 2
+tiles per face unit, `normal_strength` 1.0; its colour is off, `scan_albedo` 0). The face pieces
+are paper too: the strips' tone and seams stay under them, the relief shows through at 40 %,
+and each piece adds its own 0.004 face-unit step (`piece_relief` 1.0) so its cut edge catches
+the light. The strips fade out once a cell is under ~15 px (gone under 9 px) and a piece's step
+once a face unit is under ~50 px, so a 25 px head keeps its plain silhouette. The head's UV1
+is cut into islands across the face, so on the front the strips lie in the face UV (one sheet)
+and blend into UV1 round the sides (`FRONT_EDGE`); on the hair the UV islands still cut the
+strips into squarish patches. Every variant of the 2026-09-25 experiment
+(`IMPORT/faces_proc/mache_variants.png`, `mache_zoom.png`, `tools/shot_mache.gd`) is a preset:
+`a_grain` (grain only), `b_paper001`, `c_cardboard002`, `d_paper003` (a scan alone, albedo and
+normal at 2 tiles; too faint to read at a normal view), `e_mache12` / `e_mache20` (strips alone),
+`f_mache_scan` (the default), `g_mache_strong` (normals and relief 2.0: busy, blotchy highlights).
 
 At the gameplay camera (head ≈ 25 px) only the shapes survive; the treatment shows in the customer
 portrait, the fitting screen and any close-up. That is intended.
@@ -90,8 +116,8 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
   trapezoid), `shield` (J1's cut pentagon: a wide flat top, shoulders a little uneven, pointing
   down; J1 0.215 wide × 0.146 tall at 0.673). Half-width 0.06–0.16 fw, half-height 0.06–0.22 fh,
   centre at 0.55–0.68 fh.
-- **Mouth (idle)**: a dark arc strip of even thickness with round ends, thickness 0.018–0.024 fh,
-  width 0.10–0.22 fw, curve +0.10…+0.30 (a faint smile; J1 0.30, 0.022 thick), centre at
+- **Mouth (idle)**: a dark arc strip of even thickness with round ends, thickness 0.018–0.032 fh,
+  width 0.10–0.22 fw, curve +0.10…+0.30 (a faint smile; J1 0.30, 0.030 thick: 0.022 read too thin to the owner), centre at
   0.78–0.86 fh.
 - **Mouth (open)**: a dark paper **D**: a straight top edge level with the line's top, a round
   bottom, corners rounded by half the line thickness; shut it is as deep as the smile, open it

@@ -66,8 +66,11 @@ float fp_y(float from_top, float stretch) {
 }
 
 // `under` is what the pieces lie on, `skin` the lids' paper and `skin_grain` its fibre
-// contrast (the lids match the skin they lie on).
-vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float stretch) {
+// contrast (the lids match the skin they lie on). `lift` gains one per piece layer over p
+// (piece_lift), the step the papier-mache normal lights (skin_face.gdshader).
+vec3 face_paper(
+	vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float stretch, inout float lift
+) {
 	vec3 col = under;
 	vec2 sh = p - paper_shadow_offset;
 	// cheeks
@@ -81,6 +84,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 			float d = length(p - c) - cheek_radius + paper_cut(p, per, sz, seed);
 			float ds = length(sh - c) - cheek_radius + paper_cut(sh, per, sz, seed);
 			col = paper_piece(col, d, ds, paper_rose.rgb, p, seed, px);
+			lift = piece_lift(lift, d, px);
 		}
 	}
 	// eyes: whites, pupils, lids (with the shut strip), one eye at a time
@@ -108,6 +112,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 			d_white = fs_sd_ellipse(p - c, wr) + paper_cut(p, per, sz, 3.0 + fi);
 			d_white_s = fs_sd_ellipse(sh - c, wr) + paper_cut(sh, per, sz, 3.0 + fi);
 			col = paper_piece(col, d_white, d_white_s, paper_cream.rgb, p, 3.0 + fi, px);
+			lift = piece_lift(lift, d_white, px);
 		}
 		// the wedge opens at pupil_wedge_dir degrees (0 = the viewer's right, 90 = up) on the
 		// left eye; the right eye mirrors it, or copies it for a sideways gaze
@@ -124,6 +129,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 		dp = max(dp, d_white);
 		dps = max(dps, d_white_s);
 		col = paper_piece(col, dp, dps, paper_dark.rgb, p, 5.0 + fi, px);
+		lift = piece_lift(lift, dp, px);
 		if (lid > 0.01) {
 			float per_l = 3.1416 * (outline.x + outline.y);
 			float sz_l = 2.0 * outline.y;
@@ -136,6 +142,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 			// (its shadow stays inside the eye, clear of the outline's own antialiased edge)
 			float dls = max(d_out + lm + 0.5 * max(paper_shadow_soft, px), d_cut_s);
 			col = paper_piece_ex(col, dl, d_cut, dls, skin, skin_grain, p, 0.0, px);
+			lift = piece_lift(lift, dl, px);
 			float shut = smoothstep(0.85, 1.0, lid);
 			if (shut > 0.0) {
 				float t = max(LID_STRIP, 2.0 * px);
@@ -146,6 +153,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 				dks += paper_cut(sh, per_s, t, 9.0 + fi);
 				vec3 under = col;
 				col = mix(under, paper_piece(under, dk, dks, paper_dark.rgb, p, 9.0 + fi, px), shut);
+				lift = mix(lift, piece_lift(lift, dk, px), shut);
 			}
 		}
 	}
@@ -166,6 +174,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 			sh, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper, cbs, false
 		);
 		col = paper_piece(col, d, ds, paper_brow.rgb, p, 11.0 + fi, px);
+		lift = piece_lift(lift, d, px);
 	}
 	// nose
 	vec2 nc = vec2(0.0, fp_y(nose_height, stretch));
@@ -174,6 +183,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 	float dn = piece_nose(p, nc, nose_kind, nose_size) + paper_cut(p, per_n, sz_n, 13.0);
 	float dns = piece_nose(sh, nc, nose_kind, nose_size) + paper_cut(sh, per_n, sz_n, 13.0);
 	col = paper_piece(col, dn, dns, paper_rose.rgb, p, 13.0, px);
+	lift = piece_lift(lift, dn, px);
 	// mouth: the line; opening, it turns into a dark D hanging from a straight top edge
 	// (rounding into an "o" with mouth_round), teeth and tongue on top of it
 	vec2 mc = vec2(0.0, fp_y(mouth_height, stretch));
@@ -206,6 +216,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 		dm += paper_cut(p, per_m, sz_m, 14.0);
 		dms += paper_cut(sh, per_m, sz_m, 14.0);
 		col = paper_piece(col, dm, dms, paper_dark.rgb, p, 14.0, px);
+		lift = piece_lift(lift, dm, px);
 		if (op > 0.01) {
 			float inset = 0.35 * mt;
 			if (mouth_teeth > 0.01) {
@@ -215,6 +226,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 				dt += paper_cut(p, 2.0 * mouth_width, band, 15.0);
 				dts += paper_cut(sh, 2.0 * mouth_width, band, 15.0);
 				col = paper_piece(col, dt, dts, paper_cream.rgb, p, 15.0, px);
+				lift = piece_lift(lift, dt, px);
 			}
 			// the tongue: a rose half-disc at the bottom once the mouth is well open
 			float tg = max(mouth_tongue, smoothstep(0.6, 0.75, op) * (1.0 - rnd));
@@ -226,6 +238,7 @@ vec3 face_paper(vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float
 				dg += paper_cut(p, 6.283 * tr, tr, 16.0);
 				dgs += paper_cut(sh, 6.283 * tr, tr, 16.0);
 				col = paper_piece(col, dg, dgs, paper_rose.rgb, p, 16.0, px);
+				lift = piece_lift(lift, dg, px);
 			}
 		}
 	}

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PaperSurface" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="1_bvqdw"]
+
+[resource]
+script = ExtResource("1_bvqdw")
+mache_scale = 1.2
+mache_strength = 1.0
+mache_seam = 0.3
+mache_tone = 0.04
+piece_relief = 1.0

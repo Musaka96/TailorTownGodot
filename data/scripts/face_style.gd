@@ -70,6 +70,10 @@ const PUPIL_MIN := 0.05
 ## 0.8 keeps the eyes off the hair line and the mouth above the chin. A static so review
 ## tools can compare sizes; the game leaves it alone.
 static var face_scale := 0.8
+## How far the face sits below the DISC_CENTER_V mapping, in face-rect heights: 0.05 puts
+## the brows further under the fringe line and the mouth nearer the chin, as the owner
+## asked (2026-09-25). A static so review tools can compare drops; the game leaves it.
+static var face_drop := 0.05
 
 @export_group("Eye")
 @export var eye_spacing := 0.23
@@ -157,12 +161,13 @@ func apply_to_material(mat: ShaderMaterial, dials := {}, frame: FaceFrame = null
 		mat.set_shader_parameter("face_aspect", frame.aspect())
 		mat.set_shader_parameter("layout_aspect", LAYOUT_ASPECT)
 		mat.set_shader_parameter("disc_scale", DISC_SCALE * face_scale)
-		mat.set_shader_parameter("disc_center_v", DISC_CENTER_V)
+		mat.set_shader_parameter("disc_center_v", DISC_CENTER_V + face_drop)
 		mat.set_shader_parameter("frame_offset", frame.offset)
 		mat.set_shader_parameter("frame_scale", frame.scale)
 		if frame.eye_line >= 0.0:
 			var unit := DISC_SCALE * face_scale * LAYOUT_ASPECT  # rect heights per face unit
-			var eye_v := DISC_CENTER_V + (float(dials.get("eye_height", eye_height)) - 0.5) * unit
+			var eye_h := float(dials.get("eye_height", eye_height))
+			var eye_v := DISC_CENTER_V + face_drop + (eye_h - 0.5) * unit
 			lift = (frame.eye_line - eye_v) / unit
 	for key: String in FIELDS:
 		var value: Variant = dials.get(key, get(key))

@@ -22,7 +22,8 @@ void fragment() {
 	float ds = length(sh) - 0.5 + paper_cut(sh, 3.1416, 1.0, 0.0);
 	vec3 col = paper_piece(page_color.rgb, d, ds, skin_color.rgb, p, 0.0, px);
 	if (d < 0.02) {
-		col = face_paper(col, skin_color.rgb, paper_grain, p, px, 1.0);
+		float lift = 0.0;  // flat sheet: the pieces' step is not lit here
+		col = face_paper(col, skin_color.rgb, paper_grain, p, px, 1.0, lift);
 	}
 	COLOR = vec4(col, 1.0);
 }
