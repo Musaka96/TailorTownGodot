@@ -41,6 +41,7 @@ uniform float brow_angle = 0.0;
 uniform float brow_arch = 0.1;
 uniform float brow_corner = 1.0;
 uniform float brow_taper = 0.0;
+uniform float brow_asym = 0.0;
 group_uniforms nose;
 uniform int nose_kind = 0;
 uniform vec2 nose_size = vec2(0.08, 0.08);
@@ -163,13 +164,20 @@ vec3 face_paper(vec3 under, vec3 skin, vec2 p, float px, float stretch, inout fl
 		vec2 c = vec2(s * brow_spacing, fp_y(brow_height, stretch));
 		float fi = float(i);
 		float bt = brow_thickness;
+		// brow_asym turns the viewer's right brow about its outer end (which stays put)
+		float a = ba;
+		if (i == 1 && abs(brow_asym) > 1e-3) {
+			a = ba + radians(brow_asym);
+			vec2 half_len = vec2(0.5 * s * brow_length, 0.5 * brow_length);
+			c += half_len * vec2(cos(ba) - cos(a), sin(ba) - sin(a));
+		}
 		float cb = paper_cut(p, per_b, bt, 11.0 + fi);
 		float cbs = paper_cut(sh, per_b, bt, 11.0 + fi);
 		float d = piece_brow(
-			p, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper, cb, false
+			p, c, s, brow_length, bt, a, brow_arch, brow_corner, brow_taper, cb, false
 		);
 		float ds = piece_brow(
-			sh, c, s, brow_length, bt, ba, brow_arch, brow_corner, brow_taper, cbs, false
+			sh, c, s, brow_length, bt, a, brow_arch, brow_corner, brow_taper, cbs, false
 		);
 		col = paper_piece(col, d, ds, paper_brow.rgb, p, 11.0 + fi, px);
 		lift = piece_lift(lift, d, px);

@@ -484,7 +484,8 @@ float piece_lid_strip(vec2 p, vec2 c, vec2 r, vec2 edge, float margin, float thi
 // Nose: kind 0 disc (radius r.x), 1 oval (radii r), 2 teardrop with its round point up
 // (half-width r.x at the bottom, half-height r.y), 3 strip: a tall rounded trapezoid,
 // narrow at the top (half-width r.x at the bottom, half-height r.y), 4 shield: J1's cut
-// pentagon, wide flat top, pointing down (half-width r.x at the shoulders, half-height r.y).
+// pentagon, wide flat top, pointing down (half-width r.x at the shoulders, half-height r.y),
+// 5 triangle: a flat top r.x half-wide, pointing down, r.y half-height (straight snips).
 float piece_nose(vec2 p, vec2 c, int kind, vec2 r) {
 	vec2 e = p - c;
 	vec2 up = vec2(e.x, -e.y);  // y-up for the primitives that want it
@@ -503,6 +504,9 @@ float piece_nose(vec2 p, vec2 c, int kind, vec2 r) {
 		// corners a touch soft, as scissors leave them
 		float rr = 0.06 * min(r.x, r.y);
 		return fs_sd_shield(e, max(r - rr, vec2(1e-3))) - rr;
+	} else if (kind == 5) {
+		float rr = 0.06 * min(r.x, r.y);
+		return fs_sd_trapezoid(up, 0.0, max(r.x - rr, 1e-3), max(r.y - rr, 1e-3)) - rr;
 	}
 	return length(e) - r.x;
 }

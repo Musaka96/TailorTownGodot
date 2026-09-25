@@ -12,7 +12,10 @@ extends SceneTree
 ##                        bare and with round glasses
 ##   j1_heads.png         paper_j1 on tripo_head_tl and tripo_bald_tr at face scale 1.0 /
 ##                        0.85 / 0.8 (the default) / 0.75, front, and at 45 degrees at 0.8
-## With `j1` after `--`, only j1_heads.png.
+##   noble_head.png       paper_j1 (default hair) beside paper_noble (black hair) on
+##                        tripo_bald_tr and tripo_head_tl, front, at portrait size and at the
+##                        dialogue size (head about 140 px)
+## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png.
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -30,6 +33,10 @@ const SIDE_ANGLES := [0.0, 30.0, 60.0, 90.0, 180.0]
 const J1_HEADS := ["tripo_head_tl", "tripo_bald_tr"]
 const J1_VIEWS := [[1.0, 0.0], [0.85, 0.0], [0.8, 0.0], [0.75, 0.0], [0.8, 45.0]]
 const J1_CELL := 400
+# noble_head.png: the heads, the noble's hair, and the dialogue cell (a head about 140 px)
+const NOBLE_HEADS := ["tripo_bald_tr", "tripo_head_tl"]
+const NOBLE_HAIR := Color("1a1410")
+const DIALOGUE_CELL := 200
 # preset -> states to shoot ("neutral" = the resting face, no suffix), `presets` mode
 const SHOTS := {
 	"paper_j1": ["neutral", "happy"],
@@ -108,8 +115,11 @@ func _run() -> void:
 		await _preset_shots(args.slice(1))
 	elif not args.is_empty() and args[0] == "j1":
 		await _sheet_j1_heads()
+	elif not args.is_empty() and args[0] == "noble":
+		await _sheet_noble_heads()
 	else:
 		await _sheet_j1_heads()
+		await _sheet_noble_heads()
 		var heads := _head_rows()
 		await _sheet_heads(heads)
 		await _sheet_states(heads[1])
@@ -164,13 +174,9 @@ func _sheet_states(head: int) -> void:
 ## paper_j1 on two heads at a few face scales (FaceStyle.face_scale), to pick the size.
 func _sheet_j1_heads() -> void:
 	var keep: float = FaceStyle.face_scale
-	var lib := Wardrobe.library()
 	var cells := []
 	for r in J1_HEADS.size():
-		var head := -1
-		for i in lib.head_count():
-			if String(lib.head(i).display_name).begins_with(J1_HEADS[r]):
-				head = i
+		var head := _find_head(J1_HEADS[r])
 		if head < 0:
 			push_error("shot_face_head: no head %s" % J1_HEADS[r])
 			continue
@@ -192,6 +198,38 @@ func _sheet_j1_heads() -> void:
 	_rig.rotation_degrees.y = 0.0
 	_rig.call("_push_face")
 	await _save_grid(cells, J1_VIEWS.size(), J1_HEADS.size(), "j1_heads.png", J1_CELL)
+
+
+## paper_j1 and paper_noble (black hair) side by side, at portrait and dialogue size.
+func _sheet_noble_heads() -> void:
+	var keep_hair: Color = _rig.get("_hair_color")
+	var cells := []
+	for r in NOBLE_HEADS.size():
+		var head := _find_head(NOBLE_HEADS[r])
+		if head < 0:
+			push_error("shot_face_head: no head %s" % NOBLE_HEADS[r])
+			continue
+		_wear(head)
+		for k in 2:
+			var preset := "paper_j1" if k == 0 else "paper_noble"
+			_rig.call("set_hair_color", keep_hair if k == 0 else NOBLE_HAIR)
+			_rig.set("face_style", load(STYLE_DIR + preset + ".tres") as FaceStyle)
+			await _pose("neutral", 4)
+			var label := "%s / %s" % [_short(head), preset]
+			cells.append([await _grab(J1_CELL), k, r, label])
+			cells.append([await _grab(DIALOGUE_CELL), k + 2, r, label + " (dialogue)"])
+	_rig.call("set_hair_color", keep_hair)
+	await _save_grid(cells, 4, NOBLE_HEADS.size(), "noble_head.png", J1_CELL)
+
+
+## The wardrobe index of the head whose display name starts with `prefix`, -1 if none.
+func _find_head(prefix: String) -> int:
+	var lib := Wardrobe.library()
+	var head := -1
+	for i in lib.head_count():
+		if String(lib.head(i).display_name).begins_with(prefix):
+			head = i
+	return head
 
 
 func _sheet_debug(heads: Array) -> void:
@@ -285,9 +323,11 @@ func _save_grid(cells: Array, cols: int, rows: int, file: String, cell := CELL) 
 	board.size = Vector2(size)
 	for c: Array in cells:
 		var pos := Vector2(int(c[1]) * cell, int(c[2]) * (cell + LABEL_H))
+		var img: Image = c[0]
 		var tr := TextureRect.new()
-		tr.texture = ImageTexture.create_from_image(c[0])
-		tr.position = pos
+		tr.texture = ImageTexture.create_from_image(img)
+		# a smaller image (the dialogue size) sits centred in its cell
+		tr.position = pos + (Vector2(cell, cell) - Vector2(img.get_size())) * 0.5
 		board.add_child(tr)
 		var lab := Label.new()
 		lab.text = c[3]

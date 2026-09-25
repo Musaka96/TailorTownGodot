@@ -14,14 +14,24 @@ extends SceneTree
 ##                      the reference and ours: eye, brow, nose, mouth
 ##   j1_states.png      paper_j1 in the states at 400 px, and at game size (25 px, 4x)
 ##   j1_paper_zoom.png  paper_j1's nose, eye and brow end at 5x: the cut edges, grain, shadow
-## With `j1` after `--`, only the three j1 sheets.
+##   noble.png          paper_j1 beside paper_noble (640 px each), then paper_noble in the
+##                      states at 400 px and at game size (25 px, 4x)
+## With `j1` after `--`, only the three j1 sheets; with `noble`, only noble.png.
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
 const CANVAS_SHADER := "res://assets/shaders/face_canvas.gdshader"
 # the pieces' sheet paper comes from the default PaperSurface, as on the head
 const SURFACE := "res://data/paper_surfaces/paper_mache.tres"
-const PRESETS := ["paper_j1", "paper_j2", "paper_j3", "paper_j4", "paper_heavy", "paper_small"]
+const PRESETS := [
+	"paper_j1",
+	"paper_j2",
+	"paper_j3",
+	"paper_j4",
+	"paper_heavy",
+	"paper_small",
+	"paper_noble",
+]
 const STATES := [
 	"neutral",
 	"blink_half",
@@ -50,6 +60,7 @@ const REFS := {
 	"paper_j4": ["J4", Vector2(888, 794), 212.0],
 	"paper_heavy": ["J1", Vector2(134, 792), 210.0],
 	"paper_small": ["J1", Vector2(134, 792), 210.0],
+	"paper_noble": ["J1", Vector2(134, 792), 210.0],
 }
 const PAPER_CELL := 420
 # J1 on the reference sheet, measured (px): disc centre and diameter
@@ -95,6 +106,10 @@ func _run() -> void:
 	var styles := {}
 	for p: String in PRESETS:
 		styles[p] = load(STYLE_DIR + p + ".tres") as FaceStyle
+	if OS.get_cmdline_user_args().has("noble"):
+		await _sheet_pair(styles["paper_j1"], styles["paper_noble"], "paper_noble", "noble.png")
+		quit(0)
+		return
 	var sheet := _ref_sheet()
 	if sheet != null:
 		await _sheet_j1_match(styles["paper_j1"], sheet)
@@ -107,6 +122,7 @@ func _run() -> void:
 	await _sheet_presets(styles)
 	await _sheet_scale(styles)
 	await _sheet_paper(styles["paper_j1"])
+	await _sheet_pair(styles["paper_j1"], styles["paper_noble"], "paper_noble", "noble.png")
 	quit(0)
 
 
@@ -156,18 +172,44 @@ func _sheet_j1_match(style: FaceStyle, sheet: Image) -> void:
 
 ## paper_j1 in the states at 400 px, and under each its 25 px game-size face at 4x.
 func _sheet_j1_states(style: FaceStyle) -> void:
-	var c400 := J1_STATE_CELL
 	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
-	var up := small * UPSCALE
-	var size := Vector2i(c400 * REF_STATES.size(), c400 + LABEL_H + up + 8)
+	var size := Vector2i(J1_STATE_CELL * REF_STATES.size(), _states_h(small))
 	var board := _board(size)
+	await _states_row(board, style, "paper_j1", 0.0, small)
+	await _save(board, size, "j1_states.png")
+
+
+## A second character against J1: both idles at 640 px, then its states row (as j1_states).
+func _sheet_pair(j1: FaceStyle, style: FaceStyle, key: String, file: String) -> void:
+	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
+	var top := J1_CELL + LABEL_H
+	var size := Vector2i(J1_STATE_CELL * REF_STATES.size(), top + _states_h(small))
+	var board := _board(size)
+	for c in 2:
+		var face := _face(j1 if c == 0 else style, {}, J1_CELL)
+		face.position = Vector2(c * J1_CELL, 0)
+		board.add_child(face)
+		var text := "%s / neutral" % ("paper_j1" if c == 0 else key)
+		board.add_child(_label(text, Vector2(c * J1_CELL, J1_CELL), J1_CELL))
+	await _states_row(board, style, key, top, small)
+	await _save(board, size, file)
+
+
+func _states_h(small: int) -> int:
+	return J1_STATE_CELL + LABEL_H + small * UPSCALE + 8
+
+
+## `style` in REF_STATES at 400 px from height `y`, each with its 25 px face (4x) under it.
+func _states_row(board: Control, style: FaceStyle, key: String, y: float, small: int) -> void:
+	var c400 := J1_STATE_CELL
+	var up := small * UPSCALE
 	for c in REF_STATES.size():
 		var dials := style.expression(REF_STATES[c])
 		var face := _face(style, dials, c400)
-		face.position = Vector2(c * c400, 0)
+		face.position = Vector2(c * c400, y)
 		board.add_child(face)
-		var text := "paper_j1 / %s" % REF_STATES[c]
-		board.add_child(_label(text, Vector2(c * c400, c400), c400))
+		var text := "%s / %s" % [key, REF_STATES[c]]
+		board.add_child(_label(text, Vector2(c * c400, y + c400), c400))
 		var tiny_board := _board(Vector2i(small, small))
 		var tiny := _face(style, dials, GAME_HEAD_PX * PAD)
 		tiny.position = Vector2.ONE
@@ -176,9 +218,8 @@ func _sheet_j1_states(style: FaceStyle) -> void:
 		img.resize(up, up, Image.INTERPOLATE_NEAREST)
 		var tr := TextureRect.new()
 		tr.texture = ImageTexture.create_from_image(img)
-		tr.position = Vector2(c * c400 + (c400 - up) / 2, c400 + LABEL_H + 4)
+		tr.position = Vector2(c * c400 + (c400 - up) / 2, y + c400 + LABEL_H + 4)
 		board.add_child(tr)
-	await _save(board, size, "j1_states.png")
 
 
 ## paper_j1 up close (5x): the hand-cut edges, the grain and the shadows.

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_kutr5"]
+
+[resource]
+script = ExtResource("1_kutr5")
+eye_spacing = 0.226
+white_radius = 0.146
+white_aspect = 1.127
+pupil_radius = 0.1085
+pupil_wedge = 0.86
+pupil_wedge_dir = 3.0
+pupil_wedge_mirror = false
+pupil_offset = Vector2(0.065, -0.004)
+lid = 0.45
+lid_curve = 0.0
+brow_spacing = 0.25
+brow_height = 0.19
+brow_length = 0.26
+brow_thickness = 0.075
+brow_angle = 10.0
+brow_arch = 0.3
+brow_corner = 0.2
+brow_taper = 0.3
+brow_asym = 5.0
+brow_color = Color(0.12156863, 0.08627451, 0.06666667, 1)
+nose_kind = 5
+nose_size = Vector2(0.075, 0.12)
+nose_height = 0.655
+mouth_height = 0.83
+mouth_width = 0.12
+mouth_thickness = 0.02
+mouth_curve = -0.08

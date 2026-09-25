@@ -135,6 +135,8 @@ portrait, the fitting screen and any close-up. That is intended.
 
 Measured on the J1 disc (2026-09-25; the old cream `#fff4e2` and rose `#d98c7e` were brighter and
 pinker than the reference). No other colours. Eye colour does not tint anything in this style; iris colour is retired.
+The one exception is the brow paper, which may follow a character's hair: `FaceStyle.brow_color`
+(written to `paper_brow`), black `#1f1611` on the noble (`paper_noble`, owner's ask 2026-09-26).
 
 ## 3. Pieces
 
@@ -146,6 +148,8 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
   length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35, height 0.06–0.30 fh from the top. The ends
   are cut square to the strip's chord with corners rounded by `brow_corner` × half the thickness
   (1 = round ends; J1 0.2, squarish), and `brow_taper` makes the inner end thicker (J1 0.2).
+  `brow_asym` turns the viewer's right brow alone a few more degrees about its outer end, so it
+  sits higher (the noble's haughty brow, 5°); keep `brow_angle + brow_asym` inside ±15°.
 - **Eye white**: a cream ellipse, 0.10–0.22 fw wide, aspect 0.8–1.4. May be absent ("dot eye").
 - **Pupil**: a dark disc, 0.05–0.13 fw. Optional **pie wedge** cut out of it (60°, showing the
   white or the skin below), which is the one G-row detail carried over. It opens at
@@ -157,7 +161,8 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
   shadow. `lid` 0 = open, 1 = closed. A closed eye shows the lid's lower edge as a gentle
   downward arc plus a dark paper crescent along it, 0.035 fh thick in the middle and tapering to
   0.4 of that at its round ends (0.012 read as a hairline). Blinks animate this piece.
-- **Nose**: one rose piece, kinds `disc`, `oval`, `teardrop` (point up), `strip` (tall rounded
+- **Nose**: one rose piece, kinds `disc`, `oval`, `teardrop` (point up), `triangle` (flat top,
+  pointing down, straight sides; the noble 0.15 wide × 0.24 tall at 0.655), `strip` (tall rounded
   trapezoid), `shield` (J1's cut pentagon: a wide flat top, shoulders a little uneven, pointing
   down; J1 0.215 wide × 0.146 tall at 0.673). Half-width 0.06–0.16 fw, half-height 0.06–0.22 fh,
   centre at 0.55–0.68 fh.
@@ -193,7 +198,7 @@ stroke thickness ranges and the expression shapes are shared and fixed.
 | State      | Brows                    | Eyes                              | Mouth                        |
 |------------|--------------------------|-----------------------------------|------------------------------|
 | blink      | –                        | lid 0 → 1 → 0 in 0.17 s           | –                            |
-| happy      | up 0.03 fh, arch +0.1    | pupils −15 %, lids 0.15 curved    | curve +0.6, open 0.5, teeth  |
+| happy      | up 0.03 fh, arch +0.1    | pupils −15 %, lids 0.15 curved    | curve +0.6, open 0.5, teeth (a mouth under 0.16 fw opens less, shut at 0.12: a thin smile) |
 | sad        | inner ends up, +12°      | lids 0.35 flat, pupils down 0.01  | curve −0.5                   |
 | displeased | inner ends down, −12°    | lids 0.30 flat                    | curve −0.2, width −10 %      |
 | surprised  | up 0.05 fh               | whites +15 %, pupils −25 %        | small open oval, no teeth    |
