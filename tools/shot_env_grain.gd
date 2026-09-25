@@ -2,80 +2,58 @@ extends SceneTree
 
 ## Before/after shots of photo grain on grandpa's shop and the street: a RUNTIME PREVIEW,
 ## nothing baked. NOT headless.
-##   python tools/cloth_refs/make_env_grain_preview.py        (the grained textures first)
-##   godot --path . --script res://tools/shot_env_grain.gd [-- stage=all|day1 settle=N]
+##   python tools/cloth_refs/make_env_grain_preview.py [short]   (the grained textures first)
+##   godot --path . --script res://tools/shot_env_grain.gd [-- preset=short stage=all|day1
+##         settle=N]
 ##
-## Loads main_grandpa.tscn, takes three views with the game's own materials (BEFORE), then
-## swaps every surface whose texture set has a grained copy in .dev/env_grain/ for a
-## duplicate using that albedo + normal (surface override) and takes them again (AFTER):
+## Loads main_grandpa.tscn, takes its views with the game's own materials (BEFORE), then
+## swaps every surface whose texture set has a grained copy in the preset's folder for a
+## duplicate using that albedo + normal (tools/env_grain_override.gd) and takes them
+## again (AFTER). Frames go to <shots>/<view>_{before,after}.png, the AFTER frames also
+## to .dev/<view>.png, and make_env_grain_preview.py compose builds the review sheet.
+##
+## preset=full (default): .dev/env_grain/, .dev/env_grain_shots/, .dev/env_grain_compare.png
 ##   env_shop_game   the gameplay camera, player just inside the door
 ##   env_shop_close  inside, low and level: back wall, wainscot, floor and the worktable
 ##   env_street      outside, low and level: the shop front, the pavement and the door
-## Frames go to .dev/env_grain_shots/<view>_{before,after}.png, the AFTER frames also to
-## .dev/<view>.png, and make_env_grain_preview.py compose builds .dev/env_grain_compare.png.
-##
-## The set of a surface comes from its albedo image's name (the glTF keeps
-## "plaster_albedo", the station glbs extract "<model>_st_grain_albedo"), else from the
-## material name through build_town_kit.py's PAL/TEX_SETS (NAME_SETS below). The cut walls
-## (WallCutaway) already draw through their own ShaderMaterials: those are patched in
-## place (albedo_tex / normal_tex), so the cut walls show the grain too.
+## preset=short: .dev/env_grain_short/, .dev/env_grain_shots_short/,
+##   .dev/env_grain_short_compare.png
+##   short_game_workroom    the follow camera, player at the worktable in the workroom
+##   short_close_stations   low, ~1.8 m off the worktable and the sewing machine
+##   short_close_wall       outside, low, 2 m off the render pier east of the door, 30 deg
+##   short_close_cobbles    only when the nearest cobbles are away from that wall
+##   short_street_customer  tools/shot_mirror.gd mode=street (seed 19, brown tweed), run
+##                          twice as a child process: without and with grain=short
 
+const EnvGrain := preload("res://tools/env_grain_override.gd")
 const SCENE := "res://scenes/world/grandpa/main_grandpa.tscn"
-const GRAIN_DIR := "res://.dev/env_grain/"
-const SHOT_DIR := "res://.dev/env_grain_shots/"
 const COMPOSER := "res://tools/cloth_refs/make_env_grain_preview.py"
-const CUTAWAY_SHADER := "res://materials/wall_cutaway.gdshader"
 const SIZE := Vector2i(1920, 1080)
 const STILL_FRAMES := 10
 const SETTLE_CAP := 400
 const STILL_EPS := 0.0001
-## Material name -> texture set, for surfaces whose albedo image name says nothing
-## (a copy of the PAL/TEX_SETS tables in IMPORT/town_kit/build_town_kit.py and
-## build_v8_grandpa.py, for the mapped sets only).
-const NAME_SETS := {
-	"brick": "brick",
-	"stone": "stone_dressed",
-	"stone_dark": "stone_dressed",
-	"cobble": "cobble",
-	"asphalt": "asphalt",
-	"wood_light": "grain_oak",
-	"wood": "grain_walnut",
-	"wood_red": "grain_mahogany",
-	"door_wood": "grain_mahogany",
-	"floor_wood": "floor_planks",
-	"floor_planks": "floor_planks",
-	"Floor": "floor_planks",
-	"floor_next_v8": "floor_planks",
-	"floor_parquet": "parquet",
-	"velvet": "velvet",
-	"curtain_green": "velvet",
-	"drape_green": "velvet",
-	"drape_red": "velvet",
-	"Drape": "velvet",
-	"upholstery": "plush",
-	"cork": "cork",
-	"cardboard": "cardboard",
-	"curtain": "fabric",
-	"linen": "fabric",
-	"rug_blue": "fabric",
-	"rug_cream": "fabric",
-	"rug_navy": "fabric",
-	"roof_shed_v8": "canvas",
-}
-## Material name prefixes -> texture set (the generated PAL families).
-const PREFIX_SETS := {
-	"wall_": "plaster",
-	"cloth_": "fabric",
-	"awning_": "canvas",
-}
+## short_close_wall: the render pier between the two sash windows east of the door (the
+## front is mostly glass; this is its widest plain render), this far along the front
+## from the door's centre, seen from this far off, turned this far toward the door.
+const WALL_ALONG := 4.85
+const WALL_DIST := 2.0
+const WALL_ANGLE_DEG := -30.0
+const WALL_EYE_Y := 0.9
+const WALL_LOOK_Y := 1.0
+## Cobbles further than this from the wall shot's spot get a frame of their own.
+const COBBLE_NEAR := 3.0
+## Only cobble surfaces covering at least this much ground (m2) count: a lane slab.
+const COBBLE_MIN_AREA := 3.0
+const STREET_CUSTOMER := [
+	"mode=street",
+	"seed=19",
+	"cloth=2,0,6b4a2e",
+	"size=1920x1080",
+]
 
 var _args := {}
 var _main: Node
-var _textures := {}  # set -> [albedo ImageTexture, normal ImageTexture or null]
-var _dupes := {}  # original material -> grained duplicate
-var _patched := {}  # cutaway ShaderMaterial -> true
-var _counts := {}  # set -> surfaces changed
-var _unmatched := {}  # "material (set)" -> surfaces left alone
+var _shots := "res://.dev/env_grain_shots/"
 
 
 func _initialize() -> void:
@@ -87,7 +65,14 @@ func _run() -> void:
 		var kv := a.split("=", true, 1)
 		if kv.size() == 2:
 			_args[kv[0]] = kv[1]
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SHOT_DIR))
+	var preset: String = _args.get("preset", "full")
+	if preset == "short":
+		_shots = "res://.dev/env_grain_shots_short/"
+	var shots_abs := ProjectSettings.globalize_path(_shots)
+	DirAccess.make_dir_recursive_absolute(shots_abs)
+	for old in DirAccess.get_files_at(shots_abs):  # no stale optional frames in the sheet
+		if old.ends_with(".png"):
+			DirAccess.remove_absolute(shots_abs.path_join(old))
 	DisplayServer.window_set_size(SIZE)
 	_main = load(SCENE).instantiate()
 	root.add_child(_main)
@@ -99,11 +84,14 @@ func _run() -> void:
 	get_root().size = SIZE
 	_stage(_args.get("stage", "all"))
 	_quiet()
-	await _shoot_all("before")
-	_apply_grain()
-	await _shoot_all("after")
-	_report()
-	_compose()
+	await _shoot_all(preset, "before")
+	var grain := EnvGrain.new(EnvGrain.dir_for(preset))
+	grain.apply(get_root())
+	await _shoot_all(preset, "after")
+	grain.report()
+	if preset == "short":
+		_street_customer()
+	_compose(preset)
 	quit(0)
 
 
@@ -137,40 +125,136 @@ func _quiet() -> void:
 # --- Views -------------------------------------------------------------------
 
 
-func _shoot_all(tag: String) -> void:
+func _shoot_all(preset: String, tag: String) -> void:
+	if preset == "short":
+		await _shoot_short(tag)
+	else:
+		await _shoot_full(tag)
 	var player := _main.find_child("Player", true, false) as Node3D
-	var rig: Node = get_first_node_in_group("camera_rig")
+	player.visible = true
+	(get_first_node_in_group("camera_rig") as Node).unfocus()
+
+
+func _shoot_full(tag: String) -> void:
+	var player := _main.find_child("Player", true, false) as Node3D
 	var door_in := _marker("DoorInside", Vector3(0.65, 0.0, 7.7))
 	var door_out := _marker("DoorOutside", Vector3(0.65, 0.0, 9.6))
-	var table := _main.find_child("Worktable", true, false) as Node3D
-	var at: Vector3 = table.global_position if table != null else Vector3(0.6, 0.0, 2.5)
-	# (a) the game camera, player just inside the door
-	player.visible = true
-	player.global_position = door_in + Vector3(0.0, 0.1, -0.4)
-	rig.unfocus()
-	await _settle()
-	_capture("env_shop_game", tag)
-	# (b) inside, low and level, facing the back wall and the worktable. The player waits
+	var at := _station_pos("Worktable", Vector3(0.6, 0.0, 2.5))
+	# the game camera, player just inside the door
+	await _game_view(door_in + Vector3(0.0, 0.1, -0.4), "env_shop_game", tag)
+	# inside, low and level, facing the back wall and the worktable. The player waits
 	# behind the camera (inside, so the front walls stay cut the way they are in play).
-	player.visible = false
 	var eye := Vector3(at.x - 0.3, 1.0, at.z + 2.3)
 	player.global_position = Vector3(eye.x, 0.1, door_in.z - 0.6)
-	rig.focus(eye, eye + Vector3(0.0, 0.0, -1.0))
-	await _settle()
-	_capture("env_shop_close", tag)
-	# (c) the street, low and level, facing the shop front and the door
+	await _view(eye, eye + Vector3(0.0, 0.0, -1.0), "env_shop_close", tag)
+	# the street, low and level, facing the shop front and the door
 	var street_eye := Vector3(door_out.x + 0.4, 1.3, door_out.z + 5.2)
 	player.global_position = street_eye + Vector3(0.0, -1.2, 1.0)
-	rig.focus(street_eye, street_eye + Vector3(0.0, 0.0, -1.0))
-	await _settle()
-	_capture("env_street", tag)
+	await _view(street_eye, street_eye + Vector3(0.0, 0.0, -1.0), "env_street", tag)
+
+
+func _shoot_short(tag: String) -> void:
+	var player := _main.find_child("Player", true, false) as Node3D
+	var table := _main.find_child("Worktable", true, false) as Node3D
+	var sewing := _station_pos("SewingMachine", table.global_position)
+	var front := _flat(table.global_transform.basis.z)
+	# (a) the follow camera, the player standing at the worktable, facing it
+	var stand := table.global_position + front * 1.0 + Vector3(0.0, 0.1, 0.0)
+	var model := player.get_node_or_null("Model") as Node3D
+	if model != null:
+		model.rotation.y = atan2(-front.x, -front.z)
+	await _game_view(stand, "short_game_workroom", tag)
+	# (b) low, ~1.8 m off the front of the worktable and the sewing machine; the player
+	# waits behind the camera, inside the workroom
+	var mid := (table.global_position + sewing) * 0.5
+	var eye := mid + front * 2.25 + Vector3(0.0, 1.3, 0.0)
+	player.global_position = eye + front * 0.8 + Vector3(0.0, -1.2, 0.0)
+	await _view(eye, mid + Vector3(0.0, 0.8, 0.0), "short_close_stations", tag)
+	# (c) outside, 2 m off the render beside the door at 30 degrees, low
+	var door := _marker("DoorOutside", Vector3(0.65, 0.0, 9.6))
+	var shop := _main.find_child("GrandpaShop", true, false) as Node3D
+	var face_z: float = shop.global_position.z if shop != null else 8.34
+	var spot := Vector3(door.x + WALL_ALONG, WALL_LOOK_Y, face_z + 0.15)
+	var ang := deg_to_rad(WALL_ANGLE_DEG)
+	var wall_eye := spot + Vector3(sin(ang), 0.0, cos(ang)) * WALL_DIST
+	wall_eye.y = WALL_EYE_Y
+	player.visible = false
+	player.global_position = wall_eye + Vector3(0.0, -0.65, 1.5)
+	await _view(wall_eye, spot, "short_close_wall", tag)
+	# (d) the nearest cobbles, when they are not at that wall
+	var cobble := _nearest_cobble(spot)
+	var far := Vector2(cobble.x - spot.x, cobble.z - spot.z).length()
+	if tag == "before":
+		print("nearest cobble surface point %s, %.2f m from the wall spot" % [cobble, far])
+	if cobble != Vector3.INF and far > COBBLE_NEAR:
+		var away := _flat(cobble - door)
+		var c_eye := cobble + away * 1.8 + Vector3(0.0, 1.0, 0.0)
+		player.global_position = c_eye + away * 1.0 + Vector3(0.0, -0.9, 0.0)
+		await _view(c_eye, cobble + Vector3(0.0, 0.1, 0.0), "short_close_cobbles", tag)
+
+
+## The follow camera with the player standing at `at`.
+func _game_view(at: Vector3, view: String, tag: String) -> void:
+	var player := _main.find_child("Player", true, false) as Node3D
 	player.visible = true
-	rig.unfocus()
+	player.global_position = at
+	(get_first_node_in_group("camera_rig") as Node).unfocus()
+	await _settle()
+	_capture(view, tag)
+	if tag == "before":
+		var cam := get_root().get_camera_3d()
+		print("%s: player %s, camera %s" % [view, at, cam.global_position])
+
+
+## The camera at `eye` looking at `look`, the player hidden.
+func _view(eye: Vector3, look: Vector3, view: String, tag: String) -> void:
+	var player := _main.find_child("Player", true, false) as Node3D
+	player.visible = false
+	(get_first_node_in_group("camera_rig") as Node).focus(eye, look)
+	await _settle()
+	_capture(view, tag)
+	if tag == "before":
+		print("%s: eye %s look %s" % [view, eye, look])
 
 
 func _marker(marker_name: String, fallback: Vector3) -> Vector3:
 	var node := _main.find_child(marker_name, true, false) as Node3D
 	return node.global_position if node != null else fallback
+
+
+func _station_pos(station: String, fallback: Vector3) -> Vector3:
+	var node := _main.find_child(station, true, false) as Node3D
+	return node.global_position if node != null else fallback
+
+
+func _flat(v: Vector3) -> Vector3:
+	var f := Vector3(v.x, 0.0, v.z)
+	return f.normalized() if f.length() > 0.001 else Vector3(0.0, 0.0, 1.0)
+
+
+## The centre of the cobble surface nearest `to` (Vector3.INF when there is none). The
+## town kit lays cobbles as the back lane's 2 m sidewalk slabs and as the 1.2 x 1 m slabs
+## of the garden paths between the houses; only the lane counts (COBBLE_MIN_AREA).
+func _nearest_cobble(to: Vector3) -> Vector3:
+	var best := Vector3.INF
+	var best_d := INF
+	for node in _main.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s)
+			if mat == null or mat.resource_name != "cobble":
+				continue
+			var verts: PackedVector3Array = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
+			var box := AABB(mi.global_transform * verts[0], Vector3.ZERO)
+			for v in verts:
+				box = box.expand(mi.global_transform * v)
+			var d := box.get_center().distance_squared_to(to)
+			if box.size.x * box.size.z >= COBBLE_MIN_AREA and d < best_d:
+				best_d = d
+				best = box.get_center()
+	return best
 
 
 ## At least settle=N frames, then until the camera has held still STILL_FRAMES in a row
@@ -203,146 +287,59 @@ func _capture(view: String, tag: String) -> void:
 	if image == null:
 		push_error("shot_env_grain: no frame for %s" % view)
 		return
-	var path := ProjectSettings.globalize_path("%s%s_%s.png" % [SHOT_DIR, view, tag])
+	var path := ProjectSettings.globalize_path("%s%s_%s.png" % [_shots, view, tag])
 	image.save_png(path)
 	print("Saved ", path, " ", image.get_size())
 	if tag == "after":
 		image.save_png(ProjectSettings.globalize_path("res://.dev/%s.png" % view))
 
 
-# --- The swap ----------------------------------------------------------------
+# --- Child runs and the sheet ------------------------------------------------
 
 
-func _apply_grain() -> void:
-	for node in get_root().find_children("*", "MeshInstance3D", true, false):
-		var mi := node as MeshInstance3D
-		if mi.mesh == null:
-			continue
-		for s in mi.mesh.get_surface_count():
-			_grain_surface(mi, s)
+## tools/shot_mirror.gd's street framing, as its own Godot run (it is a SceneTree script
+## of its own): once as the game draws it, once with grain=short.
+func _street_customer() -> void:
+	var base := _shots + "short_street_customer"
+	for tag: String in ["before", "after"]:
+		var args := PackedStringArray(
+			["--path", ProjectSettings.globalize_path("res://"), "--script"]
+		)
+		args.append("res://tools/shot_mirror.gd")
+		args.append("--")
+		args.append("scene=" + SCENE)
+		args.append_array(PackedStringArray(STREET_CUSTOMER))
+		args.append("out=%s_%s" % [base, tag])
+		if _args.get("stage", "all") == "all":
+			args.append("reno=all")  # the same shop as the other frames
+		if tag == "after":
+			args.append("grain=short")
+		var out: Array = []
+		var code := OS.execute(OS.get_executable_path(), args, out, true)
+		# its Saved/street lines and the per-set counts (not the long unmatched list)
+		var counting := false
+		for chunk: String in out:
+			for line in chunk.split("\n"):
+				if line.contains("matched nothing"):
+					counting = false
+				if counting or line.begins_with("Saved") or line.begins_with("street spot"):
+					print("  [shot_mirror] ", line.strip_edges())
+				if line.contains("surfaces grained"):
+					counting = true
+		if code != 0:
+			push_error("shot_env_grain: shot_mirror (%s) exited %d" % [tag, code])
+	var after := ProjectSettings.globalize_path(base + "_after.png")
+	if FileAccess.file_exists(after):
+		var image := Image.load_from_file(after)
+		image.save_png(ProjectSettings.globalize_path("res://.dev/short_street_customer.png"))
 
 
-func _grain_surface(mi: MeshInstance3D, s: int) -> void:
-	var mat := mi.get_active_material(s)
-	if mat is ShaderMaterial:
-		_grain_cutaway(mat as ShaderMaterial)
-		return
-	var base := mat as BaseMaterial3D
-	if base == null:
-		return
-	var tex := base.get_texture(BaseMaterial3D.TEXTURE_ALBEDO)
-	var set_name := _set_of_texture(tex)
-	if set_name.is_empty() or not _has_set(set_name):
-		var by_name := _set_of_name(base.resource_name)
-		if not by_name.is_empty() and (set_name.is_empty() or _has_set(by_name)):
-			set_name = by_name
-	if not _has_set(set_name):
-		var key := "%s (%s)" % [base.resource_name, set_name if set_name != "" else "no texture"]
-		_unmatched[key] = int(_unmatched.get(key, 0)) + 1
-		return
-	if not _dupes.has(base):
-		var dupe := base.duplicate() as BaseMaterial3D
-		var pair: Array = _textures[set_name]
-		dupe.set_texture(BaseMaterial3D.TEXTURE_ALBEDO, pair[0])
-		if pair[1] != null:
-			dupe.normal_enabled = true
-			dupe.set_texture(BaseMaterial3D.TEXTURE_NORMAL, pair[1])
-		_dupes[base] = dupe
-	mi.set_surface_override_material(s, _dupes[base])
-	_counts[set_name] = int(_counts.get(set_name, 0)) + 1
-
-
-## A cut wall's cutaway material: patched in place, once, since WallCutaway shares it.
-func _grain_cutaway(mat: ShaderMaterial) -> void:
-	if mat.shader == null or mat.shader.resource_path != CUTAWAY_SHADER:
-		return
-	var set_name := _set_of_texture(mat.get_shader_parameter("albedo_tex") as Texture2D)
-	if not _has_set(set_name):
-		var key := "cutaway (%s)" % set_name
-		_unmatched[key] = int(_unmatched.get(key, 0)) + 1
-		return
-	if not _patched.has(mat):
-		var pair: Array = _textures[set_name]
-		mat.set_shader_parameter("albedo_tex", pair[0])
-		if pair[1] != null:
-			mat.set_shader_parameter("normal_tex", pair[1])
-			mat.set_shader_parameter("normal_on", true)
-		_patched[mat] = true
-	var key2 := set_name + " (cut wall)"
-	_counts[key2] = int(_counts.get(key2, 0)) + 1
-
-
-## "plaster_albedo.png" -> plaster, "sewing_v1_st_grain_albedo.jpg" -> st_grain,
-## a shop look's "shop_looks/plaster_albedo.png" -> sl_plaster.
-func _set_of_texture(tex: Texture2D) -> String:
-	if tex == null:
-		return ""
-	var path := tex.resource_path
-	var stem := (path if path != "" else tex.resource_name).get_file().get_basename()
-	if not stem.ends_with("_albedo"):
-		return ""
-	stem = stem.trim_suffix("_albedo")
-	var st := stem.find("_st_")
-	if st >= 0:
-		stem = stem.substr(st + 1)
-	if path.contains("/shop_looks/"):
-		stem = "sl_" + stem
-	return stem
-
-
-func _set_of_name(mat_name: String) -> String:
-	if NAME_SETS.has(mat_name):
-		return NAME_SETS[mat_name]
-	for prefix: String in PREFIX_SETS:
-		if mat_name.begins_with(prefix):
-			return PREFIX_SETS[prefix]
-	return ""
-
-
-## Loads .dev/env_grain/<set>_{albedo,normal}.png once (straight from disk: .dev/ is not
-## imported), with mipmaps. False when the set has no grained copy.
-func _has_set(set_name: String) -> bool:
-	if set_name.is_empty():
-		return false
-	if _textures.has(set_name):
-		return _textures[set_name] != null
-	var albedo := _load_texture(GRAIN_DIR + set_name + "_albedo.png", false)
-	if albedo == null:
-		_textures[set_name] = null
-		return false
-	_textures[set_name] = [albedo, _load_texture(GRAIN_DIR + set_name + "_normal.png", true)]
-	return true
-
-
-func _load_texture(path: String, normal: bool) -> ImageTexture:
-	var file := ProjectSettings.globalize_path(path)
-	if not FileAccess.file_exists(file):
-		return null
-	var image := Image.load_from_file(file)
-	if image == null or image.is_empty():
-		return null
-	image.generate_mipmaps(normal)
-	return ImageTexture.create_from_image(image)
-
-
-func _report() -> void:
-	print("--- surfaces grained, per set ---")
-	var sets: Array = _counts.keys()
-	sets.sort()
-	for set_name: String in sets:
-		print("  %-26s %d" % [set_name, _counts[set_name]])
-	print("--- materials that matched nothing (surfaces) ---")
-	var names: Array = _unmatched.keys()
-	names.sort()
-	for key: String in names:
-		print("  %-40s %d" % [key, _unmatched[key]])
-
-
-func _compose() -> void:
+func _compose(preset: String) -> void:
 	var out: Array = []
-	var code := OS.execute(
-		"python", [ProjectSettings.globalize_path(COMPOSER), "compose"], out, true
-	)
+	var args := [ProjectSettings.globalize_path(COMPOSER), "compose"]
+	if preset == "short":
+		args.append("short")
+	var code := OS.execute("python", args, out, true)
 	for line: String in out:
 		print(line.strip_edges())
 	if code != 0:

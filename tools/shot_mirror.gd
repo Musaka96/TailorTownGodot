@@ -22,7 +22,11 @@ extends SceneTree
 ##                         DoorOutside waypoint, or spot=X,Z) facing the street, framed
 ##                         like the builder's portrait (centred), with the UI hidden
 ##   spot=X,Z  yaw=DEG     street mode: where the customer stands and faces (0 = +Z)
+##   reno=all              grandpa's shop fully renovated (as tools/shot_grandpa.gd "all")
+##   grain=short|full      street mode: photo grain on the town kit and stations, as a
+##                         runtime override (tools/env_grain_override.gd, preview only)
 
+const EnvGrain := preload("res://tools/env_grain_override.gd")
 const DEFAULT_SCENE := "res://main.tscn"
 const FACTORY_PATH := "res://data/scripts/material_factory.gd"
 const DEFAULT_SIZE := Vector2i(1280, 720)
@@ -65,11 +69,25 @@ func _run() -> void:
 	var ui: Node = get_root().get_node("UI")
 	if ui.newspaper != null:
 		ui.newspaper.close()  # the morning paper would cover the builder
+	if _args.get("reno", "") == "all":
+		_renovate_all()
 	if _args.get("mode", "") == "street":
 		await _street(main)
 	else:
 		await _mirror(main)
 	quit(0)
+
+
+## Grandpa's shop with every project finished and the room upgrades owned, as
+## tools/shot_grandpa.gd stages it (no boards over the street front).
+func _renovate_all() -> void:
+	var reno: Node = get_root().get_node("Renovation")
+	reno.reset()
+	reno.debug_finish_all()
+	var upgrades: Node = get_root().get_node("Upgrades")
+	for id: String in ["shop_coffee", "shop_iron", "apprentice"]:
+		upgrades.debug_set(id, true)
+	upgrades.changed.emit()
 
 
 func _mirror(main: Node) -> void:
@@ -126,6 +144,10 @@ func _street(main: Node) -> void:
 	var height := _body_height(cust)
 	var pose := _portrait_pose(cam, cust, height)
 	rig.focus(pose.origin, pose.origin - pose.basis.z)
+	if _args.has("grain"):
+		var grain := EnvGrain.new(EnvGrain.dir_for(_args["grain"]))
+		grain.apply(get_root())
+		grain.report()
 	await _settle()
 	var path: String = _args.get("out", "res://.dev/street") + ".png"
 	_capture(path)

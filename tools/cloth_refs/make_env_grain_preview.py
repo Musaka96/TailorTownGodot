@@ -6,8 +6,11 @@ the set's own, at the grain's real physical size. Nothing in the game is touched
 the results go to .dev/env_grain/<set>_{albedo,normal}.png, and
 tools/shot_env_grain.gd swaps them in at runtime for before/after shots.
 
-    python tools/cloth_refs/make_env_grain_preview.py            # grained textures
-    python tools/cloth_refs/make_env_grain_preview.py compose    # the review sheet
+    python tools/cloth_refs/make_env_grain_preview.py [short]           # grained textures
+    python tools/cloth_refs/make_env_grain_preview.py compose [short]   # the review sheet
+
+Presets (PRESETS at the bottom): "full" (default) is every mapped set into
+.dev/env_grain/; "short" is the recommended subset only, into .dev/env_grain_short/.
 
 Sizes. One grain tile covers:
   interior sheet  10 cm per cell width (grid_px / 5 columns), cut to a square of
@@ -212,17 +215,22 @@ def look_scales():
     return {k: Counter(v).most_common(1)[0][0] for k, v in found.items()}
 
 
-def make_all():
+def make_all(preset):
+    only = PRESETS[preset]["sets"]
     os.makedirs(OUT, exist_ok=True)
     infos = []
     print("kit sets (IMPORT/town_kit/textures):")
     for name, (metres, tile, s) in KIT.items():
+        if only is not None and name not in only:
+            continue
         base = os.path.join(KIT_TEX, name)
         infos.append(
             grain_one(name, base + "_albedo.png", base + "_normal.png", metres, tile, s)
         )
     print("station sets (assets/models/stations, sewing_v1 copies; all three are identical):")
     for name, (metres, tile, s) in STATIONS.items():
+        if only is not None and name not in only:
+            continue
         base = os.path.join(STATION_TEX, "sewing_v1_" + name)
         infos.append(
             grain_one(name, base + "_albedo.jpg", base + "_normal.jpg", metres, tile, s)
@@ -230,6 +238,8 @@ def make_all():
     print("shop looks (assets/textures/shop_looks):")
     scales = look_scales()
     for name, (tile, s) in LOOKS.items():
+        if only is not None and "sl_" + name not in only:
+            continue
         if name not in scales:
             print("  %-16s no shop look uses it, skipped" % ("sl_" + name))
             continue
@@ -249,50 +259,52 @@ def contact(infos):
     pair_w = CONTACT_CELL * 2 + 8
     label_h = 30
     rows = (len(infos) + cols - 1) // cols
-    sheet = Image.new(
-        "RGB", (cols * pair_w + (cols + 1) * 12, rows * (CONTACT_CELL + label_h + 12) + 12), (24, 26, 30)
-    )
+    size = (cols * pair_w + (cols + 1) * 12, rows * (CONTACT_CELL + label_h + 12) + 12)
+    sheet = Image.new("RGB", size, (24, 26, 30))
     d = ImageDraw.Draw(sheet)
     for i, info in enumerate(infos):
         x = 12 + (i % cols) * (pair_w + 12)
         y = 12 + (i // cols) * (CONTACT_CELL + label_h + 12)
         src = Image.open(os.path.join(ROOT, info["source"])).convert("RGB")
         new = Image.open(os.path.join(OUT, info["set"] + "_albedo.png")).convert("RGB")
-        sheet.paste(src.resize((CONTACT_CELL, CONTACT_CELL), Image.LANCZOS), (x, y))
-        sheet.paste(new.resize((CONTACT_CELL, CONTACT_CELL), Image.LANCZOS), (x + CONTACT_CELL + 8, y))
-        label = "%s  <- %s x%d  s%.1f" % (info["set"], info["grain"], info["repeats"], info["strength"])
+        cell = (CONTACT_CELL, CONTACT_CELL)
+        sheet.paste(src.resize(cell, Image.LANCZOS), (x, y))
+        sheet.paste(new.resize(cell, Image.LANCZOS), (x + CONTACT_CELL + 8, y))
+        label = "%s  <- %s x%d  s%.1f" % (
+            info["set"], info["grain"], info["repeats"], info["strength"]
+        )
         d.text((x, y + CONTACT_CELL + 8), label, fill=(230, 230, 230))
     sheet.save(os.path.join(OUT, "contact.png"))
     print("Saved", os.path.join(OUT, "contact.png"), sheet.size)
 
 
-def compose():
-    """The before/after review sheet from tools/shot_env_grain.gd's frames."""
+def compose(preset):
+    """The before/after review sheet from tools/shot_env_grain.gd's frames. Rows whose
+    frames are missing (an optional view) are left out."""
     sys.dont_write_bytecode = True  # no tools/__pycache__ from the import
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     import cloth_sheets as cs  # noqa: E402
 
-    shots = os.path.join(ROOT, ".dev", "env_grain_shots")
-    rows = [
-        ("env_shop_game", "Gameplay camera, front shop from the door"),
-        ("env_shop_close", "Inside, low and level: wall, wainscot, floor, worktable"),
-        ("env_street", "The street: shop front, pavement, door"),
-    ]
+    cfg = PRESETS[preset]
+    shots = os.path.join(ROOT, ".dev", cfg["shots"])
     half = 940
     band_h = 40
     width = half * 2 + 12
-    parts = [cs.title_strip(width, "PHOTO GRAIN ON THE SHOP AND STREET (runtime preview)", None)]
-    for key, caption in rows:
-        before = Image.open(os.path.join(shots, key + "_before.png")).convert("RGB")
-        after = Image.open(os.path.join(shots, key + "_after.png")).convert("RGB")
+    parts = [cs.title_strip(width, cfg["title"], None)]
+    for key, caption in cfg["rows"]:
+        paths = [os.path.join(shots, "%s_%s.png" % (key, tag)) for tag in ("before", "after")]
+        if not all(os.path.exists(p) for p in paths):
+            print("  no frames for %s, row left out" % key)
+            continue
+        before, after = (Image.open(p).convert("RGB") for p in paths)
         h = round(before.height * half / before.width)
         parts.append(cs.caption_strip(width, caption))
         line = Image.new("RGB", (width, band_h + h), cs.TITLE_BG)
         d = ImageDraw.Draw(line)
-        for i, (img, style, text) in enumerate(((before, "before", "BEFORE"), (after, "after", "AFTER"))):
+        pairs = ((before, "before", "BEFORE"), (after, "after", "AFTER"))
+        for i, (img, style, text) in enumerate(pairs):
             x = i * (half + 12)
-            colour = cs.BANDS[style][0]
-            d.rectangle((x, 0, x + half - 1, band_h - 1), fill=colour)
+            d.rectangle((x, 0, x + half - 1, band_h - 1), fill=cs.BANDS[style][0])
             d.text((x + cs.PAD, 4), text, font=cs.font(28, "Bold"), fill=cs.WHITE)
             line.paste(img.resize((half, h), Image.LANCZOS), (x, band_h))
         parts.append(line)
@@ -301,13 +313,64 @@ def compose():
     for p in parts:
         out.paste(p, (0, y))
         y += p.height
-    dest = os.path.join(ROOT, ".dev", "env_grain_compare.png")
+    dest = os.path.join(ROOT, ".dev", cfg["sheet"])
     out.save(dest)
     print("Saved", dest, out.size)
 
 
+PRESETS = {
+    "full": {
+        "sets": None,  # everything in KIT / STATIONS / LOOKS
+        "out": "env_grain",
+        "shots": "env_grain_shots",
+        "sheet": "env_grain_compare.png",
+        "title": "PHOTO GRAIN ON THE SHOP AND STREET (runtime preview)",
+        "rows": [
+            ("env_shop_game", "Gameplay camera, front shop from the door"),
+            ("env_shop_close", "Inside, low and level: wall, wainscot, floor, worktable"),
+            ("env_street", "The street: shop front, pavement, door"),
+        ],
+    },
+    # the recommended subset: same tiles and strengths as the full list, nothing else
+    "short": {
+        "sets": {
+            "grain_walnut",
+            "grain_mahogany",
+            "plaster",
+            "sl_plaster",
+            "cobble",
+            "cork",
+            "cardboard",
+            "st_grain",
+            "st_steel",
+            "st_enamel",
+            "fabric",
+        },
+        "out": "env_grain_short",
+        "shots": "env_grain_shots_short",
+        "sheet": "env_grain_short_compare.png",
+        "title": "PHOTO GRAIN, SHORT LIST (runtime preview)",
+        "rows": [
+            ("short_game_workroom", "Gameplay camera, the player at the worktable"),
+            ("short_close_stations", "Close: worktable, sewing machine, the bolts"),
+            ("short_close_wall", "Close: the render pier east of the door, the plinth, the paving"),
+            ("short_close_cobbles", "Close: the nearest cobbles"),
+            ("short_street_customer", "Street framing (shot_mirror mode=street), seed 19"),
+        ],
+    },
+}
+
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "compose":
-        compose()
+    argv = sys.argv[1:]
+    mode = "compose" if argv and argv[0] == "compose" else "make"
+    if mode == "compose":
+        argv = argv[1:]
+    chosen = argv[0] if argv else "full"
+    if chosen not in PRESETS:
+        sys.exit("unknown preset %r (full, short)" % chosen)
+    OUT = os.path.join(ROOT, ".dev", PRESETS[chosen]["out"])
+    if mode == "compose":
+        compose(chosen)
     else:
-        make_all()
+        make_all(chosen)
