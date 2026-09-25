@@ -13,7 +13,7 @@ extends Resource
 ## can move and size its element inside it: wide-set eyes, brows low over the eyes, a large
 ## nose, a mouth tucked up under the nose.
 ##
-## Drawing language (every preset follows it): thin, slightly tapered strokes, no outline
+## Drawing language (every preset follows it): thin even strokes with round ends, no outline
 ## ring and no white highlight in the eyes, a flat nose dot, matte flat colour.
 
 enum Element { EYE, BROW, NOSE, MOUTH }
@@ -84,7 +84,8 @@ static var _blank := {}
 @export var brow_arch := 0.2
 ## Radians; > 0 lifts the inner end.
 @export var brow_angle := 0.2
-@export_range(0.0, 1.0) var brow_taper := 0.35
+## Kept for old saves and presets; the shader caps it so the ends stay round (0 = even width).
+@export_range(0.0, 1.0) var brow_taper := 0.0
 @export var brow_raise := 0.0
 @export var brow_angle_offset := 0.0
 @export var brow_color := Color("3a2418")

@@ -42,6 +42,22 @@ float fs_sd_ellipse(vec2 p, vec2 r) {
 	return k0 * (k0 - 1.0) / k1;
 }
 
+// Ellipse distance by a few Newton steps (Inigo Quilez): unlike fs_sd_ellipse it stays
+// true off the curve for very flat ellipses, so an offset (rounding) of one is even.
+float fs_sd_ellipse_exact(vec2 p, vec2 ab) {
+	p = abs(p);
+	vec2 q = ab * (p - ab);
+	float w = q.x < q.y ? 1.570796327 : 0.0;
+	for (int i = 0; i < 5; i++) {
+		vec2 cs = vec2(cos(w), sin(w));
+		vec2 u = ab * cs;
+		vec2 v = ab * vec2(-cs.y, cs.x);
+		w = w + dot(p - u, v) / (dot(p - u, u) + dot(v, v));
+	}
+	float d = length(p - ab * vec2(cos(w), sin(w)));
+	return dot(p / ab, p / ab) > 1.0 ? d : -d;
+}
+
 // Distance to segment a-b; y = position along it (0 at a, 1 at b).
 vec2 fs_sd_segment(vec2 p, vec2 a, vec2 b) {
 	vec2 pa = p - a;
@@ -97,13 +113,35 @@ vec2 fs_sd_bezier(vec2 pos, vec2 A, vec2 B, vec2 C) {
 	return vec2(sqrt(res), tt);
 }
 
-// Stroke of a quadratic bezier whose width tapers toward both ends. `taper` 0 = even width,
-// 1 = pointed ends; `bias` > 0 makes the t = 1 end heavier.
+// Stroke of a quadratic bezier with round (semicircle) caps. `taper` 0 = even width; more
+// thins the ends a little, `bias` > 0 makes the t = 1 end heavier. House rule: no stroke
+// ever ends in a point, so the width anywhere stays at least FS_END_MIN of the middle and
+// the cap is the half disc of that end width (t clamps at the ends, so the width is constant
+// around the cap).
+const float FS_END_MIN = 0.72;
+
 float fs_sd_bezier_stroke(vec2 p, vec2 A, vec2 B, vec2 C, float w, float taper, float bias, float px) {
 	vec2 r = fs_sd_bezier(p, A, B, C);
 	float s = abs(2.0 * r.y - 1.0);
-	float ww = w * mix(1.0, 1.0 - taper, s * s) * mix(1.0 - bias, 1.0, r.y);
+	float k = mix(1.0, 1.0 - clamp(taper, 0.0, 1.0), s * s) * mix(1.0 - bias, 1.0, r.y);
+	float ww = w * max(k, FS_END_MIN);
 	return r.x - 0.5 * max(ww, 1.3 * px);
+}
+
+// Quadratic bezier through the parabola y = y0 + y1 x + y2 x^2 over [x0, x1] (exact).
+vec2 fs_sd_parabola(vec2 p, float y0, float y1, float y2, float x0, float x1) {
+	float ya = y0 + y1 * x0 + y2 * x0 * x0;
+	float yc = y0 + y1 * x1 + y2 * x1 * x1;
+	float slope = y1 + 2.0 * y2 * x0;
+	vec2 B = vec2(0.5 * (x0 + x1), ya + slope * 0.5 * (x1 - x0));
+	return fs_sd_bezier(p, vec2(x0, ya), B, vec2(x1, yc));
+}
+
+// max(a, b) with the convex corner rounded off at radius r (no sharp wedge where two
+// edges cut each other).
+float fs_intersect_round(float a, float b, float r) {
+	vec2 u = max(vec2(r + a, r + b), vec2(0.0));
+	return min(-r, max(a, b)) + length(u);
 }
 
 // Equilateral triangle, point up, "radius" r (Inigo Quilez).
@@ -126,11 +164,29 @@ vec4 fs_over(vec4 dst, vec4 src) {
 }
 
 // --- Eye ------------------------------------------------------------------------------
+// |u| (x / rx) where the curve y = y0 - k u^2 leaves the unit-x ellipse of height ry through
+// its top (1 when it stays inside to the side). Bisection; the review sheets and the rig
+// only need a few pixels of accuracy.
+float fs_crescent_end(float y0, float k, float ry) {
+	if (y0 - k < 0.0) {
+		return 1.0;
+	}
+	float lo = 0.0;
+	float hi = 1.0;
+	for (int i = 0; i < 10; i++) {
+		float m = 0.5 * (lo + hi);
+		bool inside = y0 - k * m * m <= ry * sqrt(max(1.0 - m * m, 0.0));
+		lo = inside ? m : lo;
+		hi = inside ? hi : m;
+	}
+	return lo;
+}
+
 // Upper lid: a parabola (sag `lid_arch` x ry) resting at `lid_height` x ry above the eye
-// centre that comes down with `openness`; at 0 only its lash line is left, a thick arc with
-// tapered ends. A low `lid_height` (0 = cut at the centre) is a heavy lid; the closed line
+// centre that comes down with `openness`; at 0 only its lash line is left, an even arc with
+// round ends. A low `lid_height` (0 = cut at the centre) is a heavy lid; the closed line
 // then sits lower too. `lid_band` > 0 draws a dark band of that thickness along the lid
-// edge, a little wider than the eye and tapered, that stays on as the closed-eye line.
+// edge, a little wider than the eye with round ends, that stays on as the closed-eye line.
 // `squint` pushes a lower lid up into an arc (happy crescent). `lid_angle` > 0 tips the lid
 // down at the inner corner (angry), < 0 at the outer (sad). `marks` (0..3) short wrinkle
 // strokes about `mark_len` long fan out under the outer corner. outline_w, lash and hl_r at
@@ -169,7 +225,25 @@ vec4 face_eye(
 	float lo_y = lo_h - lo_k * u * u;
 	float lo_dy = -2.0 * lo_k * u / rx;
 	float d_lo = (lo_y - e.y) / sqrt(1.0 + lo_dy * lo_dy);
-	float d_shape = max(d_ell, max(d_lid, d_lo));
+	// where the lids cut the ellipse the corners are rounded off, so no wedge ends in a point
+	float rc = max(max(ws, 0.15 * min(rx, ry)), px);
+	float d_shape = fs_intersect_round(fs_intersect_round(d_ell, d_lid, rc), d_lo, rc);
+	// fully squinted the eye becomes the happy crescent: a stroke along the middle of the two
+	// lids, as thick as the gap between them at the centre, stopping at the eye's edge with
+	// round caps (cut by the ellipse it would thin to a point)
+	float sq_on = smoothstep(0.55, 1.0, sq);
+	if (sq_on > 0.0) {
+		float top = min(h, ry);
+		float c_w = max(top - lo_h, 0.12 * ry);
+		float c_y = 0.5 * (top + lo_h);
+		float c_k = 0.5 * (lid_k + lo_k);
+		float c_u = fs_crescent_end(c_y, c_k, ry) - 0.36 * c_w / rx;
+		c_u = max(c_u, 0.2);
+		vec2 cr = fs_sd_parabola(e, c_y, 0.5 * lid_s / rx, -c_k / (rx * rx), -c_u * rx, c_u * rx);
+		float s = abs(2.0 * cr.y - 1.0);
+		float d_cres = cr.x - 0.5 * c_w * mix(1.0, FS_END_MIN, s * s);
+		d_shape = mix(d_shape, d_cres, sq_on);
+	}
 	// the outline is heavier toward the top; the squinted crescent fills in dark
 	float off = mix(ws, wt, smoothstep(-0.1, 0.75, e.y / ry));
 	float w_lo = ws + smoothstep(0.55, 1.0, sq) * ry;
@@ -209,33 +283,34 @@ vec4 face_eye(
 			vec2 mc = vec2(cos(ang), sin(ang)) * (radii + 1.1 * mark_len);
 			vec2 md = vec2(cos(ang - 0.61), sin(ang - 0.61)) * 0.5 * ml;
 			vec2 mn = vec2(-md.y, md.x) * 0.25;
-			d_mk = min(d_mk, fs_sd_bezier_stroke(e, mc - md, mc + mn, mc + md, mw, 0.2, 0.0, px));
+			d_mk = min(d_mk, fs_sd_bezier_stroke(e, mc - md, mc + mn, mc + md, mw, 0.0, 0.0, px));
 		}
 		// below about a pixel of real width they would only smudge the cheek: fade them out
 		float mk_on = smoothstep(0.5, 0.9, 0.3 * mark_len / max(px, 1e-5));
 		res = fs_over(vec4(mark_col, fs_fill(d_mk, px) * mk_on), res);
 	}
 	// the lid line: the lid band when set (always on), else the closing lash line across the
-	// full eye width; tapered at both ends
+	// full eye width; one even width along the lid curve with round caps at both ends
 	bool has_band = lid_band > 1e-4;
 	float thin_w = max(min(0.3 * min(rx, ry), 0.1), wmin);
 	float line_w = has_band ? max(lid_band, wmin) : max(wt * 1.25, thin_w);
 	float ext = has_band ? 1.14 : 1.04;
-	float tu = clamp(abs(u) / ext, 0.0, 1.0);
-	// the band keeps its width and rounds off at the very ends; the lash line tapers
-	float prof = has_band ? sqrt(max(1.0 - pow(tu, 6.0), 0.0)) : pow(max(1.0 - tu * tu, 0.0), 0.6);
 	// squinting hands the line over to the happy crescent (it thins away)
 	float keep = 1.0 - smoothstep(0.5, 1.0, sq);
-	float lw = line_w * prof * keep;
-	float d_lash = max(abs(d_lid - (has_band ? 0.35 * lw : 0.0)) - 0.5 * lw, abs(e.x) - ext * rx);
+	float lw = line_w * keep;
+	// the caps end where the old hard cut was: the curve stops half a width short of it
+	float x_end = max(ext * rx - 0.5 * lw, 0.05 * rx);
+	float y_off = has_band ? 0.35 * lw : 0.0;
+	vec2 lid_c = fs_sd_parabola(e, h + y_off, lid_s / rx, -lid_k / (rx * rx), -x_end, x_end);
+	float d_lash = lid_c.x - 0.5 * lw;
 	float lash_a = fs_fill(d_lash, px) * (has_band ? 1.0 : 1.0 - smoothstep(0.12, 0.3, openness));
 	lash_a *= clamp(keep * 4.0, 0.0, 1.0);
 	return fs_over(res, vec4(outline_col, lash_a));
 }
 
 // --- Brow -----------------------------------------------------------------------------
-// A tapered bezier: `arch` = sag / length, `angle` tips it (radians, + = inner end up),
-// `raise` lifts it. The inner (+x) end is a touch heavier.
+// An even bezier stroke with round ends: `arch` = sag / length, `angle` tips it (radians,
+// + = inner end up), `raise` lifts it. The inner (+x) end is a touch heavier.
 vec4 face_brow(
 	vec2 q, float px, vec2 center, float len, float thick, float arch, float angle,
 	float taper, float raise, float angle_offset, vec3 col
@@ -258,9 +333,9 @@ vec4 face_nose(vec2 q, float px, vec2 center, int kind, float size, float thick,
 	float w = max(thick, 1.3 * px);
 	float d;
 	if (kind == 1) {
-		d = fs_sd_bezier_stroke(p, vec2(-0.05, 0.55) * s, vec2(-0.2, -0.6) * s, vec2(0.4, -0.3) * s, w, 0.6, 0.0, px);
+		d = fs_sd_bezier_stroke(p, vec2(-0.05, 0.55) * s, vec2(-0.2, -0.6) * s, vec2(0.4, -0.3) * s, w, 0.25, 0.0, px);
 	} else if (kind == 2) {
-		d = fs_sd_bezier_stroke(p, vec2(-0.45, 0.08) * s, vec2(0.0, -0.42) * s, vec2(0.45, 0.08) * s, w, 0.7, 0.0, px);
+		d = fs_sd_bezier_stroke(p, vec2(-0.45, 0.08) * s, vec2(0.0, -0.42) * s, vec2(0.45, 0.08) * s, w, 0.25, 0.0, px);
 	} else if (kind == 3) {
 		d = fs_sd_triangle(p, 0.3 * s) - 0.08 * s;
 	} else if (kind == 4) {
@@ -306,20 +381,21 @@ vec4 face_mouth(
 	if (kind == 1) {
 		float lift = cs * 0.5;
 		float sagw = -(0.4 + 0.25 * clamp(curve, -1.0, 1.0)) * hw;
-		float d1 = fs_sd_bezier_stroke(p, vec2(-hw, lift), vec2(-0.5 * hw, sagw), vec2(0.0, 0.0), w, 0.5, 0.0, px);
-		float d2 = fs_sd_bezier_stroke(p, vec2(0.0, 0.0), vec2(0.5 * hw, sagw), vec2(hw, lift), w, 0.5, 0.0, px);
+		float d1 = fs_sd_bezier_stroke(p, vec2(-hw, lift), vec2(-0.5 * hw, sagw), vec2(0.0, 0.0), w, 0.0, 0.0, px);
+		float d2 = fs_sd_bezier_stroke(p, vec2(0.0, 0.0), vec2(0.5 * hw, sagw), vec2(hw, lift), w, 0.0, 0.0, px);
 		d_line = fs_union(d1, d2);
 	} else {
-		d_line = fs_sd_bezier_stroke(p, vec2(-hw, cs), vec2(0.0, -cs), vec2(hw, cs), w, 0.2, 0.0, px);
+		d_line = fs_sd_bezier_stroke(p, vec2(-hw, cs), vec2(0.0, -cs), vec2(hw, cs), w, 0.0, 0.0, px);
 		if (kind == 3) {
 			vec2 n = normalize(vec2(-2.0 * cs, hw));
 			float tl = 0.13 * hw;
 			vec2 cr = vec2(hw, cs);
 			vec2 cl = vec2(-hw, cs);
 			vec2 nl = vec2(-n.x, n.y);
+			float tick_r = max(0.4 * w, 0.65 * px);
 			float tick = fs_union(
-				fs_sd_capsule(p, cr - n * tl, cr + n * tl, 0.4 * w),
-				fs_sd_capsule(p, cl - nl * tl, cl + nl * tl, 0.4 * w)
+				fs_sd_capsule(p, cr - n * tl, cr + n * tl, tick_r),
+				fs_sd_capsule(p, cl - nl * tl, cl + nl * tl, tick_r)
 			);
 			d_line = fs_union(d_line, tick);
 		}
@@ -330,12 +406,18 @@ vec4 face_mouth(
 		float bu = fs_mouth_base(u, kind == 1 ? 0 : kind, cs, hw);
 		float arc = sqrt(max(1.0 - u * u, 0.0));
 		float tth = clamp(teeth, 0.0, 1.0);
-		float y_top = bu + op * dep * mix(0.6 * arc, 0.12 * (1.0 - u * u), tth);
-		float y_bot = bu - op * dep * arc;
-		float d_top = p.y - y_top;
-		float d_bot = y_bot - p.y;
-		float d_m = max(max(d_top, d_bot) * 0.85, abs(p.x) - hw);
-		float d_inner = max(max(d_top + w * 0.8, d_bot + w), abs(p.x) - hw + w);
+		// two half ellipses (top flatter with teeth) sheared onto the mouth's curve; shrunk
+		// by half a stroke and grown back, so the corners are round at least that much
+		float ry_t = op * dep * mix(0.6, 0.12, tth);
+		float ry_b = op * dep;
+		float y_top = bu + ry_t * arc;
+		float y_bot = bu - ry_b * arc;
+		vec2 pm = vec2(p.x, p.y - bu);
+		float rr = 0.5 * w;
+		// half a stroke wider than the line, so its round caps are the oval's own corners
+		vec2 rad = vec2(hw + rr, pm.y > 0.0 ? ry_t : ry_b);
+		float d_m = fs_sd_ellipse_exact(pm, max(rad - rr, vec2(0.02 * hw))) - rr;
+		float d_inner = d_m + w * mix(1.0, 0.8, smoothstep(-rr, rr, pm.y));
 		vec3 c = inner_col;
 		float tg = fs_fill(fs_sd_ellipse(p - vec2(0.0, y_bot + 0.05 * dep), vec2(0.55 * hw, 0.4 * op * dep)), px);
 		c = mix(c, tongue_col, tg * clamp(tongue, 0.0, 1.0));

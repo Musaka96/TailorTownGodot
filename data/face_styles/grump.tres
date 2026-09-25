@@ -15,7 +15,6 @@ brow_center = Vector2(-0.1, -0.4)
 brow_thickness = 0.16
 brow_arch = 0.04
 brow_angle = -0.3
-brow_taper = 0.6
 nose_size = 0.7
 mouth_width = 0.4
 mouth_curve = -0.35
