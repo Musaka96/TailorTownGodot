@@ -5,10 +5,10 @@ extends SceneTree
 ##   godot --path . --script res://tools/shot_face_head.gd [-- presets [preset ...]]
 ## Writes to IMPORT/faces_proc/ (git-ignored):
 ##   heads_uv.png         every tripo head (+ the Base head) x every preset, neutral
-##   heads_uv_states.png  one tripo head x the states, heavy_lid and laugh
+##   heads_uv_states.png  one tripo head x the states, paper_j1 and paper_heavy
 ##   heads_uv_debug.png   every head with its face rect as a checkerboard (red border),
 ##                        front and 45 degrees: the projection, and nothing on the back
-##   heads_uv_side.png    heavy_lid on one tripo head from 0 / 30 / 60 / 90 / 180 degrees,
+##   heads_uv_side.png    paper_j1 on one tripo head from 0 / 30 / 60 / 90 / 180 degrees,
 ##                        bare and with round glasses
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
@@ -19,19 +19,18 @@ const RIG_SCENE := "res://entities/character/character_rig.tscn"
 const RIG_SCRIPT := "res://entities/character/character_rig.gd"
 const SUIT := "res://data/materials/navy_worsted_pinstripe.tres"
 const STYLE_DIR := "res://data/face_styles/"
-const PRESETS := ["heavy_lid", "old_timer", "moustache", "big_eyes", "wink", "blush", "laugh"]
-const STATES := ["neutral", "blink_half", "closed", "happy", "sad", "talking"]
-const STATE_PRESETS := ["heavy_lid", "laugh"]
+const PRESETS := ["paper_j1", "paper_j2", "paper_j3", "paper_j4", "paper_heavy", "paper_small"]
+const STATES := ["neutral", "blink_half", "closed", "happy", "sad", "surprised", "talking"]
+const STATE_PRESETS := ["paper_j1", "paper_heavy"]
 const SIDE_ANGLES := [0.0, 30.0, 60.0, 90.0, 180.0]
 # preset -> states to shoot ("neutral" = the resting face, no suffix), `presets` mode
 const SHOTS := {
-	"heavy_lid": ["neutral"],
-	"old_timer": ["neutral"],
-	"moustache": ["neutral"],
-	"big_eyes": ["neutral", "talking"],
-	"wink": ["neutral", "happy"],
-	"blush": ["neutral"],
-	"laugh": ["neutral"],
+	"paper_j1": ["neutral", "happy"],
+	"paper_j2": ["neutral"],
+	"paper_j3": ["neutral"],
+	"paper_j4": ["neutral"],
+	"paper_heavy": ["neutral"],
+	"paper_small": ["neutral"],
 }
 const OUT_DIR := "res://IMPORT/faces_proc"
 const SKIN := Color(0.86, 0.72, 0.60)
@@ -154,7 +153,7 @@ func _sheet_states(head: int) -> void:
 
 func _sheet_debug(heads: Array) -> void:
 	var cells := []
-	_rig.set("face_style", load(STYLE_DIR + "heavy_lid.tres") as FaceStyle)
+	_rig.set("face_style", load(STYLE_DIR + "paper_j1.tres") as FaceStyle)
 	for c in heads.size():
 		_wear(heads[c])
 		var mat: ShaderMaterial = _rig.get("_skin_face")
@@ -170,7 +169,7 @@ func _sheet_debug(heads: Array) -> void:
 
 func _sheet_side(head: int) -> void:
 	_wear(head)
-	_rig.set("face_style", load(STYLE_DIR + "heavy_lid.tres") as FaceStyle)
+	_rig.set("face_style", load(STYLE_DIR + "paper_j1.tres") as FaceStyle)
 	var cells := []
 	for r in 2:
 		_rig.call("set_face_look", "brown", "round" if r == 1 else "")
@@ -201,13 +200,13 @@ func _preset_shots(only: Array) -> void:
 ## worth of time (60 fps; the tweens run on time, not frames).
 func _pose(state: String, frames: int) -> void:
 	_rig.call("_proc_expression", "")
-	_rig.call("_set_dial", _rig.call("_rest", "openness"), "openness", FaceStyle.Element.EYE)
+	_rig.call("_set_dial", _rig.call("_rest", "lid"), "lid", FaceStyle.Element.EYE)
 	_rig.call("set_talking", false)
 	await create_timer(0.3 if state != "neutral" else 0.02).timeout  # the reset tween settles
-	if state == "closed":
-		_rig.call("_set_dial", 0.0, "openness", FaceStyle.Element.EYE)
-	elif state == "blink_half":
-		_rig.call("_set_dial", 0.4, "openness", FaceStyle.Element.EYE)
+	if state == "closed" or state == "blink_half":
+		var style: FaceStyle = _rig.get("face_style")
+		var lid: float = style.expression(state)["lid"]
+		_rig.call("_set_dial", lid, "lid", FaceStyle.Element.EYE)
 	elif state == "talking":
 		_rig.call("set_talking", true)
 	elif state != "neutral":

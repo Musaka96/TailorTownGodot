@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_2x75s"]
+
+[resource]
+script = ExtResource("1_2x75s")
+eye_spacing = 0.221
+eye_height = 0.489
+white_radius = 0.0
+pupil_radius = 0.05
+pupil_aspect = 1.8
+brow_spacing = 0.23
+brow_height = 0.3
+brow_length = 0.26
+brow_thickness = 0.075
+brow_arch = 0.0
+nose_kind = 3
+nose_size = Vector2(0.08, 0.2)
+nose_height = 0.588
+mouth_height = 0.849
+mouth_width = 0.217

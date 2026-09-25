@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_ileej"]
+
+[resource]
+script = ExtResource("1_ileej")
+eye_spacing = 0.164
+eye_height = 0.48
+white_radius = 0.136
+white_aspect = 1.12
+pupil_radius = 0.094
+pupil_wedge = 0.35
+brow_spacing = 0.216
+brow_height = 0.217
+brow_length = 0.235
+brow_angle = 5.0
+brow_arch = 0.3
+nose_kind = 1
+nose_size = Vector2(0.068, 0.062)
+nose_height = 0.654
+mouth_height = 0.782
+mouth_width = 0.167
+mouth_curve = 0.25
+cheek_radius = 0.1
+cheek_pos = Vector2(0.304, 0.73)

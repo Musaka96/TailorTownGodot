@@ -25,6 +25,11 @@ Paper treatment numbers, in fractions of face height unless stated (tune once, t
 | Edge wobble    | 0.003 amplitude, ~6 waves per piece           |
 | Grain          | 4 % contrast fibre noise, fixed in face space |
 
+On the head, the reference disc maps to 2.1 face-rect widths centred 0.44 down the rect (at
+2.35 / 0.38 the brows hid under most fringes). Lids carry their rim and shadow along the lower
+edge only, else a closed eye shows a ghost ring; a shadow fades out below one pixel of offset so
+25 px faces get no dark outline.
+
 At the gameplay camera (head ≈ 25 px) only the shapes survive; the treatment shows in the customer
 portrait, the fitting screen and any close-up. That is intended.
 
@@ -43,9 +48,11 @@ No other colours. Eye colour does not tint anything in this style; iris colour i
 ## 3. Pieces
 
 Sizes are fractions of **face width** (fw) and **face height** (fh) of the baked face rect, so one
-preset lands the same on every head.
+preset lands the same on every head. Disc and ellipse sizes below are **radii**, not full widths
+(measured on J1–J4: read as widths they came out half size).
 
-- **Brow**: a thick rounded strip. Thickness 0.045–0.065 fh (these are thick brows, on purpose),
+- **Brow**: a thick rounded strip. Thickness 0.065–0.085 fh (these are thick brows, on purpose;
+  the J brows measure 0.076–0.10 and 0.065 already looked thin beside them),
   length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35, height 0.06–0.30 fh from the top.
   Round ends always.
 - **Eye white**: a cream ellipse, 0.10–0.22 fw wide, aspect 0.8–1.4. May be absent ("dot eye").

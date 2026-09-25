@@ -122,11 +122,12 @@ const GESTURE_STEP := 0.13
 # --- Procedural faces (off unless procedural_faces is set) -------------------------
 # The face is drawn IN THE HEAD'S SKIN MATERIAL (skin_face.gdshader) at a baked face UV
 # (FaceUvBaker: UV2 = the head's flat front mapped to 0..1), from a FaceStyle
-# (data/face_styles/) laid out in face units, so one preset lands on every head. Only the
-# glasses stay a sprite. Blinks, talking and expressions tween the style's dials (openness,
-# squint, mouth_open, mouth_curve, brow_raise ...) instead of swapping art.
+# (data/face_styles/, cut-paper pieces: docs/FACE_STYLE_GUIDE.md) laid out in face units, so
+# one preset lands on every head. Only the glasses stay a sprite. Blinks, talking and
+# expressions tween the style's dials (lid, mouth_open, mouth_curve, brow_height ...)
+# instead of swapping art.
 const SKIN_FACE_SHADER := "res://assets/shaders/skin_face.gdshader"
-const DEFAULT_FACE_STYLE := "res://data/face_styles/heavy_lid.tres"
+const DEFAULT_FACE_STYLE := "res://data/face_styles/paper_j1.tres"
 const PROC_BLINK_CLOSE := 0.05
 const PROC_BLINK_HOLD := 0.05
 const PROC_BLINK_OPEN := 0.07
@@ -138,8 +139,8 @@ const PROC_TALK_SPEED := 14.0  # mouth_open units per second while flapping
 static var procedural_faces := false
 static var _skin_face_shader: Shader
 
-## Procedural faces only: the FaceStyle the face draws (null until set = heavy_lid.tres).
-## Setting it clears any expression but keeps set_face_look()'s iris colour. A
+## Procedural faces only: the FaceStyle the face draws (null until set = paper_j1.tres).
+## Setting it clears any expression. A
 ## property rather than set_face_style(): this class is at gdlint's public-method limit.
 var face_style: FaceStyle:
 	get:
@@ -199,7 +200,7 @@ var _proc := false  # this rig's face is procedural (procedural_faces when it wa
 var _skin_face: ShaderMaterial  # the head's skin + face material (procedural faces)
 var _face_frame: FaceFrame  # the current head's face rect (null = no face UV, no face)
 var _face_style: FaceStyle
-var _look_set := false  # set_face_look() was called (its iris/nose override the style)
+var _look_set := false  # set_face_look() was called
 var _dials := {}  # current values of the animated FaceStyle fields
 var _expr_target := {}  # the expression's dials the face is heading to / holding
 var _blink_tween: Tween
@@ -404,7 +405,7 @@ func set_talking(on: bool) -> void:
 func syllable() -> void:
 	_syllable_left = SYLLABLE_TIME
 	if _proc:
-		_mouth_open_target = randf_range(0.5, 0.9)
+		_mouth_open_target = randf_range(0.45, 0.8)
 		return
 	_show_mouth(_open_frame())
 
@@ -724,14 +725,11 @@ func _push_face(_element := -1) -> void:
 	_face_style.apply_to_material(_skin_face, _dials, _face_frame)
 
 
-## set_face_look() in procedural terms: the named eye colour tints the iris when the style
-## shows one (an iris wider than the pupil; bead eyes stay as drawn). The style owns the
-## nose and the mouth, so their indices are ignored.
+## set_face_look() in procedural terms: nothing to change. Cut-paper eyes have no iris
+## colour (the guide's closed palette), and the style owns the nose and the mouth, so
+## their indices are ignored.
 func _proc_look() -> void:
-	var style := _face_style_or_default()
-	_dials.erase("iris_color")
-	if style.iris_radius > style.pupil_radius + 0.01:
-		_dials["iris_color"] = FaceStyle.IRIS_COLORS.get(_eye_color, style.iris_color)
+	_face_style_or_default()
 	_push_face()
 
 
@@ -754,12 +752,12 @@ func _set_dial(value: Variant, key: String, element: int) -> void:
 func _proc_blink() -> void:
 	if _blink_tween != null and _blink_tween.is_valid():
 		_blink_tween.kill()
-	var rest: float = _rest("openness")
-	var set_open := _set_dial.bind("openness", FaceStyle.Element.EYE)
+	var rest: float = _rest("lid")
+	var set_lid := _set_dial.bind("lid", FaceStyle.Element.EYE)
 	_blink_tween = create_tween()
-	_blink_tween.tween_method(set_open, rest, 0.0, PROC_BLINK_CLOSE)
+	_blink_tween.tween_method(set_lid, rest, 1.0, PROC_BLINK_CLOSE)
 	_blink_tween.tween_interval(PROC_BLINK_HOLD)
-	_blink_tween.tween_method(set_open, 0.0, rest, PROC_BLINK_OPEN)
+	_blink_tween.tween_method(set_lid, 1.0, rest, PROC_BLINK_OPEN)
 
 
 ## Tween the face to a named FaceStyle.expression() ("" = back to the resting style).
@@ -799,12 +797,12 @@ func _update_mouth_proc(delta: float) -> void:
 		if _talk_timer <= 0.0:
 			_talk_open = not _talk_open
 			_talk_timer = randf_range(0.07, 0.12)
-			_mouth_open_target = randf_range(0.45, 0.9) if _talk_open else 0.05
+			_mouth_open_target = randf_range(0.45, 0.8) if _talk_open else 0.05
 	var rest: float = _rest("mouth_open")
 	var goal := maxf(_mouth_open_target, rest)
 	if rest > 0.01 and _mouth_open_target > 0.0:
-		# a mouth open at rest (a laugh) pulses around its rest size while talking
-		goal = clampf(rest + (_mouth_open_target - 0.45) * 0.8, 0.35 * rest, 1.0)
+		# a mouth held open (a happy face) pulses around its rest size while talking
+		goal = clampf(rest + (_mouth_open_target - 0.45) * 0.8, 0.05, 0.8)
 	var cur: float = _dials.get("mouth_open", rest)
 	if not is_equal_approx(cur, goal):
 		_dials["mouth_open"] = move_toward(cur, goal, PROC_TALK_SPEED * delta)
