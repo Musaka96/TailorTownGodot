@@ -55,6 +55,19 @@ renders only. The game keeps the KayKit idle.
 | `assets/characters/suit_doublebreasted.glb` | double-breasted | wardrobe top 1, same body; fold seams 45 deg |
 | (none yet) | tuxedo | wardrobe top 2 is a placeholder on the single-breasted model, `WardrobePart.placeholder`; the suit builder skips it via `Wardrobe.style_ready` |
 
+Street clothes (commit 23ee6cf): `IMPORT/CHARREWORK/streetclothes.blend` (a 3-figure
+sheet) -> `--figure n --street --auto-seams --fold-seams 45` ->
+`assets/characters/street_overshirt.glb` (figure 2) and `street_overcoat.glb` (figure 3),
+meshes jacket (outer layer) / shirt (inner layer, carved out of the outer shell) / legs /
+shoes / arms, no head. Figure 1 (sweater, has a stray cape) is skipped. In the game a
+`StreetOutfit` (data/scripts/street_outfit.gd) = top + trousers + shoe model + three
+`MaterialType` cloths + a shoe leather; `WardrobeLibrary.street_outfits` holds the two;
+customers pick one on arrival (persisted in their Clientele look as `street`), the rig's
+`shoes` slot swaps models and restores the base pair in the wearer's own leather at the
+suit. Cloth chosen: olive cotton / white cotton / cream cotton + white sneakers; camel
+flannel / near-black worsted / charcoal flannel + chestnut shoes (the camel flannel reads
+grainy at gameplay size; a smoother wool may sit better).
+
 Heads: `tools/blender/tripo_heads.py` turns `IMPORT/CHARREWORK/heads.blend` (a shaved
 skull with ears + a grid of hair-over-skull heads) into `assets/characters/parts/
 tripo_head_*_m.glb` (own skull) and `tripo_bald_*_m.glb` (hair moved onto the shaved
@@ -78,6 +91,6 @@ tints it); street clothes hide only the square (the tie covers the hole under th
    (they clamp to Flat Front); shirt collar seams from the owner (the shirt front still
    smears); lapel grain; the knee fold in the walk (accept, double-sided cloth, or a hand
    touch); hair budget (3-4k tris each at full res).
-4. **Street clothes** through the same slots; until then street = recoloured suit with a
-   knit tie.
+4. **More street clothes** through the same route (figure 1 once the cape is removed;
+   women's outfits); a smoother wool for the overcoat if the flannel grain bothers the eye.
 5. Carry pose feel check on the new body (skeleton unchanged, so probably not new).
