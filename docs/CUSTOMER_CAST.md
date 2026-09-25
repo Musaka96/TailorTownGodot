@@ -70,7 +70,7 @@ on hats") and the odd flash of wanting to be understood.
 - "{value}? Darling, {value} died in the spring. I went to the funeral."
 - "No pattern. I'd have to be interesting all by myself, and it's late in the week for that."
 - **Look:** the most dramatic new hairstyles (a quiff, a sharp bob, slicked and shining).
-  Arched brows, a knowing half-smile. Coloured glasses frames.
+  Arched, asymmetric brows, small sharp nose, wide mouth. Coloured glasses frames.
 *Portobello, Ito, Laurent, Zanetti.*
 
 ### The weary (the one who has given up)
@@ -79,7 +79,7 @@ Monotone and short. They don't care, and then they do, a little, and it comes ou
 They are the sad heart of the cast and the one whose yes should land hardest.
 - "Plain. Even I noticed, and I don't notice things any more."
 - "Yes. It looks like someone who gets up in the morning."
-- **Look:** `paper_noble`-style bored lids, dots of eyes low in the lid, a flat strip mouth,
+- **Look:** `paper_noble`-style bored lids, small pupils, a short mouth,
   brows raised but not arched. Messy dark hair, grown out. Never glasses. A slight slump
   in the idle, if the rig ever allows one.
 *Halloran, Lindqvist, Novak, Farrow, Dimmock.*
@@ -100,9 +100,12 @@ who sells violets at the station, the one at the library. Funny first, then sad:
 flowers they bought and didn't give, the jar on the mantelpiece "for when it works out".
 - "The trousers don't match. They'd notice. They notice everything except me."
 - "Yes. Now I've got no excuse. Oh no."
-- **Look:** soft, slightly overdone hair (a curl that won't stay). Big eyes, blush always
-  on. Brows tipped up in the middle.
+- **Look:** soft, slightly overdone hair (a curl that won't stay). Big eyes, cheeks always
+  on. Brows angled up at the inner ends.
 *Rossi, Miss Hartley, Penrose.*
+
+Face briefs in the cut-paper rulebook's terms (FACE_STYLE_GUIDE §5): only features vary, every
+face keeps the shared open-eyed idle except the weary's heavy lid.
 
 ## Writing a new line
 1. Say it in the sort's mouth, then read it at a funeral and at a party. If it only works
