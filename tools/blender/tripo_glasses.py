@@ -70,7 +70,7 @@ def _arguments(argv):
     p.add_argument("--rig", default="assets/characters/CHARTGEN1.glb")
     p.add_argument("--out-dir", default="assets/characters/parts")
     p.add_argument("--report-dir", default="IMPORT/CHARREWORK/report/glasses")
-    p.add_argument("--front-scale", default="1,1",
+    p.add_argument("--front-scale", default="0.75,0.70",
                    help="W,H: scale the front (rims + bridge) by W in x and H in z about the bridge")
     p.add_argument("--style-scale", action="append", default=[],
                    help="name=W,H: a per-style --front-scale (repeatable)")

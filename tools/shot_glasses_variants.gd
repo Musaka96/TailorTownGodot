@@ -4,6 +4,8 @@ extends SceneTree
 ## set-up and framing as shot_face_head.gd's cast_heads.png) wearing the glasses parts from
 ## variant folders exported by tools/blender/tripo_glasses.py --front-scale. NOT headless:
 ##   godot --path . --script res://tools/shot_glasses_variants.gd [-- --glasses-dir=<dir>]
+## --label=<name> names a single folder's row and suffixes the files (sheet_<name>.png), e.g.
+##   -- --glasses-dir=assets/characters/parts --label=v75   (the shipped parts)
 ## --glasses-dir (default res://.dev/glasses_variants) is either one variant folder (it holds
 ## glasses_<style>.glb) or a folder of variant folders (VARIANTS order first, then any other
 ## sub-folder by name). The glbs load at runtime (GLTFDocument, no import needed) and stand
@@ -99,12 +101,17 @@ func _run() -> void:
 	_rig.set_outfit(suit, null, suit, 0, 0)
 	(_rig.get("_blink") as Timer).stop()  # no random blink mid-capture
 	var dir := DEFAULT_DIR
+	var run_label := ""
 	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--label="):
+			run_label = a.trim_prefix("--label=")
 		if a.begins_with("--glasses-dir="):
 			dir = a.trim_prefix("--glasses-dir=")
 			if not dir.begins_with("res://") and not dir.is_absolute_path():
 				dir = "res://" + dir
 	var variants := _variant_dirs(dir)
+	if run_label != "" and variants.size() == 1:
+		variants[0][0] = run_label
 	if variants.is_empty():
 		push_error("shot_glasses_variants: no glasses_*.glb under %s" % dir)
 		quit(1)
@@ -156,12 +163,12 @@ func _run() -> void:
 	await _save(
 		sheet,
 		Vector2i(ROW_LABEL_W + CAST.size() * w_char, rows * (PORTRAIT + LABEL_H)),
-		"sheet.png"
+		"sheet%s.png" % ("" if run_label == "" else "_" + run_label)
 	)
 	await _save(
 		side,
 		Vector2i(ROW_LABEL_W + SIDE_ANGLES.size() * SIDE_CELL, rows * (SIDE_CELL + LABEL_H)),
-		"side.png"
+		"side%s.png" % ("" if run_label == "" else "_" + run_label)
 	)
 	for kind: String in _stock:  # hand the library its own parts back
 		_swap_part(kind, _stock[kind])
