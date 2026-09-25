@@ -8,6 +8,14 @@ extends Resource
 ## them all. Presets live in data/paper_surfaces/ (CharacterRig.paper_surface picks one).
 ## Sizes are in FACE UNITS (face_sdf.gdshaderinc), so one preset lands the same on every mesh.
 
+const PIECE_KEYS := [
+	"piece_tex",
+	"piece_normal_tex",
+	"piece_tex_tile",
+	"piece_tex_albedo",
+	"piece_tex_normal",
+]
+
 ## The scan's colour: only its light and dark are used (the palette stays closed).
 @export var scan_albedo_tex: Texture2D
 ## The scan's OpenGL normal map.
@@ -32,6 +40,19 @@ extends Resource
 ## is one flat sheet with only its own grain).
 @export_range(0.0, 1.0) var piece_scan := 0.0
 
+@export_group("Face pieces")
+## The face pieces' own sheet paper (face_sdf.gdshaderinc, in face space; the skin and hair
+## keep the scan above): its colour, only its light and dark over its own mean are used.
+@export var piece_tex: Texture2D
+## Its OpenGL normal map.
+@export var piece_normal_tex: Texture2D
+## Its tiles per face unit.
+@export var piece_tex_tile := 2.0
+## How much of its light and dark shows on a piece (0 = none, 1 = as generated).
+@export_range(0.0, 2.0) var piece_tex_albedo := 1.0
+## Its normal's slope on a piece, x (0 = flat).
+@export_range(0.0, 4.0) var piece_tex_normal := 1.5
+
 
 ## Write every field into a paper material (skin_face.gdshader or paper_skin.gdshader).
 func apply_to(mat: ShaderMaterial) -> void:
@@ -50,4 +71,13 @@ func apply_to(mat: ShaderMaterial) -> void:
 		"piece_relief",
 		"piece_scan",
 	]:
+		mat.set_shader_parameter(key, get(key))
+	apply_pieces_to(mat)
+
+
+## Write only the face pieces' sheet paper (also face_canvas.gdshader, the 2D sheets).
+func apply_pieces_to(mat: ShaderMaterial) -> void:
+	if mat == null:
+		return
+	for key: String in PIECE_KEYS:
 		mat.set_shader_parameter(key, get(key))

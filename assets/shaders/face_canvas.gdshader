@@ -4,12 +4,16 @@ shader_type canvas_item;
 // rect draws a whole cut-paper face, the head disc itself a paper piece lying on the page
 // with its shadow, the FaceStyle pieces on it (face_paper.gdshaderinc, the same code the
 // head runs). The disc is the reference head: 1 face unit across, `pad` face units fill the
-// rect. `zoom` / `zoom_center` look closer at one spot (the paper treatment sheet).
+// rect. `zoom` / `zoom_center` look closer at one spot (the paper treatment sheet). The disc
+// is the skin's paper (`skin_grain`, no sheet paper); the pieces' sheet paper normal is shown
+// under a fixed light from the top left (PIECE_TEX_SHADE: brightness per unit of slope along it).
 
+#define PIECE_TEX_SHADE 0.2
 #include "res://assets/shaders/face_paper.gdshaderinc"
 
 uniform vec4 page_color : source_color = vec4(0.969, 0.945, 0.902, 1.0);
 uniform vec4 skin_color : source_color = vec4(0.949, 0.788, 0.651, 1.0);
+uniform float skin_grain = 0.1;
 uniform float pad = 1.1;
 uniform float zoom = 1.0;
 uniform vec2 zoom_center = vec2(0.0);
@@ -20,10 +24,11 @@ void fragment() {
 	vec2 sh = p - paper_shadow_offset;
 	float d = length(p) - 0.5 + paper_cut(p, 3.1416, 1.0, 0.0);
 	float ds = length(sh) - 0.5 + paper_cut(sh, 3.1416, 1.0, 0.0);
-	vec3 col = paper_piece(page_color.rgb, d, ds, skin_color.rgb, p, 0.0, px);
+	vec3 skin = skin_color.rgb;
+	vec3 col = paper_piece_ex(page_color.rgb, d, d, ds, skin, skin_grain, p, 0.0, px, 0.0);
 	if (d < 0.02) {
 		float lift = 0.0;  // flat sheet: the pieces' step is not lit here
-		col = face_paper(col, skin_color.rgb, paper_grain, p, px, 1.0, lift);
+		col = face_paper(col, skin, p, px, 1.0, lift);
 	}
 	COLOR = vec4(col, 1.0);
 }

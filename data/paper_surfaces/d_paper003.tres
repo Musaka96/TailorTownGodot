@@ -1,12 +1,16 @@
 [gd_resource type="Resource" script_class="PaperSurface" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_albedo.jpg" id="1_fhjjf"]
-[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_normal.jpg" id="2_y7d2w"]
-[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="3_ymiwi"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_normal.jpg" id="1_ymiwi"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_albedo.jpg" id="2_yl8kj"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_albedo.jpg" id="3_7udpa"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_normal.jpg" id="4_v7hgm"]
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="5_v8q4p"]
 
 [resource]
-script = ExtResource("3_ymiwi")
-scan_albedo_tex = ExtResource("1_fhjjf")
-scan_normal_tex = ExtResource("2_y7d2w")
+script = ExtResource("5_v8q4p")
+scan_albedo_tex = ExtResource("3_7udpa")
+scan_normal_tex = ExtResource("4_v7hgm")
 scan_albedo = 1.0
 normal_strength = 1.0
+piece_tex = ExtResource("2_yl8kj")
+piece_normal_tex = ExtResource("1_ymiwi")

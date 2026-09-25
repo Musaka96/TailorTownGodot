@@ -1,11 +1,14 @@
 [gd_resource type="Resource" script_class="PaperSurface" format=3]
 
-[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="1_bvqdw"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_normal.jpg" id="1_dijqq"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_albedo.jpg" id="2_nt43r"]
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="3_ykwvg"]
 
 [resource]
-script = ExtResource("1_bvqdw")
+script = ExtResource("3_ykwvg")
 mache_scale = 1.2
 mache_strength = 1.0
 mache_seam = 0.3
 mache_tone = 0.04
-piece_relief = 1.0
+piece_tex = ExtResource("2_nt43r")
+piece_normal_tex = ExtResource("1_dijqq")

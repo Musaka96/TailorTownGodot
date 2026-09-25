@@ -1,6 +1,10 @@
 [gd_resource type="Resource" script_class="PaperSurface" format=3]
 
-[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="1_vtbfu"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_normal.jpg" id="1_avcxq"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_albedo.jpg" id="2_txhgb"]
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="3_v0613"]
 
 [resource]
-script = ExtResource("1_vtbfu")
+script = ExtResource("3_v0613")
+piece_tex = ExtResource("2_txhgb")
+piece_normal_tex = ExtResource("1_avcxq")

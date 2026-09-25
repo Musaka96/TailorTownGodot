@@ -2,7 +2,7 @@ extends SceneTree
 
 ## The papier-mache surface experiment on the real rig (CharacterRig.procedural_faces on;
 ## guide docs/FACE_STYLE_GUIDE.md, "Papier-mache surface"). NOT headless:
-##   godot --path . --script res://tools/shot_mache.gd [-- drop | variants | zoom | flat]
+##   godot --path . --script res://tools/shot_mache.gd [-- drop | variants | zoom | flat | pieces]
 ##   ... -- variants only=a_grain,e_mache12   (columns / zoom rows from those presets instead)
 ##   ... -- variants zoom zoom_only=h_gpt_t3 out=mache_gpt   (zoom rows from their own list;
 ##   the sheets are then <out>.png and <out>_zoom.png)
@@ -19,6 +19,11 @@ extends SceneTree
 ##   pieces_flat.png     the default surface with the scan under the face pieces (before) and
 ##                       without it (after: each piece one flat sheet), then 3x on an eye, the
 ##                       nose and the mouth (after); only with `-- flat`
+##   pieces_tex.png      the face pieces' sheet paper (PaperSurface.piece_tex): the old
+##                       procedural grain, the texture at the default preset's numbers,
+##                       strong (albedo 1.5, normal 2.5), and tile 6; then 3x on an eye,
+##                       the nose, the mouth and a brow for the default and the strong
+##                       column; only with `-- pieces`
 ## The hair strand overlay is off throughout (it hides the surface; the owner's strands pick
 ## is still pending).
 
@@ -76,6 +81,20 @@ const FLAT_ZOOMS := [
 	["mouth", Vector2(530, 622)],
 ]
 const FLAT_CELL := 540
+# pieces_tex columns: label, paper_grain, then PaperSurface overrides (on the default preset)
+const PIECE_COLS := [
+	["procedural grain (before)", 0.1, {"piece_tex_albedo": 0.0, "piece_tex_normal": 0.0}],
+	["texture, defaults", 0.03, {}],
+	["texture, strong", 0.03, {"piece_tex_albedo": 1.5, "piece_tex_normal": 2.5}],
+	["texture, tile 6", 0.03, {"piece_tex_tile": 6.0}],
+]
+const PIECE_ZOOM_COLS := [1, 2]
+const PIECE_ZOOMS := [
+	["eye", Vector2(438, 498)],
+	["nose", Vector2(524, 570)],
+	["mouth", Vector2(530, 622)],
+	["brow", Vector2(427, 395)],
+]
 const LABEL_H := 40
 const PAPER := Color("f7f1e6")
 const INK := Color("3a2418")
@@ -149,7 +168,8 @@ func _run() -> void:
 			_zoom_variants = Array(a.trim_prefix("zoom_only=").split(","))
 		elif a.begins_with("out="):
 			_out = a.trim_prefix("out=")
-	var all := not ("variants" in args or "zoom" in args or "drop" in args or "flat" in args)
+	var modes := ["variants", "zoom", "drop", "flat", "pieces"]
+	var all := not modes.any(func(m: String) -> bool: return m in args)
 	if all or "variants" in args:
 		await _sheet_variants()
 	if all or "zoom" in args:
@@ -158,6 +178,8 @@ func _run() -> void:
 		await _sheet_drop()
 	if "flat" in args:
 		await _sheet_flat()
+	if "pieces" in args:
+		await _sheet_pieces()
 	quit(0)
 
 
@@ -258,6 +280,43 @@ func _sheet_flat() -> void:
 	_cam.fov = FOV
 	var file := "pieces_flat.png" if _out == "mache" else _out + ".png"
 	await _save_grid(cells, FLAT_ZOOMS.size(), 2, file, FLAT_CELL)
+
+
+## The face pieces' sheet paper: PIECE_COLS as portraits, then PIECE_ZOOMS 3x for the
+## PIECE_ZOOM_COLS columns.
+func _sheet_pieces() -> void:
+	_wear(_find_head(HEAD))
+	var base := load(SURF_DIR + "paper_mache.tres") as PaperSurface
+	var cells := []
+	var row := 1
+	for c in PIECE_COLS.size():
+		var col: Array = PIECE_COLS[c]
+		var surf := base.duplicate() as PaperSurface
+		var over: Dictionary = col[2]
+		for key: String in over:
+			surf.set(key, over[key])
+		_use(surf)
+		var head_mat := _rig.get("_skin_face") as ShaderMaterial
+		head_mat.set_shader_parameter("paper_grain", col[1])
+		await _settle()
+		_portrait(DIST_HEAD_PX / PORTRAIT_PX)
+		var label := (
+			"%s: tile %.0f alb %.1f nrm %.1f grain %.2f"
+			% [col[0], surf.piece_tex_tile, surf.piece_tex_albedo, surf.piece_tex_normal, col[1]]
+		)
+		cells.append([await _grab_center(FLAT_CELL), c, 0, label])
+		if c not in PIECE_ZOOM_COLS:
+			continue
+		for z in PIECE_ZOOMS.size():
+			var at: Array = PIECE_ZOOMS[z]
+			_aim_zoom(at[1])
+			cells.append([await _grab_center(FLAT_CELL), z, row, "%s 3x, %s" % [at[0], col[0]]])
+		row += 1
+	_cam.fov = FOV
+	_use(base)
+	(_rig.get("_skin_face") as ShaderMaterial).set_shader_parameter("paper_grain", null)
+	var file := "pieces_tex.png" if _out == "mache" else _out + ".png"
+	await _save_grid(cells, PIECE_COLS.size(), row, file, FLAT_CELL)
 
 
 ## Put preset `key` on the skin and hair (CharacterRig.paper_surface) and return it.

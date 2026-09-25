@@ -65,12 +65,10 @@ float fp_y(float from_top, float stretch) {
 	return (from_top - 0.5) * stretch;
 }
 
-// `under` is what the pieces lie on, `skin` the lids' paper and `skin_grain` its fibre
-// contrast (the lids match the skin they lie on). `lift` gains one per piece layer over p
-// (piece_lift), the step the papier-mache normal lights (skin_face.gdshader).
-vec3 face_paper(
-	vec3 under, vec3 skin, float skin_grain, vec2 p, float px, float stretch, inout float lift
-) {
+// `under` is what the pieces lie on, `skin` the lids' colour (a lid is the sheet paper like
+// every piece, in the skin's colour). `lift` gains one per piece layer over p (piece_lift),
+// the step the papier-mache normal lights (skin_face.gdshader).
+vec3 face_paper(vec3 under, vec3 skin, vec2 p, float px, float stretch, inout float lift) {
 	vec3 col = under;
 	vec2 sh = p - paper_shadow_offset;
 	// cheeks
@@ -141,7 +139,7 @@ vec3 face_paper(
 			float dl = max(d_out, d_cut);
 			// (its shadow stays inside the eye, clear of the outline's own antialiased edge)
 			float dls = max(d_out + lm + 0.5 * max(paper_shadow_soft, px), d_cut_s);
-			col = paper_piece_ex(col, dl, d_cut, dls, skin, skin_grain, p, 0.0, px);
+			col = paper_piece_ex(col, dl, d_cut, dls, skin, paper_grain, p, 0.0, px, 1.0);
 			lift = piece_lift(lift, dl, px);
 			float shut = smoothstep(0.85, 1.0, lid);
 			if (shut > 0.0) {

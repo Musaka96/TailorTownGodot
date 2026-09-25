@@ -1,13 +1,17 @@
 [gd_resource type="Resource" script_class="PaperSurface" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/textures/paper/mache_gpt_albedo.jpg" id="1_vhrdb"]
-[ext_resource type="Texture2D" path="res://assets/textures/paper/mache_gpt_normal.jpg" id="2_e7eye"]
-[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="3_qcq4n"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_normal.jpg" id="1_qcq4n"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_albedo.jpg" id="2_c5ard"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/mache_gpt_albedo.jpg" id="3_wfqp8"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/mache_gpt_normal.jpg" id="4_xahnb"]
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="5_2y3t3"]
 
 [resource]
-script = ExtResource("3_qcq4n")
-scan_albedo_tex = ExtResource("1_vhrdb")
-scan_normal_tex = ExtResource("2_e7eye")
+script = ExtResource("5_2y3t3")
+scan_albedo_tex = ExtResource("3_wfqp8")
+scan_normal_tex = ExtResource("4_xahnb")
 scan_scale = 3.0
 scan_albedo = 0.5
 normal_strength = 1.5
+piece_tex = ExtResource("2_c5ard")
+piece_normal_tex = ExtResource("1_qcq4n")

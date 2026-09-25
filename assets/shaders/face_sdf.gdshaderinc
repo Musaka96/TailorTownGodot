@@ -13,9 +13,12 @@
 // facets (linear value noise, two octaves) with the odd small nick, a different seed per
 // piece so no two edges match. An edge that is one real straight snip (the pupil wedge's
 // two sides) is cut clean: the primitives take the cut and a per-edge `straight` flag. The
-// edge is crisp (antialiased over one pixel), the fill carries paper grain of `paper_grain`
-// contrast fixed in face space (soft mottling, a few specks, long soft fibres; the skin and
-// hair carry the same grain at their own UV1, paper_surface()), light pieces show a `paper_rim` wide band of cream inside the cut, and the
+// edge is crisp (antialiased over one pixel), the fill is the owner's sheet paper
+// (`piece_tex`, its light and dark `piece_tex_albedo` and its normal `piece_tex_normal`, fixed
+// in face space at `piece_tex_tile` tiles per face unit) under a faint procedural grain of
+// `paper_grain` contrast (soft mottling, a few specks, long soft fibres; the skin and hair
+// carry that grain at 0.1 at their own UV1, paper_surface()), light pieces show a
+// `paper_rim` wide band of cream inside the cut, and the
 // piece throws a soft shadow of the dark paper on the layer below, offset down and to the
 // character's right (the viewer's left). Treatments finer than a pixel fade out, so at the
 // gameplay camera only the shapes are left.
@@ -30,7 +33,16 @@ uniform float paper_shadow_soft = 0.008;
 uniform float paper_rim = 0.003;
 uniform float paper_rim_alpha = 0.25;
 uniform float paper_jag = 0.005;
-uniform float paper_grain = 0.1;
+uniform float paper_grain = 0.03;
+// the pieces' sheet paper (PaperSurface; unset = plain): its colour (only its light and dark,
+// over its own mean) and its OpenGL normal map, `piece_tex_tile` tiles per face unit
+uniform sampler2D piece_tex : source_color, hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform sampler2D piece_normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform float piece_tex_tile = 2.0;
+// how much of its light and dark shows (0 = none, 1 = as generated)
+uniform float piece_tex_albedo = 1.0;
+// its normal's slope, x (0 = flat; lit on the head, a fixed raking light on the 2D sheets)
+uniform float piece_tex_normal = 1.5;
 
 // the grain's make-up (paper_fibres): mottling amplitude at 60 / 170 / 420 waves per face
 // unit; dark specks (amount, smoothstep from, to); fibres: waves per face unit along and
@@ -308,12 +320,31 @@ vec3 paper_surface(vec3 fill, vec2 uv, float tile, float grain, float seed) {
 	return paper_grained(fill, paper_fibres(q, seed, px), grain);
 }
 
+// The pieces' sheet paper at p (face units), `px` one pixel: x = its luminance over its own
+// mean (the last mip), yz = its normal as a slope (height per face unit, y down), both before
+// the piece_tex_* strengths. Read at a mip picked from px, not from screen derivatives, so it
+// is safe inside the pieces' branches; finer than a pixel it averages out to 1 and flat.
+vec3 piece_paper(vec2 p, float px) {
+	vec2 uv = p * piece_tex_tile;
+	float texels = px * piece_tex_tile;
+	float la = log2(max(texels * float(textureSize(piece_tex, 0).x), 1e-6));
+	float ln = log2(max(texels * float(textureSize(piece_normal_tex, 0).x), 1e-6));
+	const vec3 LUM = vec3(0.299, 0.587, 0.114);
+	float lum = dot(textureLod(piece_tex, uv, la).rgb, LUM);
+	float mean = dot(textureLod(piece_tex, uv, 20.0).rgb, LUM);
+	vec2 n = textureLod(piece_normal_tex, uv, ln).rg * 2.0 - 1.0;
+	float nz = sqrt(max(1.0 - dot(n, n), 0.04));
+	// GL green points up the image, toward -y
+	return vec3(lum / max(mean, 0.02), vec2(-n.x, n.y) / nz);
+}
+
 // Lay one paper piece on `under`: `d` is the piece's (cut) distance at p, `d_rim` the
 // distance to the edges that show a cut rim (usually d), `d_shadow` the distance sampled
-// at p - paper_shadow_offset (where its shadow falls), `grain` the grain contrast.
+// at p - paper_shadow_offset (where its shadow falls), `grain` the grain contrast, `tex` how
+// much of the sheet paper (piece_paper) it is cut from (0 = none: the 2D sheets' skin disc).
 vec3 paper_piece_ex(
 	vec3 under, float d, float d_rim, float d_shadow, vec3 fill, float grain, vec2 p, float seed,
-	float px
+	float px, float tex
 ) {
 	float soft = max(paper_shadow_soft, px);
 	float sh = 1.0 - smoothstep(-0.5 * soft, 0.5 * soft, d_shadow);
@@ -324,7 +355,16 @@ vec3 paper_piece_ex(
 	if (cover <= 0.0) {
 		return col;
 	}
-	vec3 f = paper_grained(fill, paper_fibres(p, seed, px), grain);
+	vec3 f = fill;
+	if (tex > 0.0) {
+		vec3 pp = piece_paper(p, px);
+		f *= mix(1.0, pp.x, piece_tex_albedo * tex);
+#ifdef PIECE_TEX_SHADE
+		// flat sheets (face_canvas.gdshader): the normal under a fixed light from the top left
+		f *= 1.0 + PIECE_TEX_SHADE * piece_tex_normal * tex * (pp.y + pp.z);
+#endif
+	}
+	f = paper_grained(f, paper_fibres(p, seed, px), grain);
 	// the cream core shows at the cut of light papers only, skin and cream (on darker ones
 	// it reads as an outline)
 	float light = smoothstep(0.62, 0.8, dot(fill, vec3(0.299, 0.587, 0.114)));
@@ -341,9 +381,15 @@ float piece_lift(float lift, float d, float px) {
 	return lift + 1.0 - smoothstep(-r, r, d);
 }
 
-// The usual piece: rim along its whole edge, the shared grain.
+// The usual piece: rim along its whole edge, the sheet paper and the shared grain.
 vec3 paper_piece(vec3 under, float d, float d_shadow, vec3 fill, vec2 p, float seed, float px) {
-	return paper_piece_ex(under, d, d, d_shadow, fill, paper_grain, p, seed, px);
+	return paper_piece_ex(under, d, d, d_shadow, fill, paper_grain, p, seed, px, 1.0);
+}
+
+// The sheet paper's slope under the pieces (skin_face.gdshader: added to the lit height where
+// `cover` of a piece lies; height per face unit).
+vec2 piece_paper_grad(vec2 p, float px, float cover) {
+	return piece_tex_normal * cover * piece_paper(p, px).yz;
 }
 
 // --- Pieces (distances, face units, y down) ----------------------------------------------

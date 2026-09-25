@@ -1,16 +1,19 @@
 [gd_resource type="Resource" script_class="PaperSurface" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_albedo.jpg" id="1_m1bfu"]
-[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_normal.jpg" id="2_mqya7"]
-[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="3_bnhu6"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_normal.jpg" id="1_bnhu6"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/piece_paper_albedo.jpg" id="2_0nu3b"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_albedo.jpg" id="3_jj0sa"]
+[ext_resource type="Texture2D" path="res://assets/textures/paper/paper003_normal.jpg" id="4_p6x4r"]
+[ext_resource type="Script" path="res://data/scripts/paper_surface.gd" id="5_id4l3"]
 
 [resource]
-script = ExtResource("3_bnhu6")
-scan_albedo_tex = ExtResource("1_m1bfu")
-scan_normal_tex = ExtResource("2_mqya7")
+script = ExtResource("5_id4l3")
+scan_albedo_tex = ExtResource("3_jj0sa")
+scan_normal_tex = ExtResource("4_p6x4r")
 normal_strength = 2.0
 mache_scale = 1.2
 mache_strength = 2.0
 mache_seam = 0.3
 mache_tone = 0.04
-piece_relief = 1.0
+piece_tex = ExtResource("2_0nu3b")
+piece_normal_tex = ExtResource("1_bnhu6")

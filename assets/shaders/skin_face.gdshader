@@ -20,8 +20,8 @@ uniform vec4 skin_color : source_color = vec4(0.86, 0.72, 0.6, 1.0);
 // UV1, `skin_tile` face units per UV unit (tripo heads: ~4, measured on UV1 against the
 // face UV), `skin_grain` its contrast (0 = the old flat skin); over it the papier-mache
 // surface (paper_mache.gdshaderinc: scan + torn strips, lit through the normal), which the
-// face pieces sit on, each one flat sheet (no scan, no strips) a paper's step higher at its
-// cut edge (piece_relief)
+// face pieces sit on, each one flat sheet of their own paper (piece_tex, no scan, no strips)
+// a paper's step higher at its cut edge (piece_relief)
 uniform float skin_tile = 4.0;
 uniform float skin_grain = 0.1;
 uniform bool face_enabled = false;
@@ -66,7 +66,7 @@ void fragment() {
 		col = debug_rect(col, f);
 	} else if (face_enabled && abs(p.x) < 0.6 && abs(p.y) < 0.6) {
 		float stretch = layout_aspect / max(face_aspect, 1e-3);
-		col = face_paper(col, skin, skin_grain, p, px, stretch, lift);
+		col = face_paper(col, skin, p, px, stretch, lift);
 	}
 	// the scan and the strips stop under the pieces (each piece is one sheet of its own paper,
 	// blended out by its coverage, so its edge stays clean; the shadow it casts lies outside
@@ -88,6 +88,8 @@ void fragment() {
 	float hp = PIECE_LAYER * piece_relief * step_on * lift;
 	vec2 dh = mix(paper_slope(q, grad_q), paper_slope(p, grad_p), front);
 	dh += vec2(dFdx(hp), dFdy(hp));
+	// the pieces' sheet paper, its own normal where a piece lies (face units)
+	dh += paper_slope(p, piece_paper_grad(p, px, clamp(lift, 0.0, 1.0) * front));
 	NORMAL = paper_normal(NORMAL, VERTEX, dh, mix(paper_texel(q), paper_texel(p), front));
 	ALBEDO = col;
 	ROUGHNESS = 1.0;

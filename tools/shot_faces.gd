@@ -19,6 +19,8 @@ extends SceneTree
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
 const CANVAS_SHADER := "res://assets/shaders/face_canvas.gdshader"
+# the pieces' sheet paper comes from the default PaperSurface, as on the head
+const SURFACE := "res://data/paper_surfaces/paper_mache.tres"
 const PRESETS := ["paper_j1", "paper_j2", "paper_j3", "paper_j4", "paper_heavy", "paper_small"]
 const STATES := [
 	"neutral",
@@ -78,11 +80,13 @@ const PAPER_VIEWS := [
 ]
 
 var _shader: Shader
+var _surface: PaperSurface
 
 
 func _initialize() -> void:
 	DisplayServer.window_set_size(Vector2i(640, 360))
 	_shader = load(CANVAS_SHADER) as Shader
+	_surface = load(SURFACE) as PaperSurface
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 	_run.call_deferred()
 
@@ -302,6 +306,7 @@ func _face(style: FaceStyle, dials: Dictionary, side: float) -> ColorRect:
 	mat.set_shader_parameter("skin_color", SKIN)
 	mat.set_shader_parameter("page_color", PAGE)
 	style.apply_to_material(mat, dials)
+	_surface.apply_pieces_to(mat)
 	rect.material = mat
 	return rect
 

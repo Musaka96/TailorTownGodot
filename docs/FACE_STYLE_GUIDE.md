@@ -28,7 +28,27 @@ Paper treatment numbers, in fractions of face height unless stated (tune once, t
 | Shadow         | dark paper colour at 22 % alpha, 0.008 soft  |
 | Cut rim        | 0.003 wide, cream at 25 % alpha, inside edge, skin and cream pieces only (on dark ones it read as a grey ring) |
 | Hand-cut edge  | `paper_jag` 0.005: linear value noise, 2 octaves, facets 0.02–0.06 long (a twelfth of the perimeter) and a third of that; about 1 cell in 6 has a V nick one jag deep, 2.5 × as wide; pieces thinner than 0.09 get less, down to a third; seeded per piece |
-| Grain          | `paper_grain` 0.10 (was 0.15): soft mottling in 3 octaves of hashed value noise (60 / 170 / 420 per face unit at 0.15 / 0.35 / 0.3), a few soft dark specks (0.35), and long soft fibres: 32 waves per face unit along a streak, 300 across (2.5 × the old length), gently bent (0.02), light ones (0.3) on two directions 35° apart, a few dark ones (0.25) across them; light fibres lift a dark paper less (0.3 of a white one's), so pupils and hair show no scratches. About 5 % contrast (5–95 % spread) on the skin at a 580 px disc, the reference J1 paper 4–4.6 % (the old grain was 10–11 %). Fixed in face space; the constants sit at the top of `face_sdf.gdshaderinc` |
+| Piece paper    | the owner's sheet paper, see below: `piece_tex_tile` 2 tiles per face unit, `piece_tex_albedo` 1.0, `piece_tex_normal` 1.5 |
+| Grain          | on the pieces `paper_grain` 0.03 (0.10 until the piece paper came in, 2026-09-25; the skin and hair keep 0.10): soft mottling in 3 octaves of hashed value noise (60 / 170 / 420 per face unit at 0.15 / 0.35 / 0.3), a few soft dark specks (0.35), and long soft fibres: 32 waves per face unit along a streak, 300 across (2.5 × the old length), gently bent (0.02), light ones (0.3) on two directions 35° apart, a few dark ones (0.25) across them; light fibres lift a dark paper less (0.3 of a white one's), so pupils and hair show no scratches. About 5 % contrast (5–95 % spread) on the skin at a 580 px disc, the reference J1 paper 4–4.6 % (the old grain was 10–11 %). Fixed in face space; the constants sit at the top of `face_sdf.gdshaderinc` |
+
+**Piece paper.** The pieces are cut from one sheet paper the owner generated
+(`assets/textures/paper/piece_paper_albedo.jpg`, 1K, seamless neutral grey paper, mean luminance
+0.76, 5–95 % spread 0.165; `piece_paper_normal.jpg` is its OpenGL normal from a 30 px high-pass
+of its luminance at strength 4; source `IMPORT/faces_proc/ref/piece_paper_src.jpg`; a project
+asset, not a scan). It lies in FACE space (the face UV, so it never swims), `piece_tex_tile` 2
+tiles per face unit; a piece's colour is its paper colour times the texture's luminance over its
+own mean (`piece_tex_albedo` 1.0: the palette stays closed, whites stay cream), and its lit
+normal is its cut-edge step plus the texture's normal × `piece_tex_normal` 1.5. The procedural
+grain on the pieces drops to 0.03 so the texture is the paper; cut rim, jagged edge and drop
+shadow are unchanged. The numbers live on the `PaperSurface` (`piece_tex`, `piece_normal_tex`,
+`piece_tex_tile`, `piece_tex_albedo`, `piece_tex_normal`; the skin keeps its own mache scan).
+The 2D sheets (`face_canvas.gdshader`) show the normal under a fixed light from the top left
+(`PIECE_TEX_SHADE` 0.2). At 4 tiles (the first try) and at 0.7 / 0.7 the fibres were finer than
+a pixel at portrait size and the pieces looked plain; at 2 tiles, 1.0 / 1.5 they read as fine
+cardstock in the 3× zooms and give a faint tooth at portrait size; the texture averages out
+(mipmaps) below that, so the 25 px head is unchanged. Compared on
+`IMPORT/faces_proc/pieces_tex.png` (`tools/shot_mache.gd -- pieces`: before, default, strong
+1.5 / 2.5, tile 6, then 3× zooms) and `j1_match.png`.
 
 On the head, the reference disc maps to 2.1 × `FaceStyle.face_scale` face-rect widths centred
 0.44 + `FaceStyle.face_drop` down the rect (at 2.35 / 0.38 the brows hid under most fringes).
@@ -63,7 +83,7 @@ below, a 0.25-layer lip at the torn edge; `mache_seam` 0.3 = a soft glue shadow 
 each visible edge and a lighter torn fringe just inside; `mache_tone` 0.04 = each strip ±4 %)
 and a scanned paper normal (ambientCG Paper003, creased white paper, CC0, at `scan_scale` 2
 tiles per face unit, `normal_strength` 1.0; its colour is off, `scan_albedo` 0). The face pieces
-carry no strip overlay: each is one flat sheet of its own paper (grain, cut rim, drop shadow onto
+carry no strip overlay: each is one flat sheet of its own paper (the piece paper above, cut rim, drop shadow onto
 the strips around it), with no scan or strip relief, tone or seam under it (`piece_scan` 0,
 blended by the piece's coverage), and a single 0.004 face-unit step at its cut edge
 (`piece_relief` 1.0) that catches the light (`IMPORT/faces_proc/pieces_flat.png`). The strips fade out once a cell is under ~15 px (gone under 9 px) and a piece's step
