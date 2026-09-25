@@ -13,6 +13,10 @@ var _done := false
 
 
 func _ready() -> void:
+	# Sfx boots on the menu theme and the HUD autoload draws above every scene; both
+	# wait for the menu so the clip plays alone.
+	Sfx.stop_music()
+	UI.visible = false
 	if DisplayServer.get_name() == "headless":
 		_finish.call_deferred()
 		return
@@ -45,4 +49,5 @@ func _finish() -> void:
 	_video.stop()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().root.add_child(CrtPowerOn.new())
+	Sfx.fade_music_in(Sfx.MENU_THEME, CrtPowerOn.HOLD + CrtPowerOn.DURATION)
 	get_tree().change_scene_to_file(MENU)
