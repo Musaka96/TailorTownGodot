@@ -49,10 +49,11 @@ func _run() -> void:
 	_check(_extras_visible(rig, true), "a suit shows its buttons, pocket square and tie")
 	rig.tie_color = Color(0.1, 0.2, 0.5)
 	var tie := rig.find_child("tie", true, false) as MeshInstance3D
-	var tie_mat := tie.material_override as StandardMaterial3D if tie != null else null
+	var tie_mat := tie.material_override as ShaderMaterial if tie != null else null
+	var tie_rgb: Variant = tie_mat.get_shader_parameter("cloth_color") if tie_mat else null
 	_check(
-		tie_mat != null and tie_mat.albedo_color.is_equal_approx(Color(0.1, 0.2, 0.5)),
-		"tie_color recolours the tie"
+		tie_rgb is Color and (tie_rgb as Color).is_equal_approx(Color(0.1, 0.2, 0.5)),
+		"tie_color recolours the tie (its silk cloth)"
 	)
 
 	# Street clothes are their own models: the outfit's jacket (outer layer), shirt,
@@ -222,8 +223,8 @@ func _check_glasses(rig: Node) -> void:
 	await process_frame
 	var frames := _glasses_mesh(rig, "frames")
 	_check(
-		frames != null and frames.mesh == _source_mesh(wire, "frames").mesh,
-		"glasses attach the part's frames mesh on the head bone"
+		frames != null and frames.get_meta("src") == _source_mesh(wire, "frames").mesh,
+		"glasses attach (a fitted copy of) the part's frames mesh on the head bone"
 	)
 	_check(frames != null and frames.skin == null, "as a plain (unskinned) mesh")
 	rig.glasses_color = "gold"
@@ -235,7 +236,10 @@ func _check_glasses(rig: Node) -> void:
 	rig.set_face_look("brown", "round")  # a look saved before the 3D parts
 	await process_frame
 	frames = _glasses_mesh(rig, "frames")
-	_check(frames != null and frames.mesh == _source_mesh(wire, "frames").mesh, "round -> wire")
+	_check(
+		frames != null and frames.get_meta("src") == _source_mesh(wire, "frames").mesh,
+		"round -> wire"
+	)
 	_check(Wardrobe.glasses_style("sun") == "square", "sun -> square")
 	_check(Wardrobe.glasses_style("monocle") == "", "an unknown style -> none")
 	rig.set_face_look("brown", "")

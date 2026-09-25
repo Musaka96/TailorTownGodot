@@ -113,8 +113,6 @@ const GLASSES_COLORS := {
 ## The face depth the glasses parts are modelled for (the shaved base skull at eye
 ## height); each head moves them forward by its own face depth minus this.
 const GLASSES_FACE_Z := 0.421
-## The eye spacing the glasses are fitted to (paper_j1's); other faces scale them across.
-const GLASSES_EYE_SPACING := 0.226
 const LENS_TINT := Color(0.62, 0.72, 0.78, 0.25)
 const BLINK_MIN := 2.4
 const BLINK_MAX := 6.0
@@ -185,7 +183,7 @@ var shoes: Dictionary:
 		return _shoes
 	set(value):
 		_set_shoes(value)
-## The tie's colour (a flat, matte cloth). Kept across jacket swaps, since each jacket
+## The tie's colour (a silk twill, TieMaterial). Kept across jacket swaps, since each jacket
 ## model brings its own tie. A property for the public-method limit, like `shoes`.
 var tie_color: Color:
 	get:
@@ -685,6 +683,7 @@ func _attach_glasses(part: WardrobePart) -> void:
 		var mi := MeshInstance3D.new()
 		mi.name = role
 		mi.mesh = src.mesh
+		mi.set_meta("src", src.mesh)  # as modelled; _place_glasses fits a copy to the face
 		mi.set_meta("role", role)
 		mi.set_meta("bind", _head_bind(src))
 		_glasses_attach.add_child(mi)
@@ -709,18 +708,17 @@ func _head_bind(src: MeshInstance3D) -> Transform3D:
 
 
 ## Move the glasses forward (skeleton +z) onto this head's face plane and, on a procedural
-## face, scale them across (x) to its eye spacing so the lenses land on the eyes.
+## face, fit them to its eyes (GlassesFit: each round rim centred on its eye, not stretched).
 func _place_glasses() -> void:
 	if _glasses_meshes.is_empty():
 		return
 	var layout := _layout if _layout != null else FaceProfiles.load_or_default().layout_for(0)
 	var dz := layout.face_z_for(_head_index) - GLASSES_FACE_Z
-	var across := 1.0
-	if _proc:
-		across = _face_style_or_default().eye_spacing / GLASSES_EYE_SPACING
-	var shift := Transform3D(Basis.from_scale(Vector3(across, 1.0, 1.0)), Vector3(0.0, 0.0, dz))
+	var style: FaceStyle = _face_style_or_default() if _proc and _face_frame != null else null
 	for mi in _glasses_meshes:
-		mi.transform = (mi.get_meta("bind") as Transform3D) * shift
+		var bind: Transform3D = mi.get_meta("bind")
+		mi.mesh = GlassesFit.fit(mi.get_meta("src"), bind, style, _face_frame)
+		mi.transform = bind * Transform3D(Basis(), Vector3(0.0, 0.0, dz))
 
 
 ## Frames: a flat outlined colour from GLASSES_COLORS. Lenses: a light transparent tint.
@@ -791,7 +789,7 @@ func _set_face_style(style: FaceStyle) -> void:
 		_proc_look()
 	if _proc:
 		_push_face()
-		_place_glasses()  # their width follows the face's eye spacing
+		_place_glasses()  # they fit the face's eyes
 
 
 ## Put the face on the head: bake the current head's face UV, give it the face skin and
@@ -1261,17 +1259,17 @@ func _wear_flat_street() -> void:
 	var tie = _top.get("tie")
 	if tie is MeshInstance3D:
 		tie.visible = true
-		_apply_flat(tie, STREET_TIES[randi() % STREET_TIES.size()], 1.0)
+		TieMaterial.dress(tie, STREET_TIES[randi() % STREET_TIES.size()], true)
 	var buttons = _top.get("buttons")
 	if buttons is MeshInstance3D:
 		buttons.visible = true
 
 
-## Flat materials on the top's small pieces: the tie in tie_color (outlined, like the
-## other garments), gilt buttons and a white pocket square. A jacket swap brings fresh
+## The top's small pieces: the tie in tie_color (silk twill cloth, outlined like the
+## other garments), flat gilt buttons and a white pocket square. A jacket swap brings fresh
 ## meshes with the model's own materials, so this runs after every swap.
 func _dress_extras() -> void:
-	_apply_flat(_top.get("tie"), _tie_color, 1.0)
+	TieMaterial.dress(_top.get("tie"), _tie_color)  # silk twill cloth
 	var buttons = _top.get("buttons")
 	if buttons is MeshInstance3D:
 		buttons.material_override = _flat(BUTTON_COLOR, 1.0)

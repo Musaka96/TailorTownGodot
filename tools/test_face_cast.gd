@@ -87,7 +87,7 @@ func _player_is_j1() -> void:
 
 
 ## A walk-in named "Ms. Portobello" wears her face, her auburn hair and tortoise wire
-## glasses, squeezed across to her close-set eyes.
+## glasses, fitted to her close-set eyes: the rims centred on them, never stretched.
 func _cast_walk_in() -> void:
 	var pref: Resource = _pref_cls.random_pref(RandomNumberGenerator.new(), "Ms. Portobello")
 	var cust := _spawn_with(pref)
@@ -101,14 +101,19 @@ func _cast_walk_in() -> void:
 	_check(cust.hair_color.is_equal_approx(Color("5e2618")), "with the cast hair colour")
 	_check(cust.glasses == "wire" and cust.glasses_color == "tortoise", "and the cast glasses")
 	var meshes: Array = rig.get("_glasses_meshes")
-	var across := 0.0
+	var off := Vector2.INF
+	var stretch := INF
 	if not meshes.is_empty():
-		var bind: Transform3D = meshes[0].get_meta("bind")
-		var t: Transform3D = bind.affine_inverse() * (meshes[0] as Node3D).transform
-		across = t.basis.x.length()
-	_check(
-		absf(across - 0.19 / 0.226) < 0.01, "glasses scaled across to 0.19/0.226 (%.3f)" % across
-	)
+		var mi: MeshInstance3D = meshes[0]
+		var bind: Transform3D = mi.get_meta("bind")
+		var t: Transform3D = bind.affine_inverse() * mi.transform
+		stretch = absf(t.basis.x.length() - t.basis.y.length())
+		var lens := GlassesFit.measure(mi.mesh, bind)
+		var eye := GlassesFit.eye_point(face as FaceStyle, rig.get("_face_frame"))
+		if not lens.is_empty():
+			off = (lens.c as Vector2) - eye
+	_check(stretch < 1e-4, "the glasses are not stretched across (%.4f)" % stretch)
+	_check(off.length() < 0.005, "the lens centre sits on the eye (off by %s m)" % off)
 	cust.free()
 
 
