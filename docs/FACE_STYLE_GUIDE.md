@@ -6,6 +6,28 @@ customers look like they were cut from the same stack of paper. The face is draw
 `assets/shaders/skin_face.gdshader` on the head material at the baked face UV (see
 `docs/CHARACTER_PIPELINE.md`), from a `FaceStyle` preset in `data/face_styles/`.
 
+## 0. The look as frozen on 2026-09-26 (owner: "okay for now")
+
+Everything that makes a character look like this, so it can be rebuilt or moved:
+
+| Part | File(s) |
+|------|---------|
+| Face UV bake at load | `data/scripts/face_uv_baker.gd`, `data/scripts/face_frame.gd` |
+| Head skin + face shader | `assets/shaders/skin_face.gdshader` + `face_paper.gdshaderinc` + `face_sdf.gdshaderinc` + `paper_mache.gdshaderinc` |
+| Hands, arms, hair | `assets/shaders/paper_skin.gdshader` (same mache include) |
+| 2D review sheets | `assets/shaders/face_canvas.gdshader` |
+| Face preset (J1) | `data/face_styles/paper_j1.tres` (`FaceStyle`, `data/scripts/face_style.gd`; face_scale 0.8, face_drop 0.05, mouth 0.030) |
+| Surface preset | `data/paper_surfaces/paper_mache.tres` (`PaperSurface`, `data/scripts/paper_surface.gd`): owner's `mache_gpt` at tile 1, normal 1.0, albedo 0.5, no strips; pieces `piece_paper` tile 2, albedo 1.0, normal 1.5, grain 0.03 |
+| Textures (owner-made, project assets) | `assets/textures/paper/mache_gpt_albedo.jpg` + `_normal.jpg`, `piece_paper_albedo.jpg` + `_normal.jpg` (normals derived: 30-40 px high-pass height, strength 4-6) |
+| Textures (ambientCG, CC0, kept as alternatives) | `paper001_*`, `paper003_*`, `cardboard002_*` |
+| Rig switch | `CharacterRig.procedural_faces` (static), `DEFAULT_FACE_STYLE`, `DEFAULT_PAPER_SURFACE` |
+| Sheets | `tools/shot_face_head.gd` (heads, states, side, debug, j1), `tools/shot_faces.gd` (2D refs/states/scale/paper), `tools/shot_mache.gd` (surface variants, zoom, drop, flat, pieces), `tools/shot_paper_char.gd` |
+| Generators (git-ignored) | `.dev/make_face_styles.gd`, `.dev/make_paper_surfaces.gd` |
+| References | `IMPORT/faces_proc/ref/` (style sheets, J row, owner texture sources) |
+
+Rejected on the way, kept out on purpose: sprite faces, Godot decals, procedural strip relief
+(variants E-G), thin brows, expression-as-identity presets, iris colour tinting.
+
 ## 1. Medium
 
 - Every feature is a **flat piece of coloured paper** laid on the skin. There are no drawn lines,
