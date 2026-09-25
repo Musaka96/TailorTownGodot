@@ -10,9 +10,11 @@ customers look like they were cut from the same stack of paper. The face is draw
 
 - Every feature is a **flat piece of coloured paper** laid on the skin. There are no drawn lines,
   no outlines, no highlights, no gradients, no shading inside a piece.
-- A piece has a **crisp cut edge** with a slight hand-cut wobble, a faint **lighter rim** where the
-  white paper core shows at the cut, **fibre grain** over its fill, and a **soft shadow** under it
-  where it lies on the layer below. That shadow is what makes the face read as layered paper.
+- A piece has a **crisp, hand-cut edge**: short straight scissor facets and the odd small nick,
+  never a perfect curve, and no two edges alike. It carries clearly visible **paper grain** (speckle
+  and short fibres) over its fill, a faint **lighter rim** where the paper core shows at the cut
+  (light papers only), and a **soft shadow** under it where it lies on the layer below. That
+  shadow is what makes the face read as layered paper.
 - Layer order, bottom to top: skin, cheeks, eye whites, pupils, lids, brows, nose, mouth pieces.
 
 Paper treatment numbers, in fractions of face height unless stated (tune once, then shared):
@@ -21,12 +23,14 @@ Paper treatment numbers, in fractions of face height unless stated (tune once, t
 |----------------|----------------------------------------------|
 | Shadow offset  | 0.006 down, 0.004 to the character's right    |
 | Shadow         | dark paper colour at 22 % alpha, 0.008 soft  |
-| Cut rim        | 0.004 wide, cream at 30 % alpha, inside edge |
-| Edge wobble    | 0.003 amplitude, ~6 waves per piece           |
-| Grain          | 4 % contrast fibre noise, fixed in face space |
+| Cut rim        | 0.003 wide, cream at 25 % alpha, inside edge, skin and cream pieces only (on dark ones it read as a grey ring) |
+| Hand-cut edge  | `paper_jag` 0.005: linear value noise, 2 octaves, facets 0.02–0.06 long (a twelfth of the perimeter) and a third of that; about 1 cell in 6 has a V nick one jag deep, 2.5 × as wide; pieces thinner than 0.09 get less, down to a third; seeded per piece |
+| Grain          | `paper_grain` 0.15: 3 octaves of hashed value noise (60 / 170 / 420 per face unit), dark specks and short light and dark fibre streaks; about 10–11 % contrast (5–95 % spread) on the skin at a 580 px disc; fixed in face space |
 
-On the head, the reference disc maps to 2.1 face-rect widths centred 0.44 down the rect (at
-2.35 / 0.38 the brows hid under most fringes). Lids carry their rim and shadow along the lower
+On the head, the reference disc maps to 2.1 × `FaceStyle.face_scale` face-rect widths centred
+0.44 down the rect (at 2.35 / 0.38 the brows hid under most fringes). `face_scale` is 0.8: at
+1.0 the face took over the whole head; at 0.8 the brows clear the fringe and the mouth sits above
+the chin (`IMPORT/faces_proc/j1_heads.png` compares 1.0 / 0.85 / 0.8 / 0.75). Lids carry their rim and shadow along the lower
 edge only, else a closed eye shows a ghost ring; a shadow fades out below one pixel of offset so
 25 px faces get no dark outline.
 
@@ -37,13 +41,14 @@ portrait, the fitting screen and any close-up. That is intended.
 
 | Paper        | Hex       | Used for                         |
 |--------------|-----------|----------------------------------|
-| Dark         | `#3a2418` | pupils, mouth, teeth lining      |
-| Brow brown   | `#7a4a2a` | brows                            |
-| Cream        | `#fff4e2` | eye whites, teeth                |
-| Rose         | `#d98c7e` | nose, cheeks, tongue             |
+| Dark         | `#3c2515` | pupils, mouth, teeth lining      |
+| Brow brown   | `#784a2c` | brows                            |
+| Cream        | `#efdcbe` | eye whites, teeth                |
+| Rose         | `#d38464` | nose, cheeks, tongue             |
 | Skin         | per head  | lids (a skin-coloured piece)     |
 
-No other colours. Eye colour does not tint anything in this style; iris colour is retired.
+Measured on the J1 disc (2026-09-25; the old cream `#fff4e2` and rose `#d98c7e` were brighter and
+pinker than the reference). No other colours. Eye colour does not tint anything in this style; iris colour is retired.
 
 ## 3. Pieces
 
@@ -51,31 +56,42 @@ Sizes are fractions of **face width** (fw) and **face height** (fh) of the baked
 preset lands the same on every head. Disc and ellipse sizes below are **radii**, not full widths
 (measured on J1–J4: read as widths they came out half size).
 
-- **Brow**: a thick rounded strip. Thickness 0.065–0.085 fh (these are thick brows, on purpose;
-  the J brows measure 0.076–0.10 and 0.065 already looked thin beside them),
-  length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35, height 0.06–0.30 fh from the top.
-  Round ends always.
+- **Brow**: a thick strip. Thickness 0.065–0.105 fh (thick brows, on purpose; J1's measures 0.10),
+  length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35, height 0.06–0.30 fh from the top. The ends
+  are cut square to the strip's chord with corners rounded by `brow_corner` × half the thickness
+  (1 = round ends; J1 0.2, squarish), and `brow_taper` makes the inner end thicker (J1 0.2).
 - **Eye white**: a cream ellipse, 0.10–0.22 fw wide, aspect 0.8–1.4. May be absent ("dot eye").
-- **Pupil**: a dark disc, 0.05–0.13 fw. Optional **pie wedge** cut out of it (60°, pointing
-  up-inward, showing the white or the skin below), which is the one G-row detail carried over.
-  A pupil is never smaller than 0.05 fw so it still reads at 25 px.
+- **Pupil**: a dark disc, 0.05–0.13 fw. Optional **pie wedge** cut out of it (60°, showing the
+  white or the skin below), which is the one G-row detail carried over. It opens at
+  `pupil_wedge_dir` on the left eye (45° = up-inward) and the right eye mirrors it, or with
+  `pupil_wedge_mirror` off both open the same way (J1: 3°, both to the viewer's right). A pupil
+  pushed past the white's edge is cut by it. A pupil is never smaller than 0.05 fw so it still
+  reads at 25 px.
 - **Lid**: a skin-coloured paper piece that slides down over the eye from above, with its own
   shadow. `lid` 0 = open, 1 = closed. A closed eye shows the lid's lower edge as a gentle
-  downward arc plus a thin dark strip (0.012 fh) along it. Blinks animate this piece.
+  downward arc plus a dark paper crescent along it, 0.035 fh thick in the middle and tapering to
+  0.4 of that at its round ends (0.012 read as a hairline). Blinks animate this piece.
 - **Nose**: one rose piece, kinds `disc`, `oval`, `teardrop` (point up), `strip` (tall rounded
-  trapezoid). Width 0.06–0.16 fw, height 0.06–0.22 fh, centre at 0.55–0.68 fh.
-- **Mouth (idle)**: a thin dark arc strip, thickness 0.018–0.024 fh, width 0.10–0.22 fw, curve
-  +0.10…+0.25 (a faint smile), centre at 0.78–0.86 fh.
-- **Mouth (open)**: a dark paper oval (aspect from the state), with an optional cream **teeth**
-  strip along the top and an optional rose **tongue** disc at the bottom. Both are paper pieces
-  with their own shadow.
+  trapezoid), `shield` (J1's cut pentagon: a wide flat top, shoulders a little uneven, pointing
+  down; J1 0.215 wide × 0.146 tall at 0.673). Half-width 0.06–0.16 fw, half-height 0.06–0.22 fh,
+  centre at 0.55–0.68 fh.
+- **Mouth (idle)**: a dark arc strip of even thickness with round ends, thickness 0.018–0.024 fh,
+  width 0.10–0.22 fw, curve +0.10…+0.30 (a faint smile; J1 0.30, 0.022 thick), centre at
+  0.78–0.86 fh.
+- **Mouth (open)**: a dark paper **D**: a straight top edge level with the line's top, a round
+  bottom, corners rounded by half the line thickness; shut it is as deep as the smile, open it
+  hangs up to 0.9 half-widths deeper. The line morphs into the D over the first 0.12 of opening;
+  `mouth_round` rounds the top into an "o". Teeth are ONE flat cream strip along the top edge
+  (0.36 of the depth, with its own cut); the tongue is a rose half-disc at the bottom once the
+  mouth is open past 0.6. No pinched corners, no bands that thin to nothing.
 - **Cheeks**: optional rose discs 0.06–0.10 fw, outside-below the eyes, on the skin under the
   whites.
 - **Moustaches, whisker marks, sparkles, tears**: not in this style.
 
 ## 4. The idle face
 
-Every character idles with the **same face**: eyes open, gaze straight ahead, lids at 0
+Every character idles with the **same face**: eyes open, gaze straight ahead (J1 is the one
+exception: its reference looks to the viewer's right, pupils 0.065 across), lids at 0
 (the heavy-lid look is the single allowed idle variant, `lid` 0.45 with a flat lower edge),
 brows at rest, mouth the faint smile. Identity comes from §5, never from an expression.
 

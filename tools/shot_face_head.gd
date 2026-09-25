@@ -10,6 +10,9 @@ extends SceneTree
 ##                        front and 45 degrees: the projection, and nothing on the back
 ##   heads_uv_side.png    paper_j1 on one tripo head from 0 / 30 / 60 / 90 / 180 degrees,
 ##                        bare and with round glasses
+##   j1_heads.png         paper_j1 on tripo_head_tl and tripo_bald_tr at face scale 1.0 /
+##                        0.85 / 0.8 (the default) / 0.75, front, and at 45 degrees at 0.8
+## With `j1` after `--`, only j1_heads.png.
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -23,6 +26,10 @@ const PRESETS := ["paper_j1", "paper_j2", "paper_j3", "paper_j4", "paper_heavy",
 const STATES := ["neutral", "blink_half", "closed", "happy", "sad", "surprised", "talking"]
 const STATE_PRESETS := ["paper_j1", "paper_heavy"]
 const SIDE_ANGLES := [0.0, 30.0, 60.0, 90.0, 180.0]
+# j1_heads.png: the heads (display-name prefixes), and the columns: face scale, turn (deg)
+const J1_HEADS := ["tripo_head_tl", "tripo_bald_tr"]
+const J1_VIEWS := [[1.0, 0.0], [0.85, 0.0], [0.8, 0.0], [0.75, 0.0], [0.8, 45.0]]
+const J1_CELL := 400
 # preset -> states to shoot ("neutral" = the resting face, no suffix), `presets` mode
 const SHOTS := {
 	"paper_j1": ["neutral", "happy"],
@@ -99,7 +106,10 @@ func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if not args.is_empty() and args[0] == "presets":
 		await _preset_shots(args.slice(1))
+	elif not args.is_empty() and args[0] == "j1":
+		await _sheet_j1_heads()
 	else:
+		await _sheet_j1_heads()
 		var heads := _head_rows()
 		await _sheet_heads(heads)
 		await _sheet_states(heads[1])
@@ -149,6 +159,39 @@ func _sheet_states(head: int) -> void:
 			await _pose(STATES[c], 30)
 			cells.append([await _grab(), c, r, "%s / %s" % [STATE_PRESETS[r], STATES[c]]])
 	await _save_grid(cells, STATES.size(), STATE_PRESETS.size(), "heads_uv_states.png")
+
+
+## paper_j1 on two heads at a few face scales (FaceStyle.face_scale), to pick the size.
+func _sheet_j1_heads() -> void:
+	var keep: float = FaceStyle.face_scale
+	var lib := Wardrobe.library()
+	var cells := []
+	for r in J1_HEADS.size():
+		var head := -1
+		for i in lib.head_count():
+			if String(lib.head(i).display_name).begins_with(J1_HEADS[r]):
+				head = i
+		if head < 0:
+			push_error("shot_face_head: no head %s" % J1_HEADS[r])
+			continue
+		_wear(head)
+		_rig.set("face_style", load(STYLE_DIR + "paper_j1.tres") as FaceStyle)
+		for c in J1_VIEWS.size():
+			var view: Array = J1_VIEWS[c]
+			FaceStyle.face_scale = view[0]
+			_rig.rotation_degrees.y = view[1]
+			_rig.call("_push_face")
+			await _pose("neutral", 4)
+			var label := "%s  scale %.2f" % [_short(head), view[0]]
+			if view[0] == keep:
+				label += " (default)"
+			if view[1] != 0.0:
+				label += "  %d deg" % int(view[1])
+			cells.append([await _grab(J1_CELL), c, r, label])
+	FaceStyle.face_scale = keep
+	_rig.rotation_degrees.y = 0.0
+	_rig.call("_push_face")
+	await _save_grid(cells, J1_VIEWS.size(), J1_HEADS.size(), "j1_heads.png", J1_CELL)
 
 
 func _sheet_debug(heads: Array) -> void:
@@ -225,31 +268,31 @@ func _frames(n: int) -> void:
 
 
 ## The viewport's current frame, cropped to the head and scaled down to one cell.
-func _grab() -> Image:
+func _grab(cell := CELL) -> Image:
 	await _frames(2)
 	var img := _vp.get_texture().get_image()
 	var side := int(SIZE.x * 0.86)
 	var crop := img.get_region(Rect2i((SIZE.x - side) / 2, (SIZE.y - side) / 2, side, side))
-	crop.resize(CELL, CELL, Image.INTERPOLATE_LANCZOS)
+	crop.resize(cell, cell, Image.INTERPOLATE_LANCZOS)
 	return crop
 
 
 ## Lay out [image, column, row, label] cells on paper and save the sheet.
-func _save_grid(cells: Array, cols: int, rows: int, file: String) -> void:
-	var size := Vector2i(CELL * cols, (CELL + LABEL_H) * rows)
+func _save_grid(cells: Array, cols: int, rows: int, file: String, cell := CELL) -> void:
+	var size := Vector2i(cell * cols, (cell + LABEL_H) * rows)
 	var board := ColorRect.new()
 	board.color = PAPER
 	board.size = Vector2(size)
-	for cell: Array in cells:
-		var pos := Vector2(int(cell[1]) * CELL, int(cell[2]) * (CELL + LABEL_H))
+	for c: Array in cells:
+		var pos := Vector2(int(c[1]) * cell, int(c[2]) * (cell + LABEL_H))
 		var tr := TextureRect.new()
-		tr.texture = ImageTexture.create_from_image(cell[0])
+		tr.texture = ImageTexture.create_from_image(c[0])
 		tr.position = pos
 		board.add_child(tr)
 		var lab := Label.new()
-		lab.text = cell[3]
-		lab.position = pos + Vector2(0, CELL)
-		lab.size = Vector2(CELL, LABEL_H)
+		lab.text = c[3]
+		lab.position = pos + Vector2(0, cell)
+		lab.size = Vector2(cell, LABEL_H)
 		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lab.add_theme_color_override("font_color", INK)
 		lab.add_theme_font_size_override("font_size", 14)

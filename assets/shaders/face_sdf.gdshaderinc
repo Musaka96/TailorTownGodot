@@ -8,30 +8,45 @@
 // diameters, x right as the viewer sees the face and y DOWN. `px` is one screen pixel in
 // the same units. A piece's distance is < 0 inside it.
 //
-// Paper treatment (guide section 1, the numbers are the uniforms' defaults): the cut edge
-// wobbles by `paper_wobble` (low-frequency noise, about six waves round a piece), the edge
-// is crisp (antialiased over one pixel), the fill carries fibre grain of `paper_grain`
-// contrast fixed in face space, a `paper_rim` wide band of cream shows inside the cut, and
-// the piece throws a soft shadow of the dark paper on the layer below, offset down and to
-// the character's right (the viewer's left). Treatments finer than a pixel fade out, so at
-// the gameplay camera only the shapes are left.
+// Paper treatment (guide section 1, the numbers are the uniforms' defaults): the cut edge is
+// HAND-CUT, `paper_jag` deep on a full-size piece (thin strips get less): straight scissor
+// facets (linear value noise, two octaves) with the odd small nick, a different seed per
+// piece so no two edges match. The edge is crisp (antialiased over one pixel), the fill
+// carries paper grain of `paper_grain` contrast fixed in face space (mottling, speckle and
+// fibre streaks), light pieces show a `paper_rim` wide band of cream inside the cut, and the
+// piece throws a soft shadow of the dark paper on the layer below, offset down and to the
+// character's right (the viewer's left). Treatments finer than a pixel fade out, so at the
+// gameplay camera only the shapes are left.
 
-uniform vec4 paper_dark : source_color = vec4(0.227, 0.141, 0.094, 1.0);
-uniform vec4 paper_brow : source_color = vec4(0.478, 0.29, 0.165, 1.0);
-uniform vec4 paper_cream : source_color = vec4(1.0, 0.957, 0.886, 1.0);
-uniform vec4 paper_rose : source_color = vec4(0.851, 0.549, 0.494, 1.0);
+uniform vec4 paper_dark : source_color = vec4(0.235, 0.145, 0.082, 1.0);
+uniform vec4 paper_brow : source_color = vec4(0.471, 0.29, 0.173, 1.0);
+uniform vec4 paper_cream : source_color = vec4(0.937, 0.863, 0.745, 1.0);
+uniform vec4 paper_rose : source_color = vec4(0.827, 0.518, 0.392, 1.0);
 uniform vec2 paper_shadow_offset = vec2(-0.004, 0.006);
 uniform float paper_shadow_alpha = 0.22;
 uniform float paper_shadow_soft = 0.008;
-uniform float paper_rim = 0.004;
-uniform float paper_rim_alpha = 0.3;
-uniform float paper_wobble = 0.003;
-uniform float paper_grain = 0.04;
+uniform float paper_rim = 0.003;
+uniform float paper_rim_alpha = 0.25;
+uniform float paper_jag = 0.005;
+uniform float paper_grain = 0.15;
+
+// the nose shield (nose kind 4), measured on J1: x in half-widths, y in half-heights (down),
+// wide flat top, the left shoulder cut a little wider than the right, the point down
+const vec2 NOSE_SHIELD[7] = vec2[7](
+	vec2(-0.02, -1.0), vec2(0.77, -0.88), vec2(0.87, -0.11), vec2(0.83, 0.41),
+	vec2(0.0, 1.0), vec2(-1.12, 0.08), vec2(-0.73, -0.88)
+);
 
 // --- Distance primitives -------------------------------------------------------------
 
 float fs_dot2(vec2 v) {
 	return dot(v, v);
+}
+
+// Intersection of two distances with the corner rounded by r (both shrunk by r first).
+float fs_round_max(float a, float b, float r) {
+	vec2 v = vec2(a + r, b + r);
+	return length(max(v, vec2(0.0))) + min(max(v.x, v.y), 0.0) - r;
 }
 
 // Ellipse distance (Inigo Quilez's gradient-normalised approximation; exact enough for AA).
@@ -108,10 +123,12 @@ vec2 fs_sd_bezier(vec2 pos, vec2 A, vec2 B, vec2 C) {
 }
 
 // Distance to the parabola y = y0 + y2 x^2 over [-x1, x1] (a quadratic bezier, exact).
-float fs_sd_parabola(vec2 p, float y0, float y2, float x1) {
+// y = where along it the nearest point lies, -1 at -x1 .. 1 at x1.
+vec2 fs_sd_parabola(vec2 p, float y0, float y2, float x1) {
 	float ye = y0 + y2 * x1 * x1;
 	vec2 B = vec2(0.0, y0 - y2 * x1 * x1);
-	return fs_sd_bezier(p, vec2(-x1, ye), B, vec2(x1, ye)).x;
+	vec2 h = fs_sd_bezier(p, vec2(-x1, ye), B, vec2(x1, ye));
+	return vec2(h.x, 2.0 * h.y - 1.0);
 }
 
 // Two circles joined by their tangents (Inigo Quilez): r1 at the origin, r2 at (0, h),
@@ -142,6 +159,27 @@ float fs_sd_trapezoid(vec2 p, float r1, float r2, float he) {
 	return s * sqrt(min(fs_dot2(ca), fs_dot2(cb)));
 }
 
+// The NOSE_SHIELD polygon scaled by k (Inigo Quilez's polygon distance).
+float fs_sd_shield(vec2 p, vec2 k) {
+	vec2 v0 = NOSE_SHIELD[0] * k;
+	float d = fs_dot2(p - v0);
+	float s = 1.0;
+	for (int i = 0; i < 7; i++) {
+		int j = i == 0 ? 6 : i - 1;
+		vec2 vi = NOSE_SHIELD[i] * k;
+		vec2 vj = NOSE_SHIELD[j] * k;
+		vec2 e = vj - vi;
+		vec2 w = p - vi;
+		vec2 b = w - e * clamp(dot(w, e) / dot(e, e), 0.0, 1.0);
+		d = min(d, dot(b, b));
+		bvec3 cond = bvec3(p.y >= vi.y, p.y < vj.y, e.x * w.y > e.y * w.x);
+		if (all(cond) || all(not(cond))) {
+			s = -s;
+		}
+	}
+	return s * sqrt(d);
+}
+
 // An infinite pie wedge along +y with half-angle sin/cos `c` (Inigo Quilez, radius r).
 float fs_sd_pie(vec2 p, vec2 c, float r) {
 	p.x = abs(p.x);
@@ -170,27 +208,70 @@ float paper_noise(vec2 p) {
 	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-// A hand-cut edge: add to a piece's distance. `perimeter` (face units) sets the wave length
-// so every piece gets about six waves round its edge; `seed` keeps pieces apart.
-float paper_cut(vec2 p, float perimeter, float seed) {
-	float cell = max(perimeter / 6.0, 1e-3);
-	float n = paper_noise(p / cell + vec2(seed * 7.13, seed * 3.71));
-	return paper_wobble * (2.0 * n - 1.0);
+// Value noise, LINEAR between lattice points (kinks at the lattice lines), in 0..1: an edge
+// displaced by it runs in straight facets, like a pair of scissors.
+float paper_noise_lin(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	float a = paper_hash(i);
+	float b = paper_hash(i + vec2(1.0, 0.0));
+	float c = paper_hash(i + vec2(0.0, 1.0));
+	float d = paper_hash(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-// Fibre grain, -1..1: two layers of stretched noise at crossing angles (short fibres).
-float paper_fibres(vec2 p, float seed) {
+// A hand-cut edge: add to a piece's distance. `perimeter` (face units) sets the facet
+// length (a twelfth of it, 0.02..0.06: short straight cuts, a finer octave at a third of
+// that), `size` the piece's smaller dimension (a thin strip gets a shallower jag, down to
+// a third at 0.03), `seed` keeps pieces apart. About one cell in six carries a small V nick,
+// one jag deep and 2.5x as wide.
+float paper_cut(vec2 p, float perimeter, float size, float seed) {
+	float cell = clamp(perimeter / 12.0, 0.02, 0.06);
+	vec2 o = vec2(seed * 7.13, seed * 3.71);
+	float n = 0.7 * paper_noise_lin(p / cell + o) + 0.3 * paper_noise_lin(p / (0.33 * cell) - o.yx);
+	float amp = paper_jag * clamp(size / 0.09, 0.33, 1.0);
+	float d = amp * (2.0 * n - 1.0);
+	vec2 nc = p / (1.6 * cell) + 1.37 * o;
+	vec2 id = floor(nc);
+	if (paper_hash(id + vec2(0.37 * seed, 0.0)) > 0.83) {
+		vec2 q = id + 0.3 + 0.4 * vec2(paper_hash(id + 17.1), paper_hash(id + 41.7));
+		// a cone 2.5x wider than deep: shallower than the edge's own slope, so it only ever
+		// bites into the edge, never punches a hole beside it
+		float depth = amp;
+		d += depth * max(1.0 - length(nc - q) * 1.6 * cell / (2.5 * depth), 0.0);
+	}
+	return d;
+}
+
+// How much of a pattern `freq` waves per face unit survives at a pixel `px` wide.
+float paper_fade(float freq, float px) {
+	return 1.0 - smoothstep(0.25, 0.6, freq * px);
+}
+
+// Paper grain, about -1..1 (x) plus light fibre streaks, 0..1 (y): mottling, speckle and a
+// finer speckle (each fading out once it gets finer than a pixel), and short fibres along
+// two crossing directions.
+vec2 paper_fibres(vec2 p, float seed, float px) {
 	vec2 o = vec2(seed * 17.3, seed * 9.1);
+	float g = 0.15 * (2.0 * paper_noise(p * 60.0 + o) - 1.0) * paper_fade(60.0, px);
+	g += 0.5 * (2.0 * paper_noise(p * 170.0 - o) - 1.0) * paper_fade(170.0, px);
+	g += 0.5 * (2.0 * paper_noise(p * 420.0 + o.yx) - 1.0) * paper_fade(420.0, px);
+	// dark specks
+	g -= 0.7 * smoothstep(0.86, 0.96, paper_noise(p * 260.0 + o.yx * 1.7)) * paper_fade(260.0, px);
+	// fibres: short thin streaks, light ones on two crossing directions, a few dark ones
 	vec2 a = mat2(vec2(0.94, 0.34), vec2(-0.34, 0.94)) * p;
 	vec2 b = mat2(vec2(0.5, -0.87), vec2(0.87, 0.5)) * p;
-	float n = paper_noise(a * vec2(90.0, 700.0) + o) + paper_noise(b * vec2(110.0, 520.0) - o);
-	n += paper_noise(p * 260.0 + o.yx);
-	return n / 1.5 - 1.0;
+	float fade = paper_fade(380.0, px);
+	float f1 = smoothstep(0.82, 0.95, paper_noise(a * vec2(80.0, 380.0) + o));
+	float f2 = smoothstep(0.84, 0.96, paper_noise(b * vec2(70.0, 360.0) - o));
+	float f3 = smoothstep(0.86, 0.96, paper_noise(a.yx * vec2(90.0, 400.0) + o.yx));
+	g -= 0.5 * f3 * fade;
+	return vec2(g, 0.5 * (f1 + f2) * fade);
 }
 
 // Lay one paper piece on `under`: `d` is the piece's (cut) distance at p, `d_rim` the
 // distance to the edges that show a cut rim (usually d), `d_shadow` the distance sampled
-// at p - paper_shadow_offset (where its shadow falls), `grain` the fibre contrast.
+// at p - paper_shadow_offset (where its shadow falls), `grain` the grain contrast.
 vec3 paper_piece_ex(
 	vec3 under, float d, float d_rim, float d_shadow, vec3 fill, float grain, vec2 p, float seed,
 	float px
@@ -204,9 +285,12 @@ vec3 paper_piece_ex(
 	if (cover <= 0.0) {
 		return col;
 	}
-	float fine = 1.0 - smoothstep(0.0015, 0.004, px);
-	vec3 f = fill * (1.0 + grain * fine * paper_fibres(p, seed));
-	float rim_on = smoothstep(0.4, 1.2, paper_rim / max(px, 1e-6));
+	vec2 g = paper_fibres(p, seed, px);
+	vec3 f = fill * (1.0 + grain * g.x) + vec3(0.9 * grain * g.y);
+	// the cream core shows at the cut of light papers only, skin and cream (on darker ones
+	// it reads as an outline)
+	float light = smoothstep(0.62, 0.8, dot(fill, vec3(0.299, 0.587, 0.114)));
+	float rim_on = smoothstep(0.4, 1.2, paper_rim / max(px, 1e-6)) * light;
 	float rim = clamp((d_rim + paper_rim) / max(px, 1e-6) + 0.5, 0.0, 1.0);
 	f = mix(f, paper_cream.rgb, paper_rim_alpha * rim_on * rim);
 	return mix(col, f, cover);
@@ -221,28 +305,38 @@ vec3 paper_piece(vec3 under, float d, float d_shadow, vec3 fill, vec2 p, float s
 // `side` is -1 for the eye/brow/cheek on the viewer's left, +1 on the right; inner (toward
 // the nose) is -side in x.
 
-// Brow: a thick strip with round ends, `len` long cap to cap. `angle` (radians, > 0 lifts
-// the inner end), `arch` = how far the middle rises, as a fraction of half the length.
-float piece_brow(vec2 p, vec2 c, float side, float len, float thick, float angle, float arch) {
+// Brow: a thick strip, `len` long end to end, its ends cut square to the chord (not to the
+// bent tips, so a drooping outer end stays upright, as on J1) with corners rounded by
+// `corner` x half the thickness (1 = round ends). `angle` (radians, > 0 lifts the
+// inner end), `arch` = how far the middle rises, as a fraction of half the core length,
+// `taper` = how much thicker the inner end is than the outer, as a fraction of `thick`.
+float piece_brow(
+	vec2 p, vec2 c, float side, float len, float thick, float angle, float arch, float corner,
+	float taper
+) {
 	vec2 e = p - c;
 	e.x *= -side;  // +x = inner end
-	float l = max(len - thick, 1e-3);
+	float rc = clamp(corner, 0.0, 1.0) * 0.5 * thick;
+	float l = max(len - 2.0 * rc, 1e-3);
 	vec2 dir = vec2(cos(angle), -sin(angle));
 	vec2 n = vec2(-sin(angle), -cos(angle));  // up, square to the strip
 	float sag = 0.5 * arch * l;
 	vec2 A = -0.5 * l * dir - 0.5 * sag * n;
 	vec2 C = 0.5 * l * dir - 0.5 * sag * n;
 	vec2 B = 1.5 * sag * n;
-	return fs_sd_bezier(e, A, B, C).x - 0.5 * thick;
+	vec2 h = fs_sd_bezier(e, A, B, C);  // y: 0 at the outer end, 1 at the inner
+	float body = h.x - (0.5 * thick * (1.0 + taper * (h.y - 0.5)) - rc);
+	float ends = max(dot(e - A, -dir), dot(e - C, dir));
+	vec2 v = vec2(body, ends);
+	return length(max(v, vec2(0.0))) + min(max(v.x, v.y), 0.0) - rc;
 }
 
-// Pupil: a dark ellipse with an optional 60 degree wedge cut out of it, pointing up and
-// inward; `wedge` = how far into the pupil it cuts, as a fraction of the radius.
-float piece_pupil(vec2 p, vec2 c, float side, vec2 r, float wedge) {
+// Pupil: a dark ellipse with an optional 60 degree wedge cut out of it, opening along `dir`
+// (y down); `wedge` = how far into the pupil it cuts, as a fraction of the radius.
+float piece_pupil(vec2 p, vec2 c, vec2 dir, vec2 r, float wedge) {
 	vec2 e = p - c;
 	float d = fs_sd_ellipse(e, r);
 	if (wedge > 0.01) {
-		vec2 dir = normalize(vec2(-side, -1.0));
 		vec2 apex = dir * min(r.x, r.y) * (1.0 - clamp(wedge, 0.0, 1.0));
 		vec2 q = e - apex;
 		vec2 w = vec2(dot(q, vec2(-dir.y, dir.x)), dot(q, dir));
@@ -277,17 +371,20 @@ float lid_cut(vec2 p, vec2 c, vec2 r, vec2 edge, float margin) {
 	return (e.y - y_edge) / sqrt(1.0 + slope * slope);
 }
 
-// The dark strip along a shut lid's lower edge, round ends, the eye's width.
+// The dark crescent along a shut lid's lower edge, the eye's width: `thick` in the middle,
+// tapering to 0.4 of that at the round ends.
 float piece_lid_strip(vec2 p, vec2 c, vec2 r, vec2 edge, float margin, float thick) {
 	vec2 e = p - c;
 	float rx = r.x + margin;
-	float x1 = max(rx - 0.5 * thick, 1e-3);
-	return fs_sd_parabola(e, edge.x, -edge.y / (rx * rx), x1) - 0.5 * thick;
+	float x1 = max(rx - 0.2 * thick, 1e-3);
+	vec2 h = fs_sd_parabola(e, edge.x, -edge.y / (rx * rx), x1);
+	return h.x - 0.5 * thick * (1.0 - 0.6 * h.y * h.y);
 }
 
 // Nose: kind 0 disc (radius r.x), 1 oval (radii r), 2 teardrop with its round point up
 // (half-width r.x at the bottom, half-height r.y), 3 strip: a tall rounded trapezoid,
-// narrow at the top (half-width r.x at the bottom, half-height r.y).
+// narrow at the top (half-width r.x at the bottom, half-height r.y), 4 shield: J1's cut
+// pentagon, wide flat top, pointing down (half-width r.x at the shoulders, half-height r.y).
 float piece_nose(vec2 p, vec2 c, int kind, vec2 r) {
 	vec2 e = p - c;
 	vec2 up = vec2(e.x, -e.y);  // y-up for the primitives that want it
@@ -302,40 +399,44 @@ float piece_nose(vec2 p, vec2 c, int kind, vec2 r) {
 		float top = 0.45 * r.x;
 		float rr = 0.9 * top;
 		return fs_sd_trapezoid(up, r.x - rr, top - rr, max(r.y - rr, 1e-3)) - rr;
+	} else if (kind == 4) {
+		// corners a touch soft, as scissors leave them
+		float rr = 0.06 * min(r.x, r.y);
+		return fs_sd_shield(e, max(r - rr, vec2(1e-3))) - rr;
 	}
 	return length(e) - r.x;
 }
 
-// The mouth's line y (down) at x: a parabola through the middle, `sag` lower in the middle
-// than at the corners (> 0 smiles).
-float mouth_base(float x, float hw, float sag) {
-	float u = clamp(x / hw, -1.0, 1.0);
-	return sag * (0.5 - u * u);
-}
-
-// Mouth line: a thin strip along the base curve with round ends, `width` cap to cap.
+// Mouth line: a strip along the parabola that sits `sag` lower in the middle than at the
+// corners (> 0 smiles), round ends, `width` cap to cap.
 float piece_mouth_line(vec2 p, vec2 c, float width, float thick, float sag) {
 	vec2 e = p - c;
 	float hw = 0.5 * width;
 	float x1 = max(hw - 0.5 * thick, 1e-3);
 	float y2 = -sag / (hw * hw);
-	return fs_sd_parabola(e, 0.5 * sag, y2, x1) - 0.5 * thick;
+	return fs_sd_parabola(e, 0.5 * sag, y2, x1).x - 0.5 * thick;
 }
 
-// Open mouth: an oval hanging from the base curve, `depth` deep below it and `top` above
-// (a thin top is the flat D of a smile; a tall one rounds it into an "o").
-float piece_mouth_open(vec2 p, vec2 c, float width, float sag, float depth, float top) {
-	vec2 e = p - c;
-	float hw = 0.5 * width;
-	vec2 pm = vec2(e.x, e.y - mouth_base(e.x, hw, sag));
-	vec2 rad = vec2(hw, pm.y < 0.0 ? top : depth);
-	return fs_sd_ellipse_exact(pm, max(rad, vec2(1e-3)));
+// Open mouth: a paper "D" hanging from a straight top edge `y0` below c, half-width hw and
+// `depth` deep; `top` = how far it rounds up above the edge (0 = the flat-topped D of a
+// smile, about the depth = an "o"). Corners rounded by rc.
+float piece_mouth_open(vec2 p, vec2 c, float hw, float y0, float depth, float top, float rc) {
+	vec2 e = p - c - vec2(0.0, y0 + rc);
+	float up = top - rc;
+	float rx = max(hw - rc, 1e-3);
+	float low = max(depth - rc, 1e-3);
+	float d;
+	if (up < 2e-3) {
+		// the flat D: the lower half-ellipse, cut straight along the top
+		d = fs_round_max(fs_sd_ellipse_exact(e, vec2(rx, low)), -e.y, 0.0);
+	} else {
+		d = fs_sd_ellipse_exact(e, vec2(rx, e.y < 0.0 ? up : low));
+	}
+	return d - rc;
 }
 
-// Teeth: a cream band under the top edge of the open mouth, inside it by `inset`.
-float piece_teeth(vec2 p, vec2 c, float width, float sag, float band, float d_open, float inset) {
-	vec2 e = p - c;
-	float hw = 0.5 * width;
-	float y = e.y - mouth_base(e.x, hw, sag);
-	return max(d_open + inset, y - band);
+// Teeth: ONE flat cream strip along the open mouth's top edge `y0`, `band` deep, inside the
+// mouth by `inset`.
+float piece_teeth(vec2 p, vec2 c, float y0, float band, float d_open, float inset) {
+	return max(d_open + inset, p.y - c.y - y0 - band);
 }

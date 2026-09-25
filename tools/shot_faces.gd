@@ -10,6 +10,11 @@ extends SceneTree
 ##   sheet_scale.png    the presets at game size (~25 px head), upscaled 4x nearest
 ##   sheet_paper.png    paper_j1 at three zooms (the face, one eye, one brow): grain, rim and
 ##                      the shadows
+##   j1_match.png       reference J1 beside paper_j1 (640 px each), then paired zooms of
+##                      the reference and ours: eye, brow, nose, mouth
+##   j1_states.png      paper_j1 in the states at 400 px, and at game size (25 px, 4x)
+##   j1_paper_zoom.png  paper_j1's nose, eye and brow end at 5x: the cut edges, grain, shadow
+## With `j1` after `--`, only the three j1 sheets.
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
@@ -37,7 +42,7 @@ const UPSCALE := 4
 const REF_SHEET := "res://IMPORT/faces_proc/ref/style_sheet_3_GIJ.webp"
 # reference disc per preset: label, disc centre (px, measured), disc diameter (px)
 const REFS := {
-	"paper_j1": ["J1", Vector2(134, 792), 210.0],
+	"paper_j1": ["J1", Vector2(133.98, 792.62), 211.0],
 	"paper_j2": ["J2", Vector2(382.5, 792.5), 211.0],
 	"paper_j3": ["J3", Vector2(638.5, 793.5), 221.0],
 	"paper_j4": ["J4", Vector2(888, 794), 212.0],
@@ -45,6 +50,26 @@ const REFS := {
 	"paper_small": ["J1", Vector2(134, 792), 210.0],
 }
 const PAPER_CELL := 420
+# J1 on the reference sheet, measured (px): disc centre and diameter
+const J1_CENTER := Vector2(133.98, 792.62)
+const J1_DIAM := 211.0
+const J1_CELL := 640
+const J1_ZOOM_CELL := 320
+# the paired zooms: label, centre (face units: x from the midline, y from the disc top), side
+const J1_ZOOMS := [
+	["eye", Vector2(-0.226, 0.49), 0.4],
+	["brow", Vector2(-0.255, 0.223), 0.34],
+	["nose", Vector2(0.0, 0.673), 0.26],
+	["mouth", Vector2(0.0, 0.8), 0.26],
+]
+const J1_STATE_CELL := 400
+# the paper zooms at 5x: label, centre (face units from the disc centre, y down)
+const J1_PAPER := [
+	["nose", Vector2(0.0, 0.173)],
+	["left eye", Vector2(-0.17, -0.01)],
+	["left brow, inner end", Vector2(-0.17, -0.27)],
+]
+const J1_PAPER_CELL := 500
 # the paper sheet's views: label, zoom, centre (face units, from the disc centre, y down)
 const PAPER_VIEWS := [
 	["face", 1.0, Vector2.ZERO],
@@ -66,6 +91,14 @@ func _run() -> void:
 	var styles := {}
 	for p: String in PRESETS:
 		styles[p] = load(STYLE_DIR + p + ".tres") as FaceStyle
+	var sheet := _ref_sheet()
+	if sheet != null:
+		await _sheet_j1_match(styles["paper_j1"], sheet)
+	await _sheet_j1_states(styles["paper_j1"])
+	await _sheet_j1_paper(styles["paper_j1"])
+	if OS.get_cmdline_user_args().has("j1"):
+		quit(0)
+		return
 	await _sheet_refs(styles)
 	await _sheet_presets(styles)
 	await _sheet_scale(styles)
@@ -73,13 +106,99 @@ func _run() -> void:
 	quit(0)
 
 
-func _sheet_refs(styles: Dictionary) -> void:
+func _ref_sheet() -> Image:
 	var sheet := Image.new()
 	var err := sheet.load_webp_from_buffer(FileAccess.get_file_as_bytes(REF_SHEET))
 	if err != OK:
 		push_error("shot_faces: cannot read %s (%s)" % [REF_SHEET, error_string(err)])
-		return
+		return null
 	sheet.convert(Image.FORMAT_RGBA8)
+	return sheet
+
+
+## Reference J1 against paper_j1: the whole face, then each feature zoomed side by side.
+func _sheet_j1_match(style: FaceStyle, sheet: Image) -> void:
+	var z := J1_ZOOM_CELL
+	var size := Vector2i(2 * J1_CELL, J1_CELL + LABEL_H + 2 * (z + LABEL_H))
+	var board := _board(size)
+	var side := J1_DIAM * PAD
+	var src := Rect2(J1_CENTER - Vector2.ONE * side * 0.5, Vector2.ONE * side)
+	board.add_child(_ref_image(sheet, src, Vector2.ZERO, Vector2.ONE * J1_CELL))
+	board.add_child(_label("reference J1", Vector2(0, J1_CELL), J1_CELL))
+	var face := _face(style, {}, J1_CELL)
+	face.position = Vector2(J1_CELL, 0)
+	board.add_child(face)
+	board.add_child(_label("paper_j1 / neutral", Vector2(J1_CELL, J1_CELL), J1_CELL))
+	for i in J1_ZOOMS.size():
+		var zoom: Array = J1_ZOOMS[i]
+		var at: Vector2 = zoom[1]
+		var region: float = zoom[2]
+		var pos := Vector2((i % 2) * 2 * z, J1_CELL + LABEL_H + (i / 2) * (z + LABEL_H))
+		var px_side := region * J1_DIAM
+		var c := J1_CENTER + Vector2(at.x, at.y - 0.5) * J1_DIAM
+		var zsrc := Rect2(c - Vector2.ONE * px_side * 0.5, Vector2.ONE * px_side)
+		board.add_child(_ref_image(sheet, zsrc, pos, Vector2.ONE * z))
+		var ours := _face(style, {}, z)
+		var mat := ours.material as ShaderMaterial
+		mat.set_shader_parameter("zoom", PAD / region)
+		mat.set_shader_parameter("zoom_center", Vector2(at.x, at.y - 0.5))
+		ours.position = pos + Vector2(z, 0)
+		board.add_child(ours)
+		var mag := z / px_side
+		board.add_child(_label("ref %s x%.1f" % [zoom[0], mag], pos + Vector2(0, z), z))
+		board.add_child(_label("ours %s" % zoom[0], pos + Vector2(z, z), z))
+	await _save(board, size, "j1_match.png")
+
+
+## paper_j1 in the states at 400 px, and under each its 25 px game-size face at 4x.
+func _sheet_j1_states(style: FaceStyle) -> void:
+	var c400 := J1_STATE_CELL
+	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
+	var up := small * UPSCALE
+	var size := Vector2i(c400 * REF_STATES.size(), c400 + LABEL_H + up + 8)
+	var board := _board(size)
+	for c in REF_STATES.size():
+		var dials := style.expression(REF_STATES[c])
+		var face := _face(style, dials, c400)
+		face.position = Vector2(c * c400, 0)
+		board.add_child(face)
+		var text := "paper_j1 / %s" % REF_STATES[c]
+		board.add_child(_label(text, Vector2(c * c400, c400), c400))
+		var tiny_board := _board(Vector2i(small, small))
+		var tiny := _face(style, dials, GAME_HEAD_PX * PAD)
+		tiny.position = Vector2.ONE
+		tiny_board.add_child(tiny)
+		var img := await _render(tiny_board, Vector2i(small, small))
+		img.resize(up, up, Image.INTERPOLATE_NEAREST)
+		var tr := TextureRect.new()
+		tr.texture = ImageTexture.create_from_image(img)
+		tr.position = Vector2(c * c400 + (c400 - up) / 2, c400 + LABEL_H + 4)
+		board.add_child(tr)
+	await _save(board, size, "j1_states.png")
+
+
+## paper_j1 up close (5x): the hand-cut edges, the grain and the shadows.
+func _sheet_j1_paper(style: FaceStyle) -> void:
+	var cell := J1_PAPER_CELL
+	var size := Vector2i(cell * J1_PAPER.size(), cell + LABEL_H)
+	var board := _board(size)
+	for c in J1_PAPER.size():
+		var view: Array = J1_PAPER[c]
+		var face := _face(style, {}, cell)
+		var mat := face.material as ShaderMaterial
+		mat.set_shader_parameter("zoom", 5.0)
+		mat.set_shader_parameter("zoom_center", view[1])
+		face.position = Vector2(c * cell, 0)
+		board.add_child(face)
+		var text := "paper_j1 / %s x5" % view[0]
+		board.add_child(_label(text, Vector2(c * cell, cell), cell))
+	await _save(board, size, "j1_paper_zoom.png")
+
+
+func _sheet_refs(styles: Dictionary) -> void:
+	var sheet := _ref_sheet()
+	if sheet == null:
+		return
 	var cols := 1 + REF_STATES.size()
 	var size := Vector2i(CELL * cols, (CELL + LABEL_H) * PRESETS.size())
 	var board := _board(size)

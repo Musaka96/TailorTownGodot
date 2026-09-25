@@ -12,12 +12,12 @@ extends Resource
 ## Units: FACE UNITS, fractions of the reference head disc (the J row of
 ## IMPORT/faces_proc/ref/style_sheet_3_GIJ.webp): spacings from the midline to the left
 ## piece's centre, heights from the top of the disc, round pieces by their radius. On a head
-## the disc is DISC_SCALE face-rect widths across (FaceFrame, baked by FaceUvBaker), so one
-## preset lands the same on every head. Colours and the paper treatment are shared (shader
-## defaults): a preset only picks shapes and sizes (guide section 5).
+## the disc is DISC_SCALE x face_scale face-rect widths across (FaceFrame, baked by
+## FaceUvBaker), so one preset lands the same on every head. Colours and the paper treatment
+## are shared (shader defaults): a preset only picks shapes and sizes (guide section 5).
 
 enum Element { EYE, BROW, NOSE, MOUTH }
-enum NoseKind { DISC, OVAL, TEARDROP, STRIP }
+enum NoseKind { DISC, OVAL, TEARDROP, STRIP, SHIELD }
 
 ## The reference disc on a head: its diameter in face-rect widths, its centre's height as a
 ## fraction of the rect from the top, and the rect aspect (width / height) the heights were
@@ -36,6 +36,8 @@ const FIELDS := [
 	"pupil_radius",
 	"pupil_aspect",
 	"pupil_wedge",
+	"pupil_wedge_dir",
+	"pupil_wedge_mirror",
 	"pupil_offset",
 	"lid",
 	"lid_curve",
@@ -45,6 +47,8 @@ const FIELDS := [
 	"brow_thickness",
 	"brow_angle",
 	"brow_arch",
+	"brow_corner",
+	"brow_taper",
 	"nose_kind",
 	"nose_size",
 	"nose_height",
@@ -62,6 +66,11 @@ const FIELDS := [
 ## A pupil never shrinks below this radius (it must still read at 25 px).
 const PUPIL_MIN := 0.05
 
+## How big the face is drawn on a head, relative to the reference disc mapping (DISC_SCALE):
+## 0.8 keeps the eyes off the hair line and the mouth above the chin. A static so review
+## tools can compare sizes; the game leaves it alone.
+static var face_scale := 0.8
+
 @export_group("Eye")
 @export var eye_spacing := 0.23
 @export var eye_height := 0.49
@@ -72,10 +81,16 @@ const PUPIL_MIN := 0.05
 @export var pupil_radius := 0.095
 ## The pupil's height over its width (1 = a disc).
 @export var pupil_aspect := 1.0
-## How far the 60 degree wedge (up and inward) cuts into the pupil, as a fraction of its
-## radius; 0 = none.
+## How far the 60 degree wedge cuts into the pupil, as a fraction of its radius; 0 = none.
 @export_range(0.0, 1.0) var pupil_wedge := 0.0
-## Pupil shift from the eye centre (x right, y down). Straight ahead at rest; expressions.
+## Where the wedge opens on the viewer's left eye, degrees: 0 = the viewer's right, 90 = up
+## (45 = up and inward).
+@export var pupil_wedge_dir := 45.0
+## true = the right eye's wedge mirrors the left (both inward); false = both open the same
+## way (a sideways gaze, J1).
+@export var pupil_wedge_mirror := true
+## Pupil shift from the eye centre (x right, y down, both eyes alike). Most idles look straight
+## ahead; J1 rests looking to the viewer's right. Expressions add to it.
 @export var pupil_offset := Vector2.ZERO
 ## The skin-coloured lid piece: 0 = open, 1 = shut. Only the heavy-lid idle rests above 0.
 @export_range(0.0, 1.0) var lid := 0.0
@@ -92,11 +107,17 @@ const PUPIL_MIN := 0.05
 @export var brow_angle := 0.0
 ## How far the middle rises, as a fraction of half the length.
 @export var brow_arch := 0.1
+## The ends are cut square to the strip with corners rounded by this x half the thickness:
+## 1 = round ends, 0.2 = J1's squarish cut.
+@export_range(0.0, 1.0) var brow_corner := 1.0
+## How much thicker the inner end is than the outer, as a fraction of the thickness (the
+## thickness is the middle's); 0 = even.
+@export_range(0.0, 0.5) var brow_taper := 0.0
 
 @export_group("Nose")
 @export var nose_kind := NoseKind.DISC
 ## Half-width and half-height (a disc uses x as its radius; a teardrop and a strip are
-## x wide at the bottom).
+## x wide at the bottom, a shield x wide at the shoulders).
 @export var nose_size := Vector2(0.08, 0.08)
 @export var nose_height := 0.64
 
@@ -107,13 +128,14 @@ const PUPIL_MIN := 0.05
 @export var mouth_thickness := 0.022
 ## -1 frown .. 1 smile; the idle is a faint smile (0.10..0.25).
 @export_range(-1.0, 1.0) var mouth_curve := 0.2
-## 0 = the line; up to 1 it opens into a dark oval.
+## 0 = the line; opening, it turns into a dark D (straight top, round bottom) up to 1.
 @export_range(0.0, 1.0) var mouth_open := 0.0
-## 0 = the open mouth hangs from a flat top (a smile), 1 = a round "o".
+## 0 = the open mouth is the flat-topped D (a smile), 1 = a round "o".
 @export_range(0.0, 1.0) var mouth_round := 0.0
-## A cream strip of teeth along the top of the open mouth, 0..1.
+## One flat cream strip of teeth along the open mouth's top edge, 0..1.
 @export_range(0.0, 1.0) var mouth_teeth := 0.0
-## A rose tongue disc at the bottom of the open mouth, 0..1.
+## A rose tongue half-disc at the bottom of the open mouth, 0..1 (it shows anyway once the
+## mouth is open past 0.6, unless it is round).
 @export_range(0.0, 1.0) var mouth_tongue := 0.0
 
 @export_group("Cheeks")
@@ -134,12 +156,12 @@ func apply_to_material(mat: ShaderMaterial, dials := {}, frame: FaceFrame = null
 	if frame != null:
 		mat.set_shader_parameter("face_aspect", frame.aspect())
 		mat.set_shader_parameter("layout_aspect", LAYOUT_ASPECT)
-		mat.set_shader_parameter("disc_scale", DISC_SCALE)
+		mat.set_shader_parameter("disc_scale", DISC_SCALE * face_scale)
 		mat.set_shader_parameter("disc_center_v", DISC_CENTER_V)
 		mat.set_shader_parameter("frame_offset", frame.offset)
 		mat.set_shader_parameter("frame_scale", frame.scale)
 		if frame.eye_line >= 0.0:
-			var unit := DISC_SCALE * LAYOUT_ASPECT  # rect heights per face unit
+			var unit := DISC_SCALE * face_scale * LAYOUT_ASPECT  # rect heights per face unit
 			var eye_v := DISC_CENTER_V + (float(dials.get("eye_height", eye_height)) - 0.5) * unit
 			lift = (frame.eye_line - eye_v) / unit
 	for key: String in FIELDS:
