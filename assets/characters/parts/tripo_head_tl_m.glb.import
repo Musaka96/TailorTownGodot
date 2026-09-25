@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://co3tms71wpt4k"
-path="res://.godot/imported/KOSA+GLAVA-1.glb-924a118ad50e66ebf9b1cf3985512efb.scn"
+uid="uid://bruuptv65bxda"
+path="res://.godot/imported/tripo_head_tl_m.glb-9cd6a135badbc22ef97092e53ff77c2c.scn"
 
 [deps]
 
-source_file="res://assets/characters/parts/KOSA+GLAVA-1.glb"
-dest_files=["res://.godot/imported/KOSA+GLAVA-1.glb-924a118ad50e66ebf9b1cf3985512efb.scn"]
+source_file="res://assets/characters/parts/tripo_head_tl_m.glb"
+dest_files=["res://.godot/imported/tripo_head_tl_m.glb-9cd6a135badbc22ef97092e53ff77c2c.scn"]
 
 [params]
 

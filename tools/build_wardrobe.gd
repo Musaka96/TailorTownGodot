@@ -66,13 +66,21 @@ func _scan_parts(lib: WardrobeLibrary) -> void:
 		print("  + ", f, "  head=", pair["head"], " hair=", pair["hair"], " gender=", g)
 
 
-## Split a head+hair combo glb by AABB centre Y (face lower, hair higher).
+## Split a head+hair combo glb: meshes named `head` and `Hair` (any case) win; otherwise
+## by AABB centre Y (face lower, hair higher).
 ## Returns {"head": name, "hair": name}, or {} if it has fewer than 2 meshes.
 func _detect_head_hair(ps: PackedScene) -> Dictionary:
 	var inst := ps.instantiate()
 	var meshes := inst.find_children("*", "MeshInstance3D", true, false)
 	var out := {}
-	if meshes.size() >= 2:
+	var named := {}
+	for mi: MeshInstance3D in meshes:
+		var key := String(mi.name).to_lower()
+		if key in ["head", "hair"]:
+			named[key] = mi.name
+	if named.size() == 2:
+		out = {"head": named["head"], "hair": named["hair"]}
+	elif meshes.size() >= 2:
 		var head_mi: MeshInstance3D = meshes[0]
 		var hair_mi: MeshInstance3D = meshes[0]
 		for mi: MeshInstance3D in meshes:
@@ -87,9 +95,10 @@ func _detect_head_hair(ps: PackedScene) -> Dictionary:
 
 
 func _gender_from(fname: String) -> int:
-	var n := fname.to_lower()
-	if n.contains("female") or n.contains("_f"):
+	# Whole tokens only: "avatar_fringe_cap" must not read as "_f".
+	var tokens := fname.get_basename().to_lower().replace("-", "_").split("_", false)
+	if tokens.has("female") or tokens.has("f"):
 		return Enums.Gender.FEMALE
-	if n.contains("_male") or n.contains("_m"):
+	if tokens.has("male") or tokens.has("m"):
 		return Enums.Gender.MALE
 	return Enums.Gender.ANY
