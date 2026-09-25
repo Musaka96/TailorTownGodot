@@ -280,7 +280,14 @@ background `#e5dbd1`, divider `#3e4a55`.
 | `monocle` | Glasses: a single gold monocle over the right eye, a thick gold ring with a short gold chain hanging down beside the cheek, nothing over the left eye. |
 
 Facial hair, dark brown `#2c1e18` for gentlemen or silver `#8e9196` for older. The owner
-wants the modern groomed set (boxed, groomed, circle, old beard) over the retro set. Each line
+wants the modern groomed set (boxed, groomed, circle, old beard) over the retro set.
+
+**Profile, not back, for glasses and facial hair.** The first beard batch drew the
+beards as collars round the back of the neck, because the back-view sentence said "only
+the parts that wrap past the jaw are seen" and the model wrapped them. Both sets now use
+the front view on the left and the LEFT PROFILE on the right, and say outright that
+facial hair grows only on the chin, jaw, cheeks and upper lip, nothing on the back of the
+head or neck. The profile is also the view Tripo needs for beard depth and glasses arms. Each line
 ends with "the face stays blank above it: no nose, no mouth, no eyes".
 
 | facial hair | line |
