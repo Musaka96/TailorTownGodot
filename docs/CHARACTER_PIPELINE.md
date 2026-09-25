@@ -68,6 +68,15 @@ suit. Cloth chosen: olive cotton / white cotton / cream cotton + white sneakers;
 flannel / near-black worsted / charcoal flannel + chestnut shoes (the camel flannel reads
 grainy at gameplay size; a smoother wool may sit better).
 
+Glasses (commit cdc5438): `tools/blender/tripo_glasses.py` on `IMPORT/CHARREWORK/glasses.blend`
+(a 2x2 grid of bald heads wearing frames) -> `assets/characters/parts/glasses_{round,square,
+wire,halfmoon}.glb`, frames only, fitted to the shaved skull, bound to bone `head`. In the
+game glasses are no longer sprites: `WardrobeLibrary.glasses` lists the styles, the rig
+mounts the frames as plain meshes on a head-bone attachment (placed from the part's bind
+pose, pushed forward by `face_z_for(head) - 0.421`), frame colour from
+`CharacterRig.GLASSES_COLORS` rides on the customer look (`glasses_color`). Old look values
+map: round -> wire, sun -> black square.
+
 Heads: `tools/blender/tripo_heads.py` turns `IMPORT/CHARREWORK/heads.blend` (a shaved
 skull with ears + a grid of hair-over-skull heads) into `assets/characters/parts/
 tripo_head_*_m.glb` (own skull) and `tripo_bald_*_m.glb` (hair moved onto the shaved
