@@ -248,6 +248,8 @@ rather than as separate strips; `h_gpt_t1` and `h_gpt_t15` (1 and 1.5 tiles,
 `mache_gpt_extra.png`) show the strips plainly at that size and are the next step up if the
 owner wants them bigger. The 25 px head stays clean with all of them.
 
+**Happy eyes, owner's pick (2026-09-27): A bright** (`FaceStyle.happy_eye = BRIGHT`): eyes stay open, pupils +10 % and lifted, brows up, cheeks appear or rise; no cut into the eye. The closed-arcs variant stays available for a delight moment; the old cut (X) is retired.
+
 ## 7. Checking an asset
 
 A new preset or a generated reference is accepted only if: every feature is a paper piece with no

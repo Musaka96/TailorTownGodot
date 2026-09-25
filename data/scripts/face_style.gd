@@ -94,7 +94,7 @@ static var face_scale := 0.8
 static var face_drop := 0.05
 ## The happy eye every face uses (HappyEye). The owner has not picked yet: CUT stays until
 ## he does, then this one line flips it. Review tools switch it to compare.
-static var happy_eye := HappyEye.CUT
+static var happy_eye := HappyEye.BRIGHT
 
 @export_group("Eye")
 @export var eye_spacing := 0.23
