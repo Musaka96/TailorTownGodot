@@ -828,6 +828,7 @@ func _face_skin() -> ShaderMaterial:
 			_skin_face_shader = load(SKIN_FACE_SHADER) as Shader
 		_skin_face = ShaderMaterial.new()
 		_skin_face.shader = _skin_face_shader
+		NeckCut.apply(_skin_face, null)  # the baked top; _wear_top() pushes every later one
 	_skin_face.set_shader_parameter("skin_color", _skin_color)
 	_skin_face.set_shader_parameter("face_enabled", _face_frame != null)
 	_paper_look().apply_to(_skin_face)
@@ -1333,6 +1334,7 @@ func _wear_top(part: WardrobePart) -> void:
 	if own_arms and not _top.has("arms"):
 		_set_base_arms(true)  # the model had no arms mesh after all
 	_apply_skin()
+	NeckCut.apply(_skin_face, part, not _top.is_empty())  # the neck inside this collar
 
 
 ## Put the base arms on the skeleton, or take them off (kept for later, not freed).

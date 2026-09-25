@@ -275,6 +275,7 @@ roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
+neck_cut = -0.05
 
 [sub_resource type="Resource" id="Resource_la25j"]
 script = ExtResource("16_y7m5a")
@@ -338,6 +339,7 @@ roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
+neck_cut = -0.02
 
 [sub_resource type="Resource" id="Resource_ibpkf"]
 script = ExtResource("16_y7m5a")
@@ -367,6 +369,7 @@ roles = {
 "square": "square",
 "tie": "tie"
 }
+neck_cut = -0.005
 
 [sub_resource type="Resource" id="Resource_svrxr"]
 script = ExtResource("1_x33lo")
@@ -379,6 +382,7 @@ roles = {
 "square": "square",
 "tie": "tie"
 }
+neck_cut = -0.005
 
 [sub_resource type="Resource" id="Resource_u1opk"]
 script = ExtResource("1_x33lo")
@@ -392,6 +396,7 @@ roles = {
 "tie": "tie"
 }
 placeholder = true
+neck_cut = -0.005
 
 [resource]
 script = ExtResource("15_lv2yj")

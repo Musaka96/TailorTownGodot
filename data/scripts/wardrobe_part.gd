@@ -21,6 +21,10 @@ extends Resource
 ## A stand-in: the style is listed but its own model is not in yet (`model` borrows
 ## another part's). Menus skip it, so no one can order it; the rig still wears it.
 @export var placeholder := false
+## Tops only: the head-bone rest height (metres, head_2) below which the head's neck stub
+## is cut away so it sits inside this top's collar (NeckCut, skin_face.gdshader). Below
+## -0.5 (the default) the neck is left whole.
+@export var neck_cut := -1.0
 
 
 static func make(

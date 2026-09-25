@@ -9,6 +9,8 @@ extends RefCounted
 ## down. Vertices facing away (normal.z < BACK_NZ) would project into the rect from behind:
 ## they are pushed BACK_PUSH face units out from the rect centre along their own direction,
 ## so no triangle between them and a side vertex can sweep back across the rect.
+## Every vertex also carries its head-bone rest position in CUSTOM0 (xyz, w = 1), which
+## skin_face.gdshader reads to cut the neck stub off below the worn top's collar (NeckCut).
 ## Results are cached per source mesh (heads are shared resources).
 
 const FRONT_NZ := 0.85
@@ -108,8 +110,14 @@ static func _add_surface(
 	var nrm: PackedVector3Array = surf.nrm
 	var uv2 := PackedVector2Array()
 	uv2.resize(pos.size())
+	var rest := PackedFloat32Array()
+	rest.resize(pos.size() * 4)
 	for i in pos.size():
 		var p := pos[i]
+		rest[i * 4] = p.x
+		rest[i * 4 + 1] = p.y
+		rest[i * 4 + 2] = p.z
+		rest[i * 4 + 3] = 1.0
 		var uv := Vector2(
 			(p.x - frame.center.x) / frame.size.x + 0.5, 0.5 - (p.y - frame.center.y) / frame.size.y
 		)
@@ -119,7 +127,8 @@ static func _add_surface(
 			uv = Vector2(0.5, 0.5) + d * BACK_PUSH
 		uv2[i] = uv
 	arrays[Mesh.ARRAY_TEX_UV2] = uv2
-	var flags := 0
+	arrays[Mesh.ARRAY_CUSTOM0] = rest
+	var flags := Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 	var fmt: int = mesh.surface_get_format(s)
 	if fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS:
 		flags |= Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS

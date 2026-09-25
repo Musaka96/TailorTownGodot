@@ -14,6 +14,12 @@ const _DOUBLE := "res://assets/characters/suit_doublebreasted.glb"
 # Street clothes; until a file exists its outfit borrows the base model's meshes.
 const _OVERSHIRT := "res://assets/characters/street_overshirt.glb"
 const _OVERCOAT := "res://assets/characters/street_overcoat.glb"
+# Where each top's collar hides the neck stub (WardrobePart.neck_cut, head_2 rest metres):
+# the suits' shirt collars stand up to the jaw, the coat's knit sits a little lower and the
+# overshirt's crew-neck tee lowest.
+const SUIT_NECK_CUT := -0.005
+const OVERCOAT_NECK_CUT := -0.02
+const OVERSHIRT_NECK_CUT := -0.05
 # Street colourways (StreetOutfit outer/inner/pants_colors): muted, atelier-toned cloth
 # colours, the outfit's own colour first. Every outer x inner x trousers mix must sit
 # well together, so the lists avoid brights and share no loud hue.
@@ -252,6 +258,8 @@ static func make_default() -> WardrobeLibrary:
 	var tuxedo := WardrobePart.make("Tuxedo", model, suit_roles.duplicate())
 	tuxedo.placeholder = true
 	lib.tops.append(tuxedo)
+	for top: WardrobePart in lib.tops:
+		top.neck_cut = SUIT_NECK_CUT
 	# One bottom for now: Pleated and Shorts clamp to it (see _at).
 	lib.bottoms.append(WardrobePart.make("Flat Front", model, pants_roles.duplicate()))
 	lib.shoes.append(WardrobePart.make("Base Shoes", model, {"shoes": "shoes"}))
@@ -294,6 +302,7 @@ static func _add_street_outfits(lib: WardrobeLibrary, base: PackedScene) -> void
 	var shirt_model := _load_or(_OVERSHIRT, base)
 	var overshirt := _street("Overshirt", shirt_model, olive, tee, chino, sneakers)
 	_palettes(overshirt, OVERSHIRT_OUTER, OVERSHIRT_INNER, OVERSHIRT_PANTS)
+	overshirt.top.neck_cut = OVERSHIRT_NECK_CUT
 	lib.street_outfits.append(overshirt)
 	var camel := StreetOutfit.cloth(
 		&"street_camel_coat", "Camel Coat", fab.FLANNEL, Color("b08658")
@@ -308,6 +317,7 @@ static func _add_street_outfits(lib: WardrobeLibrary, base: PackedScene) -> void
 	var coat_model := _load_or(_OVERCOAT, base)
 	var overcoat := _street("Overcoat", coat_model, camel, knit, charcoal, brogues)
 	_palettes(overcoat, OVERCOAT_OUTER, OVERCOAT_INNER, OVERCOAT_PANTS)
+	overcoat.top.neck_cut = OVERCOAT_NECK_CUT
 	lib.street_outfits.append(overcoat)
 
 

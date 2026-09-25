@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode cull_back, specular_disabled;
+render_mode cull_disabled, specular_disabled;
 
 // The head's skin with the cut-paper face (face_paper.gdshaderinc) drawn into it. Lit like
 // the rig's flat skin material (matte: roughness 1, no metal, no specular), and the face is
@@ -36,10 +36,27 @@ uniform vec2 frame_offset = vec2(0.0);
 uniform float frame_scale = 1.0;
 // paints the face rect as a checkerboard with a red border (projection check)
 uniform bool debug_uv = false;
+// The neck stub sits inside the worn top's collar (NeckCut, from the top's WardrobePart):
+// the skin is cut away below `neck_cut`, a head-bone rest height in metres. The head mesh
+// carries each vertex's head-bone rest position in CUSTOM0 (FaceUvBaker, w = 1; a mesh
+// without it is never cut). Under the cut the inside of the neck shows instead, in the
+// collar's shade, so the collar never frames a hole; the last NECK_FADE metres above the
+// cut darken into that shade. Below NECK_OFF (the default) there is no cut.
+uniform float neck_cut = -1.0;
 
 // where the papier-mache strips leave the face sheet for the mesh UV1 (face units from
 // the disc centre): |x| from .x to .y, |y| from .z to .w
 const vec4 FRONT_EDGE = vec4(0.36, 0.52, 0.5, 0.7);
+const float NECK_OFF = -0.5;
+const float NECK_FADE = 0.005;
+const float NECK_SHADE = 0.6;
+
+// head-bone rest position (xyz) and whether the mesh has one (w)
+varying vec4 head_rest;
+
+void vertex() {
+	head_rest = CUSTOM0;
+}
 
 vec3 debug_rect(vec3 col, vec2 f) {
 	if (f.x < 0.0 || f.x > 1.0 || f.y < 0.0 || f.y > 1.0) {
@@ -93,6 +110,14 @@ void fragment() {
 	// the pieces' sheet paper, its own normal where a piece lies (face units)
 	dh += paper_slope(p, piece_paper_grad(p, px, clamp(sheet, 0.0, 1.0) * front));
 	NORMAL = paper_normal(NORMAL, VERTEX, dh, mix(paper_texel(q), paper_texel(p), front));
+	// the neck cut: > 0 under it; outside the cut the inside of the head never shows
+	bool cut_on = neck_cut > NECK_OFF && head_rest.w > 0.5;
+	float under = neck_cut - head_rest.y;
+	if (FRONT_FACING == (cut_on && under > 0.0)) {
+		discard;
+	}
+	float shade = cut_on ? smoothstep(-NECK_FADE, 0.0, under) : 0.0;
+	col = FRONT_FACING ? mix(col, col * NECK_SHADE, shade) : skin_color.rgb * NECK_SHADE;
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
