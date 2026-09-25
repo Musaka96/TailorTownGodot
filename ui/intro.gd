@@ -27,11 +27,14 @@ func _ready() -> void:
 	_video.play()
 
 
-func _unhandled_input(event: InputEvent) -> void:
+## _input, not _unhandled_input: the full-screen root and the HUD/debug autoloads would
+## otherwise swallow clicks and keys before they reach the skip.
+func _input(event: InputEvent) -> void:
 	var pressed: bool = (
 		(event is InputEventKey and event.pressed and not event.echo)
 		or (event is InputEventMouseButton and event.pressed)
 		or (event is InputEventJoypadButton and event.pressed)
+		or (event is InputEventScreenTouch and event.pressed)
 	)
 	if pressed:
 		get_viewport().set_input_as_handled()
