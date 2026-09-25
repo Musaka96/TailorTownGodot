@@ -63,9 +63,10 @@ below, a 0.25-layer lip at the torn edge; `mache_seam` 0.3 = a soft glue shadow 
 each visible edge and a lighter torn fringe just inside; `mache_tone` 0.04 = each strip ±4 %)
 and a scanned paper normal (ambientCG Paper003, creased white paper, CC0, at `scan_scale` 2
 tiles per face unit, `normal_strength` 1.0; its colour is off, `scan_albedo` 0). The face pieces
-are paper too: the strips' tone and seams stay under them, the relief shows through at 40 %,
-and each piece adds its own 0.004 face-unit step (`piece_relief` 1.0) so its cut edge catches
-the light. The strips fade out once a cell is under ~15 px (gone under 9 px) and a piece's step
+carry no strip overlay: each is one flat sheet of its own paper (grain, cut rim, drop shadow onto
+the strips around it), with no scan or strip relief, tone or seam under it (`piece_scan` 0,
+blended by the piece's coverage), and a single 0.004 face-unit step at its cut edge
+(`piece_relief` 1.0) that catches the light (`IMPORT/faces_proc/pieces_flat.png`). The strips fade out once a cell is under ~15 px (gone under 9 px) and a piece's step
 once a face unit is under ~50 px, so a 25 px head keeps its plain silhouette. The head's UV1
 is cut into islands across the face, so on the front the strips lie in the face UV (one sheet)
 and blend into UV1 round the sides (`FRONT_EDGE`); on the hair the UV islands still cut the

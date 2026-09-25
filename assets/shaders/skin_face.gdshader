@@ -20,7 +20,8 @@ uniform vec4 skin_color : source_color = vec4(0.86, 0.72, 0.6, 1.0);
 // UV1, `skin_tile` face units per UV unit (tripo heads: ~4, measured on UV1 against the
 // face UV), `skin_grain` its contrast (0 = the old flat skin); over it the papier-mache
 // surface (paper_mache.gdshaderinc: scan + torn strips, lit through the normal), which the
-// face pieces sit on, each a paper's step higher (piece_relief)
+// face pieces sit on, each one flat sheet (no scan, no strips) a paper's step higher at its
+// cut edge (piece_relief)
 uniform float skin_tile = 4.0;
 uniform float skin_grain = 0.1;
 uniform bool face_enabled = false;
@@ -67,8 +68,9 @@ void fragment() {
 		float stretch = layout_aspect / max(face_aspect, 1e-3);
 		col = face_paper(col, skin, skin_grain, p, px, stretch, lift);
 	}
-	// the strips' tone and seams stay under the pieces (each piece is its own paper); the
-	// relief runs under them too, and each piece adds its own step. The head's UV1 is cut
+	// the scan and the strips stop under the pieces (each piece is one sheet of its own paper,
+	// blended out by its coverage, so its edge stays clean; the shadow it casts lies outside
+	// it, on the strips), and each piece adds its own step. The head's UV1 is cut
 	// into islands across the face, so on the front the strips lie in face units (p, the
 	// planar face UV, one sheet) and blend to UV1 round the sides, where p stretches
 	float keep = 1.0 - clamp(lift, 0.0, 1.0);

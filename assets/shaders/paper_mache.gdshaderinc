@@ -29,8 +29,11 @@ uniform float mache_strength = 0.0;
 uniform float mache_seam = 0.0;
 // each strip's own tone, +- (0.04 = 4 %); the strips are on when any of the three is > 0
 uniform float mache_tone = 0.0;
-// the face pieces' own step (skin_face only): 1 = one PIECE_LAYER thick
-uniform float piece_relief = 0.0;
+// the face pieces' own step at their cut edge (skin_face only): 1 = one PIECE_LAYER thick
+uniform float piece_relief = 1.0;
+// how much of the scan and the strip relief shows under a face piece (skin_face only): 0 = none,
+// each piece is one flat sheet with only its own grain
+uniform float piece_scan = 0.0;
 
 // one strip layer, face units (about 1.5 mm on a head)
 const float MACHE_LAYER = 0.008;
@@ -54,8 +57,6 @@ const float MACHE_LIP_W = 0.05;
 // inside (cells); a thin dark seam reads as cracks
 const float MACHE_SEAM_W = 0.1;
 const float MACHE_FRINGE = 0.5;
-// under a face piece the strips' relief shows at this share (the piece smooths it)
-const float MACHE_UNDER_PIECE = 0.4;
 // one face piece, face units
 const float PIECE_LAYER = 0.004;
 
@@ -141,7 +142,8 @@ vec4 mache_field(vec2 g, float w) {
 }
 
 // The paper at q: `col` with the scan's light and dark, and the strips' tone, seam and fringe
-// where `keep` is 1 (0 under a face piece, which is its own paper); `grad` returns the
+// where `keep` is 1 (0 under a face piece, which is its own sheet: no scan, no strips, only
+// `piece_scan` of the scan and the relief); `grad` returns the
 // height's gradient over q (face units per face unit: scan normal and strips) for
 // paper_normal(). Cells under about 15 px fade out (gone under 9 px), so a 25 px head stays
 // calm while a ~140 px one shows the strips.
@@ -149,15 +151,16 @@ vec3 paper_mache(vec3 col, vec2 q, float keep, out vec2 grad) {
 	float px = 0.5 * (fwidth(q.x) + fwidth(q.y));
 	grad = vec2(0.0);
 	// the scan: its luminance over its own mean (the last mip), and its normal as a slope
+	float under = mix(piece_scan, 1.0, keep);
 	vec2 st = q * scan_scale;
 	const vec3 LUM = vec3(0.299, 0.587, 0.114);
 	float lum = dot(texture(scan_albedo_tex, st).rgb, LUM);
 	float mean = dot(textureLod(scan_albedo_tex, st, 12.0).rgb, LUM);
-	col *= mix(1.0, lum / max(mean, 0.02), scan_albedo);
+	col *= mix(1.0, lum / max(mean, 0.02), scan_albedo * under);
 	vec2 sn = texture(scan_normal_tex, st).rg * 2.0 - 1.0;
 	float snz = sqrt(max(1.0 - dot(sn, sn), 0.04));
 	// GL green points up the image, toward -v
-	grad += normal_strength * vec2(-sn.x, sn.y) / snz;
+	grad += under * normal_strength * vec2(-sn.x, sn.y) / snz;
 	if (mache_strength <= 0.0 && mache_seam <= 0.0 && mache_tone <= 0.0) {
 		return col;
 	}
@@ -172,7 +175,7 @@ vec3 paper_mache(vec3 col, vec2 q, float keep, out vec2 grad) {
 	vec4 m = mache_field(g, w);
 	float hx = mache_field(g + vec2(eps, 0.0), w).x;
 	float hy = mache_field(g + vec2(0.0, eps), w).x;
-	float relief = fade * mache_strength * mix(MACHE_UNDER_PIECE, 1.0, keep);
+	float relief = fade * mache_strength * under;
 	grad += relief * MACHE_LAYER * mache_scale * vec2(hx - m.x, hy - m.x) / eps;
 	float k = fade * keep;
 	col *= 1.0 + mache_tone * m.y * k;

@@ -2,7 +2,7 @@ extends SceneTree
 
 ## The papier-mache surface experiment on the real rig (CharacterRig.procedural_faces on;
 ## guide docs/FACE_STYLE_GUIDE.md, "Papier-mache surface"). NOT headless:
-##   godot --path . --script res://tools/shot_mache.gd [-- drop | variants | zoom]
+##   godot --path . --script res://tools/shot_mache.gd [-- drop | variants | zoom | flat]
 ##   ... -- variants only=a_grain,e_mache12   (columns / zoom rows from those presets instead)
 ##   ... -- variants zoom zoom_only=h_gpt_t3 out=mache_gpt   (zoom rows from their own list;
 ##   the sheets are then <out>.png and <out>_zoom.png)
@@ -16,6 +16,9 @@ extends SceneTree
 ##                       a face piece's edge, for the variants in ZOOM_VARIANTS
 ##   face_drop.png       the face 0.00 / 0.05 / 0.08 rect heights lower (FaceStyle.face_drop)
 ##                       on tripo_head_tl and tripo_bald_tr
+##   pieces_flat.png     the default surface with the scan under the face pieces (before) and
+##                       without it (after: each piece one flat sheet), then 3x on an eye, the
+##                       nose and the mouth (after); only with `-- flat`
 ## The hair strand overlay is off throughout (it hides the surface; the owner's strands pick
 ## is still pending).
 
@@ -66,6 +69,13 @@ const ZOOMS := [
 	["nose / brow edge", Vector2(540, 540)],
 ]
 const DROP_CELL := 420
+# pieces_flat zoom targets, points on the DIST portrait (px in the 1000 px view)
+const FLAT_ZOOMS := [
+	["eye", Vector2(438, 498)],
+	["nose", Vector2(524, 570)],
+	["mouth", Vector2(530, 622)],
+]
+const FLAT_CELL := 540
 const LABEL_H := 40
 const PAPER := Color("f7f1e6")
 const INK := Color("3a2418")
@@ -139,13 +149,15 @@ func _run() -> void:
 			_zoom_variants = Array(a.trim_prefix("zoom_only=").split(","))
 		elif a.begins_with("out="):
 			_out = a.trim_prefix("out=")
-	var all := not ("variants" in args or "zoom" in args or "drop" in args)
+	var all := not ("variants" in args or "zoom" in args or "drop" in args or "flat" in args)
 	if all or "variants" in args:
 		await _sheet_variants()
 	if all or "zoom" in args:
 		await _sheet_zoom()
 	if all or "drop" in args:
 		await _sheet_drop()
+	if "flat" in args:
+		await _sheet_flat()
 	quit(0)
 
 
@@ -222,14 +234,45 @@ func _sheet_drop() -> void:
 	await _save_grid(cells, DROPS.size(), DROP_HEADS.size(), "face_drop.png", DROP_CELL)
 
 
+## The default surface with the scan under the face pieces (before) and without (after),
+## then the after zoomed on an eye, the nose and the mouth.
+func _sheet_flat() -> void:
+	_wear(_find_head(HEAD))
+	var after := load(SURF_DIR + "paper_mache.tres") as PaperSurface
+	var before := after.duplicate() as PaperSurface
+	before.piece_scan = 1.0
+	before.piece_relief = 0.0
+	var cells := []
+	_use(before)
+	await _settle()
+	_portrait(DIST_HEAD_PX / PORTRAIT_PX)
+	cells.append([await _grab_center(FLAT_CELL), 0, 0, "before: the scan runs under the pieces"])
+	_use(after)
+	await _settle()
+	_portrait(DIST_HEAD_PX / PORTRAIT_PX)
+	cells.append([await _grab_center(FLAT_CELL), 1, 0, "after: each piece one flat sheet"])
+	for c in FLAT_ZOOMS.size():
+		var z: Array = FLAT_ZOOMS[c]
+		_aim_zoom(z[1])
+		cells.append([await _grab_center(FLAT_CELL), c, 1, "%s 3x (after)" % z[0]])
+	_cam.fov = FOV
+	var file := "pieces_flat.png" if _out == "mache" else _out + ".png"
+	await _save_grid(cells, FLAT_ZOOMS.size(), 2, file, FLAT_CELL)
+
+
 ## Put preset `key` on the skin and hair (CharacterRig.paper_surface) and return it.
 func _surface(key: String) -> PaperSurface:
 	var surf := load(SURF_DIR + key + ".tres") as PaperSurface
+	_use(surf)
+	return surf
+
+
+## Put `surf` on the skin and hair.
+func _use(surf: PaperSurface) -> void:
 	_rig_script.paper_surface = surf
 	_rig.call("_apply_skin")
 	_rig.call("_apply_hair_color")
 	_rig.call("_push_face")
-	return surf
 
 
 ## A preset's name and its numbers.

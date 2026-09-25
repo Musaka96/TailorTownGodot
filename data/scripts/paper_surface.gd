@@ -26,8 +26,11 @@ extends Resource
 @export_range(0.0, 1.0) var mache_seam := 0.0
 ## Each strip's own tone, +- (0.04 = 4 %).
 @export_range(0.0, 0.2) var mache_tone := 0.0
-## The face pieces' own step on the head: 1 = one paper thick.
-@export_range(0.0, 4.0) var piece_relief := 0.0
+## The face pieces' own step at their cut edge on the head: 1 = one paper thick.
+@export_range(0.0, 4.0) var piece_relief := 1.0
+## How much of the scan and the strip relief shows under a face piece (0 = none: each piece
+## is one flat sheet with only its own grain).
+@export_range(0.0, 1.0) var piece_scan := 0.0
 
 
 ## Write every field into a paper material (skin_face.gdshader or paper_skin.gdshader).
@@ -45,5 +48,6 @@ func apply_to(mat: ShaderMaterial) -> void:
 		"mache_seam",
 		"mache_tone",
 		"piece_relief",
+		"piece_scan",
 	]:
 		mat.set_shader_parameter(key, get(key))
