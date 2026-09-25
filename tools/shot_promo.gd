@@ -135,7 +135,6 @@ func _run() -> void:
 	await _wait(10)
 	# Re-assert the capture size after boot: the Settings autoload applies the
 	# player's saved window size, which would otherwise win.
-	DisplayServer.window_set_position(Vector2i(0, 0))
 	DisplayServer.window_set_size(Vector2i(SHOT_W, SHOT_H))
 	get_root().size = Vector2i(SHOT_W, SHOT_H)
 	await _wait(20)
