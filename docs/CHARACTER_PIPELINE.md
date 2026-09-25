@@ -1,7 +1,9 @@
 # Character pipeline (Tripo -> Rig_Medium)
 
-Status 2026-09-24, branch `characters-tripo`. The live game still runs `CHARTGEN1.glb`.
-Nothing here is wired into gameplay yet; this is the asset route and the plan.
+Status 2026-09-25, branch `characters-tripo`. Since commit 3ef5a9c the game runs on
+`CHARTGEN2.glb` (the single-breasted Tripo gentleman): player and customers share that
+body, the suit builder's jacket style swaps the jacket model, and the head pool holds the
+owner's Tripo heads. `CHARTGEN1.glb` remains only as a reference for dev tools.
 
 ## What the owner makes
 
@@ -49,23 +51,33 @@ renders only. The game keeps the KayKit idle.
 
 | File | Suit | Notes |
 |---|---|---|
-| `assets/characters/CHARTGEN2.glb` | single-breasted | first model, all rules above |
-| `assets/characters/suit_doublebreasted.glb` | double-breasted | second model, same body |
+| `assets/characters/CHARTGEN2.glb` | single-breasted | the BASE character (rig scene built from it); wardrobe top 0 |
+| `assets/characters/suit_doublebreasted.glb` | double-breasted | wardrobe top 1, same body; fold seams 45 deg |
+| (none yet) | tuxedo | wardrobe top 2 is a placeholder on the single-breasted model, `WardrobePart.placeholder`; the suit builder skips it via `Wardrobe.style_ready` |
 
-Planned by the owner: a tuxedo.
+Heads: `tools/blender/tripo_heads.py` turns `IMPORT/CHARREWORK/heads.blend` (a shaved
+skull with ears + a grid of hair-over-skull heads) into `assets/characters/parts/
+tripo_head_*_m.glb` (own skull) and `tripo_bald_*_m.glb` (hair moved onto the shaved
+skull, inside vertices lifted 4 mm). The grid skulls differ from the shaved one by 14-21 mm
+mean over 810 mm, so ONE skull can carry every hair; heads and hairs are still locked
+pairs in the wardrobe (decoupling is the next step).
+
+Rig facts after the swap: model node `Base`; shoes = `shoes` mesh (leather); the top slot
+carries jacket, shirt, buttons, square AND tie (each jacket brings its own tie, `tie_color`
+tints it); street clothes hide only the square (the tie covers the hole under the collar).
 
 ## Next steps (owner's direction)
 
-1. **Suits as choices in the suit maker.** The point of these models is not complete
-   characters but suit STYLES: single-breasted, double-breasted, tuxedo. Each becomes a
-   selectable jacket (with its buttons and square) in the suit maker; trousers, shirt,
-   tie and shoes are their own slots. This means the wardrobe grows from head/hair/top/
-   bottom to jacket / trousers / shirt / shoes / tie / buttons / square, each a
-   `WardrobePart` pulled from a suit glb by mesh name (see `entities/character/
-   character_rig.gd` `_attach_from`). Cloth still comes from `set_outfit` per mesh.
-2. **Heads and hairs reused for other characters.** Every generated head+hair combo
-   goes into the head/hair pool (`tools/build_wardrobe.gd` already scans parts glbs),
-   with a `FaceProfile` per head for the sprite face.
-3. Shirt collar seams from the owner (the shirt front still smears); lapel grain; the
-   knee fold in the walk (accept, double-sided cloth, or a hand touch); hair budget.
-4. Street clothes later, through the same slots.
+1. **Tuxedo model** from the owner: drop the .blend in `IMPORT/CHARREWORK/`, run the
+   pipeline to `assets/characters/suit_tuxedo.glb`, point wardrobe top 2 at it and clear
+   `placeholder`.
+2. **Decouple heads and hairs** now that one skull works: pick skull and hair
+   independently in the wardrobe / customer dressing; name the styles (tl/tr/bl/br are
+   grid positions); more heads through the same script.
+3. **Trousers and shirt as real slots**: pleated / shorts bottoms have no models yet
+   (they clamp to Flat Front); shirt collar seams from the owner (the shirt front still
+   smears); lapel grain; the knee fold in the walk (accept, double-sided cloth, or a hand
+   touch); hair budget (3-4k tris each at full res).
+4. **Street clothes** through the same slots; until then street = recoloured suit with a
+   knit tie.
+5. Carry pose feel check on the new body (skeleton unchanged, so probably not new).
