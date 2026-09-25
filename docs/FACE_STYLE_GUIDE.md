@@ -145,10 +145,11 @@ Sizes are fractions of **face width** (fw) and **face height** (fh) of the baked
 preset lands the same on every head. Disc and ellipse sizes below are **radii**, not full widths
 (measured on J1–J4: read as widths they came out half size).
 
-- **Brow**: a thick strip. Thickness 0.065–0.105 fh (thick brows, on purpose; J1's measures 0.10),
-  length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35, height 0.06–0.30 fh from the top. The ends
-  are cut square to the strip's chord with corners rounded by `brow_corner` × half the thickness
-  (1 = round ends; J1 0.2, squarish), and `brow_taper` makes the inner end thicker (J1 0.2).
+- **Brow**: a thick CUT STRIP of even thickness, never a tapered stroke (owner, 2026-09-26: a
+  taper reads as drawn). Thickness 0.065–0.105 fh (thick brows, on purpose; J1's measures 0.10),
+  length 0.16–0.26 fw, angle −15°…+15°, arch 0–0.35 (a gentle bend), height 0.06–0.30 fh from the
+  top. The ends are cut square to the strip's chord with corners rounded by `brow_corner` × half
+  the thickness (0.5 = a quarter of the thickness, the default; J1 0.2, squarer).
   `brow_asym` turns the viewer's right brow alone a few more degrees about its outer end, so it
   sits higher (the noble's haughty brow, 5°); keep `brow_angle + brow_asym` inside ±15°.
 - **Eye white**: a cream ellipse, 0.10–0.22 fw wide, aspect 0.8–1.4. May be absent ("dot eye").
@@ -160,10 +161,12 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
   reads at 25 px.
 - **Lid**: the skin itself, a layer higher, sliding down over the eye from above: the same
   surface as the head round it, so only its lower edge shows (its step and its shadow). `lid` 0 = open, 1 = closed. A closed eye shows the lid's lower edge as a gentle
-  downward arc plus a dark paper crescent along it, 0.035 fh thick in the middle and tapering to
-  0.4 of that at its round ends (0.012 read as a hairline). Blinks animate this piece.
+  downward arc plus a dark paper crescent along it, 0.035 fh thick in the middle and easing to
+  0.8 of that at its ends, which are round caps (0.012 read as a hairline; ends thinning to 0.4
+  read as sharp points to the owner). Blinks animate this piece.
 - **Nose**: one rose piece, kinds `disc`, `oval`, `teardrop` (point up), `triangle` (flat top,
-  pointing down, straight sides; the noble 0.15 wide × 0.24 tall at 0.655), `strip` (tall rounded
+  pointing down, straight sides), `triangle_up` (the same flipped: a flat base, the point up; the
+  noble 0.15 wide × 0.24 tall at 0.655), `strip` (tall rounded
   trapezoid), `shield` (J1's cut pentagon: a wide flat top, shoulders a little uneven, pointing
   down; J1 0.215 wide × 0.146 tall at 0.673). Half-width 0.06–0.16 fw, half-height 0.06–0.22 fh,
   centre at 0.55–0.68 fh.
@@ -199,7 +202,7 @@ stroke thickness ranges and the expression shapes are shared and fixed.
 | State      | Brows                    | Eyes                              | Mouth                        |
 |------------|--------------------------|-----------------------------------|------------------------------|
 | blink      | –                        | lid 0 → 1 → 0 in 0.17 s           | –                            |
-| happy      | up 0.03 fh, arch +0.1    | pupils −15 %, lids 0.15 curved    | curve +0.6, open 0.5, teeth (a mouth under 0.16 fw opens less, shut at 0.12: a thin smile) |
+| happy      | up 0.03 fh, arch +0.1    | pupils −15 %, lids 0.15 curved    | curve +0.6, open 0.5, teeth (a mouth under 0.16 fw opens less, shut at 0.155: a thin smile; the noble is 0.155) |
 | sad        | inner ends up, +12°      | lids 0.35 flat, pupils down 0.01  | curve −0.5                   |
 | displeased | inner ends down, −12°    | lids 0.30 flat                    | curve −0.2, width −10 %      |
 | surprised  | up 0.05 fh               | whites +15 %, pupils −25 %        | small open oval, no teeth    |

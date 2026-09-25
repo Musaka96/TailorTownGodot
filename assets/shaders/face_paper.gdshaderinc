@@ -39,8 +39,7 @@ uniform float brow_length = 0.24;
 uniform float brow_thickness = 0.06;
 uniform float brow_angle = 0.0;
 uniform float brow_arch = 0.1;
-uniform float brow_corner = 1.0;
-uniform float brow_taper = 0.0;
+uniform float brow_corner = 0.5;
 uniform float brow_asym = 0.0;
 group_uniforms nose;
 uniform int nose_kind = 0;
@@ -204,12 +203,8 @@ vec3 face_paper(
 		}
 		float cb = paper_cut(p, per_b, bt, 11.0 + fi);
 		float cbs = paper_cut(sh, per_b, bt, 11.0 + fi);
-		float d = piece_brow(
-			p, c, s, brow_length, bt, a, brow_arch, brow_corner, brow_taper, cb, false
-		);
-		float ds = piece_brow(
-			sh, c, s, brow_length, bt, a, brow_arch, brow_corner, brow_taper, cbs, false
-		);
+		float d = piece_brow(p, c, s, brow_length, bt, a, brow_arch, brow_corner, cb, false);
+		float ds = piece_brow(sh, c, s, brow_length, bt, a, brow_arch, brow_corner, cbs, false);
 		col = paper_piece(col, d, ds, paper_brow.rgb, p, 11.0 + fi, px);
 		fp_layer(d, px, 1.0, lift, sheet);
 	}

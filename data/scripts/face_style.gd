@@ -18,7 +18,7 @@ extends Resource
 ## are shared (shader defaults): a preset only picks shapes and sizes (guide section 5).
 
 enum Element { EYE, BROW, NOSE, MOUTH }
-enum NoseKind { DISC, OVAL, TEARDROP, STRIP, SHIELD, TRIANGLE }
+enum NoseKind { DISC, OVAL, TEARDROP, STRIP, SHIELD, TRIANGLE, TRIANGLE_UP }
 
 ## The reference disc on a head: its diameter in face-rect widths, its centre's height as a
 ## fraction of the rect from the top, and the rect aspect (width / height) the heights were
@@ -49,7 +49,6 @@ const FIELDS := [
 	"brow_angle",
 	"brow_arch",
 	"brow_corner",
-	"brow_taper",
 	"brow_asym",
 	"nose_kind",
 	"nose_size",
@@ -68,8 +67,9 @@ const FIELDS := [
 ## A pupil never shrinks below this radius (it must still read at 25 px).
 const PUPIL_MIN := 0.05
 ## The happy mouth stays shut at a mouth this wide or narrower (x) and opens fully (0.5) from
-## y up, in face widths; every mouth at 0.16 or wider grins as before.
-const NARROW_SMILE := Vector2(0.12, 0.16)
+## y up, in face widths: the noble (0.155) keeps a thin shut smile, every mouth at 0.16 or
+## wider grins as before.
+const NARROW_SMILE := Vector2(0.155, 0.16)
 
 ## How big the face is drawn on a head, relative to the reference disc mapping (DISC_SCALE):
 ## 0.8 keeps the eyes off the hair line and the mouth above the chin. A static so review
@@ -116,12 +116,10 @@ static var face_drop := 0.05
 @export var brow_angle := 0.0
 ## How far the middle rises, as a fraction of half the length.
 @export var brow_arch := 0.1
-## The ends are cut square to the strip with corners rounded by this x half the thickness:
-## 1 = round ends, 0.2 = J1's squarish cut.
-@export_range(0.0, 1.0) var brow_corner := 1.0
-## How much thicker the inner end is than the outer, as a fraction of the thickness (the
-## thickness is the middle's); 0 = even.
-@export_range(0.0, 0.5) var brow_taper := 0.0
+## The brow is a cut strip of even thickness; its ends are cut square to it with corners
+## rounded by this x half the thickness: 0.5 = a quarter of the thickness (the shared look),
+## 0.2 = J1's squarer cut.
+@export_range(0.0, 1.0) var brow_corner := 0.5
 ## Extra degrees on the viewer's right brow only, turned about its outer end (> 0 lifts its
 ## inner end and so the whole brow): one brow a little higher reads as haughty. 0 = even.
 @export var brow_asym := 0.0
@@ -132,7 +130,8 @@ static var face_drop := 0.05
 @export_group("Nose")
 @export var nose_kind := NoseKind.DISC
 ## Half-width and half-height (a disc uses x as its radius; a teardrop and a strip are
-## x wide at the bottom, a shield x wide at the shoulders, a triangle x wide at its top).
+## x wide at the bottom, a shield x wide at the shoulders, a triangle x wide at its flat
+## side: the top for TRIANGLE, the base for TRIANGLE_UP).
 @export var nose_size := Vector2(0.08, 0.08)
 @export var nose_height := 0.64
 

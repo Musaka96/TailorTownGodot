@@ -19,7 +19,6 @@ brow_thickness = 0.1
 brow_angle = 14.0
 brow_arch = 0.16
 brow_corner = 0.2
-brow_taper = 0.2
 nose_kind = 4
 nose_size = Vector2(0.108, 0.073)
 nose_height = 0.673

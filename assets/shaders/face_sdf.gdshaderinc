@@ -57,6 +57,12 @@ const float FIBRE_BEND = 0.02;
 const float FIBRE_LIGHT = 0.3;
 const float FIBRE_DARK = 0.25;
 
+// the triangle noses' corners, rounded by this x their smaller half-size: a soft tip, not a
+// point (guide: round ends everywhere)
+const float NOSE_TRI_ROUND = 0.15;
+// a shut lid's crescent at its ends, as a fraction of its middle thickness (round caps)
+const float LID_STRIP_END = 0.8;
+
 // the nose shield (nose kind 4), measured on J1: x in half-widths, y in half-heights (down),
 // wide flat top, the left shoulder cut a little wider than the right, the point down
 const vec2 NOSE_SHIELD[7] = vec2[7](
@@ -402,16 +408,17 @@ vec2 piece_paper_grad(vec2 p, float px, float cover) {
 // `side` is -1 for the eye/brow/cheek on the viewer's left, +1 on the right; inner (toward
 // the nose) is -side in x.
 
-// Brow: a thick strip, `len` long end to end, its ends cut square to the chord (not to the
+// Brow: a CUT STRIP of paper (owner, 2026-09-26: a tapered stroke reads as drawn): even
+// `thick` all along, `len` long end to end, its ends cut square to the chord (not to the
 // bent tips, so a drooping outer end stays upright, as on J1) with corners rounded by
-// `corner` x half the thickness (1 = round ends). `angle` (radians, > 0 lifts the
-// inner end), `arch` = how far the middle rises, as a fraction of half the core length,
-// `taper` = how much thicker the inner end is than the outer, as a fraction of `thick`.
-// `cut` is the hand-cut displacement (paper_cut); with `ends_straight` the two ends are
-// clean straight cuts and only the long edges take it.
+// `corner` x half the thickness (0.5 = a quarter of the thickness, the shared look).
+// `angle` (radians, > 0 lifts the inner end), `arch` = how far the middle rises, as a
+// fraction of half the core length (a gentle bend; the strip never thins). `cut` is the
+// hand-cut displacement (paper_cut); with `ends_straight` the two ends are clean straight
+// cuts and only the long edges take it.
 float piece_brow(
 	vec2 p, vec2 c, float side, float len, float thick, float angle, float arch, float corner,
-	float taper, float cut, bool ends_straight
+	float cut, bool ends_straight
 ) {
 	vec2 e = p - c;
 	e.x *= -side;  // +x = inner end
@@ -423,8 +430,7 @@ float piece_brow(
 	vec2 A = -0.5 * l * dir - 0.5 * sag * n;
 	vec2 C = 0.5 * l * dir - 0.5 * sag * n;
 	vec2 B = 1.5 * sag * n;
-	vec2 h = fs_sd_bezier(e, A, B, C);  // y: 0 at the outer end, 1 at the inner
-	float body = h.x - (0.5 * thick * (1.0 + taper * (h.y - 0.5)) - rc);
+	float body = fs_sd_bezier(e, A, B, C).x - (0.5 * thick - rc);
 	float ends = max(dot(e - A, -dir), dot(e - C, dir));
 	if (ends_straight) {
 		vec2 v = vec2(body + cut, ends);
@@ -477,21 +483,23 @@ float lid_cut(vec2 p, vec2 c, vec2 r, vec2 edge, float margin) {
 	return (e.y - y_edge) / sqrt(1.0 + slope * slope);
 }
 
-// The dark crescent along a shut lid's lower edge, the eye's width: `thick` in the middle,
-// tapering to 0.4 of that at the round ends.
+// The dark crescent along a shut lid's lower edge, the eye's width: a cut strip `thick` in
+// the middle, easing to LID_STRIP_END of that at its ends, which are round caps (owner,
+// 2026-09-26: ends that thinned to points read sharp).
 float piece_lid_strip(vec2 p, vec2 c, vec2 r, vec2 edge, float margin, float thick) {
 	vec2 e = p - c;
 	float rx = r.x + margin;
-	float x1 = max(rx - 0.2 * thick, 1e-3);
+	float x1 = max(rx - 0.5 * LID_STRIP_END * thick, 1e-3);
 	vec2 h = fs_sd_parabola(e, edge.x, -edge.y / (rx * rx), x1);
-	return h.x - 0.5 * thick * (1.0 - 0.6 * h.y * h.y);
+	return h.x - 0.5 * thick * mix(1.0, LID_STRIP_END, h.y * h.y);
 }
 
 // Nose: kind 0 disc (radius r.x), 1 oval (radii r), 2 teardrop with its round point up
 // (half-width r.x at the bottom, half-height r.y), 3 strip: a tall rounded trapezoid,
 // narrow at the top (half-width r.x at the bottom, half-height r.y), 4 shield: J1's cut
 // pentagon, wide flat top, pointing down (half-width r.x at the shoulders, half-height r.y),
-// 5 triangle: a flat top r.x half-wide, pointing down, r.y half-height (straight snips).
+// 5 triangle: a flat top r.x half-wide, pointing down, r.y half-height (straight snips),
+// 6 triangle_up: the same flipped, a flat base r.x half-wide at the bottom, its point up.
 float piece_nose(vec2 p, vec2 c, int kind, vec2 r) {
 	vec2 e = p - c;
 	vec2 up = vec2(e.x, -e.y);  // y-up for the primitives that want it
@@ -511,8 +519,11 @@ float piece_nose(vec2 p, vec2 c, int kind, vec2 r) {
 		float rr = 0.06 * min(r.x, r.y);
 		return fs_sd_shield(e, max(r - rr, vec2(1e-3))) - rr;
 	} else if (kind == 5) {
-		float rr = 0.06 * min(r.x, r.y);
+		float rr = NOSE_TRI_ROUND * min(r.x, r.y);
 		return fs_sd_trapezoid(up, 0.0, max(r.x - rr, 1e-3), max(r.y - rr, 1e-3)) - rr;
+	} else if (kind == 6) {
+		float rr = NOSE_TRI_ROUND * min(r.x, r.y);
+		return fs_sd_trapezoid(up, max(r.x - rr, 1e-3), 0.0, max(r.y - rr, 1e-3)) - rr;
 	}
 	return length(e) - r.x;
 }
