@@ -14,6 +14,7 @@ const POOL := 8
 ## The shop's working music, and the quieter one the main menu waits on.
 const THEME := "music_stitch_shop_stroll"
 const MENU_THEME := "music_thread_and_thimble"
+const INTRO_SCENE := "res://scenes/menu/intro.tscn"
 ## Music fades: how quiet "off" is, how swiftly a track bows out, and how gently the next
 ## one swells in behind the curtain.
 const MUSIC_SILENT := -40.0
@@ -113,6 +114,7 @@ const LIB := {
 	"day_start": "day_start.wav",
 	"day_end": "day_end.wav",
 	"ambience_loop": "ambience_loop.wav",
+	"crt_on": "crt_on.wav",  # synthesised: the menu switching on after the studio clip
 	# music
 	"music_stitch_shop_stroll": "music_stitch_shop_stroll.mp3",
 	"music_thread_and_thimble": "music_thread_and_thimble.mp3",
@@ -162,7 +164,24 @@ func _ready() -> void:
 	_music.bus = "Music"
 	add_child(_music)
 	_connect_events()
-	play_music(MENU_THEME)  # the game boots into the main menu
+	_boot_audio.call_deferred()
+
+
+## The game boots into the main menu, so start its theme — unless the boot scene is the
+## studio clip, which wants silence and starts the menu audio itself (start_menu_audio).
+## Deferred so the main scene is in the tree by the time we look.
+func _boot_audio() -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.scene_file_path == INTRO_SCENE:
+		return
+	start_menu_audio()
+
+
+func start_menu_audio(fade_in := 0.0) -> void:
+	if fade_in > 0.0:
+		fade_music_in(MENU_THEME, fade_in)
+	else:
+		play_music(MENU_THEME)
 	start_loop("ambience_loop", -18.0)
 
 
