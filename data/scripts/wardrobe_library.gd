@@ -14,6 +14,61 @@ const _DOUBLE := "res://assets/characters/suit_doublebreasted.glb"
 # Street clothes; until a file exists its outfit borrows the base model's meshes.
 const _OVERSHIRT := "res://assets/characters/street_overshirt.glb"
 const _OVERCOAT := "res://assets/characters/street_overcoat.glb"
+# Street colourways (StreetOutfit outer/inner/pants_colors): muted, atelier-toned cloth
+# colours, the outfit's own colour first. Every outer x inner x trousers mix must sit
+# well together, so the lists avoid brights and share no loud hue.
+const OVERSHIRT_OUTER := [
+	"5b5e3a",  # olive
+	"b9a684",  # sand
+	"34405a",  # navy
+	"9a5a3a",  # rust
+	"8b8a84",  # stone grey
+	"6f84a0",  # dusty blue
+	"3f5242",  # forest
+	"b08a3e",  # mustard
+]
+const OVERSHIRT_INNER := [
+	"ecebe6",  # white
+	"ddd5c3",  # ecru
+	"a9a9a6",  # heather grey
+	"262628",  # black
+	"2e3448",  # navy
+	"a3ad94",  # sage
+]
+const OVERSHIRT_PANTS := [
+	"d9ccab",  # cream
+	"b5a27c",  # khaki
+	"a7a194",  # stone
+	"333c52",  # navy
+	"47484c",  # charcoal
+	"6a5040",  # brown
+	"4a5a72",  # washed denim blue
+]
+const OVERCOAT_OUTER := [
+	"b08658",  # camel
+	"45464b",  # charcoal
+	"2f3a52",  # navy
+	"5d5f3e",  # olive
+	"6e3033",  # oxblood
+	"6e6358",  # grey-brown
+	"9a8f7e",  # stone
+]
+const OVERCOAT_INNER := [
+	"1c1c1f",  # black knit
+	"e6dfcf",  # cream
+	"c9b99a",  # oatmeal
+	"5a6068",  # slate
+	"2f4a3a",  # bottle green
+	"6e3a36",  # burgundy
+]
+const OVERCOAT_PANTS := [
+	"3d3e42",  # charcoal
+	"6b6c70",  # mid grey
+	"2c3345",  # navy
+	"4f3f33",  # brown
+	"8a7d6c",  # taupe
+	"232326",  # black
+]
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 
@@ -237,7 +292,9 @@ static func _add_street_outfits(lib: WardrobeLibrary, base: PackedScene) -> void
 	)
 	var sneakers := {"color": "white", "finish": "calf"}
 	var shirt_model := _load_or(_OVERSHIRT, base)
-	lib.street_outfits.append(_street("Overshirt", shirt_model, olive, tee, chino, sneakers))
+	var overshirt := _street("Overshirt", shirt_model, olive, tee, chino, sneakers)
+	_palettes(overshirt, OVERSHIRT_OUTER, OVERSHIRT_INNER, OVERSHIRT_PANTS)
+	lib.street_outfits.append(overshirt)
 	var camel := StreetOutfit.cloth(
 		&"street_camel_coat", "Camel Coat", fab.FLANNEL, Color("b08658")
 	)
@@ -249,7 +306,9 @@ static func _add_street_outfits(lib: WardrobeLibrary, base: PackedScene) -> void
 	)
 	var brogues := {"color": "chestnut", "finish": "calf"}
 	var coat_model := _load_or(_OVERCOAT, base)
-	lib.street_outfits.append(_street("Overcoat", coat_model, camel, knit, charcoal, brogues))
+	var overcoat := _street("Overcoat", coat_model, camel, knit, charcoal, brogues)
+	_palettes(overcoat, OVERCOAT_OUTER, OVERCOAT_INNER, OVERCOAT_PANTS)
+	lib.street_outfits.append(overcoat)
 
 
 static func _street(
@@ -272,6 +331,20 @@ static func _street(
 	outfit.pants_mat = pants
 	outfit.shoes = shoe_dict
 	return outfit
+
+
+## Give `outfit` its colourways (hex lists, the outfit's own colour first).
+static func _palettes(outfit: StreetOutfit, outer: Array, inner: Array, pants: Array) -> void:
+	outfit.outer_colors = _colors(outer)
+	outfit.inner_colors = _colors(inner)
+	outfit.pants_colors = _colors(pants)
+
+
+static func _colors(hexes: Array) -> PackedColorArray:
+	var out := PackedColorArray()
+	for h: String in hexes:
+		out.append(Color(h))
+	return out
 
 
 ## The model at `path`, or `fallback` while that file does not exist yet.

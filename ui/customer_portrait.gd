@@ -7,6 +7,17 @@ extends TvFrame
 
 const RIG_SCENE := preload("res://entities/character/character_rig.tscn")
 const VIEW_SIZE := 260
+## A straight-on, level view: the camera sits on the rig's forward axis (+Z) at CAM_AIM's
+## height and looks along -Z, so the face is square to the screen with the collar and
+## shoulders at the bottom of the frame.
+const CAM_FOV := 34.0
+const CAM_AIM := Vector3(0.0, 1.55, 0.0)
+const CAM_DIST := 2.5
+## Flat, even light for the paper face: a soft key from just above the camera (so no
+## side shadow falls across the nose or cheeks) over a strong, cool ambient.
+const KEY_EULER := Vector3(-14.0, 0.0, 0.0)
+const KEY_ENERGY := 0.65
+const AMBIENT_ENERGY := 1.15
 
 var _view: SubViewport
 var _rig: Node
@@ -34,14 +45,14 @@ func _build_view() -> void:
 	env.background_color = Color(0.82, 0.86, 0.92)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.96, 0.96, 1.0)
-	env.ambient_light_energy = 1.15
+	env.ambient_light_energy = AMBIENT_ENERGY
 	var we := WorldEnvironment.new()
 	we.environment = env
 	_view.add_child(we)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-28, -32, 0)
-	sun.light_energy = 1.1
+	sun.rotation_degrees = KEY_EULER
+	sun.light_energy = KEY_ENERGY
 	_view.add_child(sun)
 
 	_rig = RIG_SCENE.instantiate()
@@ -51,10 +62,8 @@ func _build_view() -> void:
 		ap.play("idle")
 
 	_cam = Camera3D.new()
-	_cam.fov = 34
-	# Framed on the head + the top half of the torso.
-	_cam.position = Vector3(0.0, 1, 2.35)
-	_cam.look_at_from_position(_cam.position, Vector3(0, 1.6, 0.4), Vector3.UP)
+	_cam.fov = CAM_FOV
+	_cam.position = CAM_AIM + Vector3(0.0, 0.0, CAM_DIST)  # level: no tilt, no yaw
 	_view.add_child(_cam)
 	_cam.current = true
 
@@ -70,7 +79,10 @@ func configure(customer: Node) -> void:
 	_rig.set("glasses_color", str(customer.get("glasses_color")))
 	_rig.set_face_look(str(customer.get("eye_color")), str(customer.get("glasses")))
 	_set_face(str(customer.get("face_style")))
-	_rig.wear_street(Wardrobe.street_outfit(int(customer.get("street_index"))))
+	var dye: Variant = customer.get("street_color")
+	_rig.wear_street(
+		Wardrobe.street_look(int(customer.get("street_index")), int(dye) if dye != null else 0)
+	)
 
 
 ## Match the portrait to a plain look (for characters that aren't customers, e.g. the

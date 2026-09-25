@@ -407,11 +407,14 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 	# Older looks hold the sprite kinds ("round" / "sun") and no frame colour: black.
 	cust.glasses_color = str(look.get("glasses_color", "black"))
 	var street := int(look.get("street", cust.street_index))  # older saves: keep today's
+	# Older looks have no colourway: the name picks it, the same one every load.
+	var dye := int(look.get("street_color", Wardrobe.street_colour_for(street, nm, _rng)))
 	# Older looks have no face: the name picks it (FaceCast), the same one every load.
 	var face := str(look.get("face_style", ""))
 	cust.face_style = face if FaceCast.exists(face) else FaceCast.preset_for(nm)
-	if street != cust.street_index:
+	if street != cust.street_index or dye != cust.street_color:
 		cust.street_index = street
+		cust.street_color = dye
 		cust.wear_street()
 	cust.apply_look(
 		look.get("skin", cust.skin_color),
@@ -451,6 +454,7 @@ func _dress(cust: Customer) -> void:
 	cust.set_hair(combo)
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
 	cust.street_index = maxi(0, Wardrobe.random_street_index(gender, _rng))
+	cust.street_color = Wardrobe.street_colour_for(cust.street_index, nm, _rng)
 	cust.wear_street()
 	_wear_cast(cust, nm)
 

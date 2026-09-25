@@ -314,7 +314,8 @@ func _dress() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = NAME.hash()  # the same pair of shoes and street clothes every day
 	_rig.set("shoes", ShoeMaterial.random(rng))
-	_rig.wear_street(Wardrobe.library().random_street_outfit(Enums.Gender.ANY, rng))
+	var street := Wardrobe.library().random_street_outfit(Enums.Gender.ANY, rng)
+	_rig.wear_street(street.in_colour(rng.randi()) if street != null else null)
 
 
 func _say(line: String) -> void:

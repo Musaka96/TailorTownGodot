@@ -68,6 +68,22 @@ static func street_outfit(index: int) -> StreetOutfit:
 	return library().street_outfit(index)
 
 
+## The street outfit at `index` dyed in colourway `colour` (StreetOutfit.in_colour).
+static func street_look(index: int, colour: int) -> StreetOutfit:
+	var outfit := street_outfit(index)
+	return outfit.in_colour(colour) if outfit != null else null
+
+
+## The colourway `display_name` wears in street outfit `index` (random when unnamed).
+static func street_colour_for(index: int, display_name: String, rng: RandomNumberGenerator) -> int:
+	var outfit := street_outfit(index)
+	if outfit == null:
+		return 0
+	if display_name == "":
+		return rng.randi() % outfit.colourway_count()
+	return outfit.colourway_for(display_name)
+
+
 ## A random street outfit index fitting `gender` (-1 if the library has none).
 static func random_street_index(gender: int, rng: RandomNumberGenerator) -> int:
 	return library().random_street_index(gender, rng)

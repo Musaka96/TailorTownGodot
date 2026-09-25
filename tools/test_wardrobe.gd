@@ -146,10 +146,12 @@ func _check_regular() -> void:
 	pref.display_name = "Mr. Test Regular"
 	cust.set("preference", pref)
 	cust.set("street_index", last)
+	cust.set("street_color", 5)
 	clientele.note_customer(cust)
 	clientele.restore(clientele.save_state())
 	var look: Dictionary = clientele.look(pref.display_name)
 	_check(int(look.get("street", -1)) == last, "the look dict keeps the street outfit index")
+	_check(int(look.get("street_color", -1)) == 5, "and its colourway")
 	var again: Node = scene.instantiate()
 	root.add_child(again)
 	await process_frame
@@ -159,10 +161,44 @@ func _check_regular() -> void:
 	manager.call("_dress_as", again, look, pref.display_name)
 	await process_frame
 	_check(int(again.get("street_index")) == last, "a regular gets the same outfit index back")
+	_check(int(again.get("street_color")) == 5, "in the same colourway")
 	var want := _source_mesh(Wardrobe.street_outfit(last).top, "jacket")
 	_check(_verts(again.find_child("jacket", true, false)) == _verts(want), "and wears it")
+	# An older look has no colourway: the name picks one, the same every load.
+	var old := look.duplicate()
+	old.erase("street_color")
+	old["street"] = 0
+	manager.call("_dress_as", again, old, pref.display_name)
+	var named := Wardrobe.street_outfit(0).colourway_for(pref.display_name)
+	_check(int(again.get("street_color")) == named, "an old look gets its name's colourway")
 	manager.free()
 	clientele.reset()
+	_check_colourways()
+
+
+## Street colourways: 0 is the outfit as authored, others dye only the cloths, and
+## each colourway is built once.
+func _check_colourways() -> void:
+	for outfit: StreetOutfit in Wardrobe.library().street_outfits:
+		var nm := outfit.display_name
+		_check(outfit.colourway_count() >= 36, "%s has colourways" % nm)
+		_check(outfit.in_colour(0) == outfit, "%s colourway 0 is the outfit itself" % nm)
+		_check(
+			outfit.outer_colors[0].is_equal_approx(outfit.outer_mat.cloth_color),
+			"%s palette starts with its own colour" % nm
+		)
+		var dyed := outfit.in_colour(3)
+		_check(dyed == outfit.in_colour(3), "%s colourway 3 is built once" % nm)
+		_check(dyed.top == outfit.top and dyed.shoes == outfit.shoes, "%s shares models" % nm)
+		_check(
+			dyed.outer_mat.cloth_color.is_equal_approx(outfit.outer_colors[3]),
+			"%s colourway 3 dyes the outer layer" % nm
+		)
+		_check(
+			outfit.outer_mat.cloth_color.is_equal_approx(outfit.outer_colors[0]),
+			"%s original cloth is untouched" % nm
+		)
+		_check(outfit.in_colour(-1) == outfit.in_colour(outfit.colourway_count() - 1), "wraps")
 
 
 ## A ShoeMaterial dye, loaded by path (the class name pulls Config-dependent scripts

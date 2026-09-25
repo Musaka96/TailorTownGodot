@@ -67,6 +67,14 @@ customers pick one on arrival (persisted in their Clientele look as `street`), t
 suit. Cloth chosen: olive cotton / white cotton / cream cotton + white sneakers; camel
 flannel / near-black worsted / charcoal flannel + chestnut shoes (the camel flannel reads
 grainy at gameplay size; a smoother wool may sit better).
+Colourways (2026-09-25): each outfit carries `outer_colors` / `inner_colors` /
+`pants_colors` palettes (6-8 muted cloths each, its own colour first; lists in
+`WardrobeLibrary.OVERSHIRT_*` / `OVERCOAT_*`, also written into default_wardrobe.tres).
+`StreetOutfit.in_colour(i)` returns a cached copy with the three cloths re-dyed (models and
+shoes shared; 0 = as authored), so the rig needs no change. A named customer's colourway
+is a stable hash of the name (`colourway_for`), a passer-by's is random; it is kept as
+`Customer.street_color` and in the Clientele look as `street_color` (older looks fall back
+to the name hash).
 
 Glasses (commit cdc5438): `tools/blender/tripo_glasses.py` on `IMPORT/CHARREWORK/glasses.blend`
 (a 2x2 grid of bald heads wearing frames) -> `assets/characters/parts/glasses_{round,square,

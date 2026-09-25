@@ -47,8 +47,10 @@ var face_style := ""
 ## Their own shoes: {"color", "finish"} (ShoeMaterial); empty means black calf. Worn
 ## with a suit; their street outfit brings its own pair.
 var shoes: Dictionary = {}
-## The street clothes they walk in wearing (index into Wardrobe street outfits).
+## The street clothes they walk in wearing (index into Wardrobe street outfits) and the
+## colourway they are dyed in (StreetOutfit.in_colour; 0 = the outfit as authored).
 var street_index := 0
+var street_color := 0
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -203,7 +205,7 @@ func set_hair_color(color: Color) -> void:
 ## Wear their street outfit (street_index; on arrival, before a suit is made).
 func wear_street() -> void:
 	if _rig != null:
-		_rig.wear_street(Wardrobe.street_outfit(street_index))
+		_rig.wear_street(Wardrobe.street_look(street_index, street_color))
 
 
 ## Wait at the counter for the player to hand over a finished order.
