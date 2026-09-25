@@ -1,9 +1,11 @@
 extends SceneTree
 
 ## Builds the shared character rig (res://entities/character/character_rig.tscn)
-## from the CHARTGEN1 character (res://assets/characters/CHARTGEN1.glb: a Rig_Medium
-## skeleton with the body split into separate mesh parts — head, arms, jacket, shirt,
-## legs, …). It wires geometry only: an empty AnimationPlayer is added (its root_node
+## from the single-breasted Tripo character (res://assets/characters/CHARTGEN2.glb:
+## a Rig_Medium skeleton with the body split into separate mesh parts — head, Hair,
+## arms, jacket, shirt, buttons, square, tie, legs, shoes). The model is instanced
+## as a child named "Base" (the rig finds its meshes by name, never by path).
+## It wires geometry only: an empty AnimationPlayer is added (its root_node
 ## pointed at the model), and character_rig.gd fills it at runtime from the editable
 ## animation asset (data/animations/default_animations.tres via CharAnims) — so the
 ## animation set can be changed by editing that asset without rerunning this builder.
@@ -12,8 +14,8 @@ extends SceneTree
 ##   godot --headless --path . --script res://tools/build_character.gd
 
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
-const CHAR_SOURCE := "res://assets/characters/CHARTGEN1.glb"
-const CHAR_NAME := "CHARTGEN1"
+const CHAR_SOURCE := "res://assets/characters/CHARTGEN2.glb"
+const CHAR_NAME := "Base"
 
 
 func _initialize() -> void:

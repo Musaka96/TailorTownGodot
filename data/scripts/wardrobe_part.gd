@@ -18,6 +18,9 @@ extends Resource
 ## Who this part suits: ANY (unisex, the default), MALE or FEMALE. Customers are only
 ## given parts whose gender is ANY or matches their own.
 @export var gender: Enums.Gender = Enums.Gender.ANY
+## A stand-in: the style is listed but its own model is not in yet (`model` borrows
+## another part's). Menus skip it, so no one can order it; the rig still wears it.
+@export var placeholder := false
 
 
 static func make(

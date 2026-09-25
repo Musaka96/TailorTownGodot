@@ -7,6 +7,7 @@
 script = ExtResource("1_m55k8")
 face_z = 0.41
 head_face_z = {
+0: 0.435,
 1: 0.362,
 2: 0.366,
 3: 0.468,

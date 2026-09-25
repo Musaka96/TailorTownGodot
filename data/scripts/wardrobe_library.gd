@@ -9,7 +9,8 @@ extends Resource
 ## default with tools/build_wardrobe.gd. Everything reaches this through the Wardrobe
 ## facade, which loads the .tres (falling back to make_default() if it is missing).
 
-const _CHAR := "res://assets/characters/CHARTGEN1.glb"
+const _CHAR := "res://assets/characters/CHARTGEN2.glb"  # the single-breasted base
+const _DOUBLE := "res://assets/characters/suit_doublebreasted.glb"
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 
@@ -18,7 +19,8 @@ const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 @export var heads: Array[WardrobePart] = []
 ## Hairstyles — customers pick one at random (role "hair").
 @export var hairs: Array[WardrobePart] = []
-## Suit tops, indexed to Enums jacket styles (a top owns the jacket AND shirt mesh).
+## Suit tops, indexed to Enums jacket styles (a top owns the jacket, shirt, buttons,
+## pocket square and tie meshes: each jacket model ships the pieces cut to fit it).
 @export var tops: Array[WardrobePart] = []
 ## Suit bottoms, indexed to Enums pants styles (role "pants").
 @export var bottoms: Array[WardrobePart] = []
@@ -124,13 +126,28 @@ func _color(arr: PackedColorArray, index: int, fallback: Color) -> Color:
 static func make_default() -> WardrobeLibrary:
 	var lib := WardrobeLibrary.new()
 	var model := load(_CHAR) as PackedScene
-	var suit_roles := {"jacket": "jacket", "shirt": "shirt"}
+	var double := load(_DOUBLE) as PackedScene
+	var street_roles := {"jacket": "jacket", "shirt": "shirt"}
+	var suit_roles := {
+		"jacket": "jacket",
+		"shirt": "shirt",
+		"buttons": "buttons",
+		"square": "square",
+		"tie": "tie",
+	}
 	var pants_roles := {"pants": "legs"}
 	lib.heads.append(WardrobePart.make("Base", model, {"head": "head"}))
 	lib.hairs.append(WardrobePart.make("Default", model, {"hair": "Hair"}))
+	# Indexed to Enums.JacketStyle.
 	lib.tops.append(WardrobePart.make("Single-Breasted", model, suit_roles.duplicate()))
+	lib.tops.append(WardrobePart.make("Double-Breasted", double, suit_roles.duplicate()))
+	# No tuxedo model yet: the single-breasted stands in, flagged so menus skip it.
+	var tuxedo := WardrobePart.make("Tuxedo", model, suit_roles.duplicate())
+	tuxedo.placeholder = true
+	lib.tops.append(tuxedo)
+	# One bottom for now: Pleated and Shorts clamp to it (see _at).
 	lib.bottoms.append(WardrobePart.make("Flat Front", model, pants_roles.duplicate()))
-	lib.street_top = WardrobePart.make("Casual Top", model, suit_roles.duplicate())
+	lib.street_top = WardrobePart.make("Casual Top", model, street_roles)
 	lib.street_bottom = WardrobePart.make("Casual Bottom", model, pants_roles.duplicate())
 	lib.skin_colors = PackedColorArray(
 		[

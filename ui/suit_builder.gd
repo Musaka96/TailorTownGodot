@@ -829,10 +829,21 @@ func _adjust(dir: int) -> void:
 			Row.PATTERN:
 				c["pattern"] = _cycle(Enums.patterns_for(_type()), int(c["pattern"]), dir)
 			Row.STYLE:
-				c["style_idx"] = wrapi(c["style_idx"] + dir, 0, Enums.styles_for(_type()).size())
+				c["style_idx"] = _next_style(int(c["style_idx"]), dir)
 	_sync_pants()
 	_apply_to_customer()
 	_refresh()
+
+
+## Step the cut one way, passing over styles whose model is not in yet (the Tuxedo).
+func _next_style(current: int, dir: int) -> int:
+	var n := Enums.styles_for(_type()).size()
+	var idx := current
+	for _i in n:
+		idx = wrapi(idx + dir, 0, n)
+		if Wardrobe.style_ready(_type(), idx):
+			return idx
+	return current
 
 
 ## Dress the seated customer in the current design so they change live as you edit.

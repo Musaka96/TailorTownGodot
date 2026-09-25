@@ -42,7 +42,8 @@ enum Style { OLDSCHOOL, CLASSIC, MODERN, FASHION }
 enum Gender { ANY, MALE, FEMALE }
 
 # --- Garment styling (used from Phase 3+) ---
-enum JacketStyle { SINGLE_BREASTED, DOUBLE_BREASTED }
+# TUXEDO is listed but has no model yet (its wardrobe top is a placeholder; menus skip it).
+enum JacketStyle { SINGLE_BREASTED, DOUBLE_BREASTED, TUXEDO }
 enum Lapel { NOTCH, PEAK, SHAWL }
 enum PantsStyle { FLAT_FRONT, PLEATED }
 enum PantsLength { LONG, SHORT }
@@ -141,7 +142,7 @@ static func styles_for(t: GarmentType) -> PackedStringArray:
 		GarmentType.PANTS:
 			return PackedStringArray(["Flat Front", "Pleated", "Shorts"])
 		GarmentType.JACKET:
-			return PackedStringArray(["Single-Breasted", "Double-Breasted"])
+			return PackedStringArray(["Single-Breasted", "Double-Breasted", "Tuxedo"])
 	return PackedStringArray(["Classic"])
 
 

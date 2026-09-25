@@ -45,6 +45,18 @@ static func bottom(index: int) -> WardrobePart:
 	return library().bottom(index)
 
 
+## Whether a garment style may be picked in a menu: false for a jacket style whose top is
+## a placeholder (the Tuxedo, until its model exists). Other garments are always ready;
+## a style past the end of the list is too (the rig clamps it to the last part).
+static func style_ready(garment_type: int, style_idx: int) -> bool:
+	if garment_type != Enums.GarmentType.JACKET:
+		return true
+	var tops := library().tops
+	if style_idx < 0 or style_idx >= tops.size() or tops[style_idx] == null:
+		return true
+	return not tops[style_idx].placeholder
+
+
 static func street_top() -> WardrobePart:
 	return library().street_top
 

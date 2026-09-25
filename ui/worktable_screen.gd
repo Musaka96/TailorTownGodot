@@ -263,8 +263,12 @@ func _adjust(dir: int) -> void:
 		Row.SIZE:
 			_size = (_size + dir + 4) % 4
 		Row.STYLE:
+			# Pass over styles whose model is not in yet (the Tuxedo).
 			var n := _styles().size()
-			_style_idx = (_style_idx + dir + n) % n
+			for _i in n:
+				_style_idx = (_style_idx + dir + n) % n
+				if Wardrobe.style_ready(_type, _style_idx):
+					break
 
 
 ## "Needs 1.6 m · piece 2.0 m · 0.4 m offcut" — green when it fits snugly, amber when

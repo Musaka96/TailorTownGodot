@@ -2,27 +2,38 @@ class_name CharacterRig
 extends Node3D
 
 ## Runtime controller for the shared character (built by tools/build_character.gd
-## from CHARTGEN1 + KayKit Rig_Medium animations). Drives the AnimationPlayer
-## (idle/walk/wave/accept) and manages a modular wardrobe: the head and arms are
-## fixed (skin), while HAIR, the suit TOP (jacket + shirt) and BOTTOM (trousers)
-## are swappable slots. Each slot's mesh is pulled from a Wardrobe entry's .glb and
-## reparented onto the shared skeleton — because every option is skinned to the
-## same Rig_Medium, the animations drive it with no retargeting. Changing a suit
-## style therefore changes the actual model, not just the colour.
+## from CHARTGEN2 + KayKit Rig_Medium animations). Drives the AnimationPlayer
+## (idle/walk/wave/accept) and manages a modular wardrobe: the arms are fixed
+## (skin), while the head, HAIR, the suit TOP (jacket, shirt, buttons, pocket
+## square, tie) and BOTTOM (trousers) are swappable slots. Each slot's mesh is
+## pulled from a Wardrobe entry's .glb and reparented onto the shared skeleton —
+## because every option is skinned to the same Rig_Medium, the animations drive it
+## with no retargeting. Changing a suit style therefore changes the actual model,
+## not just the colour.
 
 # Arms are always the base skin mesh (never swapped); the head is swappable now.
 const SYLLABLE_TIME := 0.09  # how long syllable() holds the mouth open
 const SKIN_ARMS := "arms"
 # The base model's default meshes per slot (adopted on _ready as style/index 0).
 const BAKED_HEAD := {"head": "head"}
-const BAKED_TOP := {"jacket": "jacket", "shirt": "shirt"}
+# The top owns every piece cut to fit its jacket: each jacket model ships its own
+# buttons, pocket square and tie (a double-breasted front sits the tie differently).
+const BAKED_TOP := {
+	"jacket": "jacket",
+	"shirt": "shirt",
+	"buttons": "buttons",
+	"square": "square",
+	"tie": "tie",
+}
 const BAKED_BOTTOM := {"pants": "legs"}
 const BAKED_HAIR := {"hair": "Hair"}
-# The shoes are baked into the base model under these (misleading) node names.
-const BAKED_SHOES := ["left leg", "right leg"]
-# Leather grain density on the shoe UVs. The shoe islands cover ~0.27 UV units per
-# metre, so 18 puts the calf grain ~7 times along a 0.37 m shoe.
-const SHOE_UV_SCALE := 18.0
+# The top's pieces a street outfit leaves off (and a suit puts back on).
+const SUIT_EXTRAS := ["buttons", "square", "tie"]
+# The shoes are baked into the base model (never swapped).
+const BAKED_SHOES := ["shoes"]
+# Leather grain density on the shoe UVs. The shoe islands cover ~0.59 UV units per
+# metre, so 8.3 keeps the grain the size it was on CHARTGEN1 (18 at ~0.27 per metre).
+const SHOE_UV_SCALE := 8.3
 
 # Two-layer hair: a flat base-colour mesh with a transparent strand-detail copy laid
 # just over it (grown slightly so it never z-fights). Swap the PNG for real hair art.
@@ -33,10 +44,15 @@ const HAIR_OVERLAY_GROW := 0.004
 const DEFAULT_SKIN := Color(0.86, 0.72, 0.60)
 const DEFAULT_SHIRT := Color(0.90, 0.90, 0.87)
 const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
+const DEFAULT_TIE := Color(0.55, 0.12, 0.14)  # dark red
+const BUTTON_COLOR := Color(0.75, 0.62, 0.35)
+const SQUARE_COLOR := Color(0.92, 0.92, 0.90)
 
 # Casual colours for the placeholder street outfit (until street models exist).
 const CASUAL_TOPS := [Color("6d7f9c"), Color("8a6d5b"), Color("5f7d5f"), Color("9c6d78")]
 const CASUAL_BOTTOMS := [Color("39414f"), Color("5b4a3a"), Color("4a4a4a")]
+## Muted knit ties for street clothes (see wear_street).
+const STREET_TIES := [Color("3f4a5c"), Color("5c4a3f"), Color("4a5c4f"), Color("6b5a4a")]
 
 # Fabric tiling across the mesh UVs (UV-mapped so the weave locks to the surface). Worn
 # suits get a dark inverted-hull outline (next_pass) that reads each garment part apart.
@@ -131,6 +147,14 @@ var shoes: Dictionary:
 		return _shoes
 	set(value):
 		_set_shoes(value)
+## The tie's colour (a flat, matte cloth). Kept across jacket swaps, since each jacket
+## model brings its own tie. A property for the public-method limit, like `shoes`.
+var tie_color: Color:
+	get:
+		return _tie_color
+	set(value):
+		_tie_color = value
+		_dress_extras()
 
 var _tree: AnimationTree
 var _loco := 0.0  # current idle(0)->walk(1) blend
@@ -186,6 +210,7 @@ var _skin_color := DEFAULT_SKIN
 # Tint applied to the hair mesh (kept so it survives a hairstyle swap).
 var _hair_color := DEFAULT_HAIR
 var _shoes: Dictionary = {}
+var _tie_color := DEFAULT_TIE
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
 
@@ -197,6 +222,7 @@ func _ready() -> void:
 	_bottom = _adopt(BAKED_BOTTOM)
 	_hair = _adopt(BAKED_HAIR)
 	_set_shoes({})  # black calf until someone says otherwise
+	_dress_extras()
 	if _anim != null:
 		# Install the animation set from the editable asset (shared, cached), so
 		# changing data/animations/default_animations.tres takes effect next run.
@@ -1002,17 +1028,52 @@ func set_outfit(
 	else:
 		_apply_flat(_top.get("shirt"), DEFAULT_SHIRT, 0.6)
 
+	_dress_extras()
+	_show_extras(true)
+
 	if pants_style != _bottom_style or _bottom.is_empty():
 		_swap_bottom(pants_style)
 	_apply_cloth(_bottom.get("pants"), trousers_mat)
 
 
 ## Placeholder street/casual look worn on arrival: muted flat colours on the
-## current top/bottom. When real street models are imported, swap models here.
+## current top/bottom, with the suit's buttons, pocket square and tie taken off.
+## When real street models are imported, swap models here.
 func wear_street() -> void:
 	_apply_flat(_top.get("jacket"), CASUAL_TOPS[randi() % CASUAL_TOPS.size()], 0.85)
 	_apply_flat(_top.get("shirt"), Color(0.9, 0.9, 0.88), 0.7)
 	_apply_flat(_bottom.get("pants"), CASUAL_BOTTOMS[randi() % CASUAL_BOTTOMS.size()], 0.85)
+	_show_extras(false)
+	# The shirt mesh is only a collar and cuffs, so a hidden tie leaves a hole under the
+	# collar. Until street clothes get their own models, the tie stays on in a muted
+	# knit colour and the buttons stay, as on a blazer; only the pocket square goes.
+	var tie = _top.get("tie")
+	if tie is MeshInstance3D:
+		tie.visible = true
+		_apply_flat(tie, STREET_TIES[randi() % STREET_TIES.size()], 1.0)
+	var buttons = _top.get("buttons")
+	if buttons is MeshInstance3D:
+		buttons.visible = true
+
+
+## Flat materials on the top's small pieces: the tie in tie_color (outlined, like the
+## other garments), gilt buttons and a white pocket square. A jacket swap brings fresh
+## meshes with the model's own materials, so this runs after every swap.
+func _dress_extras() -> void:
+	_apply_flat(_top.get("tie"), _tie_color, 1.0)
+	var buttons = _top.get("buttons")
+	if buttons is MeshInstance3D:
+		buttons.material_override = _flat(BUTTON_COLOR, 1.0)
+	var square = _top.get("square")
+	if square is MeshInstance3D:
+		square.material_override = _flat(SQUARE_COLOR, 1.0)
+
+
+func _show_extras(on: bool) -> void:
+	for role: String in SUIT_EXTRAS:
+		var mi = _top.get(role)
+		if mi is MeshInstance3D:
+			mi.visible = on
 
 
 ## One leather material, shared by both feet (see `shoes`).

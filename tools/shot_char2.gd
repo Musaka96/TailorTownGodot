@@ -346,17 +346,17 @@ func _load_model(path: String) -> Node3D:
 
 
 ## The same wiring as character_rig.tscn, with the model swapped: the rig script finds
-## its meshes by name under a child called CHARTGEN1, and the AnimationPlayer's tracks
-## are rooted there.
+## its meshes by name under a child called Base, and the AnimationPlayer's tracks are
+## rooted there.
 func _build_rig(model: Node3D) -> Node3D:
 	var rig := Node3D.new()
 	rig.name = "CharacterRig2"
 	rig.set_script(load(RIG_SCRIPT))
-	model.name = "CHARTGEN1"
+	model.name = "Base"
 	rig.add_child(model)
 	var player := AnimationPlayer.new()
 	player.name = "AnimationPlayer"
-	player.root_node = NodePath("../CHARTGEN1")
+	player.root_node = NodePath("../Base")
 	rig.add_child(player)
 	return rig
 

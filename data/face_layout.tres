@@ -6,6 +6,7 @@
 script = ExtResource("1_e1r5u")
 face_z = 0.41
 head_face_z = {
+0: 0.435,
 1: 0.362,
 2: 0.366,
 3: 0.468,
@@ -15,7 +16,7 @@ head_face_z = {
 eye_y = 0.02000000000000001
 eye_gap = 0.29
 eye_px = 0.0007
-eye_x = -0.3
+eye_x = 0.0
 brow_y = 0.186
 brow_gap = 0.258
 brow_px = 0.00045

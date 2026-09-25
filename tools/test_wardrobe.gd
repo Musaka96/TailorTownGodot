@@ -2,9 +2,9 @@ extends SceneTree
 
 ## Headless test for the modular character wardrobe: swapping a slot must pull the
 ## mesh from a Wardrobe .glb and reparent it onto the shared skeleton so it still
-## animates. With one library entry each, calling a swap with a non-current index
-## still exercises the full reparent path (the entry clamps but the slot is cleared
-## and re-attached), which is exactly what firing a real second asset will do.
+## animates. Tops have real second models (style 1 = double-breasted); other slots
+## with one library entry clamp, which still exercises the full reparent path (the
+## slot is cleared and re-attached).
 ##   godot --headless --path . --script res://tools/test_wardrobe.gd
 
 var _failures: Array[String] = []
@@ -37,18 +37,75 @@ func _run() -> void:
 	await process_frame
 	_check(_under(rig, "Hair", skel), "hair reattached under the skeleton after swap")
 
-	# Force a top + bottom model swap.
+	# Force a top + bottom model swap: style 1 is the double-breasted model.
 	rig.set_outfit(null, null, null, 1, 1)
 	await process_frame
-	for part_name in ["jacket", "shirt", "legs"]:
+	for part_name in ["jacket", "shirt", "legs", "buttons", "square", "tie"]:
 		_check(_under(rig, part_name, skel), "%s reattached under the skeleton" % part_name)
+	_check(
+		_verts(rig.find_child("jacket", true, false)) == _verts(_source_jacket(1)),
+		"style 1 wears the double-breasted jacket model"
+	)
+	_check(_extras_visible(rig, true), "a suit shows its buttons, pocket square and tie")
+	rig.tie_color = Color(0.1, 0.2, 0.5)
+	var tie := rig.find_child("tie", true, false) as MeshInstance3D
+	var tie_mat := tie.material_override as StandardMaterial3D if tie != null else null
+	_check(
+		tie_mat != null and tie_mat.albedo_color.is_equal_approx(Color(0.1, 0.2, 0.5)),
+		"tie_color recolours the tie"
+	)
 
-	# Street outfit must not error.
+	# Street clothes drop the pocket square but keep the tie (it covers the hole under
+	# the collar, the shirt mesh being only a collar and cuffs) and the buttons.
 	rig.wear_street()
 	await process_frame
-	_check(true, "wear_street ran without error")
+	_check(
+		_visible(rig, "square") == false and _visible(rig, "tie") and _visible(rig, "buttons"),
+		"wear_street hides the pocket square, keeps the tie and buttons"
+	)
+	rig.set_outfit(null, null, null, 0, 0)
+	await process_frame
+	_check(
+		_verts(rig.find_child("jacket", true, false)) == _verts(_source_jacket(0)),
+		"style 0 swaps back to the single-breasted jacket model"
+	)
+	_check(_extras_visible(rig, true), "set_outfit shows them again")
+
+	# The Tuxedo is listed but its top is a placeholder, so menus must skip it.
+	var jacket := Enums.GarmentType.JACKET
+	_check(Wardrobe.top(2) != null and Wardrobe.top(2).placeholder, "top 2 is a placeholder")
+	_check(not Wardrobe.style_ready(jacket, 2), "the Tuxedo is not selectable")
+	_check(Wardrobe.style_ready(jacket, 0) and Wardrobe.style_ready(jacket, 1), "SB/DB are")
 
 	_finish()
+
+
+func _visible(rig: Node, part_name: String) -> bool:
+	var mi := rig.find_child(part_name, true, false) as MeshInstance3D
+	return mi != null and mi.visible
+
+
+func _extras_visible(rig: Node, want: bool) -> bool:
+	for part_name in ["buttons", "square", "tie"]:
+		var mi := rig.find_child(part_name, true, false) as MeshInstance3D
+		if mi == null or mi.visible != want:
+			return false
+	return true
+
+
+## The jacket mesh inside wardrobe top `style`'s source model.
+func _source_jacket(style: int) -> MeshInstance3D:
+	var inst := Wardrobe.top(style).model.instantiate()
+	var mi := inst.find_child("jacket", true, false) as MeshInstance3D
+	root.add_child(inst)  # freed with the tree at quit
+	return mi
+
+
+func _verts(node: Node) -> int:
+	var mi := node as MeshInstance3D
+	if mi == null or mi.mesh == null:
+		return -1
+	return mi.mesh.surface_get_array_len(0)
 
 
 ## True if a mesh named `name` exists and is a child of `skel`.
