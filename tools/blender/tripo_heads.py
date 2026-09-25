@@ -70,6 +70,19 @@ def _arguments(argv):
     p.add_argument("--out-dir", default="assets/characters/parts")
     p.add_argument("--report-dir", default="IMPORT/CHARREWORK/report/heads")
     p.add_argument("--no-sheet", action="store_true")
+    p.add_argument(
+        "--neck-radius",
+        type=float,
+        default=0.0,
+        help="the neck stub's radius after the fit (m); 0 = measured from the collars",
+    )
+    p.add_argument("--no-neck-fit", action="store_true", help="keep Tripo's neck stub as is")
+    p.add_argument(
+        "--collars",
+        default="assets/characters/CHARTGEN2.glb,assets/characters/suit_doublebreasted.glb,"
+        "assets/characters/street_overshirt.glb,assets/characters/street_overcoat.glb",
+        help="outfit glbs whose collar openings the neck must sit inside",
+    )
     ns = p.parse_args(args)
     for key in ("src", "target", "rig", "out_dir", "report_dir"):
         path = Path(getattr(ns, key))
@@ -513,11 +526,166 @@ def _render_tile(parts, yaw, path):
     bpy.ops.render.render(write_still=True)
 
 
+NECK_MARGIN = 0.005  # metres between the fitted neck and the tightest collar
+
+
+def _slice_radius(pts, z, half=0.01):
+    """Half-width across (x) and half-depth (y) of a closed tube's slice at z."""
+    band = [p for p in pts if abs(p.z - z) < half]
+    if len(band) < 4:
+        return None
+    return ((max(p.x for p in band) - min(p.x for p in band)) / 2,
+            (max(p.y for p in band) - min(p.y for p in band)) / 2,
+            Vector(((max(p.x for p in band) + min(p.x for p in band)) / 2,
+                    (max(p.y for p in band) + min(p.y for p in band)) / 2, z)))
+
+
+def _neck_profile(verts):
+    """(bottom, skull->stub height, [(z, rx, ry, centre)]) of a head's neck stub, in 1 cm
+    slices from the bottom to the cut."""
+    lo = min(v.z for v in verts)
+    cut = _neck_cut(verts)
+    rows = []
+    z = lo + 0.01
+    while z < cut:
+        r = _slice_radius(verts, z)
+        if r:
+            rows.append((z,) + r)
+        z += 0.01
+    return lo, cut, rows
+
+
+def _collar_opening(pts, top):
+    """The collar's inner radius, per 1 cm slice from 1 to 5 cm below its top (the rolled
+    edge itself is skipped): a circle fitted to the slice's cloth round the back and
+    sides (the front is left out: a V or an open placket), then the distance from its
+    centre that 10% of that cloth comes closer than (the inner wall, not the outer)."""
+    rows = []
+    for k in range(1, 6):
+        z = top - k * 0.01
+        band = [p for p in pts if abs(p.z - z) < 0.008 and abs(p.x) < 0.2]
+        if len(band) < 8:
+            continue
+        cx = 0.0
+        cy = sum(p.y for p in band) / len(band)
+        ring = band
+        for _ in range(3):
+            ring = [p for p in band if p.y > cy - 0.3 * max(abs(q.y - cy) for q in band)
+                    and math.hypot(p.x - cx, p.y - cy) < 0.2]
+            if len(ring) < 6:
+                break
+            # Kasa circle fit: x^2 + y^2 + D x + E y + F = 0, least squares
+            import numpy as np
+            a = np.array([[p.x, p.y, 1.0] for p in ring])
+            b = np.array([-(p.x * p.x + p.y * p.y) for p in ring])
+            d, e, _ = np.linalg.lstsq(a, b, rcond=None)[0]
+            cx, cy = -d / 2, -e / 2
+        dists = sorted(math.hypot(p.x - cx, p.y - cy) for p in ring)
+        if len(dists) >= 6:
+            rows.append((z, dists[len(dists) // 10], dists[len(dists) // 2]))
+    return rows
+
+
+def _measure_collars(ns):
+    """Every outfit's tightest collar opening; prints a table."""
+    tight = None
+    log("\n== collar openings the neck must sit inside (rig metres)")
+    for path in [p.strip() for p in ns.collars.split(",") if p.strip()]:
+        full = Path(path) if Path(path).is_absolute() else ROOT / path
+        if not full.is_file():
+            log("  %s: missing, skipped" % path)
+            continue
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.import_scene.gltf(filepath=str(full))
+        meshes = {o.name.split(".")[0]: o for o in bpy.data.objects if o.type == "MESH"}
+        for name in ("shirt", "jacket"):
+            o = meshes.get(name)
+            if o is None:
+                continue
+            pts = [o.matrix_world @ v.co for v in o.data.vertices]
+            near = [p for p in pts if abs(p.x) < 0.15 and p.z > 1.0]
+            if not near:
+                continue
+            top = max(p.z for p in near)
+            rows = _collar_opening(pts, top)
+            if not rows:
+                continue
+            least = sorted(r[1] for r in rows)[len(rows) // 2]
+            log("  %-22s %-7s top %.3f | inner radius per cm down (10th pct / median): %s"
+                " | opening %.3f" % (full.stem, name, top,
+                                     "  ".join("%.3f/%.3f" % (r[1], r[2]) for r in rows), least))
+            if tight is None or least < tight[0]:
+                tight = (least, full.stem, name)
+    return tight
+
+
+def _fit_neck(mesh, target, name):
+    """Thin a head's neck stub to `target` radius: each vertex moves towards the stub's
+    axis, fully up to half the stub's height, then less and less up to no change at the
+    jaw line (the cut), so the chin and jaw silhouette stay as they are; the length and
+    everything above the cut are untouched."""
+    verts, faces = mesh
+    lo, cut, rows = _neck_profile(verts)
+    lower = [r for r in rows if r[0] < lo + 0.6 * (cut - lo)]
+    if not lower:
+        return mesh, None
+    rx = sorted(r[1] for r in lower)[len(lower) // 2]
+    ry = sorted(r[2] for r in lower)[len(lower) // 2]
+    axis = sum((r[3] for r in lower), Vector()) / len(lower)
+    sx, sy = min(1.0, target / rx), min(1.0, target / ry)
+    full_up_to = lo + 0.5 * (cut - lo)
+    out = []
+    for v in verts:
+        if v.z >= cut:
+            out.append(v)
+            continue
+        t = 1.0 if v.z <= full_up_to else 1.0 - (v.z - full_up_to) / (cut - full_up_to)
+        t = t * t * (3.0 - 2.0 * t)
+        kx = 1.0 + (sx - 1.0) * t
+        ky = 1.0 + (sy - 1.0) * t
+        out.append(Vector((axis.x + (v.x - axis.x) * kx, axis.y + (v.y - axis.y) * ky, v.z)))
+    after = _neck_profile(out)[2]
+    lower_after = [r for r in after if r[0] < lo + 0.6 * (cut - lo)]
+    rx2 = sorted(r[1] for r in lower_after)[len(lower_after) // 2]
+    ry2 = sorted(r[2] for r in lower_after)[len(lower_after) // 2]
+    log("  %-8s stub %.3f..%.3f m | radius x/y %.3f/%.3f -> %.3f/%.3f (target %.3f)" % (
+        name, lo, cut, rx, ry, rx2, ry2, target))
+    return (out, faces), (rx, ry, rx2, ry2)
+
+
 def main(argv):
     ns = _arguments(argv)
     ns.out_dir.mkdir(parents=True, exist_ok=True)
     ns.report_dir.mkdir(parents=True, exist_ok=True)
+    tight = None if ns.no_neck_fit else _measure_collars(ns)
+    base_neck = None
+    if not ns.no_neck_fit:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.import_scene.gltf(filepath=str(ns.target))
+        head = next(o for o in bpy.data.objects if o.type == "MESH" and o.name.split(".")[0] == "head")
+        hv = [head.matrix_world @ v.co for v in head.data.vertices]
+        lo, cut, rows = _neck_profile(hv)
+        lower = [r for r in rows if r[0] < lo + 0.6 * (cut - lo)]
+        base_neck = sorted(r[1] for r in lower)[len(lower) // 2]
+        log("  base head (%s): neck radius %.3f across, stub %.3f..%.3f" % (
+            ns.target.stem, base_neck, lo, cut))
     heads = build(ns)
+    if not ns.no_neck_fit:
+        if ns.neck_radius > 0.0:
+            target, why = ns.neck_radius, "--neck-radius"
+        else:
+            target = tight[0] - NECK_MARGIN if tight else base_neck
+            why = "tightest collar (%s %s, %.3f) minus %.0f mm" % (
+                tight[1], tight[2], tight[0], NECK_MARGIN * 1000) if tight else "base head"
+            if base_neck is not None and base_neck < target:
+                target, why = base_neck, "the base head's own neck (narrower than the collars allow)"
+        log("\n== neck fit: target radius %.3f m (%s)" % (target, why))
+        done = {}
+        for name, parts in sorted(heads.items()):
+            key = id(parts["head"])
+            if key not in done:
+                done[key] = _fit_neck(parts["head"], target, name)[0]
+            parts["head"] = done[key]
     log("\n== export -> %s" % ns.out_dir)
     ok = True
     for name, parts in sorted(heads.items()):

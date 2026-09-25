@@ -10,6 +10,9 @@ extends SceneTree
 ##       the whole row
 ##   engine_<tag>NN_<name>_front.png / _side.png  a fitting close-up of each combo
 ## --indices defaults to every wardrobe head except 0 (the base CHARTGEN head).
+## --neck: each of --indices in three outfits (the suit, then every street outfit), with
+## a close-up of the neck in the collar front and side, saved as
+## report/heads_neck/neck_<tag><index>_<outfit>_<front|side>.png.
 
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
 const SUIT := "res://data/materials/navy_worsted_solid.tres"
@@ -28,6 +31,8 @@ var _shots: Array = []  # [file name, rig index or -1 for all, camera position, 
 var _shot := 0
 var _frame := 0
 var _tag := ""
+var _neck := false
+var _outfits: Array[String] = []  # per rig in --neck mode: "suit" or a street outfit index
 
 
 func _initialize() -> void:
@@ -38,6 +43,8 @@ func _initialize() -> void:
 			_tag = arg.trim_prefix("--tag=") + "_"
 		elif arg.begins_with("--indices="):
 			wanted = arg.trim_prefix("--indices=")
+		elif arg == "--neck":
+			_neck = true
 	# stand in the calm idle (arms down) like the other character sheets
 	CharacterAnimations.calm_idle = true
 	var count: int = Wardrobe.head_count()
@@ -53,6 +60,16 @@ func _initialize() -> void:
 	root.add_child(world)
 	_add_lights(world)
 	var packed := load(RIG_SCENE) as PackedScene
+	if _neck:
+		var looks: Array[String] = ["suit"]
+		for i in Wardrobe.library().street_outfits.size():
+			looks.append(str(i))
+		var per_look: Array[int] = []
+		for i in _indices:
+			for look in looks:
+				per_look.append(i)
+				_outfits.append(look)
+		_indices = per_look
 	for k in _indices.size():
 		var rig := packed.instantiate() as Node3D
 		rig.position.x = (k - (_indices.size() - 1) * 0.5) * GAP
@@ -76,6 +93,8 @@ func _dress() -> void:
 		rig.call("set_palette", SKIN)
 		rig.call("set_hair_color", HAIR)
 		rig.call("set_outfit", suit, null, suit, 0, 0)
+		if _neck and _outfits[k] != "suit":
+			rig.call("wear_street", Wardrobe.library().street_outfit(int(_outfits[k])))
 		rig.call("set_face_look", "brown", "", 0, 0)
 		rig.call("reset_expression")
 		print("  combo %d: %s" % [_indices[k], _names[k]])
@@ -90,6 +109,17 @@ func _plan() -> void:
 	_shots.append(["lineup_front", -1, front, target, 75.0])
 	var quarter := target + GAME_OFFSET.rotated(Vector3.UP, deg_to_rad(35.0)) * back
 	_shots.append(["lineup_three_quarter", -1, quarter, target, 75.0])
+	if _neck:
+		for k in _rigs.size():
+			var head := _head_position(_rigs[k])
+			var look := _outfits[k]
+			if look != "suit":
+				look = String(Wardrobe.library().street_outfit(int(look)).display_name).to_lower()
+			var name := "neck_%02d_%s" % [_indices[k], look]
+			var collar := head + Vector3(0.0, -0.45, 0.0)
+			_shots.append([name + "_front", k, collar + Vector3(0.0, 0.1, 1.5), collar, 30.0])
+			_shots.append([name + "_side", k, collar + Vector3(1.5, 0.1, 0.0), collar, 30.0])
+		return
 	for k in _rigs.size():
 		var head := _head_position(_rigs[k])
 		var name := "%02d_%s" % [_indices[k], _names[k]]
@@ -124,6 +154,10 @@ func _on_frame() -> void:
 	elif _frame == SETTLE + 5:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 		var path := "%s/engine_%s%s.png" % [OUT_DIR, _tag, _shots[_shot][0]]
+		if _neck:
+			var dir := OUT_DIR.get_base_dir() + "/heads_neck"
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+			path = "%s/%s%s.png" % [dir, _tag, _shots[_shot][0]]
 		var image := root.get_texture().get_image()
 		if image != null and image.save_png(ProjectSettings.globalize_path(path)) == OK:
 			print("Saved " + path)
