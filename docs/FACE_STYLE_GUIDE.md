@@ -156,6 +156,11 @@ stroke thickness ranges and the expression shapes are shared and fixed.
 
 A face whose idle has heavy lids keeps them; states add to the idle, they never replace it.
 
+**Owner's pick (2026-09-26): variant D**, the Paper003 creased-paper scan at 2 tiles with its
+normal at strength 1.0 and no procedural strips; the strip variants E-G read as too large a
+mess of folds. `data/paper_surfaces/paper_mache.tres` (the default) holds D; the others stay
+as presets. A tileable papier-mache scan from the owner replaces Paper003 when it arrives.
+
 ## 7. Checking an asset
 
 A new preset or a generated reference is accepted only if: every feature is a paper piece with no
