@@ -313,6 +313,18 @@ def _arguments(argv):
         default=0.24,
         help="with --auto-seams: where to cut sleeves that have no armhole seam (|x|, m)",
     )
+    p.add_argument(
+        "--trim-neck",
+        action="store_true",
+        help="cut the shirt at its neckline (a tee that carried Tripo's neck stub along)",
+    )
+    p.add_argument(
+        "--straighten-arms",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="turn drooped sleeves level through the arm bones and stretch them to the rig's"
+        " hand tip (default: on for --street, else only when the axis is 2 cm off)",
+    )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
     ns = p.parse_args(args)
@@ -939,7 +951,13 @@ def step_align(ns) -> None:
         o.data.update()
     log("  height %.3f -> %.3f (x%.4f), centred on x %.4f / torso y %.4f, feet at z 0%s" % (
         hi.z - lo.z, target, scale, centre.x, centre.y, ", turned 180" if turn else ""))
-    _landmarks(objs, rig)
+    if _straighten_arms(ns, objs, rig):
+        log("  landmarks after --straighten-arms:")
+        _landmarks(objs, rig)
+    else:
+        _landmarks(objs, rig)
+    if ns.trim_neck and "shirt" in objs:
+        _trim_neck(objs["shirt"], objs.get("jacket"))
     if "legs" in objs:
         if ns.straight_hem:
             _straight_hem(objs["legs"])
@@ -949,6 +967,148 @@ def step_align(ns) -> None:
 
 HEM_BAND_M = 0.10  # the bottom of each trouser leg that --straight-hem makes a column
 HEM_REF = (0.10, 0.14)  # the section above the hem it copies (metres over the hem)
+
+
+ARM_TIP_TOLERANCE = 0.02  # the hand tip may fall this far short (fraction) before scaling
+ARM_AXIS_TOLERANCE = 0.02  # metres the sleeve axis may sit off the arm bones
+ARM_BAND = 0.25  # metres above/below the shoulder joint that can be sleeve
+
+
+def _arm_fit(jacket, arms, side, joint):
+    """The sleeve axis on one side: a line fitted through the centroids of the sleeve's
+    |x| slices past the joint plus the hand ball's centre. Returns (a point on it at the
+    joint's |x|, its direction pointing out along the arm, hand tip |x|, sleeve radius)."""
+    # the sleeve only: points near arm height (a coat's skirt or pocket flaps reach this
+    # far out lower down and would drag the fit and the blend radius)
+    pts = [jacket.matrix_world @ v.co for v in jacket.data.vertices]
+    pts = [q for q in pts if abs(q.z - joint.z) < ARM_BAND]
+    hand = [arms.matrix_world @ v.co for v in arms.data.vertices]
+    hand = [h for h in hand if h.x * side > 0]
+    tip = max(abs(h.x) for h in hand)
+    ball = sum(hand, Vector()) / len(hand)
+    x0 = abs(joint.x) + 0.12  # well out on the sleeve, clear of the body
+    x1 = min(abs(h.x) for h in hand)
+    samples = []
+    step = (x1 - x0) / 6.0
+    for k in range(6):
+        lo, hi = x0 + k * step, x0 + (k + 1) * step
+        band = [q for q in pts if q.x * side > 0 and lo <= abs(q.x) < hi]
+        if len(band) > 3:
+            samples.append(Vector((sum(q.x for q in band) / len(band),
+                                   (min(q.y for q in band) + max(q.y for q in band)) / 2,
+                                   (min(q.z for q in band) + max(q.z for q in band)) / 2)))
+    samples.append(ball)
+    n = len(samples)
+    xs = [abs(q.x) for q in samples]
+    mx = sum(xs) / n
+
+    def slope(vals):
+        mv = sum(vals) / n
+        den = sum((x - mx) ** 2 for x in xs) or 1e-9
+        b = sum((x - mx) * (v - mv) for x, v in zip(xs, vals)) / den
+        return mv - b * mx, b
+
+    ay, by = slope([q.y for q in samples])
+    az, bz = slope([q.z for q in samples])
+    jx = abs(joint.x)
+    at = Vector((side * jx, ay + by * jx, az + bz * jx))
+    direction = Vector((side, by, bz)).normalized()
+    radius = max(math.hypot(q.y - (ay + by * abs(q.x)), q.z - (az + bz * abs(q.x)))
+                 for q in pts if q.x * side > 0 and abs(q.x) > x0)
+    return at, direction, tip, radius, (ay, by, az, bz)
+
+
+def _straighten_arms(ns, objs, rig) -> bool:
+    """Tripo draws street figures with the arms a little drooped, not a flat T; skinned
+    rigidly, such a sleeve swings about a pivot off its own axis. Per side: rotate the
+    sleeve, the hand ball and any shirt cuff about the shoulder joint so the sleeve axis
+    runs level through the arm bones, and stretch it out to the rig's hand tip when it
+    falls short. The shoulder blends in over the first 10 cm past the armhole, so the
+    jacket stays one piece. Returns whether anything moved."""
+    jacket, arms = objs.get("jacket"), objs.get("arms")
+    if jacket is None or arms is None or ns.straighten_arms is False:
+        return False
+    arm = _armature()
+    rig_arms = rig.get("arms")
+    rig_tip = max(abs((rig_arms.matrix_world @ v.co).x) for v in rig_arms.data.vertices) if rig_arms else None
+    moved = False
+    for side in (1.0, -1.0):
+        name = "upperarm." + ("l" if side * (arm.matrix_world @ arm.data.bones["upperarm.l"].head_local).x > 0 else "r")
+        joint = arm.matrix_world @ arm.data.bones[name].head_local
+        hand_bone = arm.matrix_world @ arm.data.bones[name.replace("upperarm", "hand")].head_local
+        bone_dir = (hand_bone - joint).normalized()
+        at, direction, tip, radius, fit = _arm_fit(jacket, arms, side, joint)
+        off = (at - joint).length
+        angle = math.degrees(direction.angle(bone_dir))
+        short = (rig_tip - tip) / rig_tip if rig_tip else 0.0
+        log("  arm %s: sleeve axis %.1f deg off the bones, %.3f m off the joint at |x| %.3f;"
+            " hand tip %.3f (rig %.3f, %+.1f%%)" % ("+x" if side > 0 else "-x", angle, off,
+                                                    abs(joint.x), tip, rig_tip or 0, -short * 100))
+        if ns.straighten_arms is None and not ns.street and off < ARM_AXIS_TOLERANCE:
+            continue
+        rot = direction.rotation_difference(bone_dir).to_matrix().to_4x4()
+        scale = 1.0
+        if rig_tip and short > ARM_TIP_TOLERANCE:
+            # stretch along the arm so the tip lands on the rig's: tip distance from the joint
+            scale = (rig_tip - abs(joint.x)) / (tip - abs(joint.x))
+        ay, by, az, bz = fit
+        x_start = abs(joint.x) + 0.03  # the armhole, roughly: no movement inside it
+        x_full = x_start + 0.10
+
+        def target(q):
+            local = rot @ (q - at)
+            along = local.dot(bone_dir)
+            local = local + bone_dir * along * (scale - 1.0)
+            return joint + local
+
+        for obj in [o for o in (jacket, objs.get("shirt"), arms) if o is not None]:
+            me = obj.data
+            inv = obj.matrix_world.inverted()
+            for v in me.vertices:
+                q = obj.matrix_world @ v.co
+                if q.x * side <= 0 or abs(q.x) <= x_start or abs(q.z - joint.z) > ARM_BAND:
+                    continue
+                d = math.hypot(q.y - (ay + by * abs(q.x)), q.z - (az + bz * abs(q.x)))
+                t = min(max((abs(q.x) - x_start) / (x_full - x_start), 0.0), 1.0)
+                if obj is not arms:
+                    # the sleeve only: fade out over the last 30% of its radius so a
+                    # coat's side panels out that far below the armpit stay put
+                    t *= min(max((1.3 * radius - d) / (0.3 * radius), 0.0), 1.0)
+                if t <= 0.0:
+                    continue
+                v.co = inv @ q.lerp(target(q), t)
+            me.update()
+        after_at, after_dir, after_tip, _, _ = _arm_fit(jacket, arms, side, joint)
+        log("  arm %s straightened: rotated %.1f deg about the joint, stretched x%.3f ->"
+            " %.1f deg off the bones, %.3f m off the joint, hand tip %.3f" % (
+                "+x" if side > 0 else "-x", angle, scale,
+                math.degrees(after_dir.angle(bone_dir)), (after_at - joint).length, after_tip))
+        moved = True
+    return moved
+
+
+def _trim_neck(shirt, jacket) -> None:
+    """A tee carved out of Tripo's fused body can carry the neck stub up with it: a tube
+    rising out of the collar. What shows of a tee under an open overshirt is its front, so
+    the tee stops where the shirt first wraps round behind the body (its vertices reach
+    past the jacket's centre in depth); the faces above that go. The open edge sits under
+    the head. Not for a turtleneck, whose rolled neck is the garment."""
+    jp = [jacket.matrix_world @ v.co for v in jacket.data.vertices] if jacket else []
+    mid_y = (min(q.y for q in jp) + max(q.y for q in jp)) / 2 if jp else 0.0
+    pts = [shirt.matrix_world @ v.co for v in shirt.data.vertices]
+    behind = [q.z for q in pts if q.y > mid_y]
+    if not behind:
+        log("  shirt: no neck tube to trim")
+        return
+    cut = min(behind)
+    bm = bmesh.new()
+    bm.from_mesh(shirt.data)
+    high = [f for f in bm.faces if (shirt.matrix_world @ f.calc_center_median()).z > cut]
+    bmesh.ops.delete(bm, geom=high, context="FACES")
+    bm.to_mesh(shirt.data)
+    bm.free()
+    log("  shirt: wraps behind the body from z %.3f up (the neck stub): %d faces trimmed,"
+        " %d kept" % (cut, len(high), len(shirt.data.polygons)))
 
 
 def _hem_table(obj, title) -> None:

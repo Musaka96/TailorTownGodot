@@ -242,7 +242,9 @@ static func _street(
 ) -> StreetOutfit:
 	var outfit := StreetOutfit.new()
 	outfit.display_name = label
-	outfit.top = WardrobePart.make(label + " Top", model, {"jacket": "jacket", "shirt": "shirt"})
+	# The street glbs ship their own hands, sized and placed for their own cuffs.
+	var top_roles := {"jacket": "jacket", "shirt": "shirt", "arms": "arms"}
+	outfit.top = WardrobePart.make(label + " Top", model, top_roles)
 	outfit.bottom = WardrobePart.make(label + " Trousers", model, {"pants": "legs"})
 	outfit.shoe_model = WardrobePart.make(label + " Shoes", model, {"shoes": "shoes"})
 	outfit.outer_mat = outer

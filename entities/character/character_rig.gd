@@ -3,15 +3,16 @@ extends Node3D
 
 ## Runtime controller for the shared character (built by tools/build_character.gd
 ## from CHARTGEN2 + KayKit Rig_Medium animations). Drives the AnimationPlayer
-## (idle/walk/wave/accept) and manages a modular wardrobe: the arms are fixed
-## (skin), while the head, HAIR, the suit TOP (jacket, shirt, buttons, pocket
-## square, tie) and BOTTOM (trousers) are swappable slots. Each slot's mesh is
+## (idle/walk/wave/accept) and manages a modular wardrobe: the head, HAIR, the TOP
+## (jacket, shirt, buttons, pocket square, tie, and its own arms if it has any) and
+## BOTTOM (trousers) are swappable slots. Each slot's mesh is
 ## pulled from a Wardrobe entry's .glb and reparented onto the shared skeleton —
 ## because every option is skinned to the same Rig_Medium, the animations drive it
 ## with no retargeting. Changing a suit style therefore changes the actual model,
 ## not just the colour.
 
-# Arms are always the base skin mesh (never swapped); the head is swappable now.
+# The base model's arms (hands, in skin): worn unless the top brings its own (a street
+# outfit's hands sit in its own cuffs), in which case the base pair is set aside.
 const SYLLABLE_TIME := 0.09  # how long syllable() holds the mouth open
 const SKIN_ARMS := "arms"
 # The base model's default meshes per slot (adopted on _ready as style/index 0).
@@ -219,6 +220,7 @@ var _shoe_slot: Dictionary = {}  # role "shoes" -> the MeshInstance3D worn
 var _shoe_part: WardrobePart  # the swapped-in shoe model; null = the base pair
 var _street_shoes := false  # the shoes show a street outfit's leather, not _shoes
 var _tie_color := DEFAULT_TIE
+var _base_arms: MeshInstance3D  # the base model's arms, kept while a top wears its own
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
 
@@ -230,6 +232,7 @@ func _ready() -> void:
 	_bottom = _adopt(BAKED_BOTTOM)
 	_hair = _adopt(BAKED_HAIR)
 	_shoe_slot = _adopt(BAKED_SHOES)
+	_base_arms = find_child(SKIN_ARMS, true, false) as MeshInstance3D
 	_set_shoes({})  # black calf until someone says otherwise
 	_dress_extras()
 	if _anim != null:
@@ -254,6 +257,13 @@ func _process(delta: float) -> void:
 	_tree.set("parameters/loco/blend_amount", _loco)
 	_tree.set("parameters/carry/blend_amount", _carry_amt)
 	_tree.set("parameters/loco_ts/scale", _loco_speed)
+
+
+func _notification(what: int) -> void:
+	# Base arms set aside are outside the tree, so the rig must free them itself.
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(_base_arms):
+		if _base_arms.get_parent() == null:
+			_base_arms.free()
 
 
 # --- 2D face ---------------------------------------------------------------
@@ -963,7 +973,7 @@ func _apply_skin() -> void:
 	var head_mi = _head.get("head")
 	if head_mi is MeshInstance3D:
 		head_mi.material_override = mat
-	var arms := find_child(SKIN_ARMS, true, false)
+	var arms = _top.get("arms", _base_arms)
 	if arms is MeshInstance3D:
 		arms.material_override = _flat(_skin_color, 0.7)
 
@@ -1063,7 +1073,7 @@ func wear_street(outfit: StreetOutfit = null) -> void:
 	if outfit == null or outfit.top == null or outfit.top.model == null:
 		_wear_flat_street()
 		return
-	_top = _swap_part(_top, outfit.top)
+	_wear_top(outfit.top)
 	_top_style = STREET_STYLE
 	_apply_cloth(_top.get("jacket"), outfit.outer_mat)
 	_apply_cloth(_top.get("shirt"), outfit.inner_mat)
@@ -1149,8 +1159,32 @@ func _swap_shoes(part: WardrobePart) -> void:
 
 
 func _swap_top(style: int) -> void:
-	_top = _swap_part(_top, Wardrobe.top(style))
+	_wear_top(Wardrobe.top(style))
 	_top_style = style
+
+
+## Fill the top slot from `part`. A top with an "arms" role brings its own hands, so the
+## base arms are set aside first (freeing the node name for the part's mesh); a top
+## without one (the suits) gets the base arms back. Either way the hands take the skin.
+func _wear_top(part: WardrobePart) -> void:
+	_top = _clear(_top)
+	var own_arms := part != null and part.model != null and part.roles.has("arms")
+	_set_base_arms(not own_arms)
+	_top = _swap_part({}, part)
+	if own_arms and not _top.has("arms"):
+		_set_base_arms(true)  # the model had no arms mesh after all
+	_apply_skin()
+
+
+## Put the base arms on the skeleton, or take them off (kept for later, not freed).
+func _set_base_arms(on: bool) -> void:
+	if _base_arms == null or _skel == null:
+		return
+	var worn := _base_arms.get_parent() == _skel
+	if on and not worn:
+		_skel.add_child(_base_arms)
+	elif not on and worn:
+		_skel.remove_child(_base_arms)
 
 
 func _swap_bottom(style: int) -> void:

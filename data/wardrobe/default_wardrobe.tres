@@ -235,6 +235,7 @@ script = ExtResource("1_8sors")
 display_name = "Overshirt Top"
 model = ExtResource("13_uog13")
 roles = {
+"arms": "arms",
 "jacket": "jacket",
 "shirt": "shirt"
 }
@@ -294,6 +295,7 @@ script = ExtResource("1_8sors")
 display_name = "Overcoat Top"
 model = ExtResource("15_o03s2")
 roles = {
+"arms": "arms",
 "jacket": "jacket",
 "shirt": "shirt"
 }

@@ -59,6 +59,8 @@ func _run() -> void:
 	# trousers and shoes, in its cloth and leather, with no tie, square or buttons.
 	rig.shoes = {"color": "oxblood", "finish": "calf"}  # the wearer's own leather
 	var base_shoes := rig.find_child("shoes", true, false)
+	var base_arms := rig.find_child("arms", true, false)
+	rig.set_palette(Color(0.5, 0.35, 0.25))
 	var street: StreetOutfit = Wardrobe.street_outfit(0)
 	_check(street != null and street.top != null, "the library has street outfits")
 	rig.wear_street(street)
@@ -71,6 +73,13 @@ func _run() -> void:
 		_verts(rig.find_child("legs", true, false)) == _verts(_source_mesh(street.bottom, "legs")),
 		"wear_street wears the street outfit's trousers"
 	)
+	var arms := rig.find_child("arms", true, false)
+	_check(
+		arms != base_arms and _verts(arms) == _verts(_source_mesh(street.top, "arms")),
+		"the street top brings its own arms (hands in its own cuffs)"
+	)
+	_check(base_arms.get_parent() == null, "and the base arms are set aside")
+	_check(_skin(arms).is_equal_approx(Color(0.5, 0.35, 0.25)), "the street hands take the skin")
 	for part_name in ["tie", "square", "buttons"]:
 		_check(
 			rig.find_child(part_name, true, false) == null, "street clothes have no " + part_name
@@ -93,6 +102,11 @@ func _run() -> void:
 		"set_outfit after wear_street restores the suit jacket model"
 	)
 	_check(_extras_visible(rig, true), "and its buttons, pocket square and tie")
+	_check(
+		rig.find_child("arms", true, false) == base_arms and _under(rig, "arms", skel),
+		"the suit restores the base arms"
+	)
+	_check(_skin(base_arms).is_equal_approx(Color(0.5, 0.35, 0.25)), "still in the skin tone")
 	_check(
 		(
 			_verts(rig.find_child("shoes", true, false))
@@ -154,6 +168,13 @@ func _check_regular() -> void:
 ## into this --script compile).
 func _dye(id: String) -> Color:
 	return load("res://data/scripts/shoe_material.gd").COLORS[id]
+
+
+## The flat albedo on a skin mesh (head / arms).
+func _skin(node: Node) -> Color:
+	var mi := node as MeshInstance3D
+	var mat := mi.material_override as StandardMaterial3D if mi != null else null
+	return mat.albedo_color if mat != null else Color(0, 0, 0, 0)
 
 
 ## The leather colour on the shoes the rig wears now.
