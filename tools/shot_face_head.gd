@@ -14,9 +14,13 @@ const SUIT := "res://data/materials/navy_worsted_pinstripe.tres"
 const STYLE_DIR := "res://data/face_styles/"
 # preset -> states to shoot ("neutral" = the resting face, no suffix)
 const SHOTS := {
-	"round": ["neutral", "happy", "closed"],
-	"heavy_lid": ["neutral", "happy"],
-	"old_timer": ["neutral", "talking"],
+	"heavy_lid": ["neutral"],
+	"old_timer": ["neutral"],
+	"moustache": ["neutral"],
+	"big_eyes": ["neutral", "talking"],
+	"wink": ["neutral", "happy"],
+	"blush": ["neutral"],
+	"laugh": ["neutral"],
 }
 const OUT_DIR := "res://IMPORT/faces_proc"
 const SKIN := Color(0.86, 0.72, 0.60)

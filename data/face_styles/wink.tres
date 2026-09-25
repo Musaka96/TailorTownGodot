@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_pxs3s"]
+
+[resource]
+script = ExtResource("1_pxs3s")
+eye_center = Vector2(-0.174, -0.426)
+eye_radii = Vector2(0.189, 0.226)
+iris_radius = 0.226
+gaze = Vector2(0, 0)
+pupil_radius = 0.226
+wink = 1.0
+lid_height = 1.06
+lid_band = 0.0
+sclera_color = Color(0.22745098, 0.14117648, 0.09411765, 1)
+brow_center = Vector2(-0.352, -0.427)
+brow_length = 0.3
+brow_thickness = 0.095
+brow_arch = 0.25
+nose_center = Vector2(0, -0.272)
+nose_size = 0.33
+mouth_center = Vector2(0.21, 0.011)
+mouth_width = 0.34
+mouth_curve = 0.85
+mouth_skew = 0.75
+expression_overrides = {
+"angry": {
+"mouth_center": Vector2(0, 0),
+"mouth_skew": 0.0,
+"wink": 0.0
+},
+"displeased": {
+"mouth_center": Vector2(0, 0),
+"mouth_skew": 0.0,
+"wink": 0.0
+},
+"happy": {
+"mouth_center": Vector2(0.1, 0),
+"mouth_curve": 0.12,
+"mouth_depth": 0.75,
+"mouth_open": 0.75,
+"mouth_skew": 0.0,
+"mouth_teeth": 1.0,
+"mouth_tongue": 0.0,
+"mouth_width": 0.52
+},
+"sad": {
+"mouth_center": Vector2(0, 0),
+"mouth_skew": 0.0,
+"wink": 0.0
+},
+"surprised": {
+"mouth_center": Vector2(0, 0),
+"mouth_skew": 0.0,
+"wink": 0.0
+}
+}

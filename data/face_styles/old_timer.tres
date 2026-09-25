@@ -4,23 +4,41 @@
 
 [resource]
 script = ExtResource("1_3hy50")
-eye_center = Vector2(-0.3, -0.15)
-eye_radii = Vector2(0.23, 0.23)
-iris_radius = 0.23
+eye_center = Vector2(-0.266, -0.345)
+eye_radii = Vector2(0.152, 0.152)
+iris_radius = 0.152
 gaze = Vector2(0, 0)
-pupil_radius = 0.23
+pupil_radius = 0.152
 lid_height = 1.06
 lid_band = 0.0
 corner_marks = 2
-corner_mark_len = 0.34
+corner_mark_len = 0.207
 sclera_color = Color(0.22745098, 0.14117648, 0.09411765, 1)
-brow_center = Vector2(-0.55, -0.59)
-brow_length = 0.77
-brow_thickness = 0.18
+brow_center = Vector2(-0.39, -0.594)
+brow_length = 0.405
+brow_thickness = 0.095
 brow_angle = 0.25
-nose_center = Vector2(0, 0.14)
-nose_size = 1.57
-mouth_center = Vector2(0, 0.2)
-mouth_width = 0.75
-mouth_thickness = 0.083
-mouth_curve = 0.5
+nose_center = Vector2(0, -0.138)
+nose_size = 1.21
+mouth_center = Vector2(0, -0.144)
+mouth_width = 0.477
+mouth_thickness = 0.078
+mouth_curve = 1.0
+expression_overrides = {
+"happy": {
+"eye_center": Vector2(-0.26648095, -0.52327895),
+"eye_radii": Vector2(0.17616837, 0.2431799),
+"lid_arch": 0.5410920964749539,
+"lid_band": 0.0,
+"lid_height": 1.0,
+"mouth_center": Vector2(0, -0.1),
+"mouth_curve": 0.5,
+"mouth_depth": 1.15,
+"mouth_open": 0.9,
+"mouth_teeth": 0.0,
+"mouth_tongue": 0.5,
+"mouth_width": 0.52,
+"openness": 1.0,
+"squint": 1.0
+}
+}

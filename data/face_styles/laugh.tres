@@ -1,0 +1,80 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_unsb6"]
+
+[resource]
+script = ExtResource("1_unsb6")
+eye_center = Vector2(-0.26338595, -0.687757)
+eye_radii = Vector2(0.29613122, 0.420038)
+iris_radius = 0.5
+gaze = Vector2(0, 0)
+pupil_radius = 0.5
+squint = 1.0
+lid_height = 1.0
+lid_arch = 0.6623065608816807
+lid_band = 0.0
+sclera_color = Color(0.22745098, 0.14117648, 0.09411765, 1)
+brow_center = Vector2(-0.4, -0.483)
+brow_length = 0.315
+brow_thickness = 0.095
+brow_arch = 0.3
+nose_center = Vector2(0, -0.215)
+nose_size = 0.377
+mouth_center = Vector2(0, 0.054)
+mouth_width = 0.68
+mouth_thickness = 0.062
+mouth_curve = 0.25
+mouth_open = 0.85
+mouth_depth = 1.2
+mouth_tongue = 0.6
+expression_overrides = {
+"angry": {
+"eye_center": Vector2(-0.263, -0.42),
+"eye_radii": Vector2(0.17, 0.2),
+"iris_radius": 0.2,
+"lid_arch": 0.45,
+"lid_height": 1.06,
+"mouth_open": 0.0,
+"mouth_tongue": 0.0,
+"mouth_width": 0.36,
+"pupil_radius": 0.2,
+"squint": 0.0
+},
+"displeased": {
+"eye_center": Vector2(-0.263, -0.42),
+"eye_radii": Vector2(0.17, 0.2),
+"iris_radius": 0.2,
+"lid_arch": 0.45,
+"lid_height": 1.06,
+"mouth_open": 0.0,
+"mouth_tongue": 0.0,
+"mouth_width": 0.36,
+"pupil_radius": 0.2,
+"squint": 0.0
+},
+"happy": {
+"mouth_open": 1.0,
+"mouth_width": 0.76
+},
+"sad": {
+"eye_center": Vector2(-0.263, -0.42),
+"eye_radii": Vector2(0.17, 0.2),
+"iris_radius": 0.2,
+"lid_arch": 0.45,
+"lid_height": 1.06,
+"mouth_open": 0.0,
+"mouth_tongue": 0.0,
+"mouth_width": 0.36,
+"pupil_radius": 0.2,
+"squint": 0.0
+},
+"surprised": {
+"eye_center": Vector2(-0.263, -0.42),
+"eye_radii": Vector2(0.17, 0.2),
+"iris_radius": 0.2,
+"lid_arch": 0.45,
+"lid_height": 1.06,
+"pupil_radius": 0.2,
+"squint": 0.0
+}
+}

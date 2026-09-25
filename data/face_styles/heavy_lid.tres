@@ -4,23 +4,46 @@
 
 [resource]
 script = ExtResource("1_etxgg")
-eye_center = Vector2(-0.27, 0)
-eye_radii = Vector2(0.64, 0.72)
-iris_radius = 0.4
+eye_center = Vector2(-0.198, -0.36)
+iris_radius = 0.24
 gaze = Vector2(0, 0)
-pupil_radius = 0.4
+iris_inset = 0.03
+pupil_radius = 0.24
 lid_height = 0.0
 lid_arch = 0.06
-lid_band = 0.2
-brow_center = Vector2(-0.56, -0.08)
-brow_length = 0.85
-brow_thickness = 0.16
-brow_arch = 0.18
+lid_band = 0.093
+sclera_color = Color(0.9647059, 0.8901961, 0.7490196, 1)
+brow_center = Vector2(-0.356, -0.382)
+brow_length = 0.42
+brow_thickness = 0.1
+brow_arch = 0.12
 brow_angle = 0.3
-nose_center = Vector2(0, 0.04)
-nose_size = 0.48
+nose_center = Vector2(0, -0.388)
+nose_size = 0.417
 nose_color = Color(0.47843137, 0.2901961, 0.16470589, 1)
-mouth_center = Vector2(0, 0.34)
-mouth_width = 0.41
-mouth_thickness = 0.11
-mouth_curve = -0.12
+mouth_center = Vector2(0, -0.147)
+mouth_width = 0.229
+mouth_thickness = 0.087
+mouth_curve = -0.1
+expression_overrides = {
+"happy": {
+"eye_center": Vector2(-0.19839059, -0.58075786),
+"eye_radii": Vector2(0.35840297, 0.33160898),
+"lid_arch": 0.6211245714285716,
+"lid_band": 0.0,
+"lid_height": 1.0,
+"mouth_center": Vector2(0, 0),
+"mouth_curve": 0.12,
+"mouth_depth": 0.75,
+"mouth_open": 0.75,
+"mouth_skew": 0.0,
+"mouth_teeth": 1.0,
+"mouth_tongue": 0.0,
+"mouth_width": 0.64,
+"openness": 1.0,
+"squint": 1.0
+},
+"surprised": {
+"lid_height": 0.8
+}
+}
