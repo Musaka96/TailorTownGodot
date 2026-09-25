@@ -19,6 +19,12 @@ extends Resource
 
 enum Element { EYE, BROW, NOSE, MOUTH }
 enum NoseKind { DISC, OVAL, TEARDROP, STRIP, SHIELD, TRIANGLE, TRIANGLE_UP }
+## How the happy state treats the eyes (guide section 6, owner review 2026-09-26): CUT = the
+## old curved lid over smaller pupils (on a heavy-lid face it slices the white to a half
+## disc); BRIGHT = open eyes, pupils up and a touch bigger, brows up and arched, cheeks
+## showing; SOFT = a curved upper lid at 0.18, nothing else on the eye; ARCS = shut eyes as
+## upward paper arcs; TILT = BRIGHT with each eye turned outer-corner-up (eye_tilt).
+enum HappyEye { CUT, BRIGHT, SOFT, ARCS, TILT }
 
 ## The reference disc on a head: its diameter in face-rect widths, its centre's height as a
 ## fraction of the rect from the top, and the rect aspect (width / height) the heights were
@@ -42,6 +48,8 @@ const FIELDS := [
 	"pupil_offset",
 	"lid",
 	"lid_curve",
+	"eye_smile",
+	"eye_tilt",
 	"brow_spacing",
 	"brow_height",
 	"brow_length",
@@ -70,6 +78,11 @@ const PUPIL_MIN := 0.05
 ## y up, in face widths: the noble (0.155) keeps a thin shut smile, every mouth at 0.16 or
 ## wider grins as before.
 const NARROW_SMILE := Vector2(0.155, 0.16)
+## BRIGHT's cheeks on a face without its own: a rose disc this big (60 % of the guide's
+## largest), outside-below each eye.
+const HAPPY_CHEEK := 0.06
+## TILT's turn of each eye, degrees, outer corner up.
+const HAPPY_TILT := 6.0
 
 ## How big the face is drawn on a head, relative to the reference disc mapping (DISC_SCALE):
 ## 0.8 keeps the eyes off the hair line and the mouth above the chin. A static so review
@@ -79,6 +92,9 @@ static var face_scale := 0.8
 ## the brows further under the fringe line and the mouth nearer the chin, as the owner
 ## asked (2026-09-25). A static so review tools can compare drops; the game leaves it.
 static var face_drop := 0.05
+## The happy eye every face uses (HappyEye). The owner has not picked yet: CUT stays until
+## he does, then this one line flips it. Review tools switch it to compare.
+static var happy_eye := HappyEye.CUT
 
 @export_group("Eye")
 @export var eye_spacing := 0.23
@@ -105,6 +121,12 @@ static var face_drop := 0.05
 @export_range(0.0, 1.0) var lid := 0.0
 ## The lid's lower edge: 0 = flat, 1 = a downward arc (a shutting lid always ends arced).
 @export_range(0.0, 1.0) var lid_curve := 1.0
+## Expression only (presets leave it 0): 1 turns a shut lid's crescent into an upward arc,
+## the smiling closed eye (HappyEye.ARCS).
+@export_range(0.0, 1.0) var eye_smile := 0.0
+## Expression only: degrees each eye (white, pupil, lid) turns about its centre, > 0 lifts
+## the outer corner (HappyEye.TILT).
+@export var eye_tilt := 0.0
 
 @export_group("Brow")
 @export var brow_spacing := 0.24
@@ -205,16 +227,9 @@ func expression(state: String) -> Dictionary:
 		"blink_half": {"lid": maxf(lid, 0.5)},
 		"closed": {"lid": 1.0},
 		"happy":
-		{
-			"brow_height": brow_height - 0.03,
-			"brow_arch": brow_arch + 0.1,
-			"pupil_radius": small_pupil.call(0.85),
-			"lid": maxf(lid, 0.15),
-			"lid_curve": 1.0,
-			"mouth_curve": 0.6,
-			"mouth_open": 0.5 * smile_open,
-			"mouth_teeth": 1.0,
-		},
+		_happy_eyes(happy_eye).merged(
+			{"mouth_curve": 0.6, "mouth_open": 0.5 * smile_open, "mouth_teeth": 1.0}
+		),
 		"sad":
 		{
 			"brow_angle": brow_angle + 12.0,
@@ -245,3 +260,43 @@ func expression(state: String) -> Dictionary:
 		"talking": {"mouth_open": maxf(mouth_open, 0.6)},
 	}
 	return states.get(state, {})
+
+
+## The happy state's eyes and brows for a HappyEye mode (the mouth is shared, expression()).
+## No mode but CUT curves a lid over the white; a heavy-lid idle keeps its flat lid.
+func _happy_eyes(mode: HappyEye) -> Dictionary:
+	var has_white := white_radius > 0.0
+	var ry := white_radius * white_aspect if has_white else pupil_radius * pupil_aspect
+	var bright := {
+		"brow_height": brow_height - 0.03,
+		"brow_arch": brow_arch + 0.15,
+		"pupil_radius": pupil_radius * 1.1,
+		"pupil_offset": pupil_offset + Vector2(0.0, -0.01),
+		"cheek_radius": cheek_radius if cheek_radius > 0.0 else HAPPY_CHEEK,
+		"cheek_pos":
+		(
+			cheek_pos - Vector2(0.0, 0.02)
+			if cheek_radius > 0.0
+			else Vector2(eye_spacing + 0.07, eye_height + ry + 0.04)
+		),
+	}
+	match mode:
+		HappyEye.BRIGHT:
+			return bright
+		HappyEye.TILT:
+			return bright.merged({"eye_tilt": HAPPY_TILT})
+		HappyEye.SOFT:
+			return {
+				"brow_height": brow_height - 0.02,
+				"lid": maxf(lid, 0.18),
+				"lid_curve": 1.0 if lid < 0.18 else lid_curve,
+			}
+		HappyEye.ARCS:
+			return {"brow_height": brow_height - 0.03, "lid": 1.0, "eye_smile": 1.0}
+	return {
+		"brow_height": brow_height - 0.03,
+		"brow_arch": brow_arch + 0.1,
+		"pupil_radius": maxf(pupil_radius * 0.85, PUPIL_MIN),
+		"lid": maxf(lid, 0.15),
+		"lid_curve": 1.0,
+	}

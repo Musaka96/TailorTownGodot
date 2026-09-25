@@ -21,8 +21,12 @@ extends SceneTree
 ##                        0.45, and after at blink_half and closed
 ##   cast_heads.png       the cast (guide section 8) on tripo_head_tl, each with its hair
 ##                        colour and glasses, at portrait and at dialogue size
+##   dimmock_fix.png      Mr. Dimmock before (DIMMOCK_BEFORE) and after the 2026-09-26 retune
+##                        beside the noble: flat (face_canvas.gdshader) at 640 px, then on
+##                        tripo_head_tl with their hair at portrait and at dialogue size
 ## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png; with `lid`,
-## only lid_fix.png; with `cast`, only cast_heads.png (`vance_whites` swaps in paper_vance_whites).
+## only lid_fix.png; with `cast`, only cast_heads.png (`vance_whites` swaps in paper_vance_whites);
+## with `dimmock`, only dimmock_fix.png.
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -58,6 +62,22 @@ const CAST := [
 	["Dr. Vance", "paper_vance", Color("15110f"), "round", "black"],
 ]
 const CAST_PER_ROW := 4
+# dimmock_fix.png: the fields paper_dimmock had before the 2026-09-26 retune (pupils small
+# and sunk low, straight brows), his hair, the flat faces' shader and paper, the cell
+const DIMMOCK_BEFORE := {
+	"pupil_radius": 0.06,
+	"pupil_offset": Vector2(0.0, 0.07),
+	"brow_spacing": 0.26,
+	"brow_length": 0.24,
+	"brow_angle": 0.0,
+	"brow_arch": 0.03,
+}
+const DIMMOCK_HAIR := Color("2a1d15")
+const CANVAS_SHADER := "res://assets/shaders/face_canvas.gdshader"
+const PAPER_SURFACE := "res://data/paper_surfaces/paper_mache.tres"
+const FLAT_SKIN := Color8(229, 176, 128)
+const FLAT_PAD := 1.1
+const DIMMOCK_CELL := 640
 # lid_fix.png: the head, the old head shader, the zoom, and where the viewer's left eye sits
 # in the portrait framing (fraction of the viewport, tripo_head_tl at the default face scale)
 const LID_HEAD := "tripo_head_tl"
@@ -147,6 +167,8 @@ func _run() -> void:
 		await _sheet_noble_heads()
 	elif not args.is_empty() and args[0] == "lid":
 		await _sheet_lid_fix()
+	elif not args.is_empty() and args[0] == "dimmock":
+		await _sheet_dimmock()
 	elif not args.is_empty() and args[0] == "cast":
 		await _sheet_cast_heads(args.has("vance_whites"))
 	else:
@@ -283,6 +305,62 @@ func _sheet_cast_heads(vance_whites: bool) -> void:
 	_rig.call("set_face_look", "brown", "")
 	var rows := ceili(CAST.size() / float(CAST_PER_ROW))
 	await _save_grid(cells, CAST_PER_ROW * 2, rows, "cast_heads.png", J1_CELL)
+
+
+## Mr. Dimmock before and after his retune, beside the noble: flat at 640 px, then on
+## tripo_head_tl with each one's hair at portrait size and at dialogue size.
+func _sheet_dimmock() -> void:
+	var keep_hair: Color = _rig.get("_hair_color")
+	var head := _find_head(CAST_HEAD)
+	if head < 0:
+		push_error("shot_face_head: no head %s" % CAST_HEAD)
+		return
+	_wear(head)
+	var after := load(STYLE_DIR + "paper_dimmock.tres") as FaceStyle
+	var before := after.duplicate() as FaceStyle
+	for key: String in DIMMOCK_BEFORE:
+		before.set(key, DIMMOCK_BEFORE[key])
+	var cols := [
+		["Mr. Dimmock before", before, DIMMOCK_HAIR],
+		["Mr. Dimmock after", after, DIMMOCK_HAIR],
+		["the noble", load(STYLE_DIR + "paper_noble.tres") as FaceStyle, NOBLE_HAIR],
+	]
+	var cell := DIMMOCK_CELL
+	var cells := []
+	for c in cols.size():
+		var col: Array = cols[c]
+		cells.append([await _flat(col[1], cell), c, 0, "%s (flat)" % col[0]])
+		_rig.call("set_hair_color", col[2])
+		_rig.set("face_style", col[1])
+		await _pose("neutral", 4)
+		cells.append([await _grab(cell), c, 1, "%s (portrait)" % col[0]])
+		cells.append([await _grab(DIALOGUE_CELL), c, 2, "%s (dialogue)" % col[0]])
+	_rig.call("set_hair_color", keep_hair)
+	await _save_grid(cells, cols.size(), 3, "dimmock_fix.png", cell)
+
+
+## `style` drawn flat on its paper disc (face_canvas.gdshader, as tools/shot_faces.gd does),
+## `side` px square.
+func _flat(style: FaceStyle, side: int) -> Image:
+	var rect := ColorRect.new()
+	rect.size = Vector2(side, side)
+	var mat := ShaderMaterial.new()
+	mat.shader = load(CANVAS_SHADER) as Shader
+	mat.set_shader_parameter("pad", FLAT_PAD)
+	mat.set_shader_parameter("skin_color", FLAT_SKIN)
+	mat.set_shader_parameter("page_color", PAPER)
+	style.apply_to_material(mat)
+	(load(PAPER_SURFACE) as PaperSurface).apply_pieces_to(mat)
+	rect.material = mat
+	var vp := SubViewport.new()
+	vp.size = Vector2i(side, side)
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.add_child(rect)
+	root.add_child(vp)
+	await _frames(4)
+	var img := vp.get_texture().get_image()
+	vp.queue_free()
+	return img
 
 
 ## The lid as skin: before / after at portrait size, then 3x zooms of one eye (lid 0.45 before

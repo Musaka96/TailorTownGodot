@@ -14,6 +14,10 @@
 const float LID_MARGIN = 0.006;
 // the dark crescent along a shut lid, thickest in the middle (guide: 0.035)
 const float LID_STRIP = 0.035;
+// the smiling arc (eye_smile, the "closed arcs" happy eye): the shut crescent flipped into
+// an upward arc; x = its middle's height, y = how far its ends drop below the middle, both
+// in the lid's half-heights (y down: the middle sits above the eye centre)
+const vec2 EYE_SMILE_ARC = vec2(-0.25, 0.6);
 // how deep the mouth curves: sag at the middle = MOUTH_SAG x curve x half-width
 const float MOUTH_SAG = 1.4;
 // how much deeper a fully open mouth hangs than the smile it opens from, in half-widths
@@ -32,6 +36,8 @@ uniform bool pupil_wedge_mirror = true;
 uniform vec2 pupil_offset = vec2(0.0);
 uniform float lid = 0.0;
 uniform float lid_curve = 1.0;
+uniform float eye_smile = 0.0;
+uniform float eye_tilt = 0.0;
 group_uniforms brow;
 uniform float brow_spacing = 0.24;
 uniform float brow_height = 0.22;
@@ -118,14 +124,20 @@ vec3 face_paper(
 			continue;
 		}
 		float fi = float(i);
+		// the eye's own frame: eye_tilt turns the whole eye about its centre, outer corner up
+		// (pe, se: p and its shadow sample in that frame; the fills stay at p)
+		float ta = -s * radians(eye_tilt);
+		mat2 untilt = mat2(vec2(cos(ta), -sin(ta)), vec2(sin(ta), cos(ta)));
+		vec2 pe = c + untilt * (p - c);
+		vec2 se = c + untilt * (sh - c);
 		// the lid's lower edge (< 0 above it, where the lid covers the eye)
 		float d_cut = 1e3;
 		float d_cut_s = 1e3;
 		if (has_lid) {
 			float per_l = 3.1416 * (outline.x + outline.y);
 			float sz_l = 2.0 * outline.y;
-			d_cut = lid_cut(p, c, outline, edge, lm) + paper_cut(p, per_l, sz_l, 7.0 + fi);
-			d_cut_s = lid_cut(sh, c, outline, edge, lm) + paper_cut(sh, per_l, sz_l, 7.0 + fi);
+			d_cut = lid_cut(pe, c, outline, edge, lm) + paper_cut(pe, per_l, sz_l, 7.0 + fi);
+			d_cut_s = lid_cut(se, c, outline, edge, lm) + paper_cut(se, per_l, sz_l, 7.0 + fi);
 		}
 		// the pupil sits inside the white: a pupil pushed past its edge is cut by it
 		float d_white = 1e3;
@@ -133,8 +145,8 @@ vec3 face_paper(
 		if (has_white) {
 			float per = 3.1416 * (wr.x + wr.y);
 			float sz = 2.0 * min(wr.x, wr.y);
-			d_white = fs_sd_ellipse(p - c, wr) + paper_cut(p, per, sz, 3.0 + fi);
-			d_white_s = fs_sd_ellipse(sh - c, wr) + paper_cut(sh, per, sz, 3.0 + fi);
+			d_white = fs_sd_ellipse(pe - c, wr) + paper_cut(pe, per, sz, 3.0 + fi);
+			d_white_s = fs_sd_ellipse(se - c, wr) + paper_cut(se, per, sz, 3.0 + fi);
 			// only the white below the lid's edge throws a shadow on the skin round it (a shut
 			// eye leaves none peeking past the lid)
 			float d_vis_s = max(d_white_s, -d_cut_s);
@@ -149,10 +161,10 @@ vec3 face_paper(
 		float per_p = 3.1416 * (pr.x + pr.y);
 		float sz_p = 2.0 * min(pr.x, pr.y);
 		// the wedge is two straight snips: its edges are cut clean, the round edge by hand
-		float cp = paper_cut(p, per_p, sz_p, 5.0 + fi);
-		float cps = paper_cut(sh, per_p, sz_p, 5.0 + fi);
-		float dp = piece_pupil(p, pc, wdir, pr, pupil_wedge, cp, true);
-		float dps = piece_pupil(sh, pc, wdir, pr, pupil_wedge, cps, true);
+		float cp = paper_cut(pe, per_p, sz_p, 5.0 + fi);
+		float cps = paper_cut(se, per_p, sz_p, 5.0 + fi);
+		float dp = piece_pupil(pe, pc, wdir, pr, pupil_wedge, cp, true);
+		float dps = piece_pupil(se, pc, wdir, pr, pupil_wedge, cps, true);
 		// (a dot eye has no white to cut it: the pupil is the whole eye)
 		if (has_white) {
 			dp = max(dp, d_white);
@@ -165,7 +177,7 @@ vec3 face_paper(
 			// (no sheet paper, grain or rim), and only its moving lower edge shows, by its step
 			// (`still` hides the rest of its outline's) and its shadow on the white and the
 			// pupil, so an open or shut eye leaves no ring round it
-			float d_out = lid_outline(p, c, outline, lm);
+			float d_out = lid_outline(pe, c, outline, lm);
 			float dl = max(d_out, d_cut);
 			// (its shadow stays inside the eye, clear of the outline's own antialiased edge)
 			float dls = max(d_out + lm + 0.5 * max(paper_shadow_soft, px), d_cut_s);
@@ -174,15 +186,21 @@ vec3 face_paper(
 			sheet *= 1.0 - clamp(0.5 - dl / max(px, 1e-6), 0.0, 1.0);
 			float r = piece_ramp(px);
 			float body = 1.0 - smoothstep(r, 2.0 * r, d_out);
-			still = max(still, body * smoothstep(r, 2.0 * r, -d_cut));
 			float shut = smoothstep(0.85, 1.0, lid);
+			// a smiling shut eye shows no lower lid edge at all: only the arc
+			float smile = clamp(eye_smile, 0.0, 1.0);
+			float calm = smile * shut;
+			still = max(still, body * max(smoothstep(r, 2.0 * r, -d_cut), calm));
 			if (shut > 0.0) {
 				float t = max(LID_STRIP, 2.0 * px);
 				float per_s = 4.0 * outline.x;
-				float dk = piece_lid_strip(p, c, outline, edge, lm, t);
-				float dks = piece_lid_strip(sh, c, outline, edge, lm, t);
-				dk += paper_cut(p, per_s, t, 9.0 + fi);
-				dks += paper_cut(sh, per_s, t, 9.0 + fi);
+				// eye_smile flips the crescent into the upward arc, the same strip
+				float ry = outline.y + lm;
+				vec2 edge_s = mix(edge, ry * vec2(EYE_SMILE_ARC.x, -EYE_SMILE_ARC.y), smile);
+				float dk = piece_lid_strip(pe, c, outline, edge_s, lm, t);
+				float dks = piece_lid_strip(se, c, outline, edge_s, lm, t);
+				dk += paper_cut(pe, per_s, t, 9.0 + fi);
+				dks += paper_cut(se, per_s, t, 9.0 + fi);
 				vec3 lidded = col;
 				col = mix(lidded, paper_piece(lidded, dk, dks, paper_dark.rgb, p, 9.0 + fi, px), shut);
 				fp_layer(dk, px, shut, lift, sheet);

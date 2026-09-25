@@ -21,8 +21,12 @@ extends SceneTree
 ##   cast_zoom.png      one piece per new cast character at 3x: dimmock's lids,
 ##                      pettigrew's cheek and nose, portobello's and hartley's brows,
 ##                      bellamy's mouth, vance's eyes
+##   happy_options.png  the happy eye modes (FaceStyle.HappyEye) side by side: five of the
+##                      cast (rows) idle and happy in each mode at 300 px, then J1 in each
+##                      at game size (25 px, 4x)
 ## With `j1` after `--`, only the three j1 sheets; with `noble`, only noble.png; with
-## `cast`, only cast.png and cast_zoom.png (`vance_whites` swaps in paper_vance_whites).
+## `cast`, only cast.png and cast_zoom.png (`vance_whites` swaps in paper_vance_whites);
+## with `happy`, only happy_options.png.
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
@@ -89,6 +93,24 @@ const CAST_ZOOMS := [
 	["vance / eyes", "paper_vance", Vector2(-0.18, -0.08)],
 ]
 const CAST_ZOOM := 3.0
+# happy_options.png: the rows (character, preset) and the columns (label, HappyEye mode as
+# an int, -1 = the idle)
+const HAPPY_ROWS := [
+	["J1", "paper_j1"],
+	["the noble", "paper_noble"],
+	["Mr. Dimmock", "paper_dimmock"],
+	["Mr. Pettigrew", "paper_pettigrew"],
+	["Miss Hartley", "paper_hartley"],
+]
+const HAPPY_COLS := [
+	["idle", -1],
+	["X cut (now)", 0],
+	["A bright", 1],
+	["B soft lids", 2],
+	["C closed arcs", 3],
+	["D bright + tilt", 4],
+]
+const HAPPY_CELL := 300
 const CAST_ZOOM_CELL := 420
 const PAPER_CELL := 420
 # J1 on the reference sheet, measured (px): disc centre and diameter
@@ -134,6 +156,10 @@ func _run() -> void:
 	var styles := {}
 	for p: String in PRESETS:
 		styles[p] = load(STYLE_DIR + p + ".tres") as FaceStyle
+	if OS.get_cmdline_user_args().has("happy"):
+		await _sheet_happy()
+		quit(0)
+		return
 	if OS.get_cmdline_user_args().has("cast"):
 		await _sheet_cast()
 		await _sheet_cast_zoom()
@@ -202,6 +228,56 @@ func _sheet_cast() -> void:
 		board.add_child(tr)
 	board.add_child(_label("game size (25 px head, 4x)", Vector2(0, rows_h), size.x))
 	await _save(board, size, "cast.png")
+
+
+## The happy eye modes: HAPPY_ROWS (rows) idle and happy in each HappyEye mode (columns),
+## then J1 in each column at game size (25 px, 4x).
+func _sheet_happy() -> void:
+	var keep := FaceStyle.happy_eye
+	var cell := HAPPY_CELL
+	var cols := HAPPY_COLS.size()
+	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
+	var up := small * UPSCALE
+	var rows_h := (cell + LABEL_H) * HAPPY_ROWS.size()
+	var size := Vector2i(cell * cols, rows_h + LABEL_H + up + 8)
+	var board := _board(size)
+	var tiny_board := _board(Vector2i(small * cols, small))
+	var j1 := load(STYLE_DIR + "paper_j1.tres") as FaceStyle
+	for r in HAPPY_ROWS.size():
+		var who: Array = HAPPY_ROWS[r]
+		var style := load(STYLE_DIR + String(who[1]) + ".tres") as FaceStyle
+		for c in cols:
+			var col: Array = HAPPY_COLS[c]
+			var pos := Vector2(c * cell, r * (cell + LABEL_H))
+			var face := _face(style, _happy_dials(style, col[1]), cell)
+			face.position = pos
+			board.add_child(face)
+			board.add_child(_label("%s / %s" % [who[0], col[0]], pos + Vector2(0, cell), cell))
+	for c in cols:
+		var tiny := _face(j1, _happy_dials(j1, HAPPY_COLS[c][1]), GAME_HEAD_PX * PAD)
+		tiny.position = Vector2(c * small + 1, 1)
+		tiny_board.add_child(tiny)
+	FaceStyle.happy_eye = keep
+	var img := await _render(tiny_board, Vector2i(small * cols, small))
+	for c in cols:
+		var one := img.get_region(Rect2i(c * small, 0, small, small))
+		one.resize(up, up, Image.INTERPOLATE_NEAREST)
+		var tr := TextureRect.new()
+		tr.texture = ImageTexture.create_from_image(one)
+		tr.position = Vector2(c * cell + (cell - up) * 0.5, rows_h + LABEL_H + 4)
+		board.add_child(tr)
+	var text := "J1 at game size (25 px head, 4x), same columns"
+	board.add_child(_label(text, Vector2(0, rows_h), size.x))
+	await _save(board, size, "happy_options.png")
+
+
+## The dials for one happy_options.png cell: {} for the idle (mode -1), else the happy state
+## with FaceStyle.happy_eye switched to `mode`.
+func _happy_dials(style: FaceStyle, mode: int) -> Dictionary:
+	if mode < 0:
+		return {}
+	FaceStyle.happy_eye = mode as FaceStyle.HappyEye
+	return style.expression("happy")
 
 
 ## One distinctive piece per new cast character at 3x.

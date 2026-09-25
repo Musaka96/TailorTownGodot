@@ -216,6 +216,18 @@ stroke thickness ranges and the expression shapes are shared and fixed.
 
 A face whose idle has heavy lids keeps them; states add to the idle, they never replace it.
 
+**Happy eyes under review (2026-09-26).** The owner does not like the happy row above (the
+curved lid on a heavy-lid face slices the white to a half disc and cuts the pupil). The eyes
+of the happy state are switchable, `FaceStyle.happy_eye` (one static line; the mouth stays as
+above in every mode): **X** `CUT` the row above (still the default until the owner picks);
+**A** `BRIGHT` eyes fully open, pupils +10 % and 0.01 up, brows up 0.03 and arch +0.15,
+cheeks rise 0.02 (a face without cheeks gets 0.06 rose discs outside-below the eyes);
+**B** `SOFT` an upper lid at 0.18 with a curved edge (a heavy lid keeps its flat 0.45), brows
+up 0.02; **C** `ARCS` both eyes shut as the closed crescent flipped into an upward arc (same
+0.035 strip, round caps; `eye_smile`), brows up 0.03; **D** `TILT` A with each eye turned 6°
+outer corner up (`eye_tilt`). Compared on `IMPORT/faces_proc/happy_options.png`
+(`tools/shot_faces.gd -- happy`).
+
 **Owner's pick (2026-09-26): variant D**, the Paper003 creased-paper scan at 2 tiles with its
 normal at strength 1.0 and no procedural strips; the strip variants E-G read as too large a
 mess of folds.
@@ -259,7 +271,7 @@ frames come in black, tortoise, gold and silver only, so no bright fashion frame
 |-----------|--------|------|---------|-----------|-----|-----------------------|
 | J1 | `paper_j1` | default | none | | the base look | the reference: wedge pupils looking right, shield nose |
 | the noble | `paper_noble` | black `#1a1410` | none | | bored high society | heavy flat lid 0.45, raised black brows, `brow_asym` 5, nose triangle up, flat mouth 0.155 |
-| Mr. Dimmock | `paper_dimmock` | dark `#2a1d15` | never | | the weary: "stopped trying a while ago; almost asleep" | heavy flat lid 0.45 over large whites 0.17, pupils 0.06 sunk 0.07 low, no wedge, set 0.25; long thick straight dark `#2a1d15` brows (0.24 × 0.10, arch 0.03) high at 0.17; small disc nose; the narrowest, flattest mouth (0.10, curve 0.10) |
+| Mr. Dimmock | `paper_dimmock` | dark `#2a1d15` | never | | the weary: "stopped trying a while ago; almost asleep" | heavy flat lid 0.45 over large whites 0.17, pupils 0.10 centred with the lid over their top (a level, vacant gaze; sunk low they read as staring at the floor), no wedge, set 0.25; long thick dark `#2a1d15` brows (0.25 × 0.10, arch 0.05, set 0.27) raised at the outer ends (angle −8), high at 0.17; small disc nose; the narrowest, flattest mouth (0.10, curve 0.10) |
 | Mr. Pettigrew | `paper_pettigrew` | white `#e9e4da` | round, gold | Mrs. Applegarth | the old dear: "the sweetest face in the game" | the biggest round whites 0.20, low (0.50) and wide (0.26), wedge pupils 0.12; short thick brows (0.17 × 0.10) low at 0.255, drooping at the outer ends (+10); the biggest nose (oval 0.16 × 0.11); mouth 0.18; the largest cheeks 0.10 |
 | Ms. Portobello | `paper_portobello` | dark auburn `#5e2618` | round, tortoise | Mr. Zanetti | fashion: "sharp and quick; she has already judged your suit" | whites 0.14 wider than tall (aspect 0.77), close set 0.19, pupils pushed 0.065 to the side with J1's sideways wedge; thin long brows (0.26 × 0.065) arched 0.3, inner ends down 5°, the right one 14° higher (`brow_asym`), auburn brow paper `#4a1f14`; small teardrop nose up; wide mouth 0.20 |
 | Mr. Bellamy | `paper_bellamy` | dark grey `#4a4746` | none | | the thespian: "a big face for the back row of a theatre" | large round whites 0.18 set wide 0.27, wedge pupils 0.12; the highest, most arched long brows (0.14 from the top, arch 0.35, 0.26 long), grey brow paper `#3a3634`; big shield nose 0.15 × 0.10; the widest mouth 0.22; small cheeks 0.06 |
