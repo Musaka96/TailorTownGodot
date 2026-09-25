@@ -79,6 +79,28 @@ Rig facts after the swap: model node `Base`; shoes = `shoes` mesh (leather); the
 carries jacket, shirt, buttons, square AND tie (each jacket brings its own tie, `tie_color`
 tints it); street clothes hide only the square (the tie covers the hole under the collar).
 
+## Faces on the head material (2026-09-25, owner-approved)
+
+The face is not a set of sprites any more. `data/scripts/face_uv_baker.gd` takes the head
+mesh at load, moves its vertices into the head bone's rest space, keeps the vertices that
+face forward and sit within 15 % of the frontmost depth (that is the flat front; ears and
+neck drop out), takes their bounding rect as the FACE RECT and writes it as UV2 (0..1 across
+the rect; back vertices pushed 8 units outward so a triangle never crosses the face). The
+rebuilt mesh is cached per head. `assets/shaders/skin_face.gdshader` is the head's skin
+material (matte, like the old flat material) and composites brows, eyes, cheeks, nose and
+mouth at that UV from `assets/shaders/face_sdf.gdshaderinc`; one material copy per rig,
+plain uniforms. A `FaceStyle` (`data/face_styles/*.tres`) places the pieces in FACE UNITS
+(fractions of the rect), so one preset lands the same on every head; `FaceFrame` holds the
+optional per-head nudges. Blink, talk and expressions tween dials on the material. Glasses
+remain a sprite in front. `CharacterRig.procedural_faces` switches the mode.
+
+Why this over sprites and decals: the face sits on the skin, follows the head to 180 degrees
+with no float, no sorting against hair, no per-head hand placement; Godot decals take no
+custom shader. Style rules live in `docs/FACE_STYLE_GUIDE.md` (cut-paper faces). Review
+sheets: `tools/shot_face_head.gd` -> `IMPORT/faces_proc/heads_uv*.png`, 2D sheets
+`tools/shot_faces.gd`. Face rects on the tripo heads are ~0.30-0.33 m wide, 0.52-0.59 m
+tall (aspect 0.55-0.60); the Base head's is 25 % wider.
+
 ## Next steps (owner's direction)
 
 1. **Tuxedo model** from the owner: drop the .blend in `IMPORT/CHARREWORK/`, run the
