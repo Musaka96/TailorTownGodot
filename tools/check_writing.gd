@@ -49,6 +49,7 @@ const IN_WORLD := [
 	"res://data/scripts/suit_taste.gd",
 	"res://data/scripts/dress_code.gd",
 	"res://data/scripts/customer_lines.gd",
+	"res://data/scripts/customer_voices.gd",
 	"res://tools/build_news.gd",
 	"res://ui/newspaper.gd",
 	"res://entities/customer/street_pitch.gd",
@@ -113,7 +114,7 @@ const TRIAD := "\\b\\w+, \\w+,? and \\w+\\b"
 # fragment do the same work, and the silence between them does it better.
 const HINGE := "— (?:and|but|then|so)\\b"
 ## Any quoted run in a .gd or .tres line. Non-greedy over escapes so "a\"b" stays one.
-const STRING_LITERAL := "\"((?:[^\"\\\\]|\\\\.)*)\""
+const STRING_LITERAL := '"((?:[^"\\\\]|\\\\.)*)"'
 
 # W4/W5. Matched by codepoint, not regex: a character class spanning the astral plane is
 # the one thing PCRE2 escaping inside a GDScript string literal makes genuinely awkward.

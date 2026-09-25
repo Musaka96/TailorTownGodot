@@ -437,22 +437,32 @@ static var _recent: Array[String] = []
 
 
 ## What they say about one objection. `value` is the colour, pattern or cloth word.
-## `voice_seed` only breaks ties among lines nobody has said lately.
-static func say(kind: int, occasion: int, value: String, voice_seed: int) -> String:
+## `voice_seed` only breaks ties among lines nobody has said lately. `sort`
+## (CustomerVoices.Sort) speaks in its own voice; FOLK speaks by the occasion.
+static func say(kind: int, occasion: int, value: String, voice_seed: int, sort := 0) -> String:
 	var pool: Array = BUDGET_LINES
 	var slot := "%d/_" % kind
 	if kind != Kind.OVER_BUDGET:
 		var by_occasion: Dictionary = LINES.get(kind, {})
 		pool = by_occasion.get(occasion, [])
 		slot = "%d/%d" % [kind, occasion]
-	return _pick(pool, slot, voice_seed + kind * KIND_SALT, value)
+	var own := CustomerVoices.objections(sort, kind)
+	if not own.is_empty():
+		pool = own
+		slot = "s%d/%d" % [sort, kind]
+	return _pick(pool, slot, voice_seed + kind * KIND_SALT, value, occasion)
 
 
 ## What they say to a suit they'll take; `liked` is the colour word they asked for, or "".
-static func happy(occasion: int, voice_seed: int, liked := "") -> String:
+static func happy(occasion: int, voice_seed: int, liked := "", sort := 0) -> String:
 	var by_occasion: Dictionary = HAPPY_LIKED if liked != "" else HAPPY
 	var slot := "%s/%d" % ["liked" if liked != "" else "happy", occasion]
-	return _pick(by_occasion.get(occasion, []), slot, voice_seed, liked)
+	var pool: Array = by_occasion.get(occasion, [])
+	var own := CustomerVoices.yes_lines(sort, liked != "")
+	if not own.is_empty():
+		pool = own
+		slot = "s%d/%s" % [sort, "liked" if liked != "" else "happy"]
+	return _pick(pool, slot, voice_seed, liked, occasion)
 
 
 ## How many variants a kind has for an occasion (for tests).
@@ -468,7 +478,9 @@ static func reset() -> void:
 	_recent.clear()
 
 
-static func _pick(pool: Array, slot: String, voice_seed: int, value: String) -> String:
+static func _pick(
+	pool: Array, slot: String, voice_seed: int, value: String, occasion := -1
+) -> String:
 	if pool.is_empty():
 		return ""
 	var index := _choose(pool.size(), slot, voice_seed)
@@ -477,7 +489,8 @@ static func _pick(pool: Array, slot: String, voice_seed: int, value: String) -> 
 	_recent.append(id)
 	while _recent.size() > MEMORY:
 		_recent.pop_front()
-	var line := str(pool[index]).format({"value": value})
+	var event: String = CustomerVoices.EVENT.get(occasion, "the day")
+	var line := str(pool[index]).format({"value": value, "event": event})
 	# `{value}` can open any sentence ("No. Brown says estate agent."), so each gets its
 	# capital after the word goes in.
 	var out := line.substr(0, 1).to_upper()

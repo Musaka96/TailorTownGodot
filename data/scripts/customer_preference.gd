@@ -62,6 +62,17 @@ const FIRST_NAMES := [
 	"Mr. Sandoval",
 	"Dr. Whitlock",
 	"Ms. Farrow",
+	"Lady Ashcombe",
+	"Lord Tewkesbury",
+	"Mr. Pettigrew",
+	"Mrs. Applegarth",
+	"Mr. Fenwick",
+	"Mr. Zanetti",
+	"Mr. Dimmock",
+	"Ms. Delacourt",
+	"Mr. Montague",
+	"Miss Hartley",
+	"Mr. Penrose",
 ]
 
 @export var display_name: String = "Customer"
@@ -114,6 +125,7 @@ static func random_pref(
 	p.gender = body
 	p.occasion = rng.randi() % Enums.Occasion.size()
 	p.style = rng.randi() % Enums.Style.size()
+	p.style = CustomerVoices.lean_style(p.sort(), p.style, rng) as Enums.Style
 	p.budget = Pricing.random_budget(rng)
 	if regular != "" and Clientele != null:
 		p.regular_level = Clientele.loyalty(regular)
@@ -233,12 +245,13 @@ func likes_met(design: Dictionary) -> bool:
 	return int(spec.get("color", -1)) == likes_color
 
 
-## MALE for a "Mr.", FEMALE for a "Ms.", "Mrs." or "Miss", ANY for a title that says
-## neither ("Dr.").
+## MALE for a "Mr." or "Lord", FEMALE for a "Ms.", "Mrs.", "Miss" or "Lady", ANY for a
+## title that says neither ("Dr.").
 static func title_gender(nm: String) -> int:
-	if nm.begins_with("Mr. ") or nm.begins_with("Mr "):
-		return Enums.Gender.MALE
-	for t: String in ["Ms. ", "Mrs. ", "Miss ", "Ms ", "Mrs "]:
+	for t: String in ["Mr. ", "Mr ", "Lord ", "Sir "]:
+		if nm.begins_with(t):
+			return Enums.Gender.MALE
+	for t: String in ["Ms. ", "Mrs. ", "Miss ", "Ms ", "Mrs ", "Lady ", "Dame "]:
 		if nm.begins_with(t):
 			return Enums.Gender.FEMALE
 	return Enums.Gender.ANY
@@ -280,6 +293,11 @@ static func _fresh_name(rng: RandomNumberGenerator, body := Enums.Gender.ANY) ->
 		if Clientele == null or not Clientele.is_known(nm):
 			return nm
 	return pool[rng.randi() % pool.size()]
+
+
+## The sort of person they are (CustomerVoices.Sort), which is how they talk.
+func sort() -> int:
+	return CustomerVoices.sort_of(display_name)
 
 
 ## "Mr. Okafor" or "Mr. Okafor ★2" for a regular.
@@ -330,7 +348,7 @@ func evaluate(design: Dictionary) -> Dictionary:
 	out["reasons"] = [] as Array[String]
 	out["notes"] = [] as Array[Dictionary]
 	if Catalog.dress_code != null:
-		out = Catalog.dress_code.evaluate(occasion, style, design, budget, voice)
+		out = Catalog.dress_code.evaluate(occasion, style, design, budget, voice, sort())
 	var reasons: Array[String] = out.get("reasons", [] as Array[String])
 	var notes: Array[Dictionary] = out.get("notes", [] as Array[Dictionary])
 	# Their own taste is the first thing they mention: a stated dislike, a suit they
@@ -353,7 +371,9 @@ func evaluate(design: Dictionary) -> Dictionary:
 	out["liked"] = likes_met(design)
 	var liked := MaterialFactory.color_name(likes_color).to_lower() if out["liked"] else ""
 	# Only a yes spends a happy line; a refusal must not burn through the rotation.
-	out["said_happy"] = CustomerLines.happy(occasion, voice, liked) if out["suitable"] else ""
+	out["said_happy"] = (
+		CustomerLines.happy(occasion, voice, liked, sort()) if out["suitable"] else ""
+	)
 	return out
 
 

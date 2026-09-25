@@ -125,7 +125,7 @@ func hint_for(occasion: int, style: int) -> String:
 ## { part: "suit" | "shirt" | "price", note: the tailor's shorthand with the fix,
 ##   said: what the customer says (CustomerLines, varied by `voice_seed`) }.
 func evaluate(
-	occasion: int, style: int, design: Dictionary, budget: int, voice_seed := 0
+	occasion: int, style: int, design: Dictionary, budget: int, voice_seed := 0, sort := 0
 ) -> Dictionary:
 	var jacket: Dictionary = design.get(Enums.GarmentType.JACKET, {})
 	var quote := Pricing.suit_quote(design)
@@ -151,7 +151,7 @@ func evaluate(
 		)
 	for e: Dictionary in found:
 		reasons.append(e["reason"])
-		var said := CustomerLines.say(e["kind"], occasion, e["value"], voice_seed)
+		var said := CustomerLines.say(e["kind"], occasion, e["value"], voice_seed, sort)
 		notes.append({"part": e["part"], "note": e["note"], "said": said})
 
 	var suitable := reasons.is_empty()

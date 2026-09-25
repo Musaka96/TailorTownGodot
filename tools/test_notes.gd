@@ -14,6 +14,7 @@ const PANTS := 1
 const SHIRT := 0
 const PREF_SCRIPT := "res://data/scripts/customer_preference.gd"
 const LINES_SCRIPT := "res://data/scripts/customer_lines.gd"
+const VOICES_SCRIPT := "res://data/scripts/customer_voices.gd"
 const FACTORY_SCRIPT := "res://data/scripts/material_factory.gd"
 const PARTS := ["suit", "shirt", "price"]
 const SUIT_COLORS := 10  # MaterialFactory.SUIT_COLOR_COUNT
@@ -141,6 +142,14 @@ func _no_strangers() -> void:
 	all.append_array(consts["BUDGET_LINES"])
 	for key in ["HAPPY", "HAPPY_LIKED"]:
 		for pool: Array in (consts[key] as Dictionary).values():
+			all.append_array(pool)
+	# Every sort's own voice (CustomerVoices) keeps the same rule.
+	var voices: Dictionary = (load(VOICES_SCRIPT) as GDScript).get_script_constant_map()
+	for by_kind: Dictionary in (voices["LINES"] as Dictionary).values():
+		for pool: Array in by_kind.values():
+			all.append_array(pool)
+	for key in ["BUDGET", "HAPPY", "HAPPY_LIKED"]:
+		for pool: Array in (voices[key] as Dictionary).values():
 			all.append_array(pool)
 	var words := RegEx.create_from_string("[a-z']+")
 	var bad: Array[String] = []
