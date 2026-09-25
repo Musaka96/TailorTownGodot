@@ -1,9 +1,9 @@
 extends SceneTree
 
 ## Generates the editable wardrobe asset data/wardrobe/default_wardrobe.tres.
-## Starts from WardrobeLibrary.make_default() (the base CHARTGEN head/hair/suit +
-## colour palettes), then AUTO-SCANS assets/characters/parts/*.glb. Each glb is a
-## head+hair COMBO: its two meshes are split by height (face = lower, hair = higher)
+## Starts from WardrobeLibrary.make_default() (the base CHARTGEN head/hair/suit, shoes,
+## street outfits + colour palettes), then AUTO-SCANS assets/characters/parts/*.glb.
+## Each glb is a head+hair COMBO: its two meshes are split by height (face = lower, hair = higher)
 ## and appended as a matching head/hair pair at the SAME index, so a character always
 ## wears a head with its own hair (only the skin/hair COLOURS vary). Gender comes from
 ## the filename ("_f"/"female" -> FEMALE, "_m"/"male" -> MALE, else ANY). Adding a look
@@ -23,12 +23,14 @@ func _initialize() -> void:
 		print("build_wardrobe: wrote ", OUT_PATH)
 		print(
 			(
-				"  heads=%d hairs=%d tops=%d bottoms=%d skins=%d hair_colors=%d"
+				"  heads=%d hairs=%d tops=%d bottoms=%d shoes=%d street=%d skins=%d hair_colors=%d"
 				% [
 					lib.heads.size(),
 					lib.hairs.size(),
 					lib.tops.size(),
 					lib.bottoms.size(),
+					lib.shoes.size(),
+					lib.street_outfits.size(),
 					lib.skin_colors.size(),
 					lib.hair_colors.size(),
 				]

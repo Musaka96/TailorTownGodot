@@ -13,6 +13,10 @@ extends SceneTree
 ## "shoulder_" shots go to IMPORT/CHARREWORK/report/shoulder/shoulder_<tag><view>.png.
 ## --third=<glb>: a third rig beside the two, and each of the three in its own suit (see
 ## THREE_SUITS); only the "three_" shots run, saved as report/three_<view>.png.
+## --game-idle: the game's own idle clip instead of the calm (arms down) one.
+## --street (with --glb= and --third= pointing at two street outfits, which have no head):
+## the owner's rig in its suit, then each outfit in the flat colours of STREET_COLOURS
+## with a wardrobe head and hair (STREET_HEAD); saved as report/street/street_<view>.png.
 ## Writes engine_<tag>_<view>.png to IMPORT/CHARREWORK/report/ (git-ignored).
 ##
 ## The outfit goes on through the rig's own set_outfit one frame after the rigs enter
@@ -31,6 +35,22 @@ const CLOTH_UV_SCALE := 6.0
 const SKIN := Color(0.86, 0.72, 0.60)
 const SEPARATION := 0.9
 const THREE_GAP := 1.35
+const STREET_HEAD := 7  # a wardrobe head + hair index for the headless street outfits
+# per street rig (the second and third): mesh name -> flat colour, after the reference sheet
+const STREET_COLOURS := [
+	{
+		"jacket": Color(0.40, 0.43, 0.25),
+		"shirt": Color(0.94, 0.94, 0.92),
+		"legs": Color(0.88, 0.84, 0.72),
+		"shoes": Color(0.92, 0.92, 0.9),
+	},
+	{
+		"jacket": Color(0.74, 0.58, 0.40),
+		"shirt": Color(0.10, 0.10, 0.11),
+		"legs": Color(0.24, 0.24, 0.26),
+		"shoes": Color(0.36, 0.22, 0.12),
+	},
+]
 # --third mode: [suit MaterialType, tie colour] for the owner's rig, the second and the third
 const THREE_SUITS := [
 	["res://data/materials/navy_worsted_pinstripe.tres", Color(0.55, 0.12, 0.14)],
@@ -273,6 +293,7 @@ var _tag := ""
 var _only := ""
 var _arm_drop := -1.0
 var _third := ""
+var _street := false
 
 
 func _initialize() -> void:
@@ -290,10 +311,12 @@ func _initialize() -> void:
 		elif arg.begins_with("--third="):
 			_third = arg.trim_prefix("--third=")
 			_only = "three_"
+		elif arg == "--street":
+			_street = true
 	RenderingServer.set_debug_generate_wireframes(true)
 	# test renders stand in the calm idle (arms straight down); the game keeps the KayKit
 	# idle. Must be set before the first rig builds (and caches) the animation library.
-	CharacterAnimations.calm_idle = true
+	CharacterAnimations.calm_idle = not OS.get_cmdline_user_args().has("--game-idle")
 	var world := Node3D.new()
 	root.add_child(world)
 	_add_lights(world)
@@ -362,6 +385,9 @@ func _build_rig(model: Node3D) -> Node3D:
 
 
 func _dress(rig: Node3D) -> void:
+	if _street and _rigs.find(rig) > 0:
+		_dress_street(rig, STREET_COLOURS[_rigs.find(rig) - 1])
+		return
 	var suit_path := CLOTH
 	var tie := Color(0.55, 0.12, 0.14)
 	if _third != "":
@@ -391,6 +417,22 @@ func _dress(rig: Node3D) -> void:
 			var flat := StandardMaterial3D.new()
 			flat.albedo_color = flats[String(m.name)]
 			flat.roughness = 1.0
+			m.material_override = flat
+
+
+## A street outfit: a wardrobe head and hair on top, flat colours on the clothes.
+func _dress_street(rig: Node3D, colours: Dictionary) -> void:
+	rig.call("set_head", STREET_HEAD)
+	rig.call("set_hair", STREET_HEAD)
+	rig.call("set_palette", SKIN)
+	rig.call("set_hair_color", Color(0.25, 0.16, 0.10))
+	for mi in rig.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if colours.has(String(m.name)):
+			var flat := StandardMaterial3D.new()
+			flat.albedo_color = colours[String(m.name)]
+			flat.roughness = 1.0
+			flat.next_pass = load("res://data/scripts/cloth_material.gd").call("outline_material")
 			m.material_override = flat
 
 
@@ -853,6 +895,11 @@ func _on_frame() -> void:
 		)
 		var prefix := "" if bare else "engine_"
 		var path := "%s/%s%s%s.png" % [OUT_DIR, prefix, _tag, name]
+		if _street and name.begins_with("three_"):
+			DirAccess.make_dir_recursive_absolute(
+				ProjectSettings.globalize_path(OUT_DIR + "/street")
+			)
+			path = "%s/street/street_%s.png" % [OUT_DIR, name.trim_prefix("three_")]
 		if name.begins_with("shoulder_"):
 			DirAccess.make_dir_recursive_absolute(
 				ProjectSettings.globalize_path(OUT_DIR + "/shoulder")

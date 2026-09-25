@@ -39,8 +39,11 @@ var gender := Enums.Gender.MALE
 ## Face look, remembered so the speech-bubble portrait can match this customer.
 var eye_color := "brown"
 var glasses := ""
-## Their own shoes: {"color", "finish"} (ShoeMaterial); empty means black calf.
+## Their own shoes: {"color", "finish"} (ShoeMaterial); empty means black calf. Worn
+## with a suit; their street outfit brings its own pair.
 var shoes: Dictionary = {}
+## The street clothes they walk in wearing (index into Wardrobe street outfits).
+var street_index := 0
 ## The order this customer is returning to collect (COLLECT mode only).
 var collect_order: SuitOrder = null
 ## Injected by the manager so interactions can reach the fitting station / routing.
@@ -188,10 +191,10 @@ func set_hair_color(color: Color) -> void:
 		_rig.set_hair_color(color)
 
 
-## Wear the casual street outfit (on arrival, before a suit is made).
+## Wear their street outfit (street_index; on arrival, before a suit is made).
 func wear_street() -> void:
 	if _rig != null:
-		_rig.wear_street()
+		_rig.wear_street(Wardrobe.street_outfit(street_index))
 
 
 ## Wait at the counter for the player to hand over a finished order.

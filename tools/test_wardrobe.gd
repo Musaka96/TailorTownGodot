@@ -55,21 +55,59 @@ func _run() -> void:
 		"tie_color recolours the tie"
 	)
 
-	# Street clothes drop the pocket square but keep the tie (it covers the hole under
-	# the collar, the shirt mesh being only a collar and cuffs) and the buttons.
-	rig.wear_street()
+	# Street clothes are their own models: the outfit's jacket (outer layer), shirt,
+	# trousers and shoes, in its cloth and leather, with no tie, square or buttons.
+	rig.shoes = {"color": "oxblood", "finish": "calf"}  # the wearer's own leather
+	var base_shoes := rig.find_child("shoes", true, false)
+	var street: StreetOutfit = Wardrobe.street_outfit(0)
+	_check(street != null and street.top != null, "the library has street outfits")
+	rig.wear_street(street)
 	await process_frame
 	_check(
-		_visible(rig, "square") == false and _visible(rig, "tie") and _visible(rig, "buttons"),
-		"wear_street hides the pocket square, keeps the tie and buttons"
+		_verts(rig.find_child("jacket", true, false)) == _verts(_source_mesh(street.top, "jacket")),
+		"wear_street wears the street outfit's jacket model"
 	)
+	_check(
+		_verts(rig.find_child("legs", true, false)) == _verts(_source_mesh(street.bottom, "legs")),
+		"wear_street wears the street outfit's trousers"
+	)
+	for part_name in ["tie", "square", "buttons"]:
+		_check(
+			rig.find_child(part_name, true, false) == null, "street clothes have no " + part_name
+		)
+	var street_shoes := rig.find_child("shoes", true, false)
+	_check(
+		street_shoes != null and street_shoes != base_shoes and _under(rig, "shoes", skel),
+		"the street outfit swaps in its own shoe model"
+	)
+	_check(_leather(rig).is_equal_approx(_dye("white")), "in the outfit's leather")
+	rig.shoes = {"color": "tan", "finish": "calf"}  # a new own pair stays off the sneakers
+	_check(_leather(rig).is_equal_approx(_dye("white")), "own leather waits")
+
+	# A suit after street clothes: the suit models come back, the base pair of shoes too,
+	# in the wearer's own leather.
+	rig.set_outfit(null, null, null, 1, 0)
+	await process_frame
+	_check(
+		_verts(rig.find_child("jacket", true, false)) == _verts(_source_jacket(1)),
+		"set_outfit after wear_street restores the suit jacket model"
+	)
+	_check(_extras_visible(rig, true), "and its buttons, pocket square and tie")
+	_check(
+		(
+			_verts(rig.find_child("shoes", true, false))
+			== _verts(_source_mesh(Wardrobe.shoe(0), "shoes"))
+		),
+		"the base pair of shoes is back"
+	)
+	_check(_leather(rig).is_equal_approx(_dye("tan")), "in the wearer's leather")
 	rig.set_outfit(null, null, null, 0, 0)
 	await process_frame
 	_check(
 		_verts(rig.find_child("jacket", true, false)) == _verts(_source_jacket(0)),
 		"style 0 swaps back to the single-breasted jacket model"
 	)
-	_check(_extras_visible(rig, true), "set_outfit shows them again")
+	await _check_regular()
 
 	# The Tuxedo is listed but its top is a placeholder, so menus must skip it.
 	var jacket := Enums.GarmentType.JACKET
@@ -80,9 +118,58 @@ func _run() -> void:
 	_finish()
 
 
-func _visible(rig: Node, part_name: String) -> bool:
-	var mi := rig.find_child(part_name, true, false) as MeshInstance3D
-	return mi != null and mi.visible
+## A regular's street outfit is remembered with their look (and survives a save) and
+## comes back on the next visit.
+func _check_regular() -> void:
+	var clientele := root.get_node("Clientele")
+	var last := Wardrobe.library().street_outfits.size() - 1
+	var scene := load("res://entities/customer/customer.tscn") as PackedScene
+	var cust: Node = scene.instantiate()
+	root.add_child(cust)
+	# By path: the class name drags autoload-only scripts into this --script compile.
+	var pref: Resource = load("res://data/scripts/customer_preference.gd").new()
+	pref.display_name = "Mr. Test Regular"
+	cust.set("preference", pref)
+	cust.set("street_index", last)
+	clientele.note_customer(cust)
+	clientele.restore(clientele.save_state())
+	var look: Dictionary = clientele.look(pref.display_name)
+	_check(int(look.get("street", -1)) == last, "the look dict keeps the street outfit index")
+	var again: Node = scene.instantiate()
+	root.add_child(again)
+	await process_frame
+	again.set("preference", pref)
+	again.call("wear_street")
+	var manager: Node = load("res://entities/customer/customer_manager.gd").new()
+	manager.call("_dress_as", again, look, pref.display_name)
+	await process_frame
+	_check(int(again.get("street_index")) == last, "a regular gets the same outfit index back")
+	var want := _source_mesh(Wardrobe.street_outfit(last).top, "jacket")
+	_check(_verts(again.find_child("jacket", true, false)) == _verts(want), "and wears it")
+	manager.free()
+	clientele.reset()
+
+
+## A ShoeMaterial dye, loaded by path (the class name pulls Config-dependent scripts
+## into this --script compile).
+func _dye(id: String) -> Color:
+	return load("res://data/scripts/shoe_material.gd").COLORS[id]
+
+
+## The leather colour on the shoes the rig wears now.
+func _leather(rig: Node) -> Color:
+	var mi := rig.find_child("shoes", true, false) as MeshInstance3D
+	var sm := mi.material_override as ShaderMaterial if mi != null else null
+	if sm == null:
+		return Color(0, 0, 0, 0)
+	return sm.get_shader_parameter("leather_color")
+
+
+## The mesh named `mesh_name` inside a wardrobe part's source model.
+func _source_mesh(part: WardrobePart, mesh_name: String) -> MeshInstance3D:
+	var inst := part.model.instantiate()
+	root.add_child(inst)  # freed with the tree at quit
+	return inst.find_child(mesh_name, true, false) as MeshInstance3D
 
 
 func _extras_visible(rig: Node, want: bool) -> bool:

@@ -401,6 +401,10 @@ func _dress_as(cust: Customer, look: Dictionary, nm: String) -> void:
 		hair = head
 	cust.gender = want as Enums.Gender
 	cust.shoes = ShoeMaterial.from_dict(look.get("shoes", {}))
+	var street := int(look.get("street", cust.street_index))  # older saves: keep today's
+	if street != cust.street_index:
+		cust.street_index = street
+		cust.wear_street()
 	cust.apply_look(
 		look.get("skin", cust.skin_color),
 		str(look.get("eyes", "brown")),
@@ -429,6 +433,7 @@ func _dress(cust: Customer) -> void:
 	cust.apply_look(Wardrobe.random_skin(_rng), eye, glasses, combo)
 	cust.set_hair(combo)
 	cust.set_hair_color(Wardrobe.random_hair_color(_rng))
+	cust.street_index = maxi(0, Wardrobe.random_street_index(gender, _rng))
 	cust.wear_street()
 
 

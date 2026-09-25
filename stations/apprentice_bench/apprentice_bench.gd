@@ -310,10 +310,10 @@ func _dress() -> void:
 	_rig.set_palette(Style.LINEN.lightened(0.35))
 	_rig.set_hair(2)
 	_rig.set_hair_color(Style.BROWN)
-	_rig.wear_street()
 	var rng := RandomNumberGenerator.new()
-	rng.seed = NAME.hash()  # the same pair of shoes every day
+	rng.seed = NAME.hash()  # the same pair of shoes and street clothes every day
 	_rig.set("shoes", ShoeMaterial.random(rng))
+	_rig.wear_street(Wardrobe.library().random_street_outfit(Enums.Gender.ANY, rng))
 
 
 func _say(line: String) -> void:

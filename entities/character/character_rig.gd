@@ -29,8 +29,11 @@ const BAKED_BOTTOM := {"pants": "legs"}
 const BAKED_HAIR := {"hair": "Hair"}
 # The top's pieces a street outfit leaves off (and a suit puts back on).
 const SUIT_EXTRAS := ["buttons", "square", "tie"]
-# The shoes are baked into the base model (never swapped).
-const BAKED_SHOES := ["shoes"]
+# The base model's own pair: worn with every suit. Street outfits swap in theirs.
+const BAKED_SHOES := {"shoes": "shoes"}
+# _top_style / _bottom_style while a street outfit's model is worn (no suit style), so
+# the next set_outfit always swaps the suit back in.
+const STREET_STYLE := -1
 # Leather grain density on the shoe UVs. The shoe islands cover ~0.59 UV units per
 # metre, so 8.3 keeps the grain the size it was on CHARTGEN1 (18 at ~0.27 per metre).
 const SHOE_UV_SCALE := 8.3
@@ -120,7 +123,7 @@ const GESTURE_STEP := 0.13
 # from a FaceStyle (data/face_styles/); blinks, talking and expressions tween the style's
 # dials (openness, squint, mouth_open, mouth_curve, brow_raise ...) instead of swapping art.
 const FACE_SHADER := "res://assets/shaders/face_element.gdshader"
-const DEFAULT_FACE_STYLE := "res://data/face_styles/round.tres"
+const DEFAULT_FACE_STYLE := "res://data/face_styles/heavy_lid.tres"
 const PROC_BLINK_CLOSE := 0.05
 const PROC_BLINK_HOLD := 0.05
 const PROC_BLINK_OPEN := 0.07
@@ -132,16 +135,18 @@ const PROC_TALK_SPEED := 14.0  # mouth_open units per second while flapping
 static var procedural_faces := false
 static var _face_mat: ShaderMaterial
 
-## Procedural faces only: the FaceStyle the face draws (null until set = round.tres).
-## Setting it clears any expression but keeps set_face_look()'s iris colour and nose. A
+## Procedural faces only: the FaceStyle the face draws (null until set = heavy_lid.tres).
+## Setting it clears any expression but keeps set_face_look()'s iris colour. A
 ## property rather than set_face_style(): this class is at gdlint's public-method limit.
 var face_style: FaceStyle:
 	get:
 		return _face_style
 	set(style):
 		_set_face_style(style)
-## The leather on the baked shoes: {"color", "finish"} (ShoeMaterial; missing or
-## unknown values mean black calf). Also a property for the public-method limit.
+## The wearer's own leather: {"color", "finish"} (ShoeMaterial; missing or unknown
+## values mean black calf), worn on the base pair with every suit. A street outfit
+## with its own shoe leather shows that instead until the next set_outfit. Also a
+## property for the public-method limit.
 var shoes: Dictionary:
 	get:
 		return _shoes
@@ -210,6 +215,9 @@ var _skin_color := DEFAULT_SKIN
 # Tint applied to the hair mesh (kept so it survives a hairstyle swap).
 var _hair_color := DEFAULT_HAIR
 var _shoes: Dictionary = {}
+var _shoe_slot: Dictionary = {}  # role "shoes" -> the MeshInstance3D worn
+var _shoe_part: WardrobePart  # the swapped-in shoe model; null = the base pair
+var _street_shoes := false  # the shoes show a street outfit's leather, not _shoes
 var _tie_color := DEFAULT_TIE
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
@@ -221,6 +229,7 @@ func _ready() -> void:
 	_top = _adopt(BAKED_TOP)
 	_bottom = _adopt(BAKED_BOTTOM)
 	_hair = _adopt(BAKED_HAIR)
+	_shoe_slot = _adopt(BAKED_SHOES)
 	_set_shoes({})  # black calf until someone says otherwise
 	_dress_extras()
 	if _anim != null:
@@ -688,12 +697,14 @@ func _push_face(element := -1) -> void:
 			_face_style.apply(part[0], part[1], _dials, part[2])
 
 
-## set_face_look() in procedural terms: the named eye colour tints the iris and the nose
-## index picks a nose kind; the mouth stays the style's.
+## set_face_look() in procedural terms: the named eye colour tints the iris when the style
+## shows one (an iris wider than the pupil; bead eyes stay as drawn). The style owns the
+## nose and the mouth, so their indices are ignored.
 func _proc_look() -> void:
-	var fallback := _face_style_or_default().iris_color
-	_dials["iris_color"] = FaceStyle.IRIS_COLORS.get(_eye_color, fallback)
-	_dials["nose_kind"] = posmod(_nose_index, FaceStyle.NOSE_KINDS)
+	var style := _face_style_or_default()
+	_dials.erase("iris_color")
+	if style.iris_radius > style.pupil_radius + 0.01:
+		_dials["iris_color"] = FaceStyle.IRIS_COLORS.get(_eye_color, style.iris_color)
 	_push_face()
 
 
@@ -764,6 +775,9 @@ func _update_mouth_proc(delta: float) -> void:
 			_mouth_open_target = randf_range(0.45, 0.9) if _talk_open else 0.05
 	var rest: float = _rest("mouth_open")
 	var goal := maxf(_mouth_open_target, rest)
+	if rest > 0.01 and _mouth_open_target > 0.0:
+		# a mouth open at rest (a laugh) pulses around its rest size while talking
+		goal = clampf(rest + (_mouth_open_target - 0.45) * 0.8, 0.35 * rest, 1.0)
 	var cur: float = _dials.get("mouth_open", rest)
 	if not is_equal_approx(cur, goal):
 		_dials["mouth_open"] = move_toward(cur, goal, PROC_TALK_SPEED * delta)
@@ -1034,12 +1048,38 @@ func set_outfit(
 	if pants_style != _bottom_style or _bottom.is_empty():
 		_swap_bottom(pants_style)
 	_apply_cloth(_bottom.get("pants"), trousers_mat)
+	_restore_shoes()
 
 
-## Placeholder street/casual look worn on arrival: muted flat colours on the
-## current top/bottom, with the suit's buttons, pocket square and tie taken off.
-## When real street models are imported, swap models here.
-func wear_street() -> void:
+## Street clothes worn on arrival: `outfit`'s own top, trousers and shoe models in its
+## cloth and leather (a random outfit when null). An outfit without a top model falls
+## back to the flat-colour look on the current suit meshes. set_outfit puts the suit
+## back, with the base shoes in the wearer's own leather.
+func wear_street(outfit: StreetOutfit = null) -> void:
+	if outfit == null:
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		outfit = Wardrobe.library().random_street_outfit(Enums.Gender.ANY, rng)
+	if outfit == null or outfit.top == null or outfit.top.model == null:
+		_wear_flat_street()
+		return
+	_top = _swap_part(_top, outfit.top)
+	_top_style = STREET_STYLE
+	_apply_cloth(_top.get("jacket"), outfit.outer_mat)
+	_apply_cloth(_top.get("shirt"), outfit.inner_mat)
+	if outfit.bottom != null and outfit.bottom.model != null:
+		_bottom = _swap_part(_bottom, outfit.bottom)
+		_bottom_style = STREET_STYLE
+	_apply_cloth(_bottom.get("pants"), outfit.pants_mat)
+	if outfit.shoe_model != null and outfit.shoe_model.model != null:
+		_swap_shoes(outfit.shoe_model)
+	_street_shoes = not outfit.shoes.is_empty()
+	_paint_shoes(outfit.shoes if _street_shoes else _shoes)
+
+
+## The fallback street look (an outfit with no models): muted flat colours on the
+## current top/bottom, with the suit's pocket square taken off.
+func _wear_flat_street() -> void:
 	_apply_flat(_top.get("jacket"), CASUAL_TOPS[randi() % CASUAL_TOPS.size()], 0.85)
 	_apply_flat(_top.get("shirt"), Color(0.9, 0.9, 0.88), 0.7)
 	_apply_flat(_bottom.get("pants"), CASUAL_BOTTOMS[randi() % CASUAL_BOTTOMS.size()], 0.85)
@@ -1076,31 +1116,54 @@ func _show_extras(on: bool) -> void:
 			mi.visible = on
 
 
-## One leather material, shared by both feet (see `shoes`).
+## Keep the wearer's own leather (see `shoes`); it shows at once unless a street
+## outfit's shoes are on.
 func _set_shoes(value: Dictionary) -> void:
+	_shoes = ShoeMaterial.from_dict(value)
+	if not _street_shoes:
+		_paint_shoes(_shoes)
+
+
+## One leather material, shared by both feet of the shoes worn now.
+func _paint_shoes(value: Dictionary) -> void:
 	var d := ShoeMaterial.from_dict(value)
-	_shoes = d
 	var mat := ShoeMaterial.build(d["color"], d["finish"], SHOE_UV_SCALE, true)
-	for shoe_name: String in BAKED_SHOES:
-		var mi := find_child(shoe_name, true, false) as MeshInstance3D
-		if mi != null:
+	for role in _shoe_slot:
+		var mi = _shoe_slot[role]
+		if mi is MeshInstance3D:
 			mi.material_override = mat
 
 
+## Back to the base pair in the wearer's own leather (after street clothes).
+func _restore_shoes() -> void:
+	if _shoe_part != null or _shoe_slot.is_empty():
+		_swap_shoes(null)
+	_street_shoes = false
+	_paint_shoes(_shoes)
+
+
+## Swap the shoe model; null puts the base pair back (the wardrobe's shoes 0).
+func _swap_shoes(part: WardrobePart) -> void:
+	_shoe_slot = _swap_part(_shoe_slot, part if part != null else Wardrobe.shoe(0))
+	_shoe_part = part
+
+
 func _swap_top(style: int) -> void:
-	_top = _clear(_top)
-	var part := Wardrobe.top(style)
-	if part != null and part.model != null:
-		_top = _attach_from(part.model, part.roles)
+	_top = _swap_part(_top, Wardrobe.top(style))
 	_top_style = style
 
 
 func _swap_bottom(style: int) -> void:
-	_bottom = _clear(_bottom)
-	var part := Wardrobe.bottom(style)
-	if part != null and part.model != null:
-		_bottom = _attach_from(part.model, part.roles)
+	_bottom = _swap_part(_bottom, Wardrobe.bottom(style))
 	_bottom_style = style
+
+
+## Clear a slot and fill it from `part`'s model (empty if the part has none).
+func _swap_part(slot: Dictionary, part: WardrobePart) -> Dictionary:
+	_clear(slot)
+	if part != null and part.model != null:
+		return _attach_from(part.model, part.roles)
+	return {}
 
 
 # --- Slot plumbing ---------------------------------------------------------
@@ -1131,6 +1194,7 @@ func _attach_from(model: PackedScene, roles: Dictionary) -> Dictionary:
 		var mi := inst.find_child(roles[role], true, false)
 		if mi is MeshInstance3D:
 			mi.get_parent().remove_child(mi)
+			mi.owner = null  # it leaves the source scene (no "owner inconsistent" warning)
 			_skel.add_child(mi)
 			mi.skeleton = NodePath("..")
 			if not remap.is_empty() and src_skel != null:

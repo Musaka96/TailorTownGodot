@@ -57,12 +57,18 @@ static func style_ready(garment_type: int, style_idx: int) -> bool:
 	return not tops[style_idx].placeholder
 
 
-static func street_top() -> WardrobePart:
-	return library().street_top
+static func shoe(index: int) -> WardrobePart:
+	return library().shoe(index)
 
 
-static func street_bottom() -> WardrobePart:
-	return library().street_bottom
+## The street outfit at `index` (clamped; null if the library has none).
+static func street_outfit(index: int) -> StreetOutfit:
+	return library().street_outfit(index)
+
+
+## A random street outfit index fitting `gender` (-1 if the library has none).
+static func random_street_index(gender: int, rng: RandomNumberGenerator) -> int:
+	return library().random_street_index(gender, rng)
 
 
 static func hair_count() -> int:

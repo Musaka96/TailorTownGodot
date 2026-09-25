@@ -16,6 +16,8 @@ const COLORS := {
 	"oxblood": Color("4a1d1e"),
 	"tan": Color("8f6a40"),
 	"chestnut": Color("6b3f24"),
+	# Off-white for sneakers (street clothes); not among the random picks below.
+	"white": Color("e6e2d8"),
 }
 const FINISHES := ["calf", "pebble", "patent"]
 # Per finish: the grain tile (assets/textures/grain/<name>.png + _n) and the leather

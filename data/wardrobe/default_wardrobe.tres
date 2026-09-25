@@ -1,207 +1,321 @@
 [gd_resource type="Resource" script_class="WardrobeLibrary" format=3]
 
-[ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_esk5f"]
-[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN2.glb" id="2_yfs0x"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_bl_m.glb" id="3_q28yw"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_br_m.glb" id="4_g3eu7"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_tl_m.glb" id="5_8sors"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_tr_m.glb" id="6_d8neq"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_bl_m.glb" id="7_w2cmp"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_br_m.glb" id="8_yrp6t"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_tl_m.glb" id="9_x33lo"]
-[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_tr_m.glb" id="10_lf20t"]
-[ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="11_htogs"]
-[ext_resource type="PackedScene" path="res://assets/characters/suit_doublebreasted.glb" id="12_2hbeg"]
+[ext_resource type="Script" path="res://data/scripts/wardrobe_part.gd" id="1_8sors"]
+[ext_resource type="PackedScene" path="res://assets/characters/CHARTGEN2.glb" id="2_d8neq"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_bl_m.glb" id="3_w2cmp"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_br_m.glb" id="4_yrp6t"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_tl_m.glb" id="5_x33lo"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_bald_tr_m.glb" id="6_lf20t"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_bl_m.glb" id="7_htogs"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_br_m.glb" id="8_2hbeg"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_tl_m.glb" id="9_561n5"]
+[ext_resource type="PackedScene" path="res://assets/characters/parts/tripo_head_tr_m.glb" id="10_iae66"]
+[ext_resource type="Script" path="res://data/scripts/wardrobe_library.gd" id="11_a6e2m"]
+[ext_resource type="Script" path="res://data/scripts/street_outfit.gd" id="12_o82gf"]
+[ext_resource type="PackedScene" path="res://assets/characters/street_overshirt.glb" id="13_uog13"]
+[ext_resource type="Script" path="res://data/scripts/material_type.gd" id="14_r7yri"]
+[ext_resource type="PackedScene" path="res://assets/characters/street_overcoat.glb" id="15_o03s2"]
+[ext_resource type="PackedScene" path="res://assets/characters/suit_doublebreasted.glb" id="16_35g23"]
 
-[sub_resource type="Resource" id="Resource_561n5"]
-script = ExtResource("1_esk5f")
+[sub_resource type="Resource" id="Resource_rprfk"]
+script = ExtResource("1_8sors")
 display_name = "Flat Front"
-model = ExtResource("2_yfs0x")
+model = ExtResource("2_d8neq")
 roles = {
 "pants": "legs"
 }
 
-[sub_resource type="Resource" id="Resource_iae66"]
-script = ExtResource("1_esk5f")
+[sub_resource type="Resource" id="Resource_dcrae"]
+script = ExtResource("1_8sors")
 display_name = "Default"
-model = ExtResource("2_yfs0x")
+model = ExtResource("2_d8neq")
 roles = {
 "hair": "Hair"
 }
 
-[sub_resource type="Resource" id="Resource_a6e2m"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_bl_m hair"
-model = ExtResource("3_q28yw")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_o82gf"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_br_m hair"
-model = ExtResource("4_g3eu7")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_uog13"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_tl_m hair"
-model = ExtResource("5_8sors")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_r7yri"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_tr_m hair"
-model = ExtResource("6_d8neq")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_o03s2"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_bl_m hair"
-model = ExtResource("7_w2cmp")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_35g23"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_br_m hair"
-model = ExtResource("8_yrp6t")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_rprfk"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_tl_m hair"
-model = ExtResource("9_x33lo")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
-[sub_resource type="Resource" id="Resource_dcrae"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_tr_m hair"
-model = ExtResource("10_lf20t")
-roles = {
-"hair": &"Hair"
-}
-gender = 1
-
 [sub_resource type="Resource" id="Resource_lv2yj"]
-script = ExtResource("1_esk5f")
-display_name = "Base"
-model = ExtResource("2_yfs0x")
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_bl_m hair"
+model = ExtResource("3_w2cmp")
 roles = {
-"head": "head"
+"hair": &"Hair"
 }
+gender = 1
 
 [sub_resource type="Resource" id="Resource_y7m5a"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_bl_m head"
-model = ExtResource("3_q28yw")
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_br_m hair"
+model = ExtResource("4_yrp6t")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_8skrs"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_br_m head"
-model = ExtResource("4_g3eu7")
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_tl_m hair"
+model = ExtResource("5_x33lo")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_qvkh7"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_tl_m head"
-model = ExtResource("5_8sors")
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_tr_m hair"
+model = ExtResource("6_lf20t")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_kf131"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_bald_tr_m head"
-model = ExtResource("6_d8neq")
+script = ExtResource("1_8sors")
+display_name = "tripo_head_bl_m hair"
+model = ExtResource("7_htogs")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_vp50j"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_bl_m head"
-model = ExtResource("7_w2cmp")
+script = ExtResource("1_8sors")
+display_name = "tripo_head_br_m hair"
+model = ExtResource("8_2hbeg")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_no7fj"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_br_m head"
-model = ExtResource("8_yrp6t")
+script = ExtResource("1_8sors")
+display_name = "tripo_head_tl_m hair"
+model = ExtResource("9_561n5")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_pttbj"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_tl_m head"
-model = ExtResource("9_x33lo")
+script = ExtResource("1_8sors")
+display_name = "tripo_head_tr_m hair"
+model = ExtResource("10_iae66")
 roles = {
-"head": &"head"
+"hair": &"Hair"
 }
 gender = 1
 
 [sub_resource type="Resource" id="Resource_d2x70"]
-script = ExtResource("1_esk5f")
-display_name = "tripo_head_tr_m head"
-model = ExtResource("10_lf20t")
+script = ExtResource("1_8sors")
+display_name = "Base"
+model = ExtResource("2_d8neq")
+roles = {
+"head": "head"
+}
+
+[sub_resource type="Resource" id="Resource_fdbkb"]
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_bl_m head"
+model = ExtResource("3_w2cmp")
 roles = {
 "head": &"head"
 }
 gender = 1
 
-[sub_resource type="Resource" id="Resource_fdbkb"]
-script = ExtResource("1_esk5f")
-display_name = "Casual Bottom"
-model = ExtResource("2_yfs0x")
+[sub_resource type="Resource" id="Resource_7dia4"]
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_br_m head"
+model = ExtResource("4_yrp6t")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_4uhga"]
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_tl_m head"
+model = ExtResource("5_x33lo")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_uwudq"]
+script = ExtResource("1_8sors")
+display_name = "tripo_bald_tr_m head"
+model = ExtResource("6_lf20t")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_wpkly"]
+script = ExtResource("1_8sors")
+display_name = "tripo_head_bl_m head"
+model = ExtResource("7_htogs")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_xqc6w"]
+script = ExtResource("1_8sors")
+display_name = "tripo_head_br_m head"
+model = ExtResource("8_2hbeg")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_xiwxl"]
+script = ExtResource("1_8sors")
+display_name = "tripo_head_tl_m head"
+model = ExtResource("9_561n5")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_0d8q8"]
+script = ExtResource("1_8sors")
+display_name = "tripo_head_tr_m head"
+model = ExtResource("10_iae66")
+roles = {
+"head": &"head"
+}
+gender = 1
+
+[sub_resource type="Resource" id="Resource_nvjjy"]
+script = ExtResource("1_8sors")
+display_name = "Base Shoes"
+model = ExtResource("2_d8neq")
+roles = {
+"shoes": "shoes"
+}
+
+[sub_resource type="Resource" id="Resource_prhoi"]
+script = ExtResource("1_8sors")
+display_name = "Overshirt Trousers"
+model = ExtResource("13_uog13")
 roles = {
 "pants": "legs"
 }
 
-[sub_resource type="Resource" id="Resource_7dia4"]
-script = ExtResource("1_esk5f")
-display_name = "Casual Top"
-model = ExtResource("2_yfs0x")
+[sub_resource type="Resource" id="Resource_tsc1m"]
+script = ExtResource("14_r7yri")
+id = &"street_white_tee"
+display_name = "White Tee"
+fabric = 5
+cloth_color = Color(0.9254902, 0.92156863, 0.9019608, 1)
+
+[sub_resource type="Resource" id="Resource_ouhh1"]
+script = ExtResource("14_r7yri")
+id = &"street_olive_twill"
+display_name = "Olive Twill"
+fabric = 5
+cloth_color = Color(0.35686275, 0.36862746, 0.22745098, 1)
+
+[sub_resource type="Resource" id="Resource_a743r"]
+script = ExtResource("14_r7yri")
+id = &"street_cream_chino"
+display_name = "Cream Chino"
+fabric = 5
+cloth_color = Color(0.8509804, 0.8, 0.67058825, 1)
+
+[sub_resource type="Resource" id="Resource_d6y3l"]
+script = ExtResource("1_8sors")
+display_name = "Overshirt Shoes"
+model = ExtResource("13_uog13")
+roles = {
+"shoes": "shoes"
+}
+
+[sub_resource type="Resource" id="Resource_eu5si"]
+script = ExtResource("1_8sors")
+display_name = "Overshirt Top"
+model = ExtResource("13_uog13")
 roles = {
 "jacket": "jacket",
 "shirt": "shirt"
 }
 
-[sub_resource type="Resource" id="Resource_4uhga"]
-script = ExtResource("1_esk5f")
+[sub_resource type="Resource" id="Resource_47l2r"]
+script = ExtResource("12_o82gf")
+display_name = "Overshirt"
+top = SubResource("Resource_eu5si")
+bottom = SubResource("Resource_prhoi")
+shoe_model = SubResource("Resource_d6y3l")
+outer_mat = SubResource("Resource_ouhh1")
+inner_mat = SubResource("Resource_tsc1m")
+pants_mat = SubResource("Resource_a743r")
+shoes = {
+"color": "white",
+"finish": "calf"
+}
+
+[sub_resource type="Resource" id="Resource_e5l8c"]
+script = ExtResource("1_8sors")
+display_name = "Overcoat Trousers"
+model = ExtResource("15_o03s2")
+roles = {
+"pants": "legs"
+}
+
+[sub_resource type="Resource" id="Resource_t3h3q"]
+script = ExtResource("14_r7yri")
+id = &"street_black_knit"
+display_name = "Black Knit"
+cloth_color = Color(0.10980392, 0.10980392, 0.12156863, 1)
+
+[sub_resource type="Resource" id="Resource_ixaqn"]
+script = ExtResource("14_r7yri")
+id = &"street_camel_coat"
+display_name = "Camel Coat"
+fabric = 1
+cloth_color = Color(0.6901961, 0.5254902, 0.34509805, 1)
+
+[sub_resource type="Resource" id="Resource_cneet"]
+script = ExtResource("14_r7yri")
+id = &"street_charcoal_flannel"
+display_name = "Charcoal Flannel"
+fabric = 1
+cloth_color = Color(0.23921569, 0.24313726, 0.25882354, 1)
+
+[sub_resource type="Resource" id="Resource_3dcul"]
+script = ExtResource("1_8sors")
+display_name = "Overcoat Shoes"
+model = ExtResource("15_o03s2")
+roles = {
+"shoes": "shoes"
+}
+
+[sub_resource type="Resource" id="Resource_8etfk"]
+script = ExtResource("1_8sors")
+display_name = "Overcoat Top"
+model = ExtResource("15_o03s2")
+roles = {
+"jacket": "jacket",
+"shirt": "shirt"
+}
+
+[sub_resource type="Resource" id="Resource_t6wtd"]
+script = ExtResource("12_o82gf")
+display_name = "Overcoat"
+top = SubResource("Resource_8etfk")
+bottom = SubResource("Resource_e5l8c")
+shoe_model = SubResource("Resource_3dcul")
+outer_mat = SubResource("Resource_ixaqn")
+inner_mat = SubResource("Resource_t3h3q")
+pants_mat = SubResource("Resource_cneet")
+shoes = {
+"color": "chestnut",
+"finish": "calf"
+}
+
+[sub_resource type="Resource" id="Resource_xbvcc"]
+script = ExtResource("1_8sors")
 display_name = "Single-Breasted"
-model = ExtResource("2_yfs0x")
+model = ExtResource("2_d8neq")
 roles = {
 "buttons": "buttons",
 "jacket": "jacket",
@@ -210,10 +324,10 @@ roles = {
 "tie": "tie"
 }
 
-[sub_resource type="Resource" id="Resource_uwudq"]
-script = ExtResource("1_esk5f")
+[sub_resource type="Resource" id="Resource_4oyes"]
+script = ExtResource("1_8sors")
 display_name = "Double-Breasted"
-model = ExtResource("12_2hbeg")
+model = ExtResource("16_35g23")
 roles = {
 "buttons": "buttons",
 "jacket": "jacket",
@@ -222,10 +336,10 @@ roles = {
 "tie": "tie"
 }
 
-[sub_resource type="Resource" id="Resource_wpkly"]
-script = ExtResource("1_esk5f")
+[sub_resource type="Resource" id="Resource_cn6m2"]
+script = ExtResource("1_8sors")
 display_name = "Tuxedo"
-model = ExtResource("2_yfs0x")
+model = ExtResource("2_d8neq")
 roles = {
 "buttons": "buttons",
 "jacket": "jacket",
@@ -236,12 +350,12 @@ roles = {
 placeholder = true
 
 [resource]
-script = ExtResource("11_htogs")
-heads = Array[ExtResource("1_esk5f")]([SubResource("Resource_lv2yj"), SubResource("Resource_y7m5a"), SubResource("Resource_8skrs"), SubResource("Resource_qvkh7"), SubResource("Resource_kf131"), SubResource("Resource_vp50j"), SubResource("Resource_no7fj"), SubResource("Resource_pttbj"), SubResource("Resource_d2x70")])
-hairs = Array[ExtResource("1_esk5f")]([SubResource("Resource_iae66"), SubResource("Resource_a6e2m"), SubResource("Resource_o82gf"), SubResource("Resource_uog13"), SubResource("Resource_r7yri"), SubResource("Resource_o03s2"), SubResource("Resource_35g23"), SubResource("Resource_rprfk"), SubResource("Resource_dcrae")])
-tops = Array[ExtResource("1_esk5f")]([SubResource("Resource_4uhga"), SubResource("Resource_uwudq"), SubResource("Resource_wpkly")])
-bottoms = Array[ExtResource("1_esk5f")]([SubResource("Resource_561n5")])
-street_top = SubResource("Resource_7dia4")
-street_bottom = SubResource("Resource_fdbkb")
+script = ExtResource("11_a6e2m")
+heads = Array[ExtResource("1_8sors")]([SubResource("Resource_d2x70"), SubResource("Resource_fdbkb"), SubResource("Resource_7dia4"), SubResource("Resource_4uhga"), SubResource("Resource_uwudq"), SubResource("Resource_wpkly"), SubResource("Resource_xqc6w"), SubResource("Resource_xiwxl"), SubResource("Resource_0d8q8")])
+hairs = Array[ExtResource("1_8sors")]([SubResource("Resource_dcrae"), SubResource("Resource_lv2yj"), SubResource("Resource_y7m5a"), SubResource("Resource_8skrs"), SubResource("Resource_qvkh7"), SubResource("Resource_kf131"), SubResource("Resource_vp50j"), SubResource("Resource_no7fj"), SubResource("Resource_pttbj")])
+tops = Array[ExtResource("1_8sors")]([SubResource("Resource_xbvcc"), SubResource("Resource_4oyes"), SubResource("Resource_cn6m2")])
+bottoms = Array[ExtResource("1_8sors")]([SubResource("Resource_rprfk")])
+shoes = Array[ExtResource("1_8sors")]([SubResource("Resource_nvjjy")])
+street_outfits = Array[ExtResource("12_o82gf")]([SubResource("Resource_47l2r"), SubResource("Resource_t6wtd")])
 skin_colors = PackedColorArray(0.87, 0.72, 0.6, 1, 0.8, 0.62, 0.48, 1, 0.93, 0.81, 0.69, 1, 0.66, 0.48, 0.35, 1, 0.55, 0.38, 0.27, 1)
 hair_colors = PackedColorArray(0.1, 0.08, 0.07, 1, 0.28, 0.18, 0.1, 1, 0.45, 0.3, 0.16, 1, 0.72, 0.55, 0.3, 1, 0.55, 0.2, 0.1, 1, 0.6, 0.6, 0.62, 1)

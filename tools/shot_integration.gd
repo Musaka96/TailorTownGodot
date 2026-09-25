@@ -10,6 +10,12 @@ extends SceneTree
 ##   carry_*        a rig holding a box on its carry point (hand.r), arms in the hold pose
 ##   face_base_*    head 0 (the base CHARTGEN2 head) close up, to check the face depth
 ## The game's own idle is used (not the calm test idle), so poses read as in play.
+##
+## With `-- --street` it shoots the street wardrobe instead, to
+## IMPORT/CHARREWORK/report/street_game/:
+##   street_<outfit>_front / _three_quarter / _back / _walk   each street outfit on a rig
+##   street_customer_1_street / _2_suit / _3_street   one customer (customer.tscn) in
+##       street clothes, then wear_suit (their own shoes come back), then street again
 
 # rig slots in the row
 enum Slot { PLAYER, SB, DB, TUX, STREET, CARRY }
@@ -18,6 +24,9 @@ const RIG_SCENE := "res://entities/character/character_rig.tscn"
 const PLAYER_SCENE := "res://scenes/player/player.tscn"
 const SUIT := "res://data/materials/navy_worsted_solid.tres"
 const OUT_DIR := "res://IMPORT/CHARREWORK/report/integration"
+const STREET_DIR := "res://IMPORT/CHARREWORK/report/street_game"
+const CUSTOMER_SCENE := "res://entities/customer/customer.tscn"
+const STREET_HEADS := [3, 6]
 const SKIN := Color(0.86, 0.72, 0.60)
 const HAIR := Color(0.28, 0.18, 0.10)
 const STREET_HEAD := 3
@@ -27,9 +36,12 @@ const SETTLE := 40
 
 var _rigs: Array[Node3D] = []  # by Slot; the player's entry is the player body
 var _cam: Camera3D
-var _shots: Array = []  # [file name, [slots shown], camera position, look at, fov]
+# [file name, [slots shown], camera position, look at, fov, optional Callable run first]
+var _shots: Array = []
 var _shot := 0
 var _frame := 0
+var _street := false
+var _out_dir := OUT_DIR
 
 
 func _initialize() -> void:
@@ -38,6 +50,15 @@ func _initialize() -> void:
 	root.add_child(world)
 	_add_lights(world)
 	_add_floor(world)
+	_cam = Camera3D.new()
+	world.add_child(_cam)
+	_cam.make_current()
+	process_frame.connect(_on_frame)
+	if "--street" in OS.get_cmdline_user_args():
+		_street = true
+		_out_dir = STREET_DIR
+		_init_street(world)
+		return
 	var rig_scene := load(RIG_SCENE) as PackedScene
 	for slot in Slot.size():
 		var node: Node3D
@@ -48,10 +69,67 @@ func _initialize() -> void:
 		node.position.x = (slot - (Slot.size() - 1) * 0.5) * GAP
 		world.add_child(node)
 		_rigs.append(node)
-	_cam = Camera3D.new()
-	world.add_child(_cam)
-	_cam.make_current()
-	process_frame.connect(_on_frame)
+
+
+## Street mode: per outfit a standing rig and a walking one, then one customer.
+func _init_street(world: Node3D) -> void:
+	var rig_scene := load(RIG_SCENE) as PackedScene
+	var count: int = Wardrobe.library().street_outfits.size()
+	for k in count * 2:
+		var rig := rig_scene.instantiate() as Node3D
+		rig.position.x = k * GAP * 2.0
+		world.add_child(rig)
+		_rigs.append(rig)
+	var cust := (load(CUSTOMER_SCENE) as PackedScene).instantiate() as Node3D
+	cust.position.x = count * 2 * GAP * 2.0
+	world.add_child(cust)
+	_rigs.append(cust)
+
+
+func _dress_street() -> void:
+	var count: int = Wardrobe.library().street_outfits.size()
+	for k in count * 2:
+		var rig := _rigs[k]
+		var head: int = STREET_HEADS[floori(k / 2.0) % STREET_HEADS.size()]
+		rig.call("set_head", head)
+		rig.call("set_hair", head)
+		rig.call("set_palette", SKIN)
+		rig.call("set_hair_color", HAIR)
+		rig.call("set_face_look", "brown", "", 0, 0)
+		rig.call("wear_street", Wardrobe.street_outfit(floori(k / 2.0)))
+		rig.call("set_moving", k % 2 == 1)
+	var cust := _rigs[count * 2]
+	cust.set("street_index", 0)
+	cust.set("shoes", {"color": "oxblood", "finish": "calf"})
+	cust.call("apply_look", SKIN, "green", "", STREET_HEADS[0])
+	cust.call("set_hair", STREET_HEADS[0])
+	cust.call("set_hair_color", HAIR)
+	cust.call("wear_street")
+
+
+func _plan_street() -> void:
+	var target := Vector3(0.0, 0.9, 0.0)
+	var count: int = Wardrobe.library().street_outfits.size()
+	for i in count:
+		var tag := "street_" + Wardrobe.street_outfit(i).display_name.to_lower()
+		var s := _x(i * 2)
+		var w := _x(i * 2 + 1)
+		var one := [i * 2]
+		_shots.append([tag + "_front", one, s + Vector3(0, 1.1, 4.2), s + target, 30.0])
+		var quarter := s + Vector3(2.4, 1.6, 3.2)
+		_shots.append([tag + "_three_quarter", one, quarter, s + target, 30.0])
+		_shots.append([tag + "_back", one, s + Vector3(0, 1.1, -4.2), s + target, 30.0])
+		var walk := w + Vector3(2.4, 1.6, 3.2)
+		_shots.append([tag + "_walk", [i * 2 + 1], walk, w + target, 30.0])
+	var c := count * 2
+	var cx := _x(c)
+	var cam := cx + Vector3(1.6, 1.4, 3.6)
+	var suit := load(SUIT) as Resource
+	var to_suit := func() -> void: _rigs[c].call("wear_suit", suit, null, suit, 1, 0)
+	var to_street := func() -> void: _rigs[c].call("wear_street")
+	_shots.append(["street_customer_1_street", [c], cam, cx + target, 30.0])
+	_shots.append(["street_customer_2_suit", [c], cam, cx + target, 30.0, to_suit])
+	_shots.append(["street_customer_3_street", [c], cam, cx + target, 30.0, to_street])
 
 
 func _dress() -> void:
@@ -139,20 +217,28 @@ func _on_frame() -> void:
 	_frame += 1
 	if _frame == 2 and _shot == 0:
 		_hide_hud(root)
-		_dress()
+		if _street:
+			_dress_street()
+		else:
+			_dress()
 	if _frame == SETTLE and _shots.is_empty():
-		_plan()
+		if _street:
+			_plan_street()
+		else:
+			_plan()
 	if _shots.is_empty() or _frame < SETTLE:
 		return
 	if _frame == SETTLE + 1:
 		var shot: Array = _shots[_shot]
-		for slot in Slot.size():
+		if shot.size() > 5:
+			(shot[5] as Callable).call()
+		for slot in _rigs.size():
 			_rigs[slot].visible = slot in shot[1]
 		_cam.fov = float(shot[4])
 		_cam.look_at_from_position(shot[2], shot[3], Vector3.UP)
-	elif _frame == SETTLE + 5:
-		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
-		var path := "%s/%s.png" % [OUT_DIR, _shots[_shot][0]]
+	elif _frame == SETTLE + 8:
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out_dir))
+		var path := "%s/%s.png" % [_out_dir, _shots[_shot][0]]
 		var image := root.get_texture().get_image()
 		if image != null and image.save_png(ProjectSettings.globalize_path(path)) == OK:
 			print("Saved " + path)

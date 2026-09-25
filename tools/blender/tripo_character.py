@@ -295,6 +295,24 @@ def _arguments(argv):
         default=0.0,
         help="also cut the cloth along folds sharper than this many degrees (0 = off)",
     )
+    p.add_argument(
+        "--figure",
+        type=int,
+        default=0,
+        help="a sheet with several figures side by side: keep the n-th (1 = leftmost)",
+    )
+    p.add_argument(
+        "--street",
+        action="store_true",
+        help="street clothes: split fused shells on the owner's seams, jacket = the outer "
+        "layer, shirt = the inner layer (carved off the neckline if fused), no head or hair",
+    )
+    p.add_argument(
+        "--armhole-x",
+        type=float,
+        default=0.24,
+        help="with --auto-seams: where to cut sleeves that have no armhole seam (|x|, m)",
+    )
     p.add_argument("--flip-front", action="store_true", help="force a 180 degree turn")
     p.add_argument("--no-front-check", action="store_true", help="never turn the model")
     ns = p.parse_args(args)
@@ -424,7 +442,17 @@ def step_classify(ns) -> None:
         if o.type == "MESH" and o not in rig_objects:
             if not any(o in objs for objs in named.values()):
                 shells.append(o)
+    if ns.figure:
+        shells = _pick_figure(shells, ns.figure)
+    if ns.street:
+        shells = _split_on_seams(shells)
     roles = _classify(shells, named)
+    # the figure's full height (feet to the top of the hair), measured before a street
+    # outfit drops its head, so the fit to the rig scales the body the same either way
+    ns.source_height = max(v.co.z for o in shells for v in o.data.vertices) - min(
+        v.co.z for o in shells for v in o.data.vertices)
+    if ns.street:
+        roles = _street_roles(roles)
     for role in ROLES:
         objs = roles.get(role, [])
         if not objs:
@@ -441,6 +469,8 @@ def step_classify(ns) -> None:
                 bpy.ops.mesh.customdata_custom_splitnormals_clear()
         for poly in obj.data.polygons:
             poly.use_smooth = True
+    if ns.street:
+        _inner_layer(ns)
     if "legs" in bpy.data.objects and "shoes" in bpy.data.objects:
         _shoe_bits_off_trousers(bpy.data.objects["legs"], bpy.data.objects["shoes"])
     missing = [r for r in ROLES if r not in bpy.data.objects]
@@ -452,6 +482,193 @@ def step_classify(ns) -> None:
         bpy.data.objects.remove(o, do_unlink=True)
 
 
+def _pick_figure(shells, n):
+    """Keep the shells of the n-th figure (1 = leftmost in the front view) of a sheet with
+    several side by side. Figures are the runs of overlapping x-ranges of the shells."""
+    spans = sorted(((min(v.co.x for v in o.data.vertices), max(v.co.x for v in o.data.vertices), o)
+                    for o in shells), key=lambda t: t[0])
+    figures = []
+    for lo, hi, o in spans:
+        if figures and lo <= figures[-1][1]:
+            figures[-1][1] = max(figures[-1][1], hi)
+            figures[-1][2].append(o)
+        else:
+            figures.append([lo, hi, [o]])
+    log("  %d figures side by side: %s" % (len(figures), ", ".join(
+        "#%d x %.2f..%.2f (%d shells)" % (i + 1, f[0], f[1], len(f[2])) for i, f in enumerate(figures))))
+    if not 1 <= n <= len(figures):
+        raise SystemExit("--figure %d: the file has %d figures" % (n, len(figures)))
+    keep = figures[n - 1][2]
+    for f in figures:
+        if f[2] is not keep:
+            for o in f[2]:
+                bpy.data.objects.remove(o, do_unlink=True)
+    log("  --figure %d: kept %d shells" % (n, len(keep)))
+    return keep
+
+
+def _split_on_seams(shells):
+    """Street clothes: Tripo fuses a whole outfit into one shell and the owner's seams
+    mark where the garments part. Split every shell along its seams, so each garment is a
+    shell of its own for the classifier."""
+    out = []
+    for o in shells:
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        cut = [e for e in bm.edges if e.seam]
+        if not cut:
+            bm.free()
+            out.append(o)
+            continue
+        bmesh.ops.split_edges(bm, edges=cut)
+        bm.to_mesh(o.data)
+        bm.free()
+        _select_only([o])
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.mesh.separate(type="LOOSE")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        parts = list(bpy.context.selected_objects)
+        if len(parts) > 1:
+            log("  a shell of %d faces split along %d owner seam edges into %d parts" % (
+                sum(len(q.data.polygons) for q in parts), len(cut), len(parts)))
+        out += parts
+    return out
+
+
+def _street_roles(roles):
+    """Street outfits have no tie, pocket square or loose buttons of their own: those go
+    to the jacket (the outer layer). The head, hair and ears are left out of the glb."""
+    out = {}
+    for role, objs in roles.items():
+        target = "jacket" if role in ("tie", "square", "buttons") else role
+        if role in ("head", "Hair"):
+            for o in objs:
+                bpy.data.objects.remove(o, do_unlink=True)
+            log("  street: %d %s shell(s) left out" % (len(objs), role))
+            continue
+        if target != role and objs:
+            log("  street: %d %s shell(s) merged into the jacket" % (len(objs), role))
+        out.setdefault(target, []).extend(objs)
+    return out
+
+
+INNER_FOLD = 60.0  # degrees: the crease a flood from the neckline stops at
+
+
+def _inner_layer(ns) -> None:
+    """The inner layer (a tee, a turtleneck) often comes fused to the jacket or to the
+    trousers. From the neckline of each fused piece (the front-most face at the top of
+    the centre line) grow a region across edges no sharper than INNER_FOLD; if it stays a
+    minority of the piece, is centred and reaches the arm line, it is the inner layer and
+    becomes the shirt."""
+    moved = []
+    arms = bpy.data.objects.get("arms")
+    arm_z = sum(v.co.z for v in arms.data.vertices) / len(arms.data.vertices) if arms else None
+    for role in ("jacket", "legs"):
+        obj = bpy.data.objects.get(role)
+        if obj is None:
+            continue
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bm.faces.ensure_lookup_table()
+        seen = set()
+        region_all = set()
+        for f in bm.faces:
+            if f in seen:
+                continue
+            comp, stack = [], [f]
+            seen.add(f)
+            while stack:
+                g = stack.pop()
+                comp.append(g)
+                for e in g.edges:
+                    for h in e.link_faces:
+                        if h not in seen:
+                            seen.add(h)
+                            stack.append(h)
+            if len(comp) < 50:
+                continue
+            cs = [g.calc_center_median() for g in comp]
+            cx = (min(c.x for c in cs) + max(c.x for c in cs)) / 2
+            top = max(c.z for c in cs)
+            width = max(c.x for c in cs) - min(c.x for c in cs)
+            near = [g for g, c in zip(comp, cs) if abs(c.x - cx) < 0.05 * width and c.z > top - 0.1 * (top - min(c.z for c in cs))]
+            if not near:
+                continue
+            seed = min(near, key=lambda g: g.calc_center_median().y)
+            region = _flood(set(comp), seed, INNER_FOLD)
+            rc = [g.calc_center_median() for g in region]
+            rtop = max(c.z for c in rc)
+            rcx = sum(c.x for c in rc) / len(rc)
+            ok = (len(region) < 0.5 * len(comp) and abs(rcx - cx) < 0.1 * width
+                  and (arm_z is None or rtop > arm_z))
+            log("  inner layer from the %s's neckline: %d of %d faces, z %.3f..%.3f -> %s" % (
+                role, len(region), len(comp), min(c.z for c in rc), rtop,
+                "the shirt" if ok else "not a layer (kept)"))
+            if ok and role == "legs":
+                # trousers end at the waist: whatever of this piece lies above the crease
+                # the flood stopped at (the back and sides of the tee) is the inner layer too
+                floor = min(c.z for c in rc)
+                extra = {g for g, c in zip(comp, cs) if c.z > floor and g not in region}
+                if extra:
+                    log("    + %d more faces of the piece above z %.3f (its back and sides)" % (len(extra), floor))
+                region |= extra
+            if ok:
+                region_all |= region
+        if region_all:
+            moved.append(_carve(obj, bm, region_all, "shirt_part"))
+        bm.free()
+    if moved:
+        existing = bpy.data.objects.get("shirt")
+        objs = moved + ([existing] if existing else [])
+        _select_only(objs)
+        if len(objs) > 1:
+            bpy.ops.object.join()
+        shirt = bpy.context.view_layer.objects.active
+        shirt.name = "shirt"
+        shirt.data.name = "shirt"
+        for poly in shirt.data.polygons:
+            poly.use_smooth = True
+
+
+def _flood(faces, seed, limit):
+    lim = math.radians(limit)
+    region = {seed}
+    stack = [seed]
+    while stack:
+        g = stack.pop()
+        for e in g.edges:
+            if e.seam or len(e.link_faces) != 2 or e.calc_face_angle(0.0) > lim:
+                continue
+            for h in e.link_faces:
+                if h in faces and h not in region:
+                    region.add(h)
+                    stack.append(h)
+    return region
+
+
+def _carve(obj, bm, faces, name):
+    """Move `faces` of obj (bm is obj's bmesh) into a new object; returns it."""
+    part = bmesh.new()
+    vmap = {}
+    for f in faces:
+        vs = []
+        for v in f.verts:
+            if v not in vmap:
+                vmap[v] = part.verts.new(v.co)
+            vs.append(vmap[v])
+        part.faces.new(vs)
+    bmesh.ops.delete(bm, geom=list(faces), context="FACES")
+    bm.to_mesh(obj.data)
+    me = bpy.data.meshes.new(name)
+    part.to_mesh(me)
+    part.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    return ob
+
+
 def _shoe_bits_off_trousers(legs, shoes) -> None:
     """Tripo sometimes fuses a bit of a shoe (a lace) into the trouser shell. A trouser
     leg never reaches lower than its mirror twin, so faces below the other leg's lowest
@@ -459,9 +676,10 @@ def _shoe_bits_off_trousers(legs, shoes) -> None:
     me = legs.data
     pts = [legs.matrix_world @ v.co for v in me.vertices]
     height = max(p.z for p in pts) - min(p.z for p in pts)
+    mid = (max(p.x for p in pts) + min(p.x for p in pts)) / 2
     lows = {}
     for p in pts:
-        side = 1 if p.x > 0 else -1
+        side = 1 if p.x > mid else -1
         lows[side] = min(lows.get(side, 1e9), p.z)
     if len(lows) < 2:
         return
@@ -470,7 +688,7 @@ def _shoe_bits_off_trousers(legs, shoes) -> None:
     moved = []
     for f in bm.faces:
         c = legs.matrix_world @ f.calc_center_median()
-        side = 1 if c.x > 0 else -1
+        side = 1 if c.x > mid else -1
         if c.z < lows[-side] - 0.002 * height:
             moved.append(f)
     if not moved:
@@ -705,7 +923,7 @@ def step_align(ns) -> None:
     if target <= 0.0:
         rpts = [p for o in rig.values() for p in _world_verts(o)]
         target = max(p.z for p in rpts) - min(p.z for p in rpts)
-    scale = target / (hi.z - lo.z)
+    scale = target / getattr(ns, "source_height", hi.z - lo.z)
     turn = _front_turn(ns, objs, rig)
     torso = objs.get("jacket") or objs.get("legs")
     tlo, thi = _bounds(_world_verts(torso)) if torso else (lo, hi)
@@ -928,6 +1146,8 @@ def _unwrap_cloth(ns, obj, arm) -> None:
     added = 0
     if ns.auto_seams:
         added += _auto_seams(bm, obj.name)
+        if obj.name == "jacket":
+            added += _auto_armholes(bm, ns.armhole_x)
     if ns.shoulder_seams and obj.name == "jacket":
         added += _shoulder_seams(bm, obj.name)
     if ns.fold_seams > 0.0:
@@ -1204,6 +1424,49 @@ def _dijkstra(fset, sources, targets, centre, prefer, xpenalty=0.0):
     return []
 
 
+def _auto_armholes(bm, armhole_x) -> int:
+    """No armhole seams: cut each sleeve off at |x| = armhole_x. A face counts as sleeve
+    when it is past armhole_x AND close to that side's sleeve axis (the axis and radius
+    are measured on the faces well out on the arm), so a coat's side panels, which reach
+    out as far below the armpit, stay body."""
+    ring = [e for e in bm.edges if e.seam and not e.is_boundary
+            and any(abs(v.co.x) > armhole_x for v in e.verts)
+            and any(abs(v.co.x) <= armhole_x for v in e.verts)]
+    if ring:
+        return 0  # the owner cut the armholes
+    axes = {}
+    for side in (-1.0, 1.0):
+        out = [f.calc_center_median() for f in bm.faces
+               if f.calc_center_median().x * side > armhole_x + 0.12]
+        if not out:
+            continue
+        ay = sum(c.y for c in out) / len(out)
+        az = sum(c.z for c in out) / len(out)
+        r = max(math.hypot(c.y - ay, c.z - az) for c in out)
+        axes[side] = (ay, az, r * 1.15)
+        log("    jacket  sleeve axis %s at y %.3f z %.3f, radius %.3f m" % (
+            "+x" if side > 0 else "-x", ay, az, r))
+
+    def sleeve(c):
+        side = math.copysign(1.0, c.x)
+        if abs(c.x) <= armhole_x or side not in axes:
+            return False
+        ay, az, r = axes[side]
+        return math.hypot(c.y - ay, c.z - az) < r
+
+    n = 0
+    for e in bm.edges:
+        if len(e.link_faces) != 2 or e.seam:
+            continue
+        a, b = e.link_faces
+        if sleeve(a.calc_center_median()) != sleeve(b.calc_center_median()):
+            e.seam = True
+            n += 1
+    if n:
+        log("    jacket  auto armholes at |x| %.2f m: %d edges" % (armhole_x, n))
+    return n
+
+
 def _auto_seams(bm, name) -> int:
     """Fallback for a model without owner seams: a trouser rise and inseams, a jacket
     centre back, each as a shortest path hugging the centre line."""
@@ -1212,32 +1475,32 @@ def _auto_seams(bm, name) -> int:
     lo, hi = _bounds([v.co for v in bm.verts])
     eps = 0.02 * (hi.z - lo.z)
     centre_line = [v for v in bm.verts if abs(v.co.x) < eps]
-    marked = []
-    if name == "legs" and not any(e.seam for e in bm.edges):
+    paths = []
+    if name == "legs" and not any(e.seam and not e.is_boundary for e in bm.edges):
         front = [v for v in centre_line if v.co.y < 0]
         back = [v for v in centre_line if v.co.y > 0]
         crotch = min(centre_line, key=lambda v: v.co.z)
         fw, bw = max(front, key=lambda v: v.co.z), max(back, key=lambda v: v.co.z)
         c = Vector((0, 0, crotch.co.z))
-        marked += _dijkstra(faces, {fw}, {crotch}, c, Vector((0, 0, 0)), 50.0)
-        marked += _dijkstra(faces, {crotch}, {bw}, c, Vector((0, 0, 0)), 50.0)
+        paths.append(_dijkstra(faces, {fw}, {crotch}, c, Vector((0, 0, 0)), 50.0))
+        paths.append(_dijkstra(faces, {crotch}, {bw}, c, Vector((0, 0, 0)), 50.0))
         hem = [v for v in bm.verts if v.is_boundary and v.co.z < lo.z + eps]
         for side in (-1, 1):
             leg = [v for v in hem if v.co.x * side > 0]
             if leg:
                 inner = min(leg, key=lambda v: abs(v.co.x))
-                marked += _dijkstra(faces, {crotch}, {inner}, c, Vector((0, 0, 0)))
+                paths.append(_dijkstra(faces, {crotch}, {inner}, c, Vector((0, 0, 0))))
     elif name == "jacket" and not any(e.seam and abs(e.verts[0].co.x) < eps and
                                       e.verts[0].co.y > 0 for e in bm.edges):
         back = [v for v in centre_line if v.co.y > 0]
         if back:
             nape = max(back, key=lambda v: v.co.z)
             hem = min(back, key=lambda v: v.co.z)
-            marked += _dijkstra(faces, {nape}, {hem}, Vector(), Vector((0, 0, 0)), 50.0)
+            paths.append(_dijkstra(faces, {nape}, {hem}, Vector(), Vector((0, 0, 0)), 50.0))
     n = 0
-    for path in [marked]:
+    for path in paths:
         for a, b in zip(path, path[1:]):
-            e = bm.edges.get((a, b))
+            e = bm.edges.get((a, b)) if a is not b else None
             if e is not None and not e.seam:
                 e.seam = True
                 n += 1
@@ -1317,6 +1580,15 @@ def _shoulder_seams(bm, name) -> int:
     return added
 
 
+SLEEVE_MIN_Z = 0.85  # rig metres: a piece out past sleeve_x but lower than this is on the body
+
+
+def _in_sleeve(centre, sleeve_x) -> bool:
+    """A piece belongs to a sleeve when its centre is out past sleeve_x at arm height; a
+    wide coat skirt or a hip pocket flap out at the side is still body."""
+    return abs(centre.x) > sleeve_x and centre.z > SLEEVE_MIN_Z
+
+
 def _orient_islands(obj, arm, sleeve_x, quiet=False) -> None:
     """Per piece: turn it so the grain (UV V) runs along its bone, then scale it to
     metres. Pieces past sleeve_x follow their arm (V up towards the shoulder), the rest the
@@ -1341,7 +1613,7 @@ def _orient_islands(obj, arm, sleeve_x, quiet=False) -> None:
         if a3 <= 1e-12:
             continue
         centre = sum((f.calc_center_median() * f.calc_area() for f in faces), Vector()) / a3
-        if abs(centre.x) > sleeve_x:
+        if _in_sleeve(centre, sleeve_x):
             axis = arms[math.copysign(1.0, centre.x)]
             label = "arm %s" % ("+x" if centre.x > 0 else "-x")
         else:
@@ -2134,7 +2406,7 @@ def _split_regions(obj, mode, sleeve_x, cap, split_it=True):
         c = sum((f.calc_center_median() * f.calc_area() for f in faces), Vector()) / area
         tag = "+x" if c.x > 0 else "-x"
         if mode == "sleeves":
-            label = ("sleeve " + tag) if abs(c.x) > sleeve_x else "body"
+            label = ("sleeve " + tag) if _in_sleeve(c, sleeve_x) else "body"
         else:
             label = "leg " + tag
         for f in faces:
