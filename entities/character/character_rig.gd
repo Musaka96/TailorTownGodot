@@ -119,11 +119,13 @@ const EXPR_HAPPY_MOUTH := 1.2  # mouth grows into a grin when pleased
 const NOD_ANGLE := 0.30
 const SHAKE_ANGLE := 0.34
 const GESTURE_STEP := 0.13
-# --- Procedural faces (proof of concept, off unless procedural_faces is set) ------
-# Each face sprite shows a blank square and draws its element with face_element.gdshader
-# from a FaceStyle (data/face_styles/); blinks, talking and expressions tween the style's
-# dials (openness, squint, mouth_open, mouth_curve, brow_raise ...) instead of swapping art.
-const FACE_SHADER := "res://assets/shaders/face_element.gdshader"
+# --- Procedural faces (off unless procedural_faces is set) -------------------------
+# The face is drawn IN THE HEAD'S SKIN MATERIAL (skin_face.gdshader) at a baked face UV
+# (FaceUvBaker: UV2 = the head's flat front mapped to 0..1), from a FaceStyle
+# (data/face_styles/) laid out in face units, so one preset lands on every head. Only the
+# glasses stay a sprite. Blinks, talking and expressions tween the style's dials (openness,
+# squint, mouth_open, mouth_curve, brow_raise ...) instead of swapping art.
+const SKIN_FACE_SHADER := "res://assets/shaders/skin_face.gdshader"
 const DEFAULT_FACE_STYLE := "res://data/face_styles/heavy_lid.tres"
 const PROC_BLINK_CLOSE := 0.05
 const PROC_BLINK_HOLD := 0.05
@@ -134,7 +136,7 @@ const PROC_TALK_SPEED := 14.0  # mouth_open units per second while flapping
 ## Read once when a rig builds its face: true = procedural faces (FaceStyle) instead of
 ## the painted sprites. Flip it before the rig enters the tree.
 static var procedural_faces := false
-static var _face_mat: ShaderMaterial
+static var _skin_face_shader: Shader
 
 ## Procedural faces only: the FaceStyle the face draws (null until set = heavy_lid.tres).
 ## Setting it clears any expression but keeps set_face_look()'s iris colour. A
@@ -194,6 +196,8 @@ var _talk_open := false
 var _syllable_left := 0.0  # > 0 while a syllable() holds the mouth open
 var _blink: Timer
 var _proc := false  # this rig's face is procedural (procedural_faces when it was built)
+var _skin_face: ShaderMaterial  # the head's skin + face material (procedural faces)
+var _face_frame: FaceFrame  # the current head's face rect (null = no face UV, no face)
 var _face_style: FaceStyle
 var _look_set := false  # set_face_look() was called (its iris/nose override the style)
 var _dials := {}  # current values of the animated FaceStyle fields
@@ -286,20 +290,21 @@ func _build_face() -> void:
 	attach.name = "FaceAttach"
 	attach.bone_name = FACE_BONE
 	_skel.add_child(attach)
-	_eye_l = _sprite(attach, _eye_tex(), false)
-	_eye_r = _sprite(attach, _eye_tex(), true)
-	_brow_l = _sprite(attach, _tex("brow"), false)
-	_brow_r = _sprite(attach, _tex("brow"), true)
-	_nose = _sprite(attach, _tex("nose_%d" % _nose_index), false)
-	_mouth = _sprite(attach, _tex("mouth_%d" % _mouth_index), false)
-	_glasses = _sprite(attach, null, false)
-	# Name them so tools (the char preview gizmo) can find the element to manipulate.
-	_eye_l.name = "eye_l"
-	_brow_l.name = "brow_l"
-	_nose.name = "nose"
-	_mouth.name = "mouth"
-	_glasses.name = "glasses"
 	_proc = procedural_faces
+	if not _proc:  # a procedural face lives in the head material (only glasses are sprites)
+		_eye_l = _sprite(attach, _eye_tex(), false)
+		_eye_r = _sprite(attach, _eye_tex(), true)
+		_brow_l = _sprite(attach, _tex("brow"), false)
+		_brow_r = _sprite(attach, _tex("brow"), true)
+		_nose = _sprite(attach, _tex("nose_%d" % _nose_index), false)
+		_mouth = _sprite(attach, _tex("mouth_%d" % _mouth_index), false)
+		# Name them so tools (the char preview gizmo) can find the element to manipulate.
+		_eye_l.name = "eye_l"
+		_brow_l.name = "brow_l"
+		_nose.name = "nose"
+		_mouth.name = "mouth"
+	_glasses = _sprite(attach, null, false)
+	_glasses.name = "glasses"
 	if _proc:
 		_make_procedural()
 	apply_layout(_layout)
@@ -405,10 +410,10 @@ func syllable() -> void:
 
 
 func _update_mouth(delta: float) -> void:
-	if _mouth == null:
-		return
 	if _proc:
 		_update_mouth_proc(delta)
+		return
+	if _mouth == null:
 		return
 	if _syllable_left > 0.0:
 		_syllable_left -= delta
@@ -668,43 +673,55 @@ func _set_face_style(style: FaceStyle) -> void:
 		_push_face()
 
 
-## Swap every face sprite (not the glasses) to a blank square of its element's size,
-## drawn by the one shared face shader, and push the style into it.
+## Put the face on the head: bake the current head's face UV, give it the face skin and
+## push the style (set_head() does the same for every later head).
 func _make_procedural() -> void:
-	if _face_mat == null:
-		_face_mat = ShaderMaterial.new()
-		_face_mat.shader = load(FACE_SHADER) as Shader
-	if _face_style == null:
-		_face_style = load(DEFAULT_FACE_STYLE) as FaceStyle
-	for part: Array in _face_parts():
-		var s := part[0] as Sprite3D
-		s.texture = FaceStyle.blank_texture(part[1])
-		s.material_override = _face_mat
+	_face_style_or_default()
 	if _look_set:
 		_proc_look()
-	_push_face()
+	_bake_face_head()
+	var head_mi = _head.get("head")
+	if head_mi is MeshInstance3D:
+		head_mi.material_override = _face_skin()
 
 
-## [sprite, FaceStyle.Element, mirrored] for every procedural face element.
-func _face_parts() -> Array:
-	var e := FaceStyle.Element
-	return [
-		[_eye_l, e.EYE, false],
-		[_eye_r, e.EYE, true],
-		[_brow_l, e.BROW, false],
-		[_brow_r, e.BROW, true],
-		[_nose, e.NOSE, false],
-		[_mouth, e.MOUTH, false],
-	]
-
-
-## Push the style + current dials into the face (only `element` when >= 0).
-func _push_face(element := -1) -> void:
-	if not _proc or _face_style == null:
+## Procedural faces: swap the head's mesh for a copy with the face UV (FaceUvBaker, cached
+## per head model) and keep its face rect. No face bone or no front found = no face drawn.
+func _bake_face_head() -> void:
+	_face_frame = null
+	var head_mi = _head.get("head")
+	if not _proc or _skel == null or not (head_mi is MeshInstance3D):
 		return
-	for part: Array in _face_parts():
-		if part[0] != null and (element < 0 or part[1] == element):
-			_face_style.apply(part[0], part[1], _dials, part[2])
+	var bone := _skel.find_bone(FACE_BONE)
+	if bone < 0:
+		return
+	var baked := FaceUvBaker.bake(head_mi.mesh, _global_rest(_skel, bone).affine_inverse())
+	if baked.is_empty():
+		return
+	head_mi.mesh = baked.mesh
+	_face_frame = baked.frame
+
+
+## The head's skin material with the face in it (one per rig): skin colour, face on/off,
+## and the style pushed in.
+func _face_skin() -> ShaderMaterial:
+	if _skin_face == null:
+		if _skin_face_shader == null:
+			_skin_face_shader = load(SKIN_FACE_SHADER) as Shader
+		_skin_face = ShaderMaterial.new()
+		_skin_face.shader = _skin_face_shader
+	_skin_face.set_shader_parameter("skin_color", _skin_color)
+	_skin_face.set_shader_parameter("face_enabled", _face_frame != null)
+	_push_face()
+	return _skin_face
+
+
+## Push the style + current dials into the head's face material. `_element` is kept for
+## the callers that only changed one element (the material takes every uniform anyway).
+func _push_face(_element := -1) -> void:
+	if not _proc or _face_style == null or _skin_face == null:
+		return
+	_face_style.apply_to_material(_skin_face, _dials, _face_frame)
 
 
 ## set_face_look() in procedural terms: the named eye colour tints the iris when the style
@@ -962,6 +979,7 @@ func set_head(index: int) -> void:
 	if _head.is_empty():
 		_head = _adopt(BAKED_HEAD)  # fall back to the base head
 	_head_index = index
+	_bake_face_head()
 	_apply_skin()
 	# Load this head/combo's own face profile so each head carries its own tuning.
 	_layout = FaceProfiles.load_or_default().layout_for(index)
@@ -972,7 +990,7 @@ func _apply_skin() -> void:
 	var mat := _flat(_skin_color, 0.7)
 	var head_mi = _head.get("head")
 	if head_mi is MeshInstance3D:
-		head_mi.material_override = mat
+		head_mi.material_override = _face_skin() if _proc else mat
 	var arms = _top.get("arms", _base_arms)
 	if arms is MeshInstance3D:
 		arms.material_override = _flat(_skin_color, 0.7)

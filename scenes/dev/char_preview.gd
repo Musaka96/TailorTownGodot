@@ -200,18 +200,23 @@ func _build_controls(col: VBoxContainer) -> void:
 	col.add_child(_dropdown("Nose", noses, _nose_i, _on_nose))
 	col.add_child(_dropdown("Mouth", mouths, _mouth_i, _on_mouth))
 	col.add_child(_dropdown("Expression", EXPRS, _expr_i, _on_expr))
-	col.add_child(_heading("Gizmo  (drag an axis handle: R/G/B = X/Y/Z)"))
-	var elem_names: Array = []
-	for e: Array in ELEMENTS:
-		elem_names.append(e[0])
-	col.add_child(_dropdown("Active", elem_names, _active, _on_active))
-	col.add_child(_dropdown("Mode", GIZ_MODES, _giz_mode, _on_giz_mode))
+	# A procedural face is drawn in the head material (FaceStyle, face units): there are no
+	# face sprites for the gizmo or the FaceLayout sliders to move, so both are left out.
+	var sprites := not CharacterRig.procedural_faces
+	if sprites:
+		col.add_child(_heading("Gizmo  (drag an axis handle: R/G/B = X/Y/Z)"))
+		var elem_names: Array = []
+		for e: Array in ELEMENTS:
+			elem_names.append(e[0])
+		col.add_child(_dropdown("Active", elem_names, _active, _on_active))
+		col.add_child(_dropdown("Mode", GIZ_MODES, _giz_mode, _on_giz_mode))
 	col.add_child(_heading("View"))
 	col.add_child(_slider("Zoom", 0.6, 4.5, 0.05, _dist, _on_zoom))
 	col.add_child(_slider("Turn", -180, 180, 1, 0, _on_turn))
-	col.add_child(_heading("Layout  (scroll a slider; Shift = fine)"))
-	for f: Array in FIELDS:
-		col.add_child(_field_slider(f))
+	if sprites:
+		col.add_child(_heading("Layout  (scroll a slider; Shift = fine)"))
+		for f: Array in FIELDS:
+			col.add_child(_field_slider(f))
 	var buttons := HBoxContainer.new()
 	buttons.add_child(_button("Undo", _undo))
 	buttons.add_child(_button("Random", _random))

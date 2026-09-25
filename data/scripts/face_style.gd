@@ -7,11 +7,14 @@ extends Resource
 ## style into a face element with apply(); expressions and blinks are the same fields
 ## overridden through a `dials` Dictionary (field name -> value), see expression().
 ##
-## Units: each element is drawn on a square quad whose half-width is 1 ("q units", y up).
-## QUAD_PX is that quad's size in the old sprite's texture pixels (pixel_size comes from the
-## FaceLayout the painted sprites use). Every quad is larger than its old sprite so a style
-## can move and size its element inside it: wide-set eyes, brows low over the eyes, a large
-## nose, a mouth tucked up under the nose.
+## Units: each element is drawn in a square box whose half-width is 1 ("q units", y up).
+## On the head (the rig's procedural face, skin_face.gdshader) every box sits in FACE UNITS
+## on the head's face rect (FaceFrame, baked by FaceUvBaker): the Layout group's *_pos and
+## *_box, so one preset lands on every head; apply_to_material() writes it all. The older
+## sprite path (face_element.gdshader, the 2D review sheets) places its quads with a
+## FaceLayout instead: QUAD_PX is each quad's size in the old sprite's texture pixels and the
+## *_center fields move the drawing inside it. On the head a resting *_center is already
+## folded into *_pos, so only an expression's move away from it counts there.
 ##
 ## Drawing language (every preset follows it): thin even strokes with round ends, no outline
 ## ring and no highlight in the eyes, a flat rose (or brown) nose dot, matte flat colour.
@@ -128,6 +131,20 @@ static var _blank := {}
 @export var mouth_tongue_color := Color("d0786a")
 @export var mouth_teeth_color := Color("fff6ea")
 
+@export_group("Layout (face units)")
+## Where each element's box sits on the head's face rect (u right, v down, 0..1 across the
+## rect) and how big the box is (its side as a fraction of the face width; the shader keeps
+## it square on any rect). Eyes and brows give the left one's distance from the midline as
+## x, the right one mirrors. Measured on the reference faces: .dev/make_face_styles.gd.
+@export var eye_pos := Vector2(0.572, 0.442)
+@export var eye_box := 1.518
+@export var brow_pos := Vector2(0.63, 0.144)
+@export var brow_box := 1.356
+@export var nose_pos := Vector2(0.5, 0.654)
+@export var nose_box := 1.332
+@export var mouth_pos := Vector2(0.5, 0.82)
+@export var mouth_box := 1.518
+
 @export_group("Expressions")
 ## Per-preset dials merged over expression()'s shared table: state name -> {field: value}.
 @export var expression_overrides := {}
@@ -240,6 +257,44 @@ func apply(node: Node, element: int, dials := {}, mirror := false) -> void:
 		var mat := (node as CanvasItem).material as ShaderMaterial
 		for k: String in params:
 			mat.set_shader_parameter(k, params[k])
+
+
+## Push this style into a head's skin_face.gdshader material: each element's packed vectors
+## (see pack()) as its prefixed uniforms (e_ eye, b_ brow, n_ nose, m_ mouth: fpN -> <p>pN,
+## fcN -> <p>cN), its face-unit place and box, and the head's FaceFrame (the rect's aspect,
+## the whole-face nudges; an eye_line moves eyes and brows together). `dials` override
+## fields as in pack(); an element's *_center reaches the shader only as its move away from
+## the resting one (the rest is in *_pos).
+func apply_to_material(mat: ShaderMaterial, dials := {}, frame: FaceFrame = null) -> void:
+	if mat == null:
+		return
+	var lift := 0.0
+	if frame != null:
+		mat.set_shader_parameter("face_aspect", frame.aspect())
+		mat.set_shader_parameter("frame_offset", frame.offset)
+		mat.set_shader_parameter("frame_scale", frame.scale)
+		if frame.eye_line >= 0.0:
+			lift = frame.eye_line - eye_pos.y
+	# element, prefix, centre field, face-unit position, box, packed vectors used, colours used
+	var parts := [
+		[Element.EYE, "e_", "eye_center", eye_pos + Vector2(0.0, lift), eye_box, 6, 6],
+		[Element.BROW, "b_", "brow_center", brow_pos + Vector2(0.0, lift), brow_box, 3, 1],
+		[Element.NOSE, "n_", "nose_center", nose_pos, nose_box, 3, 2],
+		[Element.MOUTH, "m_", "mouth_center", mouth_pos, mouth_box, 3, 4],
+	]
+	for part: Array in parts:
+		var params := pack(part[0], dials)
+		var rest: Vector2 = get(part[2])
+		var moved: Vector2 = dials.get(part[2], rest) - rest
+		var p0: Vector4 = params.fp0
+		params.fp0 = Vector4(moved.x, moved.y, p0.z, p0.w)
+		var prefix: String = part[1]
+		mat.set_shader_parameter(prefix + "pos", part[3])
+		mat.set_shader_parameter(prefix + "size", part[4])
+		for i: int in part[5]:
+			mat.set_shader_parameter("%sp%d" % [prefix, i], params["fp%d" % i])
+		for i: int in part[6]:
+			mat.set_shader_parameter("%sc%d" % [prefix, i], params["fc%d" % i])
 
 
 ## Dials for a named state, as absolute field values built from this style's rest look:

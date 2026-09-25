@@ -25,6 +25,7 @@ mouth_center = Vector2(0, -0.147)
 mouth_width = 0.229
 mouth_thickness = 0.087
 mouth_curve = -0.1
+nose_pos = Vector2(0.499, 0.654)
 expression_overrides = {
 "happy": {
 "eye_center": Vector2(-0.19839059, -0.58075786),

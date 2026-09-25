@@ -24,6 +24,10 @@ nose_size = 1.03
 mouth_center = Vector2(0, -0.119)
 mouth_width = 0.84
 mouth_curve = 1.0
+eye_pos = Vector2(0.584, 0.466)
+brow_pos = Vector2(0.674, 0.275)
+nose_pos = Vector2(0.499, 0.579)
+mouth_pos = Vector2(0.5, 0.808)
 expression_overrides = {
 "happy": {
 "blush_offset": Vector2(-0.20713434, -0.25777084),

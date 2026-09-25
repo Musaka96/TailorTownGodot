@@ -26,6 +26,10 @@ mouth_curve = 0.45
 mouth_open = 0.8
 mouth_depth = 1.0
 mouth_tongue = 0.55
+eye_pos = Vector2(0.614, 0.438)
+brow_pos = Vector2(0.635, 0.073)
+nose_pos = Vector2(0.499, 0.575)
+mouth_pos = Vector2(0.5, 0.758)
 expression_overrides = {
 "angry": {
 "mouth_open": 0.0,
