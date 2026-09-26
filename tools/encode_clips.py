@@ -19,11 +19,25 @@ from PIL import Image
 
 CLIPS_DIR = os.path.join(".dev", "promo", "clips")
 FPS = 30
-# Clips re-timed on output (fewer frames = smaller file). The mirror reel is already
-# sped up and changes every frame, so 20 fps keeps it well inside the page budget; the
+# Clips re-timed on output (fewer frames = smaller file). The mirror reel runs at game
+# speed (the client's reactions); 20 fps still carries them and keeps it near 4 MB; the
 # v2 benches turn the camera with the tool, so they re-time the same way.
-OUT_FPS = {"mirror": 20, "cutting": 20, "sewing": 20, "brief": 20, "looks": 10}
-QUALITY = {"mirror": 60, "cutting": 72, "sewing": 72, "brief": 70, "looks": 70}
+OUT_FPS = {
+    "mirror": 20,
+    "mirror_dimmock": 20,
+    "cutting": 20,
+    "sewing": 20,
+    "brief": 20,
+    "looks": 10,
+}
+QUALITY = {
+    "mirror": 60,
+    "mirror_dimmock": 60,
+    "cutting": 72,
+    "sewing": 72,
+    "brief": 70,
+    "looks": 70,
+}
 WEBP_QUALITY = 78
 GIF_WIDTH = 780
 GIF_STEP = 2  # every 2nd frame -> 15 fps

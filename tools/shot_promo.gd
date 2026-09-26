@@ -20,6 +20,7 @@ const SHOT_H := 1080
 const CAM_OFFSET := Vector3(0.0, 6.271325, 4.392928)
 const SETTLE := 6
 const FACTORY_PATH := "res://data/scripts/material_factory.gd"
+const PREF_SCRIPT := "res://data/scripts/customer_preference.gd"
 const FRONT_REF := Vector3(0.65, 0.0, 4.05)
 const BRIEF_ASIDE := 2.8  # metres the brief shots look to the client's right
 ## Opt-in shots (only rendered when named on the command line). "clips" records every
@@ -37,6 +38,9 @@ const EXTRA_SHOTS := [
 	"art",
 	"art_mirror",
 	"art_work",
+	"art_shop",
+	"art_named",
+	"art_badges",
 	"draft",
 ]
 ## Clip frames: Steam's description column is 1170px wide (780 logical px at 150%).
@@ -63,18 +67,111 @@ const ART_AT_TABLE := Vector3(0.1, 0.0, -0.95)
 const ART_TABLE_YAW := 0.25
 const ART_PERCY_AT_TABLE := Vector3(1.55, 0.0, -0.5)
 const ART_PERCY_YAW := -0.55
+## The shop plate: extra racks staged for it ([position, yaw]), hung full of suits in
+## ART_SHOP_CLOTHS (the cloth shelves are stocked in them too); and each candidate cast:
+## the tailor's spot (and a bolt in his arms), the clients ([rng seed, spot, CUTE_SUITS look,
+## extra yaw]; the seeds pick a woman and a man), and the camera [eye, look] at
+## ART_SHOP_FOV. The eye sits about level with the wall tops so the frame's top edge is
+## still wall, and the group stands left of centre: the right side is kept for the logo.
+const ART_SHOP_RACKS := [
+	[Vector3(0.35, 0.0, -4.85), 0.0],
+	[Vector3(-2.75, 0.0, -4.3), 0.35],
+]
+## A second sewing machine for the plate, against the back wall beside the racks.
+const ART_SHOP_MACHINE := [Vector3(1.95, 0.0, -4.95), 0.0]
+const ART_SHOP_CLOTHS := [
+	Color("c9a23a"),
+	Color("2f7f86"),
+	Color("b8566a"),
+	Color("5f86c0"),
+	Color("6f9463"),
+	Color("7a2a3a"),
+	Color("1b2a4a"),
+	Color("c8b48a"),
+	Color("7d6db0"),
+	Color("d2694b"),
+	Color("2f5d3e"),
+	Color("5a4633"),
+]
+const ART_SHOP_FOV := 50.0
+const ART_SHOP_CASTS := [
+	{
+		"tailor": Vector3(-0.8, 0.0, -3.2),
+		"roll": "burgundy_mohair_birdseye",
+		"clients":
+		[
+			[2014, Vector3(-1.6, 0.0, -2.95), "powder", 0.0],
+			[2010, Vector3(0.0, 0.0, -3.5), "garden", 0.0],
+		],
+		"cam": [Vector3(1.3, 3.6, 0.7), Vector3(-0.4, 0.3, -4.4)],
+	},
+	{
+		"tailor": Vector3(-0.8, 0.0, -3.2),
+		"roll": "burgundy_mohair_birdseye",
+		"clients":
+		[
+			[2016, Vector3(-1.6, 0.0, -2.95), "picnic", 0.0],
+			[2019, Vector3(0.0, 0.0, -3.5), "garden", 0.0],
+		],
+		"cam": [Vector3(1.3, 3.6, 0.7), Vector3(-0.4, 0.3, -4.4)],
+	},
+	{
+		"tailor": Vector3(-0.8, 0.0, -3.2),
+		"roll": "tan_linen_solid",
+		"clients":
+		[
+			[2010, Vector3(-1.6, 0.0, -2.95), "berry", 0.0],
+			[2022, Vector3(0.0, 0.0, -3.5), "garden", 0.0],
+		],
+		"cam": [Vector3(1.3, 3.6, 0.7), Vector3(-0.4, 0.3, -4.4)],
+	},
+]
+## The same plate with two of the named cast (their own faces): the shop_1 spots and camera.
+const ART_NAMED_CASTS := [
+	{
+		"tailor": Vector3(-0.8, 0.0, -3.2),
+		"roll": "burgundy_mohair_birdseye",
+		"clients":
+		[
+			["Mr. Pettigrew", Vector3(-1.6, 0.0, -2.95), "garden", 0.0],
+			["Mr. Dimmock", Vector3(0.0, 0.0, -3.5), "picnic", 0.0],
+		],
+		"cam": [Vector3(1.3, 3.6, 0.7), Vector3(-0.4, 0.3, -4.4)],
+	},
+	{
+		"tailor": Vector3(-0.8, 0.0, -3.2),
+		"roll": "burgundy_mohair_birdseye",
+		"clients":
+		[
+			["Mr. Dimmock", Vector3(-1.6, 0.0, -2.95), "picnic", 0.0],
+			["Mr. Pettigrew", Vector3(0.0, 0.0, -3.5), "garden", 0.0],
+		],
+		"cam": [Vector3(1.3, 3.6, 0.7), Vector3(-0.4, 0.3, -4.4)],
+	},
+]
 const ART_TAKES := 2
+## How far (logical px) the sign's chains rise above the board in the capsule art.
+const SIGN_CHAIN := 240.0
+const WORDMARK_PATH := "res://ui/craft/wordmark.gd"
 const ART_CLIENTS := 5  # the client is random: shoot a few, keep the best
 ## The looks clip: these interiors (data/shop_looks ids), LOOK_HOLD seconds each, ending
 ## where it began so it loops.
 const CLIP_LOOK_IDS := ["fern_damask", "oxblood", "cream_walnut", "navy_atelier", "plum_damask"]
 const LOOK_HOLD := 1.0
-## The mirror clip designs these CUTE_SUITS looks one after another, part by part.
-const CLIP_LOOKS := ["berry", "garden"]
-## Game seconds between "button presses" in the mirror clip; the clip is then saved at
-## CLIP_SPEEDUP x so it reads as a sped-up play session.
-const CLIP_PRESS := 0.15
-const CLIP_SPEEDUP := 2
+## The mirror clip, at game speed: a seeded client comes in with the CLIP_MIRROR_BRIEF
+## look's brief and a quiet dislike, tries on each CLIP_MIRROR_SUITS look whole and is
+## asked each time. The first is wrong for the occasion, the second hits the dislike
+## (linen: "Linen creases if you look at it."), the last is the yes.
+const CLIP_MIRROR_SEED := 2010  # Mr. Rossi: a man (the feminine kit is not ready)
+const CLIP_MIRROR_BRIEF := "berry"
+const CLIP_MIRROR_SUITS := ["garden", "picnic", "berry"]
+const CLIP_MIRROR_DISLIKE := {"kind": "fabric", "value": 4}
+## The second take's client (`-- clip_mirror_dimmock`): a FaceCast member, by name.
+const CLIP_MIRROR_CAST := "Mr. Dimmock"
+## Seconds on a fresh suit before asking, to read an answer, and on the final yes.
+const CLIP_TRY := 0.7
+const CLIP_ANSWER := 2.4
+const CLIP_SOLD := 1.6
 ## The upgrades shot: reputation points ("Local Name"), what's already bought, and
 ## which row is selected.
 const UPGRADES_REP := 130
@@ -173,6 +270,7 @@ func _run() -> void:
 	await _shot_cute_suits()
 	await _clip_shop()
 	await _clip_mirror()
+	await _clip_mirror_cast()
 	await _clip_brief()
 	await _clip_cut()
 	await _clip_sew()
@@ -507,7 +605,16 @@ func _dress_design(builder: Node, parts: Array) -> void:
 ## Clean, high-resolution plates: the pair outside the shop (close and wide), the shop
 ## floor from above, and the wordmark on a transparent ground.
 func _art() -> void:
-	if not (_want("art") or _want("art_mirror") or _want("art_work")):
+	if _want("art_badges") and not _want("art"):
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR + "/art"))
+		await _art_logo()
+	if not (
+		_want("art")
+		or _want("art_mirror")
+		or _want("art_work")
+		or _want("art_shop")
+		or _want("art_named")
+	):
 		return
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR + "/art"))
 	await _clear_customers()
@@ -528,6 +635,10 @@ func _art() -> void:
 		await _art_mirror()
 	if _want("art_work") or _want("art"):
 		await _art_work()
+	if _want("art_shop") or _want("art"):
+		await _art_shop(ART_SHOP_CASTS, "shop")
+	if _want("art_named") or _want("art"):
+		await _art_shop(ART_NAMED_CASTS, "shop_named")
 	if _want("art"):
 		await _art_floor_and_street()
 		await _art_logo()
@@ -655,6 +766,156 @@ func _art_work() -> void:
 		upgrades.changed.emit()
 
 
+## The working shop: the tailor and a client or two standing together in the workroom,
+## in front of racks crammed with finished suits, the sewing machine and the cloth shelves.
+## Extra racks (and their suits) are staged for the plate only and freed afterwards; the
+## shelves and upgrades are put back the way they were. Writes art/<prefix>_<n><take>.png.
+func _art_shop(casts: Array, prefix: String) -> void:
+	await _clear_customers()
+	var upgrades: Node = root.get_node("Upgrades")
+	var had := {}
+	for id: String in ["rack_hooks"]:
+		had[id] = upgrades.has(id)
+		upgrades._owned[id] = true
+	upgrades.changed.emit()
+	var staged: Array[Node] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = ART_SEED
+	for r: Array in ART_SHOP_RACKS:
+		var rack: Node3D = load("res://stations/clothing_rack/clothing_rack.tscn").instantiate()
+		rack.position = r[0]
+		rack.rotation.y = r[1]
+		_main.add_child(rack)
+		staged.append(rack)
+	var machine: Node3D = load("res://stations/sewing_machine/sewing_machine.tscn").instantiate()
+	machine.position = ART_SHOP_MACHINE[0]
+	machine.rotation.y = ART_SHOP_MACHINE[1]
+	_main.add_child(machine)
+	await _wait(4)
+	for rack: Node in staged:
+		while rack.stored.size() < rack.capacity():
+			rack.hang(_rack_suit(rng))
+	var shelves: Array[Node] = []
+	var shelf_saves: Array[Dictionary] = []
+	for n: String in ["Shelf", "Shelf2"]:
+		var shelf: Node = _main.find_child(n, true, false)
+		shelves.append(shelf)
+		shelf_saves.append(shelf.save_state())
+		_fill_shelf(shelf, rng)
+	# Percy's bench stands between the camera and the group: out of the plate.
+	var bench: Node3D = _main.find_child("ApprenticeBench", true, false)
+	var bench_shown := bench.visible
+	bench.visible = false
+	# The wall plaque would peek out from behind the capsules' hanging sign.
+	var plaque: Node3D = _main.find_child("int_plaque", true, false)
+	if plaque != null:
+		plaque.visible = false
+	var cam_node: Camera3D = _rig.get_node("Camera3D")
+	var old_fov := cam_node.fov
+	cam_node.fov = ART_SHOP_FOV
+	for i in casts.size():
+		await _stage_shop_cast(casts[i])
+		var cam: Array = casts[i]["cam"]
+		_frame_eye(cam[0], cam[1])
+		for take in ART_TAKES:
+			await _wait(SETTLE + take * 35)
+			_save("art/%s_%d%s" % [prefix, i, "abc"[take]])
+		await _clear_customers()
+		await _clear_hands()
+	cam_node.fov = old_fov
+	bench.visible = bench_shown
+	if plaque != null:
+		plaque.visible = true
+	for i in shelves.size():
+		shelves[i].load_state(shelf_saves[i])
+	machine.queue_free()
+	for node in staged:
+		node.queue_free()
+	for id: String in had:
+		if not had[id]:
+			upgrades._owned.erase(id)
+	upgrades.changed.emit()
+
+
+## One ART_SHOP_CASTS / ART_NAMED_CASTS entry: the tailor and the clients in their looks,
+## each turned to face the camera. A client is a seeded walk-in, or (a name in place of the
+## seed) that named cast member, dressed the way the shop dresses them: FaceCast gives them
+## their own face, hair colour and glasses.
+func _stage_shop_cast(cast: Dictionary) -> void:
+	var eye: Vector3 = cast["cam"][0]
+	var tailor: Vector3 = cast["tailor"]
+	_place_player(tailor, 0.0)
+	_player.get_node("Model").rotation.y = _yaw_to(tailor, eye) + cast.get("tailor_turn", 0.0)
+	if cast.has("roll"):
+		await _give_roll(String(cast["roll"]), 14.0)
+	var clients: Array = cast["clients"]
+	for c: Array in clients:
+		var cust: Node
+		if c[0] is String:
+			cust = _spawn_named(String(c[0]), c[1], _yaw_to(c[1], eye) + float(c[3]))
+		else:
+			_cm._rng.seed = int(c[0])
+			cust = _spawn_customer(c[1], _yaw_to(c[1], eye) + float(c[3]))
+		_wear_look(cust, CUTE_SUITS[String(c[2])]["parts"])
+	await _wait(40)
+
+
+## A named cast member (e.g. "Mr. Dimmock") at `pos`, by the shop's own naming path: a
+## brief in their name, then dressed from it.
+func _spawn_named(nm: String, pos: Vector3, yaw: float) -> Node:
+	var cust: Node = _spawn_customer(pos, yaw)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = ART_SEED
+	cust.preference = load(PREF_SCRIPT).random_pref(rng, nm)
+	_cm._dress(cust)
+	return cust
+
+
+## The yaw that turns a figure standing at `from` to face `to` (rigs face +z at yaw 0).
+func _yaw_to(from: Vector3, to: Vector3) -> float:
+	return atan2(to.x - from.x, to.z - from.z)
+
+
+## A finished suit in a cheerful cloth for the staged racks: jacket and trousers to match
+## (now and then odd trousers), a pale shirt.
+func _rack_suit(rng: RandomNumberGenerator) -> Node:
+	var factory: GDScript = load(FACTORY_PATH)
+	var colour: Color = ART_SHOP_CLOTHS[rng.randi() % ART_SHOP_CLOTHS.size()]
+	var jacket: Resource = factory.make(
+		rng.randi_range(0, 4), [0, 1, 2, 4, 5][rng.randi() % 5], 0, 1.0
+	)
+	jacket.cloth_color = colour
+	jacket.pattern_color = factory.pattern_color_for(colour, 0)
+	var pants: Resource = jacket
+	if rng.randf() < 0.25:
+		pants = factory.make(jacket.fabric, 0, [0, 1, 2, 4][rng.randi() % 4], 1.0)
+	var shirt: Resource = factory.make(5, 0, rng.randi_range(10, 17), 1.0)
+	var suit: Node = load("res://entities/items/suit.tscn").instantiate()
+	suit.parts = {
+		0: {"material": shirt, "quality": 1.0, "size": 1, "style": "Classic"},
+		1: {"material": pants, "quality": 1.0, "size": 1, "style": "Classic"},
+		2: {"material": jacket, "quality": 1.0, "size": 1, "style": "Classic"},
+	}
+	suit.primary_color = colour
+	return suit
+
+
+## Stock a cloth shelf to the brim with bolts in the rack palette.
+func _fill_shelf(shelf: Node, rng: RandomNumberGenerator) -> void:
+	var factory: GDScript = load(FACTORY_PATH)
+	while shelf.stored.size() < shelf.capacity():
+		var mat: Resource = factory.make(
+			rng.randi_range(0, 4), [0, 0, 1, 2, 4][rng.randi() % 5], 0, 12.0
+		)
+		mat.cloth_color = ART_SHOP_CLOTHS[rng.randi() % ART_SHOP_CLOTHS.size()]
+		mat.pattern_color = factory.pattern_color_for(mat.cloth_color, 0)
+		var roll: Node = load("res://entities/items/material_roll.tscn").instantiate()
+		roll.material = mat
+		roll.remaining_length_m = 12.0
+		_main.add_child(roll)
+		shelf.stock(roll)
+
+
 ## The empty shop floor from above, then the pair outside the shop (five seeded clients).
 func _art_floor_and_street() -> void:
 	_place_player(_front(Vector3(2.0, 0.0, 5.3)), 0.5)
@@ -681,22 +942,59 @@ func _art_floor_and_street() -> void:
 	await _clear_hands()
 
 
-## The main menu's gold-leaf wordmark, LOGO_SCALE x, on transparency.
+## The main menu's gold-leaf wordmark, LOGO_SCALE x, on transparency; then the same
+## lockup on the hanging walnut shop sign (with and without the tagline, chains rising
+## to the top of the image), and a long tape measure — the capsule dressing.
 func _art_logo() -> void:
+	var mark: Control = load(WORDMARK_PATH).new()
+	mark.sounds = false
+	mark.size = Vector2(360, 178)
+	await _render_badge(mark, Vector2(360, 178), "logo")
+	for tagline: bool in [true, false]:
+		var sign_name := "sign_%s" % ("full" if tagline else "name")
+		await _render_badge(_hanging_sign(tagline), Vector2(480, 260 + SIGN_CHAIN), sign_name)
+	var tape: Control = load("res://ui/craft/tape_measure.gd").new()
+	tape.max_m = 16.0
+	tape.value = -1.0
+	tape.size = Vector2(1600, 56)
+	await _render_badge(tape, tape.size, "tape")
+
+
+## The shop's fascia sign as the main menu hangs it: walnut board, gold lettering.
+func _hanging_sign(tagline: bool) -> Control:
+	var holder := Control.new()
+	var sign := PanelContainer.new()
+	sign.position = Vector2(20, SIGN_CHAIN)
+	holder.add_child(sign)
+	var board: Control = load("res://ui/craft/sign_board.gd").dress(sign)
+	board.plate = false
+	board.set_process(false)  # no sway: a still
+	var mark: Control = load(WORDMARK_PATH).new()
+	mark.sounds = false
+	mark.tagline = tagline
+	mark.custom_minimum_size = Vector2(360, 178 if tagline else 150)
+	sign.add_child(mark)
+	return holder
+
+
+## Draw `node` (logical `size`) at LOGO_SCALE x on transparency into art/<name>.png,
+## trimmed to what was drawn.
+func _render_badge(node: Control, size: Vector2, name: String) -> void:
 	var vp := SubViewport.new()
 	vp.transparent_bg = true
-	vp.size = Vector2i(Vector2(360, 178) * LOGO_SCALE)
+	vp.size = Vector2i(size * LOGO_SCALE)
 	vp.oversampling_override = LOGO_SCALE
 	vp.canvas_transform = Transform2D().scaled(Vector2.ONE * LOGO_SCALE)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	var mark: Control = load("res://ui/craft/wordmark.gd").new()
-	mark.size = Vector2(360, 178)
-	vp.add_child(mark)
+	vp.add_child(node)
 	root.add_child(vp)
-	await _wait(6)
+	await _wait(8)
 	var image := vp.get_texture().get_image()
-	image.save_png("%s/art/logo.png" % OUT_DIR)
-	print("saved logo (%dx%d)" % [image.get_width(), image.get_height()])
+	var used := image.get_used_rect()
+	if name != "logo" and used.size.x > 0:
+		image = image.get_region(used)
+	image.save_png("%s/art/%s.png" % [OUT_DIR, name])
+	print("saved %s (%dx%d)" % [name, image.get_width(), image.get_height()])
 	vp.queue_free()
 
 
@@ -753,87 +1051,80 @@ func _clip_looks() -> void:
 	applier.apply(before)
 
 
-## The fitting mirror, played like a (sped-up) session: pick a part, step through its
-## fabric / colour / pattern / style, next part, back out to the whole suit — then the
-## next look. Each CLIP_LOOKS suit is built one press at a time.
+## The fitting mirror at game speed, played like a session: whole suits go on the client
+## one after another and each is put to them the way a player asks (E: "Ask"). Two are
+## turned down for different reasons, the third gets the yes and the quote goes green.
 func _clip_mirror() -> void:
-	if not _want("clip_mirror"):
-		return
+	if _want("clip_mirror"):
+		await _record_mirror("mirror", "")
+
+
+## The same session with a cast member as the client: his own name, face and voice.
+func _clip_mirror_cast() -> void:
+	if _want("clip_mirror_dimmock"):
+		await _record_mirror("mirror_dimmock", CLIP_MIRROR_CAST)
+
+
+## Record the mirror session into clips/`clip`. `cast_name` names the client (a FaceCast
+## member) through the shop's own naming and dressing; "" keeps the seeded walk-in.
+func _record_mirror(clip: String, cast_name: String) -> void:
 	await _clear_customers()
 	_place_player(_by_mirror(), PI * 0.5)
+	_cm._rng.seed = CLIP_MIRROR_SEED  # the same client every run
 	var cust: Node = await _seat_customer()
-	cust.preference.occasion = 3  # PARTY — a brief every look in the reel suits
-	cust.preference.style = 3  # FASHION
-	cust.preference.budget = CUTE_BUDGET
+	if cast_name != "":
+		var pref_script: GDScript = load("res://data/scripts/customer_preference.gd")
+		_cm._rng.seed = CLIP_MIRROR_SEED
+		cust.preference = pref_script.random_pref(_cm._rng, cast_name)
+	# The walk-in's rolls between the name and the look vary run to run: dress them
+	# again from the seed so the face is the same every take too.
+	_cm._rng.seed = CLIP_MIRROR_SEED
+	_cm._dress(cust)
+	_set_mirror_brief(cust.preference)
 	_ui.open_suit_builder(_mirror, _player)
 	var builder: Node = _ui.suit_builder
 	await _wait(60)
-	_start_rec("mirror", CLIP_SPEEDUP)
-	for look: String in CLIP_LOOKS:
-		await _design_by_hand(builder, CUTE_SUITS[look]["parts"])
-		await _seconds(1.0)  # admire the finished suit
+	_start_rec(clip)
+	await _seconds(0.4)
+	for i in CLIP_MIRROR_SUITS.size():
+		_try_on(builder, CUTE_SUITS[CLIP_MIRROR_SUITS[i]]["parts"])
+		await _seconds(CLIP_TRY)
+		builder._confirm()  # the player's first E at the mirror: ask
+		print("%s: %s -> %s" % [clip, CLIP_MIRROR_SUITS[i], "yes" if builder._awaiting else "no"])
+		var last: bool = i == CLIP_MIRROR_SUITS.size() - 1
+		await _seconds(CLIP_SOLD if last else CLIP_ANSWER)
 	_stop_rec()
 	_ui.close_all_menus()
 	_rig.unfocus()
 	await _clear_customers()
 
 
-## Drive the suit builder like a player: for each part select it on the Part row, then
-## walk down Fabric / Colour / Pattern / Style pressing left/right the short way round
-## to each target value, then return to the suit tab.
-func _design_by_hand(builder: Node, parts: Array) -> void:
-	var enums: Script = load("res://data/scripts/enums.gd")
-	var factory: Script = load(FACTORY_PATH)
-	var types := [2, 0, 1]  # JACKET, SHIRT, PANTS — the order parts[] is written in
-	var keys := ["fabric", "color", "pattern", "style_idx"]  # the builder's row order
-	var src := [0, 2, 1, 3]  # where each key sits in a CUTE_SUITS part entry
-	for i in types.size():
-		var t: int = types[i]
-		await _go_row(builder, 0)
-		while builder._type() != t:
-			builder._adjust(1)
-			await _seconds(CLIP_PRESS)
-		await _seconds(CLIP_PRESS * 2.0)  # a beat on the new tab
-		var styles := PackedInt32Array()
-		for n in enums.styles_for(t).size():
-			if n < 2:  # skip "Shorts": the trouser model doesn't show them yet
-				styles.append(n)
-		var options := [
-			builder._available_fabrics(t),
-			factory.colors_for(t),
-			enums.patterns_for(t),
-			styles,
-		]
-		for r in keys.size():
-			var opts: PackedInt32Array = options[r]
-			var want: int = parts[i][src[r]]
-			var have: int = int(builder._design[t][keys[r]])
-			if not opts.has(want) or want == have:
-				continue
-			await _go_row(builder, r + 1)
-			var steps := _short_way(opts, have, want)
-			for _n in absi(steps):
-				builder._adjust(signi(steps))
-				await _seconds(CLIP_PRESS)
-	await _go_row(builder, 0)
-	while builder._part_sel != 0:
-		builder._adjust(1)
-		await _seconds(CLIP_PRESS)
+## The clip's brief, set so every answer is the same each run: the CLIP_MIRROR_BRIEF
+## look's occasion and style, no stated taste, and the one quiet dislike.
+func _set_mirror_brief(pref: Resource) -> void:
+	var brief: Array = CUTE_SUITS[CLIP_MIRROR_BRIEF]["brief"]
+	pref.occasion = brief[0]
+	pref.style = brief[1]
+	pref.budget = CUTE_BUDGET
+	pref.rush = false
+	pref.picky = false
+	pref.likes_color = -1
+	pref.dislikes_color = -1
+	pref.town_worn = 0
+	pref.owned_suits = []
+	pref.quiet_dislike = CLIP_MIRROR_DISLIKE.duplicate()
+	pref.quiet_known = false
 
 
-func _go_row(builder: Node, row: int) -> void:
-	while builder._row != row:
-		builder._move_row(1 if row > builder._row else -1)
-		await _seconds(CLIP_PRESS)
-
-
-## Signed number of presses from `from` to `to` in a wrapping option list.
-func _short_way(opts: PackedInt32Array, from: int, to: int) -> int:
-	var a := maxi(opts.find(from), 0)
-	var b := opts.find(to)
-	var n := opts.size()
-	var fwd := (b - a + n) % n
-	return fwd if fwd <= n - fwd else fwd - n
+## Put a whole CUTE_SUITS look on the client at once, as a fresh design: the last answer
+## goes away and the trousers' link follows whether they match the jacket.
+func _try_on(builder: Node, parts: Array) -> void:
+	builder._end_reaction()
+	builder._awaiting = false
+	var jacket: Array = parts[0]
+	var pants: Array = parts[2]
+	builder._linked = jacket[0] == pants[0] and jacket[1] == pants[1] and jacket[2] == pants[2]
+	_dress_design(builder, parts)
 
 
 ## A walk-in comes to the counter, waves, and states the brief.

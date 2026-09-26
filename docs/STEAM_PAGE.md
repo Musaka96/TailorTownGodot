@@ -12,20 +12,20 @@ the Handbook is how you learn it. Every line below leans on that.
 
 ## 1. Short description (Steam max 300 characters)
 
-> Run a bespoke tailoring shop in a cosy little town. Every client walks in with an
-> occasion, a style and a budget. Design their suit at the mirror, then cut, stitch
-> and assemble it by hand before the deadline.
+> Your grandfather's tailor shop has been shut for years. Learn the trade from Mr. Hemming,
+> then open it up again, one room at a time. Every client brings an occasion, a style and
+> a budget. Design the suit at the mirror, then cut and sew it by hand before the fitting.
 
-(248 characters.)
+(266 characters.)
 
 Alternates, if you want a different angle:
 
-- **Craft-forward:** "A cosy bespoke-tailoring sim. Choose the cloth, cut it to shape,
-  stitch the seams, and dress the client for the occasion, whether that is a wedding,
-  a funeral or a night out, before their fitting day comes round." (211)
+- **Craft-forward:** "A bespoke-tailoring sim. Choose the cloth, cut it to shape, stitch
+  the seams and dress the client for the occasion, whether that is a wedding, a funeral or
+  a night out, before their fitting day comes round." (206)
 - **Pressure-forward:** "Three clients, two deadlines, one sewing machine. Run a bespoke
   tailor's shop: take the brief, pick the cloth, cut and stitch every piece by hand, and
-  make your name on the Row." (183)
+  make your name on the Row." (177)
 
 ---
 
@@ -36,16 +36,34 @@ bracketed lines are asset slots, not text to paste.
 
 ---
 
-[GIF 1 — the mirror: A/D through fabrics and colours, the suit changing on the client in
-real time. 4 s loop, no cut.]
+[GIF 1 — the mirror: two whole suits tried on and turned down, the third accepted, at
+game speed.]
 
-Somebody needs a suit for a wedding. Somebody else needs one for a funeral. Every one of them walks
-through your door with an occasion, a style and a budget. Only you know what is
+Somebody needs a suit for a wedding. Somebody else needs one for a funeral. Every one of
+them walks through your door with an occasion, a style and a budget. Only you know what is
 actually correct.
 
-TailorTown is a shop sim about bespoke tailoring, from the bolt of cloth to the
-handover. You walk the floor, you carry one thing at a time, and everything that leaves
-the shop was cut and stitched by your own hand.
+TailorTown is a shop sim about bespoke tailoring, from the bolt of cloth to the handover.
+You walk the floor, you carry one thing at a time, and everything that leaves the shop was
+cut and stitched by your own hand.
+
+### Reopen grandpa's shop
+
+[Screenshot — grandpa's front room under dust sheets. NOT RENDERED YET: needs a
+`shot_promo.gd` shot in scenes/world/grandpa/main_grandpa.tscn.]
+
+Barnaby "Pops" Thimble kept a tailor's shop in this town for forty years. It has been shut
+since he retired to the coast. You can't sew a straight seam, so you start on the Row, in
+Mr. Hemming's shop, and learn the trade at his bench.
+
+Then you unlock grandpa's door. Dust sheets over everything. A ceiling that drips. Four
+rooms you can't get into yet.
+
+Sweep the front room yourself and take whoever the town sends you. Ring the builders for
+the roof and the walls. Every room you open puts another station back to work, and nearly
+every job turns up something of his: his old shears, a tin of photographs, the order
+ledger, measurements pencilled on the wall behind the paper. They go on the shelf in the
+front room. Pops writes from the coast when he hears how you're getting on.
 
 ### Take the brief
 
@@ -53,10 +71,13 @@ the shop was cut and stitched by your own hand.
 budget; the player takes the fitting.]
 
 A client states the occasion, the look they're after and what they can spend. Take the
-fitting, book them for a later day, or politely decline. A full bench is a good reason
-to say no. Sit them at the mirror and design the suit part by part: jacket, shirt,
-trousers, each with its own cloth, colour, pattern and cut. Agree the price, and the
-order goes on the board with a deadline.
+fitting, book them for a later day, or politely decline. A full bench is a good reason to
+say no. At the mirror you design the suit part by part: jacket, shirt, trousers, each with
+its own cloth, colour, pattern and cut.
+
+Then ask them. Some keep a dislike to themselves until they see it on. "Black? Nobody's
+died." Agree the price, and the order goes on the board with a deadline. Regulars come
+back, and they remember what you made them.
 
 ### Know your cloth
 
@@ -64,20 +85,20 @@ order goes on the board with a deadline.
 
 Worsted wool, flannel, tweed, mohair, linen, poplin. Pinstripe, herringbone, houndstooth,
 windowpane, glen check. Weight, super number and price per metre all matter, and every
-bolt is a finite number of metres. Cut carelessly and the last half-metre of a good
-cloth is gone. Ring the suppliers from the shop phone; the better houses open their books
-to you as your name grows.
+bolt is a finite number of metres. Cut carelessly and the last half-metre of a good cloth
+is gone. Ring the suppliers from the shop phone; the better houses open their books to you
+as your name grows.
 
 ### Cut it, stitch it, finish it
 
 [GIF 3 — the cutting minigame followed by the sewing minigame, back to back.]
 
-Take the bolt from the shelf to the cutting table and steer the shears along the
-chalk. They glide down the straights. The curves are yours. Drift into the piece and
-you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the
-machine: pull the pins, ease off at the corners, backstitch both ends. Press the wrinkles out; linger and you
-scorch it. Hang it on the rack. The jacket, shirt and trousers of one order find each
-other there and come together into the finished suit.
+Take the bolt from the shelf to the cutting table and steer the shears along the chalk.
+They glide down the straights. The curves are yours. Drift into the piece and you nick it;
+three slips and it's ruined. Then work the pedal and guide the seam through the machine:
+pull the pins, ease off at the corners, backstitch both ends. Press the wrinkles out;
+linger and you scorch it. Hang it on the rack. The jacket, shirt and trousers of one order
+find each other there and come together into the finished suit.
 
 Every slip at the bench comes off the price.
 
@@ -85,21 +106,21 @@ Every slip at the bench comes off the price.
 
 [Screenshot — the Tailor's Handbook, Dress Codes chapter.]
 
-Black for a funeral. Nothing that upstages the couple. A board meeting is not a party. The Tailor's Handbook holds the real rules, written the way a tailor
-would tell you: which colours and which patterns each occasion will take, named
-outright. Read it, and you'll know what to
-put in front of a client before they ask.
+Black for a funeral. Nothing that upstages the couple. A board meeting is not a party. The
+Tailor's Handbook holds the real rules, written the way a tailor would tell you: which
+colours and which patterns each occasion will take, named outright. Read it, and you'll
+know what to put in front of a client before they ask.
 
-### Make your name on the Row
+### Make your name
 
 [Screenshot — the morning paper, fashion trend and social calendar.]
 
-The Tailor's Gazette lands each morning with the fashion of the day and the town's
-coming events. A wedding in five days, business in nine. The tailor who reads the
-paper is the one with the right cloth already on the shelf. Dress someone beautifully
-for the big day and it's your name in the next morning's edition; fall short and the
-story goes to Pinch & Pleat down the road. Deliver well and the better cloth houses start taking your calls. Miss a deadline and
-they stop.
+The Tailor's Gazette lands each morning with the fashion of the day and the town's coming
+events. A wedding in five days, business in nine. The tailor who reads the paper is the
+one with the right cloth already on the shelf. Dress someone beautifully for the big day
+and it's your name in the next morning's edition; fall short and the story goes to Pinch &
+Pleat down the road. Deliver well and the better cloth houses start taking your calls.
+Miss a deadline and they stop.
 
 ### Build up the workshop
 
@@ -111,26 +132,26 @@ the cloth still, pinking shears that forgive a wide cut, a rotary cutter that ro
 straights for you; a speed dial, a walking foot, clips instead of pins, a button that
 backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine
 to steady your hands. Later, an espresso machine you grind, tamp and pull yourself. And
-Percy the apprentice, who takes a whole part of an order to his own bench and gets
-better with every job.
+Percy the apprentice, who takes a whole part of an order to his own bench in grandpa's old
+workshop and gets better with every job.
 
 ### Make the shop yours
 
 [GIF 4 — the same shop view redecorated on the beat: five interiors, 1 s each.]
 
 Sage panelling and fern damask, oxblood and parquet, cream and walnut, a navy atelier,
-plum damask. Wallpaper, wainscot, floor, rugs and curtains are each yours to choose.
-Mix your own or buy a matched set. You preview it live from above the shop, and it is
-fitted in a cloud of dust and hammering. A handsome shop does a little for your name.
+plum damask: eleven schemes in all. Wallpaper, wainscot, floor, rugs and curtains are each
+yours to choose. Mix your own or buy a matched set. You preview it live from above the
+shop, and it is fitted in a cloud of dust and hammering. A handsome shop does a little for
+your name.
 
 ### Keep the shop
 
 [Screenshot — the order book, four clients waiting.]
 
 Open in the morning, lock up at night, and keep the bench moving in between: appointments
-to honour, regulars who come back, rush jobs, and the ones who want something you'd
-rather not make. Everything saves, and a first-run walkthrough with Mr. Hemming teaches
-the trade before it leaves you to it.
+to honour, rush jobs, and the ones who want something you'd rather not make. Everything
+saves.
 
 ---
 
@@ -139,18 +160,21 @@ the trade before it leaves you to it.
 - A full craft chain you perform yourself: take the brief → design the suit at the
   mirror → order the cloth → cut the panels → sew the seams → hang the parts together on
   the rack → hand it over.
-- Real tailoring materials (8 fabrics, 10+ patterns, dozens of colours) rendered as
-  woven cloth on the garment and on the client.
-- Occasion-and-style dress codes that judge every part of the suit, not just the jacket.
+- Your grandfather's shut-up shop to bring back: clean it by hand, get the builders in,
+  open it room by room, and find what he left behind.
+- Real tailoring materials (8 fabrics, 14 patterns, dozens of colours) rendered as woven
+  cloth on the garment and on the client.
+- Occasion-and-style dress codes that judge every part of the suit, not only the jacket.
+- Clients of eight different sorts, men and women, with their own dislikes and long
+  memories.
 - Two hand-feel bench games, steering shears and a pedal-and-aim sewing machine, whose
   results carry through to what the client pays.
-- 25 workshop upgrades that change how the benches play, plus little bench games of
-  their own for pressing a piece and making the morning coffee.
+- 24 workshop upgrades that change how the benches play, plus little bench games of their
+  own for pressing a piece and making the morning coffee.
 - A courier, an espresso machine and an apprentice of your own to grow into.
 - Town events with a best-dressed write-up in the paper. Yours, or your rival's.
 - A reputation that opens premium textile houses and the better end of the catalogue.
 - A shop you redecorate surface by surface: wallpapers, panelling, floors, rugs, curtains.
-- A daily paper that sets the fashion and warns you what the town is planning.
 - Days you open and close, appointments, regulars and deadlines you can miss.
 - Top-down, walk-the-floor shop in a hand-built town. Keyboard or controller.
 
@@ -202,7 +226,8 @@ to re-record just those: `-- clip_mirror clip_brief`.
 
 | Slot | Clip | Shows | WebP |
 |---|---|---|---|
-| GIF 1 (lead) | `mirror` | two suits designed part by part at the mirror, 2x speed, 20 fps | ~6.2 MB |
+| GIF 1 (lead) | `mirror` | game speed, 8.9 s: Mr. Rossi tries on two whole suits and turns them down (forest is wrong for a party; linen, a quiet dislike), then takes the third. Real Ask path, bubbles and notepad (20 fps) | ~4.0 MB |
+| GIF 1 (alt) | `mirror_dimmock` | the same beats with Mr. Dimmock and his own lines (`-- clip_mirror_dimmock`) | ~3.9 MB |
 | GIF 2 | `brief` | a walk-in reaches the counter, waves, states the brief (20 fps) | ~1.8 MB |
 | GIF 3 | `cutting` + `sewing` | a clean Seam Allowance cut, then a Pedal & Aim seam — pins pulled, both ends backstitched (use both, stacked; 20 fps) | ~2.0 + 2.9 MB |
 | GIF 4 | `looks` | the shop redecorated five ways, 1 s each (`-- clip_looks`, 10 fps) | ~1.0 MB |
@@ -214,37 +239,47 @@ announcement) — adding it passes the 15 MB point where Valve may strip animati
 ## 5b. Store & library art (rendered)
 
 ```
-godot --path . --script res://tools/shot_promo.gd -- art     # 4K plates + logo -> .dev/promo/art/
-python tools/compose_store_art.py [scene ...]                 # every size -> .dev/promo/store/<scene>/
+godot --path . --script res://tools/shot_promo.gd -- art_shop art_badges   # 4K plates + sign/tape -> .dev/promo/art/
+python tools/compose_store_art.py [scene ...]                               # every size -> .dev/promo/store/<scene>/
 ```
 
-`-- art` renders clean 4K plates (HUD off, no vignette / lens frame) and the main menu's
-gold-leaf wordmark on transparency; the composer crops them, lays a forest-green wash where
-the wordmark goes and places it — nothing is drawn that isn't in the game. Each scene gets
-its own full set in `.dev/promo/store/<scene>/`:
+`-- art_shop` renders clean 4K plates (HUD off, no vignette / lens frame): the tailor with a
+bolt (never his own suit's cloth) and two clients standing together in the workroom, a rack crammed with finished suits,
+the cloth cabinet and a sewing machine behind them. The extra rack, the second machine and
+the stocked shelves are staged for the plate and put back afterwards; the wall plaque is
+hidden so it doesn't peek out from behind the capsule sign. Three casts (`shop_0..2`), two
+takes each (`a`/`b`, a moment apart so one is never mid-blink). Clients are seeded
+(`ART_SHOP_CASTS`), but skin and gaze can still drift a little between runs, so look at a
+re-render before shipping it.
 
-| Scene | Plate | Shows |
+`-- art_badges` renders the capsule dressing from the game's own UI kit: the main menu's
+walnut fascia sign with the gold wordmark (`sign_full` with the tagline, `sign_name`
+without), its chains running off the top of the image, and a tape measure (`tape`). The
+composer crops the plate, darkens the wall a little behind the sign, hangs the sign on the
+free side, drops the tape across a corner and sews a cream running stitch round the edge.
+
+| Scene | Plate | Notes |
 |---|---|---|
-| `mirror` (lead) | `mirror_<look><take>` | the tailor sizing up a client in a showcase suit at the fitting mirror, tape measure in hand (arms posed by the tool — there is no measuring clip) |
-| `work` | `work_<take>` | the tailor at the cutting table, Percy the apprentice beside him |
-| `street` | `pair_<n>` | the tailor with a bolt and a client outside the shopfront |
+| `shop` (lead) | `shop_1a` | cream check, the tailor in navy pinstripe with a burgundy bolt, green tweed |
+| `named` | `shop_named_0a` | the same spot with Mr. Pettigrew (green) and Mr. Dimmock (cream), through the real naming path (`-- art_named`) |
+| `shop_alt` | `shop_0a` | the same spot, a second cast |
 
-`-- art_mirror` / `-- art_work` re-render one scene; add `draft` for quick 1280x720 plates.
-Clients are seeded (`ART_SEED`), so a chosen plate stays the same between runs; two takes
-(`a`/`b`) are shot a moment apart so one of them is never mid-blink. Which plate a scene
-uses, and where its people stand, is the `SCENES` table at the top of the composer.
+Clients are men only for now: the feminine kit is not ready for key art.
 
+Which plate a scene uses, and where its people stand, is the `SCENES` table at the top of
+the composer. The older `-- art_mirror` / `-- art_work` / street plates still render, but
+they show the old characters and the composer no longer uses them.
 | File | Steam slot |
 |---|---|
 | `header_capsule_920x430.png` | Header capsule |
 | `small_capsule_462x174.png` | Small capsule (name only — it must read at 120px wide) |
 | `main_capsule_1232x706.png` | Main capsule |
 | `vertical_capsule_748x896.png` | Vertical capsule |
-| `page_background_1438x810.png` | Page background (blurred, green-toned shop floor) |
+| `page_background_1438x810.png` | Page background (the plate blurred, toned to walnut) |
 | `library_capsule_600x900.png` | Library capsule |
 | `library_header_920x430.png` | Library header |
 | `library_hero_3840x1240.png` | Library hero (no logo, by Valve's rule) |
-| `library_logo_1280x720.png` | Library logo (transparent) |
+| `library_logo_1280x720.png` | Library logo (the fascia sign, transparent) |
 | `community_icon_184x184.png` | Community icon (the tailor) |
 
 Capsules may carry the logo and art only — no review quotes, awards or other copy.
@@ -265,14 +300,23 @@ Capsules may carry the logo and art only — no review quotes, awards or other c
 
 ```
 [img]{GIF_1}[/img]
-
 Somebody needs a suit for a wedding. Somebody else needs one for a funeral. Every one of them walks through your door with an occasion, a style and a budget. Only you know what is actually correct.
 
 TailorTown is a shop sim about bespoke tailoring, from the bolt of cloth to the handover. You walk the floor, you carry one thing at a time, and everything that leaves the shop was cut and stitched by your own hand.
 
+[h2]Reopen grandpa's shop[/h2]
+[img]{SHOT_GRANDPA}[/img]
+Barnaby "Pops" Thimble kept a tailor's shop in this town for forty years. It has been shut since he retired to the coast. You can't sew a straight seam, so you start on the Row, in Mr. Hemming's shop, and learn the trade at his bench.
+
+Then you unlock grandpa's door. Dust sheets over everything. A ceiling that drips. Four rooms you can't get into yet.
+
+Sweep the front room yourself and take whoever the town sends you. Ring the builders for the roof and the walls. Every room you open puts another station back to work, and nearly every job turns up something of his: his old shears, a tin of photographs, the order ledger, measurements pencilled on the wall behind the paper. They go on the shelf in the front room. Pops writes from the coast when he hears how you're getting on.
+
 [h2]Take the brief[/h2]
 [img]{GIF_2}[/img]
-A client states the occasion, the look they're after and what they can spend. Take the fitting, book them for a later day, or politely decline. A full bench is a good reason to say no. Sit them at the mirror and design the suit part by part: jacket, shirt, trousers, each with its own cloth, colour, pattern and cut. Agree the price, and the order goes on the board with a deadline.
+A client states the occasion, the look they're after and what they can spend. Take the fitting, book them for a later day, or politely decline. A full bench is a good reason to say no. At the mirror you design the suit part by part: jacket, shirt, trousers, each with its own cloth, colour, pattern and cut.
+
+Then ask them. Some keep a dislike to themselves until they see it on. "Black? Nobody's died." Agree the price, and the order goes on the board with a deadline. Regulars come back, and they remember what you made them.
 
 [h2]Know your cloth[/h2]
 [img]{SHOT_CLOTH_SHELF}[/img]
@@ -282,40 +326,41 @@ Worsted wool, flannel, tweed, mohair, linen, poplin. Pinstripe, herringbone, hou
 [img]{GIF_3}[/img]
 Take the bolt from the shelf to the cutting table and steer the shears along the chalk. They glide down the straights. The curves are yours. Drift into the piece and you nick it; three slips and it's ruined. Then work the pedal and guide the seam through the machine: pull the pins, ease off at the corners, backstitch both ends. Press the wrinkles out; linger and you scorch it. Hang it on the rack. The jacket, shirt and trousers of one order find each other there and come together into the finished suit.
 
-Cut it badly and the client pays you less for it.
+Every slip at the bench comes off the price.
 
 [h2]Dress for the occasion[/h2]
 [img]{SHOT_HANDBOOK}[/img]
 Black for a funeral. Nothing that upstages the couple. A board meeting is not a party. The Tailor's Handbook holds the real rules, written the way a tailor would tell you: which colours and which patterns each occasion will take, named outright. Read it, and you'll know what to put in front of a client before they ask.
 
-[h2]Make your name on the Row[/h2]
+[h2]Make your name[/h2]
 [img]{SHOT_NEWSPAPER}[/img]
 The Tailor's Gazette lands each morning with the fashion of the day and the town's coming events. A wedding in five days, business in nine. The tailor who reads the paper is the one with the right cloth already on the shelf. Dress someone beautifully for the big day and it's your name in the next morning's edition; fall short and the story goes to Pinch & Pleat down the road. Deliver well and the better cloth houses start taking your calls. Miss a deadline and they stop.
 
 [h2]Build up the workshop[/h2]
 [img]{SHOT_UPGRADES}[/img]
-Everything you earn can go back into the shop, ordered from the phone as your name opens the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the straights for you; a speed dial, a walking foot, clips instead of pins, a button that backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine to steady your hands. Later, an espresso machine you grind, tamp and pull yourself. And Percy the apprentice, who takes a whole part of an order to his own bench and gets better with every job.
+Everything you earn can go back into the shop, ordered from the phone as your name opens the catalogue. Two dozen upgrades, each one felt at the bench: pattern weights that hold the cloth still, pinking shears that forgive a wide cut, a rotary cutter that rolls the straights for you; a speed dial, a walking foot, clips instead of pins, a button that backstitches for you. A pressing iron, a bicycle courier for the cloth, a coffee machine to steady your hands. Later, an espresso machine you grind, tamp and pull yourself. And Percy the apprentice, who takes a whole part of an order to his own bench in grandpa's old workshop and gets better with every job.
 
 [h2]Make the shop yours[/h2]
 [img]{GIF_4}[/img]
-Sage panelling and fern damask, oxblood and parquet, cream and walnut, a navy atelier, plum damask. Wallpaper, wainscot, floor, rugs and curtains are each yours to choose. Mix your own or buy a matched set. You preview it live from above the shop, and it is fitted in a cloud of dust and hammering. A handsome shop does a little for your name.
+Sage panelling and fern damask, oxblood and parquet, cream and walnut, a navy atelier, plum damask: eleven schemes in all. Wallpaper, wainscot, floor, rugs and curtains are each yours to choose. Mix your own or buy a matched set. You preview it live from above the shop, and it is fitted in a cloud of dust and hammering. A handsome shop does a little for your name.
 
 [h2]Keep the shop[/h2]
 [img]{SHOT_ORDER_BOOK}[/img]
-Open in the morning, lock up at night, and keep the bench moving in between: appointments to honour, regulars who come back, rush jobs, and the ones who want something you'd rather not make. Everything saves, and a first-run walkthrough with Mr. Hemming teaches the trade before it leaves you to it.
+Open in the morning, lock up at night, and keep the bench moving in between: appointments to honour, rush jobs, and the ones who want something you'd rather not make. Everything saves.
 
 [h2]Features[/h2]
 [list]
 [*] A full craft chain you perform yourself: take the brief, design the suit at the mirror, order the cloth, cut the panels, sew the seams, hang the parts together on the rack, hand it over.
-[*] Real tailoring materials (8 fabrics, 10+ patterns, dozens of colours) rendered as woven cloth on the garment and on the client.
-[*] Occasion-and-style dress codes that judge every part of the suit, not just the jacket.
+[*] Your grandfather's shut-up shop to bring back: clean it by hand, get the builders in, open it room by room, and find what he left behind.
+[*] Real tailoring materials (8 fabrics, 14 patterns, dozens of colours) rendered as woven cloth on the garment and on the client.
+[*] Occasion-and-style dress codes that judge every part of the suit, not only the jacket.
+[*] Clients of eight different sorts, men and women, with their own dislikes and long memories.
 [*] Two hand-feel bench games, steering shears and a pedal-and-aim sewing machine, whose results carry through to what the client pays.
-[*] 25 workshop upgrades that change how the benches play, plus little bench games of their own for pressing a piece and making the morning coffee.
+[*] 24 workshop upgrades that change how the benches play, plus little bench games of their own for pressing a piece and making the morning coffee.
 [*] A courier, an espresso machine and an apprentice of your own to grow into.
 [*] Town events with a best-dressed write-up in the paper. Yours, or your rival's.
 [*] A reputation that opens premium textile houses and the better end of the catalogue.
 [*] A shop you redecorate surface by surface: wallpapers, panelling, floors, rugs, curtains.
-[*] A daily paper that sets the fashion and warns you what the town is planning.
 [*] Days you open and close, appointments, regulars and deadlines you can miss.
 [*] Top-down, walk-the-floor shop in a hand-built town. Keyboard or controller.
 [/list]
