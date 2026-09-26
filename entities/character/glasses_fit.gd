@@ -10,7 +10,9 @@ extends RefCounted
 ## rims to fit; the bridge stretches or shrinks between the rims; each temple rides its
 ## hinge and turns about it, rigidly, so its ear end points back where the part was
 ## modelled (a shear kinked the arm behind the rim), turning in no further than keeps the
-## arm's widest point off the head.
+## arm's widest point off the head. A pair whose rims had to shrink (below TEMPLE_MIN_SCALE:
+## eyes set too close, as Dr. Vance's dots) loses its temples altogether and sits as a
+## pince-nez, rims and bridge only (owner, 2026-09-26: the shrunk arms never curved well).
 ##
 ## Everything is measured in head-bone space (x across, y up, z forward): the part's rims
 ## from its own mesh (measure()), the eyes from the FaceStyle and the head's FaceFrame, as
@@ -30,6 +32,8 @@ const MIN_BRIDGE := 0.012
 const BOTTOM_BAND := 0.004
 ## The column round the lens centre whose height gives a full rim's size, metres.
 const COLUMN := 0.015
+## A fit whose rims scale below this drops its temples (pince-nez): no arms at all.
+const TEMPLE_MIN_SCALE := 0.95
 
 static var _lens_cache := {}
 static var _fit_cache := {}
@@ -46,9 +50,10 @@ static func fit(src: Mesh, bind: Transform3D, style: FaceStyle, frame: FaceFrame
 	var eye := eye_point(style, frame)
 	var grow := rim_grow(lens, eye.x, eye_radius(style, frame))
 	var at := Vector2(eye.x, eye.y - GLASSES_HANG)  # where the lens centre goes
-	var key := "%d|%s|%.4f|%.4f|%.4f" % [src.get_instance_id(), bind, at.x, at.y, grow]
+	var bare := grow < TEMPLE_MIN_SCALE  # pince-nez: the temples come off
+	var key := "%d|%s|%.4f|%.4f|%.4f|%s" % [src.get_instance_id(), bind, at.x, at.y, grow, bare]
 	if not _fit_cache.has(key):
-		_fit_cache[key] = _build(src, bind, lens, at, grow)
+		_fit_cache[key] = _build(src, bind, lens, at, grow, bare)
 	return _fit_cache[key]
 
 
@@ -180,8 +185,9 @@ static func _temple(pts: PackedVector3Array, hinge: float, side: float) -> Dicti
 	return {"tip": tip, "near": near / maxf(n.x, 1), "end": end / maxf(n.y, 1), "wide": wide}
 
 
+## The fitted copy of `src`; `bare` leaves the temples out (_drop_temples()).
 static func _build(
-	src: Mesh, bind: Transform3D, lens: Dictionary, eye: Vector2, grow: float
+	src: Mesh, bind: Transform3D, lens: Dictionary, eye: Vector2, grow: float, bare: bool
 ) -> ArrayMesh:
 	var inv := bind.affine_inverse()
 	var arms := {}
@@ -190,14 +196,41 @@ static func _build(
 	var out := ArrayMesh.new()
 	for s in src.get_surface_count():
 		var arrays := src.surface_get_arrays(s)
+		var prim: Mesh.PrimitiveType = src.surface_get_primitive_type(s)
+		if bare and prim == Mesh.PRIMITIVE_TRIANGLES and not _drop_temples(arrays, bind, lens):
+			continue  # a surface that was all temple
 		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		for i in verts.size():
 			verts[i] = inv * _move(bind * verts[i], lens, eye, grow, arms)
 		arrays[Mesh.ARRAY_VERTEX] = verts
 		var flags: int = src.surface_get_format(s) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
-		out.add_surface_from_arrays(src.surface_get_primitive_type(s), arrays, [], {}, flags)
-		out.surface_set_material(s, src.surface_get_material(s))
+		out.add_surface_from_arrays(prim, arrays, [], {}, flags)
+		out.surface_set_material(out.get_surface_count() - 1, src.surface_get_material(s))
 	return out
+
+
+## Take the temples out of one triangle surface's `arrays` (in place): every triangle
+## with a corner behind the hinge plane (the test that splits front from temple in
+## _move()) goes; the vertices stay, unindexed. False when no triangle is left.
+static func _drop_temples(arrays: Array, bind: Transform3D, lens: Dictionary) -> bool:
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var hinge: float = lens.hinge
+	var tris := PackedInt32Array()
+	if arrays[Mesh.ARRAY_INDEX] != null:
+		tris = arrays[Mesh.ARRAY_INDEX]
+	else:
+		tris.resize(verts.size())
+		for i in verts.size():
+			tris[i] = i
+	var kept := PackedInt32Array()
+	for t in range(0, tris.size() - 2, 3):
+		var front := true
+		for k in 3:
+			front = front and (bind * verts[tris[t + k]]).z > hinge
+		if front:
+			kept.append_array([tris[t], tris[t + 1], tris[t + 2]])
+	arrays[Mesh.ARRAY_INDEX] = kept
+	return not kept.is_empty()
 
 
 ## One temple's rigid move (head space) for a fit that puts the lens centre at `eye`: it

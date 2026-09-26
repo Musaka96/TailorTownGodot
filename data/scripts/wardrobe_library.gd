@@ -96,6 +96,10 @@ const DEFAULT_HAIR := Color(0.14, 0.11, 0.09)
 ## Glasses (roles "frames" and optionally "lenses", bound to the head bone); each part's
 ## display_name is its style key ("round", "wire", ...), the value customers carry.
 @export var glasses: Array[WardrobePart] = []
+## Glasses styles kept in the library (a saved look, or the old "sun", still finds them)
+## but never dealt to a customer at random: the black "square" frames were too chunky
+## (owner, 2026-09-26).
+@export var retired_glasses: PackedStringArray = PackedStringArray(["square"])
 ## Skin tones customers spawn with.
 @export var skin_colors: PackedColorArray = PackedColorArray()
 ## Natural hair colours customers spawn with.
@@ -160,6 +164,15 @@ func glasses_kinds() -> Array[String]:
 	for part in glasses:
 		if part != null:
 			out.append(part.display_name)
+	return out
+
+
+## The styles a customer can be dealt at random: every kind but the retired ones.
+func wearable_glasses_kinds() -> Array[String]:
+	var out: Array[String] = []
+	for kind in glasses_kinds():
+		if kind not in retired_glasses:
+			out.append(kind)
 	return out
 
 

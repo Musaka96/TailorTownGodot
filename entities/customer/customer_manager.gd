@@ -440,7 +440,7 @@ func _dress(cust: Customer) -> void:
 	cust.gender = gender
 	var eye: String = CharacterRig.EYE_COLORS[_rng.randi() % CharacterRig.EYE_COLORS.size()]
 	var glasses := ""
-	var kinds := Wardrobe.glasses_kinds()
+	var kinds := Wardrobe.wearable_glasses_kinds()  # never a retired style
 	if _rng.randf() < GLASSES_CHANCE and not kinds.is_empty():
 		glasses = kinds[_rng.randi() % kinds.size()]
 		var colors: Array = CharacterRig.GLASSES_COLORS.keys()

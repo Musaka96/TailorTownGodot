@@ -36,6 +36,7 @@ func _run() -> void:
 	_manager = get_first_node_in_group("customer_manager")
 	_player_is_j1()
 	_cast_walk_in()
+	await _pince_nez()
 	_round_trip()
 	_old_look()
 	_finish()
@@ -88,7 +89,8 @@ func _player_is_j1() -> void:
 
 ## A walk-in named "Ms. Portobello" wears her face, her auburn hair and tortoise wire
 ## glasses, fitted to her close-set eyes: the rims centred across on them, hanging
-## GlassesFit.GLASSES_HANG below them on the nose, never stretched.
+## GlassesFit.GLASSES_HANG below them on the nose, never stretched; rims shrunk below
+## GlassesFit.TEMPLE_MIN_SCALE lose their temples (a pince-nez), others keep them.
 func _cast_walk_in() -> void:
 	var pref: Resource = _pref_cls.random_pref(RandomNumberGenerator.new(), "Ms. Portobello")
 	var cust := _spawn_with(pref)
@@ -104,6 +106,7 @@ func _cast_walk_in() -> void:
 	var meshes: Array = rig.get("_glasses_meshes")
 	var off := Vector2.INF
 	var stretch := INF
+	var arms := "(no glasses)"
 	if not meshes.is_empty():
 		var mi: MeshInstance3D = meshes[0]
 		var bind: Transform3D = mi.get_meta("bind")
@@ -113,11 +116,62 @@ func _cast_walk_in() -> void:
 		var eye := GlassesFit.eye_point(face as FaceStyle, rig.get("_face_frame"))
 		if not lens.is_empty():
 			off = (lens.c as Vector2) - eye + Vector2(0.0, GlassesFit.GLASSES_HANG)
+		arms = _temple_check(mi, face as FaceStyle, rig.get("_face_frame"))
 	_check(stretch < 1e-4, "the glasses are not stretched across (%.4f)" % stretch)
+	_check(arms == "", "temples kept or dropped by the rim scale %s" % arms)
 	_check(
 		off.length() < 0.005, "the lens centre hangs GLASSES_HANG below the eye (off by %s m)" % off
 	)
 	cust.free()
+
+
+## Dr. Vance's dot eyes sit too close for the wire rims on most heads: on head 3 the rims
+## shrink below GlassesFit.TEMPLE_MIN_SCALE and the frames lose their temples.
+func _pince_nez() -> void:
+	var pref: Resource = _pref_cls.random_pref(RandomNumberGenerator.new(), "Dr. Vance")
+	var cust := _spawn_with(pref)
+	var rig: Node = cust.get_node("Rig")
+	rig.call("set_head", 3)
+	await process_frame
+	var meshes: Array = rig.get("_glasses_meshes")
+	var face: FaceStyle = rig.get("face_style")
+	var frame: FaceFrame = rig.get("_face_frame")
+	var grow := INF
+	var arms := "(no glasses)"
+	if not meshes.is_empty():
+		var mi: MeshInstance3D = meshes[0]
+		var lens := GlassesFit.measure(mi.get_meta("src"), mi.get_meta("bind"))
+		var eye := GlassesFit.eye_point(face, frame)
+		grow = GlassesFit.rim_grow(lens, eye.x, GlassesFit.eye_radius(face, frame))
+		arms = _temple_check(mi, face, frame)
+	_check(grow < GlassesFit.TEMPLE_MIN_SCALE, "Dr. Vance's rims shrink on head 3 (%.2f)" % grow)
+	_check(arms == "", "so his glasses sit as a pince-nez, no temples %s" % arms)
+	cust.free()
+
+
+## "" when the fitted frames keep their temples exactly when the rim scale is at least
+## GlassesFit.TEMPLE_MIN_SCALE (a shrunk fit shows no triangle behind the hinge plane).
+func _temple_check(mi: MeshInstance3D, face: FaceStyle, frame: FaceFrame) -> String:
+	var bind: Transform3D = mi.get_meta("bind")
+	var lens := GlassesFit.measure(mi.get_meta("src"), bind)
+	var eye := GlassesFit.eye_point(face, frame)
+	var grow := GlassesFit.rim_grow(lens, eye.x, GlassesFit.eye_radius(face, frame))
+	var behind := 0
+	for s in mi.mesh.get_surface_count():
+		var arrays: Array = mi.mesh.surface_get_arrays(s)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var idx := PackedInt32Array(range(verts.size()))  # unindexed: every vertex in turn
+		if arrays[Mesh.ARRAY_INDEX] != null:
+			idx = arrays[Mesh.ARRAY_INDEX]
+		for t in range(0, idx.size() - 2, 3):
+			for k in 3:
+				if (bind * verts[idx[t + k]]).z <= lens.hinge:
+					behind += 1
+					break
+	var bare := grow < GlassesFit.TEMPLE_MIN_SCALE
+	if (behind == 0) == bare:
+		return ""
+	return "(scale %.2f, %d temple triangles)" % [grow, behind]
 
 
 ## A regular's face_style survives Clientele.save_state -> bytes -> restore.

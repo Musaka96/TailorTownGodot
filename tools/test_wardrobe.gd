@@ -241,6 +241,17 @@ func _check_glasses(rig: Node) -> void:
 		"round -> wire"
 	)
 	_check(Wardrobe.glasses_style("sun") == "square", "sun -> square")
+	var dealt := Wardrobe.wearable_glasses_kinds()
+	_check(
+		"square" in Wardrobe.glasses_kinds() and "square" not in dealt and not dealt.is_empty(),
+		"square stays in the library but is never dealt at random %s" % [dealt]
+	)
+	var cast: Dictionary = load("res://data/scripts/face_cast.gd").BY_NAME
+	var retired := PackedStringArray()
+	for surname: String in cast:
+		if cast[surname][2] in lib.retired_glasses:
+			retired.append(surname)
+	_check(retired.is_empty(), "no cast member wears a retired style %s" % retired)
 	_check(Wardrobe.glasses_style("monocle") == "", "an unknown style -> none")
 	rig.set_face_look("brown", "")
 

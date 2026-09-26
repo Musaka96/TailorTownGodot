@@ -93,6 +93,11 @@ static func glasses_kinds() -> Array[String]:
 	return library().glasses_kinds()
 
 
+## The glasses styles a customer can be dealt at random (not the retired ones).
+static func wearable_glasses_kinds() -> Array[String]:
+	return library().wearable_glasses_kinds()
+
+
 ## A glasses value as stored in a look, made current: the old sprite kinds map onto the
 ## 3D parts ("round" -> "wire", "sun" -> "square"); anything not in the library -> "".
 static func glasses_style(kind: String) -> String:
