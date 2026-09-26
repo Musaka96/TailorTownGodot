@@ -64,13 +64,13 @@ static func fit(src: Mesh, bind: Transform3D, style: FaceStyle, frame: FaceFrame
 
 ## The +x eye's centre in head-bone space (metres): the face-unit spot the shader draws it
 ## at (eye_spacing across, eye_height down the disc, or the head's own eye_line), through
-## the face rect's mapping (face_scale, face_drop and the frame's nudges apply).
+## the face rect's mapping (the fitted disc, face_drop and the frame's nudges apply).
 static func eye_point(style: FaceStyle, frame: FaceFrame) -> Vector2:
-	var ds := FaceStyle.DISC_SCALE * FaceStyle.face_scale
+	var ds := FaceStyle.disc_width(frame)
 	var fy := frame.eye_line
 	if fy < 0.0:
 		var dcv := FaceStyle.DISC_CENTER_V + FaceStyle.face_drop
-		fy = dcv + (style.eye_height - 0.5) * FaceStyle.LAYOUT_ASPECT * ds
+		fy = dcv + (style.eye_height - 0.5) * frame.aspect() * ds
 	var v := (fy - 0.5) * frame.scale + 0.5 + frame.offset.y
 	var x := style.eye_spacing * ds * frame.scale * frame.size.x
 	return Vector2(x, frame.center.y - (v - 0.5) * frame.size.y)
@@ -82,7 +82,7 @@ static func eye_radius(style: FaceStyle, frame: FaceFrame) -> float:
 	var r := style.white_radius * maxf(1.0, style.white_aspect)
 	if style.white_radius <= 1e-3:
 		r = style.pupil_radius
-	return r * FaceStyle.DISC_SCALE * FaceStyle.face_scale * frame.scale * frame.size.x
+	return r * FaceStyle.disc_width(frame) * frame.scale * frame.size.x
 
 
 ## How much the rims scale about their centres: 1 unless the eye needs more room (up to

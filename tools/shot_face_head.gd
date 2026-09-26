@@ -24,9 +24,14 @@ extends SceneTree
 ##   dimmock_fix.png      Mr. Dimmock before (DIMMOCK_BEFORE) and after the 2026-09-26 retune
 ##                        beside the noble: flat (face_canvas.gdshader) at 640 px, then on
 ##                        tripo_head_tl with their hair at portrait and at dialogue size
+##   head0_fix.png        every preset in data/face_styles/ on the Base head (0) and on head 2:
+##                        the Base face rect as a checkerboard, then each head before
+##                        (.dev/before_h0/skin_face.gdshader, the layout stretched to the rect,
+##                        and the preset as it was in .dev/before_h0/styles/, when they exist)
+##                        and after the unstretched disc fit (2026-09-26)
 ## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png; with `lid`,
 ## only lid_fix.png; with `cast`, only cast_heads.png (`vance_whites` swaps in paper_vance_whites);
-## with `dimmock`, only dimmock_fix.png.
+## with `dimmock`, only dimmock_fix.png; with `head0`, only head0_fix.png.
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -85,6 +90,10 @@ const LID_PRESETS := ["paper_noble", "paper_j1"]
 const BEFORE_LID_SHADER := "res://.dev/before_lid/skin_face.gdshader"
 const LID_ZOOM := 3.0
 const LID_EYE := Vector2(0.425, 0.5)
+# head0_fix.png: the heads, and the old shader that stretched the layout to the rect aspect
+const H0_HEADS := [0, 2]
+const BEFORE_H0_SHADER := "res://.dev/before_h0/skin_face.gdshader"
+const BEFORE_H0_STYLES := "res://.dev/before_h0/styles/"
 # preset -> states to shoot ("neutral" = the resting face, no suffix), `presets` mode
 const SHOTS := {
 	"paper_j1": ["neutral", "happy"],
@@ -169,6 +178,8 @@ func _run() -> void:
 		await _sheet_lid_fix()
 	elif not args.is_empty() and args[0] == "dimmock":
 		await _sheet_dimmock()
+	elif not args.is_empty() and args[0] == "head0":
+		await _sheet_head0_fix()
 	elif not args.is_empty() and args[0] == "cast":
 		await _sheet_cast_heads(args.has("vance_whites"))
 	else:
@@ -406,6 +417,46 @@ func _sheet_lid_fix() -> void:
 	_zoom_eye(false)
 	_rig.call("set_hair_color", keep_hair)
 	await _save_grid(cells, cols.size(), LID_PRESETS.size(), "lid_fix.png", J1_CELL)
+
+
+## Every preset on the Base head and on head 2, before and after the unstretched disc fit
+## (columns: Base face rect, then before / after per head). Before = the old shader with the
+## old disc (DISC_SCALE x face_scale rect widths, heights stretched to the rect aspect).
+func _sheet_head0_fix() -> void:
+	var presets := []
+	for f in DirAccess.get_files_at(STYLE_DIR):
+		if f.ends_with(".tres"):
+			presets.append(f.trim_suffix(".tres"))
+	presets.sort()
+	var before: Shader = null
+	if FileAccess.file_exists(BEFORE_H0_SHADER):
+		before = load(BEFORE_H0_SHADER) as Shader
+	var cells := []
+	for h in H0_HEADS.size():
+		_wear(H0_HEADS[h])
+		var mat: ShaderMaterial = _rig.get("_skin_face")
+		var after := mat.shader
+		for r in presets.size():
+			var file: String = presets[r] + ".tres"
+			var name := "%s / %s" % [_short(H0_HEADS[h]), presets[r].trim_prefix("paper_")]
+			if before != null:
+				var old := BEFORE_H0_STYLES + file
+				_rig.set(
+					"face_style", load(old if FileAccess.file_exists(old) else STYLE_DIR + file)
+				)
+				await _pose("neutral", 4)
+				mat.shader = before
+				mat.set_shader_parameter("disc_scale", FaceStyle.DISC_SCALE * FaceStyle.face_scale)
+				cells.append([await _grab(), 1 + h * 2, r, "%s before" % name])
+				mat.shader = after
+			_rig.set("face_style", load(STYLE_DIR + file) as FaceStyle)
+			await _pose("neutral", 4)
+			if h == 0:
+				mat.set_shader_parameter("debug_uv", true)
+				cells.append([await _grab(), 0, r, "%s rect" % name])
+				mat.set_shader_parameter("debug_uv", false)
+			cells.append([await _grab(), 2 + h * 2, r, "%s after" % name])
+	await _save_grid(cells, 1 + H0_HEADS.size() * 2, presets.size(), "head0_fix.png")
 
 
 ## Portrait framing, or LID_ZOOM times closer on the eye at LID_EYE (same camera position).

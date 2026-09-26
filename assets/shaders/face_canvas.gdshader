@@ -31,7 +31,7 @@ void fragment() {
 		float lift = 0.0;
 		float sheet = 0.0;
 		float still = 0.0;
-		col = face_paper(col, p, px, 1.0, lift, sheet, still);
+		col = face_paper(col, p, px, lift, sheet, still);
 	}
 	COLOR = vec4(col, 1.0);
 }

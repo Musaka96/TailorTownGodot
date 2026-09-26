@@ -13,12 +13,15 @@ extends Resource
 ## Units: FACE UNITS, fractions of the reference head disc (the J row of
 ## IMPORT/faces_proc/ref/style_sheet_3_GIJ.webp): spacings from the midline to the left
 ## piece's centre, heights from the top of the disc, round pieces by their radius. On a head
-## the disc is DISC_SCALE x face_scale face-rect widths across (FaceFrame, baked by
-## FaceUvBaker), so one preset lands the same on every head. Colours and the paper treatment
+## the disc is disc_width() face-rect widths across (FaceFrame, baked by FaceUvBaker) and
+## never stretched, so one preset lands the same on every head. Colours and the paper treatment
 ## are shared (shader defaults): a preset only picks shapes and sizes (guide section 5).
 
 enum Element { EYE, BROW, NOSE, MOUTH }
-enum NoseKind { DISC, OVAL, TEARDROP, STRIP, SHIELD, TRIANGLE, TRIANGLE_UP }
+## HOOK, LONG and TEARDROP_DOWN are catalogue proposals (2026-09-26), in no preset yet.
+enum NoseKind {
+	DISC, OVAL, TEARDROP, STRIP, SHIELD, TRIANGLE, TRIANGLE_UP, HOOK, LONG, TEARDROP_DOWN
+}
 ## How the happy state treats the eyes (guide section 6, owner review 2026-09-26): CUT = the
 ## old curved lid over smaller pupils (on a heavy-lid face it slices the white to a half
 ## disc); BRIGHT = open eyes, pupils up and a touch bigger, brows up and arched, cheeks
@@ -27,8 +30,8 @@ enum NoseKind { DISC, OVAL, TEARDROP, STRIP, SHIELD, TRIANGLE, TRIANGLE_UP }
 enum HappyEye { CUT, BRIGHT, SOFT, ARCS, TILT }
 
 ## The reference disc on a head: its diameter in face-rect widths, its centre's height as a
-## fraction of the rect from the top, and the rect aspect (width / height) the heights were
-## laid out on (tripo heads; other rects stretch the layout to fit). The disc is the FACE,
+## fraction of the rect from the top, and the rect aspect (width / height) that diameter is
+## for (tripo heads; other rects fit the disc inside, disc_width()). The disc is the FACE,
 ## a little narrower than the head (2.35 rect widths) and set low on it, so the brows clear
 ## the hair fringe and the mouth sits where the old sprite faces had it.
 const DISC_SCALE := 2.1
@@ -71,6 +74,30 @@ const FIELDS := [
 	"mouth_tongue",
 	"cheek_radius",
 	"cheek_pos",
+	"white_flat",
+	"eye_ring",
+	"eye_lash",
+	"eye_bag",
+	"pupil_glint",
+	"monocle",
+	"eye_crease",
+	"brow_comma",
+	"brow_join",
+	"nose_button",
+	"nose_nostrils",
+	"mouth_ring",
+	"mouth_skew",
+	"mouth_heart",
+	"mouth_buck",
+	"mouth_lips",
+	"freckles",
+	"beauty_mark",
+	"beauty_pos",
+	"moustache",
+	"moustache_size",
+	"moustache_height",
+	"beard",
+	"beard_height",
 ]
 ## A pupil never shrinks below this radius (it must still read at 25 px).
 const PUPIL_MIN := 0.05
@@ -180,24 +207,84 @@ static var happy_eye := HappyEye.BRIGHT
 ## The left cheek's distance from the midline and height from the top.
 @export var cheek_pos := Vector2(0.3, 0.7)
 
+@export_group("Extras (catalogue proposals)")
+## Proposed pieces from the 2026-09-26 catalogue (IMPORT/faces_proc/catalogue.png,
+## tools/shot_faces.gd -- catalogue). All off here, so no preset changes until the owner
+## picks. E3: the white's bottom cut flat, this fraction of its height away (0.5 = half disc).
+@export_range(0.0, 0.6) var white_flat := 0.0
+## E4: the white cut as a cream ring this thick (face units); the pupil sits inside it.
+@export var eye_ring := 0.0
+## E6: a dark lash strip this thick along the white's outer upper edge, with two ticks.
+@export var eye_lash := 0.0
+## E7: a rose crescent strip this thick under each eye (a tired eye bag).
+@export var eye_bag := 0.0
+## E8: a cream speck of this radius on each pupil, up and to the viewer's left.
+@export var pupil_glint := 0.0
+## X3: a dark paper ring this thick round the viewer's left eye.
+@export var monocle := 0.0
+## X7: two short rose strips this thick at each eye's outer corner.
+@export var eye_crease := 0.0
+## B3: the brow's inner end swells into a round head (0..1); the rest stays an even strip.
+@export_range(0.0, 1.0) var brow_comma := 0.0
+## B5: one strip across both brows.
+@export var brow_join := false
+## N1: a cream disc of this radius on the nose.
+@export var nose_button := 0.0
+## N6: two dark nostril discs of this radius at the nose's bottom.
+@export var nose_nostrils := 0.0
+## M1: the mouth as a dark ring of this outer radius.
+@export var mouth_ring := 0.0
+## M3: the mouth sheared, the viewer's right corner up by this x its distance from the middle.
+@export var mouth_skew := 0.0
+## M4: the mouth as a pursed heart this half-wide.
+@export var mouth_heart := 0.0
+## M5: two cream front teeth this far below the shut mouth line.
+@export var mouth_buck := 0.0
+## M6: a rose lip strip round the dark mouth, this much wider on every side.
+@export var mouth_lips := 0.0
+## X1: freckle specks of this radius (the brow paper) round each cheek_pos.
+@export var freckles := 0.0
+## X2: a dark beauty mark of this radius at beauty_pos (x from the midline, y from the top).
+@export var beauty_mark := 0.0
+@export var beauty_pos := Vector2(0.15, 0.75)
+## X5: 0 none, 1 one thick strip with round ends, 2 a two-piece chevron (brow paper).
+@export_range(0, 2) var moustache := 0
+## The moustache's half-width and thickness.
+@export var moustache_size := Vector2(0.13, 0.04)
+@export var moustache_height := 0.76
+## X6: a chin patch (brow paper) this half-wide and half-tall; x 0 = none.
+@export var beard := Vector2.ZERO
+@export var beard_height := 0.92
+
+
+## The disc's diameter in face-rect widths on `frame`'s rect (null = the layout rect): the
+## disc fits inside the rect, never stretched, so a circle stays a circle and the heights
+## keep their spacing on every head. On a rect as wide as LAYOUT_ASPECT or wider (the Base
+## head, 0.75) it fits by height: the same height as on the layout rect, and the extra
+## width is cheek. On a narrower rect it fits by width: DISC_SCALE x face_scale widths.
+static func disc_width(frame: FaceFrame) -> float:
+	var fit := 1.0
+	if frame != null:
+		fit = minf(1.0, LAYOUT_ASPECT / maxf(frame.aspect(), 1e-3))
+	return DISC_SCALE * face_scale * fit
+
 
 ## Push this style into a face material (skin_face.gdshader on a head, face_canvas.gdshader
 ## on a sheet): every FIELDS uniform, `dials` overriding fields by name. With a head's
-## `frame`: the rect's aspect, the whole-face nudges, and its eye_line (moves eyes, brows
-## and cheeks together).
+## `frame`: the rect's aspect, the disc fitted to it (disc_width()), the whole-face nudges,
+## and its eye_line (moves eyes, brows and cheeks together).
 func apply_to_material(mat: ShaderMaterial, dials := {}, frame: FaceFrame = null) -> void:
 	if mat == null:
 		return
 	var lift := 0.0
 	if frame != null:
 		mat.set_shader_parameter("face_aspect", frame.aspect())
-		mat.set_shader_parameter("layout_aspect", LAYOUT_ASPECT)
-		mat.set_shader_parameter("disc_scale", DISC_SCALE * face_scale)
+		mat.set_shader_parameter("disc_scale", disc_width(frame))
 		mat.set_shader_parameter("disc_center_v", DISC_CENTER_V + face_drop)
 		mat.set_shader_parameter("frame_offset", frame.offset)
 		mat.set_shader_parameter("frame_scale", frame.scale)
 		if frame.eye_line >= 0.0:
-			var unit := DISC_SCALE * face_scale * LAYOUT_ASPECT  # rect heights per face unit
+			var unit := disc_width(frame) * frame.aspect()  # rect heights per face unit
 			var eye_h := float(dials.get("eye_height", eye_height))
 			var eye_v := DISC_CENTER_V + face_drop + (eye_h - 0.5) * unit
 			lift = (frame.eye_line - eye_v) / unit

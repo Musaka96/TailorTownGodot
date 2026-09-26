@@ -561,3 +561,168 @@ float piece_mouth_open(vec2 p, vec2 c, float hw, float y0, float depth, float to
 float piece_teeth(vec2 p, vec2 c, float y0, float band, float d_open, float inset) {
 	return max(d_open + inset, p.y - c.y - y0 - band);
 }
+
+// --- Catalogue pieces (2026-09-26 proposals, IMPORT/faces_proc/catalogue.png) ------------
+// Every one is off unless its FaceStyle dial is set; none is in a preset yet.
+
+// Smooth union (polynomial): two pieces cut as one paper, no notch where they meet.
+float fs_smin(float a, float b, float k) {
+	float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+	return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+// A box of half-size b, corners rounded by r (inside b).
+float fs_sd_rbox(vec2 p, vec2 b, float r) {
+	vec2 d = abs(p) - b + r;
+	return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0) - r;
+}
+
+// Heart (Inigo Quilez), y UP, its point at the origin, lobes about 0.6 half-wide, 1.1 tall.
+float fs_sd_heart(vec2 p) {
+	p.x = abs(p.x);
+	if (p.y + p.x > 1.0) {
+		return sqrt(fs_dot2(p - vec2(0.25, 0.75))) - 0.353553;
+	}
+	return sqrt(min(fs_dot2(p - vec2(0.0, 1.0)), fs_dot2(p - 0.5 * max(p.x + p.y, 0.0))))
+		* sign(p.x - p.y);
+}
+
+// A strip of even `thick` along the ellipse `r` (centred at the origin, y down) from angle
+// a0 to a1 (radians, 0 = +x, 90 degrees = up): the quadratic through the arc's two ends and
+// its middle. Round ends.
+float piece_arc_strip(vec2 e, vec2 r, float a0, float a1, float thick) {
+	float am = 0.5 * (a0 + a1);
+	vec2 A = r * vec2(cos(a0), -sin(a0));
+	vec2 M = r * vec2(cos(am), -sin(am));
+	vec2 C = r * vec2(cos(a1), -sin(a1));
+	return fs_sd_bezier(e, A, 2.0 * M - 0.5 * (A + C), C).x - 0.5 * thick;
+}
+
+// A short straight strip from a, `len` long along `dir`, round ends.
+float piece_tick(vec2 e, vec2 a, vec2 dir, float len, float thick) {
+	return fs_sd_segment(e, a, a + dir * len).x - 0.5 * thick;
+}
+
+// Lash strip (E6): a dark strip `thick` along the outer upper edge of an eye outline `r`
+// (e in the eye's frame, +x = outward, y down), from just above the outer corner to past the
+// top, and two round-ended ticks flicking up and out of it near the outer end, one piece.
+float piece_lash(vec2 e, vec2 r, float thick) {
+	// the strip overlaps the white's edge a little, so it reads as the lid's edge
+	vec2 rr = r + 0.15 * thick;
+	float d = piece_arc_strip(e, rr, radians(8.0), radians(95.0), thick);
+	// the ticks are stubby (as long as the strip is thick): longer, thinner ones read as
+	// drawn lashes
+	for (int k = 0; k < 2; k++) {
+		float a = radians(k == 0 ? 14.0 : 38.0);
+		vec2 base = rr * vec2(cos(a), -sin(a));
+		vec2 n = normalize(vec2(cos(a) / rr.x, -sin(a) / rr.y));
+		vec2 dir = normalize(n + vec2(0.6, 0.0));
+		d = fs_smin(d, piece_tick(e, base, dir, 1.0 * thick, 0.8 * thick), 0.006);
+	}
+	return d;
+}
+
+// Crow's feet (X7): two short strips fanning out from an eye's outer corner (outline `r`,
+// +x = outward), each gently bent, round ends.
+float piece_crease(vec2 e, vec2 r, float thick) {
+	float d = 1e3;
+	for (int k = 0; k < 2; k++) {
+		float y = k == 0 ? -0.22 * r.y : 0.2 * r.y;
+		vec2 A = vec2(r.x + 0.025, y);
+		vec2 dir = normalize(vec2(1.0, k == 0 ? -0.35 : 0.3));
+		vec2 C = A + dir * 0.055;
+		vec2 B = 0.5 * (A + C) + vec2(0.0, k == 0 ? -0.006 : 0.006);
+		d = min(d, fs_sd_bezier(e, A, B, C).x - 0.5 * thick);
+	}
+	return d;
+}
+
+// The brow's inner end in the brow's own frame (piece_brow: +x = inner, y down), for the
+// comma's round head (B3).
+vec2 brow_inner_end(float len, float thick, float angle, float arch, float corner) {
+	float rc = clamp(corner, 0.0, 1.0) * 0.5 * thick;
+	float l = max(len - 2.0 * rc, 1e-3);
+	vec2 dir = vec2(cos(angle), -sin(angle));
+	vec2 n = vec2(-sin(angle), -cos(angle));
+	return 0.5 * l * dir - 0.25 * arch * l * n;
+}
+
+// Nose kinds from the catalogue: 7 hook (a thick strip bending down and hooking back to the
+// viewer's left at the tip, r.x its thickness, r.y its half-height), 8 long (a thin strip,
+// 0.35 r.x half-wide, ending in a round tip r.x), 9 teardrop with its point DOWN (kind 2
+// flipped: the round end on top). y down, centred on the nose.
+float piece_nose_more(vec2 e, int kind, vec2 r) {
+	if (kind == 7) {
+		float t = r.x;
+		vec2 A = vec2(-0.1 * t, -r.y + 0.5 * t);
+		vec2 C = vec2(-0.55 * t, r.y - 0.5 * t);
+		vec2 B = vec2(1.1 * t, 0.55 * r.y);
+		return fs_sd_bezier(e, A, B, C).x - 0.5 * t;
+	} else if (kind == 8) {
+		float stem = 0.55 * r.x;
+		vec2 tip = vec2(0.0, r.y - r.x);
+		float d = fs_sd_segment(e, vec2(0.0, -r.y + stem), tip).x - stem;
+		return fs_smin(d, length(e - tip) - r.x, 0.01);
+	}
+	float r1 = r.x;
+	float r2 = max(0.4 * r1, 0.01);
+	float h = max(2.0 * r.y - r1 - r2, 1e-3);
+	return fs_sd_uneven_capsule(e + vec2(0.0, r.y - r1), r1, r2, h);
+}
+
+// Lips (M6): a rose lens round the mouth line (the same parabola, `width` and `sag` as
+// piece_mouth_line), `lips` wider than the line at the middle, easing to 0.35 of that at
+// the corners, which stay round: a lip shape, not the line's outline.
+float piece_lips(vec2 e, float width, float thick, float sag, float lips) {
+	float hw = 0.5 * width;
+	float x1 = max(hw - 0.5 * thick + 0.3 * lips, 1e-3);
+	vec2 h = fs_sd_parabola(e, 0.5 * sag, -sag / (hw * hw), x1);
+	return h.x - 0.5 * thick - lips * (1.0 - 0.65 * h.y * h.y);
+}
+
+// Buck teeth (M5): two cream teeth hanging from under the mouth line's middle (`top` its
+// centre line, y below the mouth centre), `len` below the line's lower edge, a skin gap
+// between them.
+float piece_buck(vec2 e, float width, float thick, float top, float len) {
+	float tw = 0.085 * width;
+	float gap = 0.004;
+	float hh = 0.5 * (0.5 * thick + len);
+	vec2 q = vec2(abs(e.x) - (tw + 0.5 * gap), e.y - top - hh);
+	return fs_sd_rbox(q, vec2(tw, hh), 0.45 * tw);
+}
+
+// Pursed heart mouth (M4): a heart `hw` half-wide, point down, centred on e = 0.
+float piece_heart_mouth(vec2 e, float hw) {
+	float k = hw / 0.6;
+	vec2 q = vec2(e.x, -e.y) / k + vec2(0.0, 0.55);
+	float rr = 0.12 * hw;
+	return fs_sd_heart(q * (1.0 + rr / hw)) * k - rr;
+}
+
+// Moustache (X5): kind 1 one thick strip, round ends, its ends drooping `hw` half-wide;
+// kind 2 a chevron: two strips from near the middle down and out, a skin gap between them
+// (two papers). s = (half-width, thickness); e from the moustache centre, y down.
+float piece_moustache(vec2 e, int kind, vec2 s) {
+	float hw = s.x;
+	float t = s.y;
+	if (kind == 2) {
+		vec2 q = vec2(abs(e.x), e.y);
+		vec2 A = vec2(0.5 * t + 0.004, -0.35 * t);
+		vec2 C = vec2(hw - 0.5 * t, 0.45 * t);
+		return fs_sd_segment(q, A, C).x - 0.5 * t;
+	}
+	float x1 = hw - 0.5 * t;
+	vec2 A = vec2(-x1, 0.35 * t);
+	vec2 C = vec2(x1, 0.35 * t);
+	vec2 B = vec2(0.0, -0.55 * t);
+	return fs_sd_bezier(e, A, B, C).x - 0.5 * t;
+}
+
+// Chin patch (X6): a rounded trapezoid, wide at the top (s.x half-wide) and narrowing down
+// to 0.45 of that, s.y half-tall. y down.
+float piece_beard(vec2 e, vec2 s) {
+	float rr = 0.35 * min(s.x, s.y);
+	vec2 up = vec2(e.x, -e.y);
+	float top = max(s.x - rr, 1e-3);
+	return fs_sd_trapezoid(up, max(0.45 * s.x - rr, 1e-3), top, max(s.y - rr, 1e-3)) - rr;
+}

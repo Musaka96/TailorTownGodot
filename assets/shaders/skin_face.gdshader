@@ -9,8 +9,8 @@ render_mode cull_disabled, specular_disabled;
 // front mapped to 0..1, u right and v down as the camera sees the face; the back of the head
 // is pushed far outside that range. The face is laid out in FACE UNITS, the reference head
 // disc: `disc_scale` rect widths across, its centre `disc_center_v` of the rect height down
-// from the top. Sizes follow the rect width (round pieces stay round on any rect); heights
-// follow the rect height relative to `layout_aspect`, the rect the presets were laid out on.
+// from the top. The disc is never stretched (FaceStyle.disc_width() fits it inside the rect):
+// sizes, spacings and heights are all face units, so a circle stays a circle on any rect.
 
 #include "res://assets/shaders/face_paper.gdshaderinc"
 #include "res://assets/shaders/paper_mache.gdshaderinc"
@@ -27,7 +27,6 @@ uniform float skin_grain = 0.1;
 uniform bool face_enabled = false;
 // rect width / height
 uniform float face_aspect = 0.58;
-uniform float layout_aspect = 0.58;
 uniform float disc_scale = 2.1;
 uniform float disc_center_v = 0.44;
 // whole-face nudges (FaceFrame): shift in rect units (x right, y down) and scale about the
@@ -83,8 +82,7 @@ void fragment() {
 	if (debug_uv) {
 		col = debug_rect(col, f);
 	} else if (face_enabled && abs(p.x) < 0.6 && abs(p.y) < 0.6) {
-		float stretch = layout_aspect / max(face_aspect, 1e-3);
-		col = face_paper(col, p, px, stretch, lift, sheet, still);
+		col = face_paper(col, p, px, lift, sheet, still);
 	}
 	// the scan and the strips stop under the pieces (each piece is one sheet of its own paper,
 	// blended out by its coverage, so its edge stays clean; the shadow it casts lies outside

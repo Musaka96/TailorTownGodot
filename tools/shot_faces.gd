@@ -27,6 +27,10 @@ extends SceneTree
 ## With `j1` after `--`, only the three j1 sheets; with `noble`, only noble.png; with
 ## `cast`, only cast.png and cast_zoom.png (`vance_whites` swaps in paper_vance_whites);
 ## with `happy`, only happy_options.png.
+##   catalogue.png      proposed new pieces (2026-09-26), each on J1 at 300 px, one row per
+##                      group (eyes, brows, noses, mouths, extras, combos), J1 itself first in
+##                      every row; the combos again at game size (25 px, 4x). With `catalogue`
+##                      after `--`, only this sheet.
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
@@ -111,6 +115,336 @@ const HAPPY_COLS := [
 	["D bright + tilt", 4],
 ]
 const HAPPY_CELL := 300
+# catalogue.png: rows of [title, [[id, name, dials over paper_j1], ...]]; the combos look
+# straight ahead (J1's own sideways look is J1's)
+const STRAIGHT := {
+	"pupil_offset": Vector2.ZERO, "pupil_wedge_dir": 45.0, "pupil_wedge_mirror": true
+}
+const B1_BROW := {
+	"brow_thickness": 0.05,
+	"brow_length": 0.27,
+	"brow_arch": 0.4,
+	"brow_angle": 0.0,
+	"brow_corner": 1.0,
+	"brow_height": 0.2,
+}
+const B4_BROW := {
+	"brow_length": 0.11,
+	"brow_thickness": 0.075,
+	"brow_height": 0.15,
+	"brow_angle": 0.0,
+	"brow_arch": 0.0,
+	"brow_corner": 1.0,
+	"brow_spacing": 0.22,
+}
+const B6_BROW := {
+	"brow_angle": 0.0,
+	"brow_arch": 0.0,
+	"brow_thickness": 0.12,
+	"brow_length": 0.26,
+	"brow_height": 0.3,
+	"brow_corner": 0.3,
+}
+const CATALOGUE := [
+	[
+		"EYES",
+		[
+			["E1", "tall oval whites", {"white_aspect": 1.43, "white_radius": 0.13}],
+			[
+				"E2",
+				"wide low whites",
+				{"white_aspect": 0.67, "white_radius": 0.16, "eye_height": 0.52},
+			],
+			["E3", "half-disc whites", {"white_flat": 0.5, "pupil_offset": Vector2(0.03, 0.02)}],
+			[
+				"E4",
+				"ring whites, dot pupil",
+				{
+					"eye_ring": 0.022,
+					"white_radius": 0.11,
+					"white_aspect": 1.0,
+					"pupil_radius": 0.055,
+					"pupil_wedge": 0.0,
+					"pupil_offset": Vector2(0.02, 0.0),
+				},
+			],
+			[
+				"E5",
+				"keen oval pupils",
+				{
+					"pupil_radius": 0.05,
+					"pupil_aspect": 1.8,
+					"pupil_wedge": 0.0,
+					"pupil_offset": Vector2(0.03, 0.0),
+				},
+			],
+			["E6", "lash strip", {"eye_lash": 0.036}],
+			["E7", "eye bag strip", {"eye_bag": 0.02}],
+			["E8", "glint speck (banned now)", {"pupil_glint": 0.02}],
+		],
+	],
+	[
+		"BROWS",
+		[
+			["B1", "thin long arched", B1_BROW],
+			[
+				"B2",
+				"short thick block",
+				{
+					"brow_length": 0.15,
+					"brow_thickness": 0.12,
+					"brow_arch": 0.0,
+					"brow_angle": 0.0,
+					"brow_corner": 0.2,
+				},
+			],
+			[
+				"B3",
+				"comma",
+				{
+					"brow_comma": 1.0,
+					"brow_corner": 1.0,
+					"brow_thickness": 0.07,
+					"brow_angle": 5.0,
+					"brow_arch": 0.15,
+				},
+			],
+			["B4", "high tiny stubs", B4_BROW],
+			[
+				"B5",
+				"unibrow",
+				{
+					"brow_join": true,
+					"brow_thickness": 0.08,
+					"brow_spacing": 0.2,
+					"brow_length": 0.22,
+					"brow_arch": 0.2,
+					"brow_corner": 1.0,
+				},
+			],
+			["B6", "straight low heavy", B6_BROW],
+		],
+	],
+	[
+		"NOSES",
+		[
+			[
+				"N1",
+				"button (two papers)",
+				{
+					"nose_kind": 0,
+					"nose_size": Vector2(0.085, 0.085),
+					"nose_height": 0.66,
+					"nose_button": 0.042,
+				},
+			],
+			[
+				"N2",
+				"hook",
+				{"nose_kind": 7, "nose_size": Vector2(0.085, 0.11), "nose_height": 0.62}
+			],
+			[
+				"N3",
+				"wide flat oval",
+				{"nose_kind": 1, "nose_size": Vector2(0.15, 0.055), "nose_height": 0.68},
+			],
+			[
+				"N4",
+				"long strip, round tip",
+				{"nose_kind": 8, "nose_size": Vector2(0.05, 0.15), "nose_height": 0.61},
+			],
+			[
+				"N5",
+				"drop, point down",
+				{"nose_kind": 9, "nose_size": Vector2(0.075, 0.1), "nose_height": 0.66},
+			],
+			[
+				"N6",
+				"nostrils",
+				{
+					"nose_kind": 0,
+					"nose_size": Vector2(0.08, 0.08),
+					"nose_height": 0.66,
+					"nose_nostrils": 0.018,
+				},
+			],
+		],
+	],
+	[
+		"MOUTHS",
+		[
+			["M1", "small o ring", {"mouth_ring": 0.045, "mouth_thickness": 0.028}],
+			["M2", "wide flat line", {"mouth_width": 0.25, "mouth_curve": 0.02}],
+			["M3", "smirk", {"mouth_skew": 0.3, "mouth_curve": 0.22, "mouth_width": 0.17}],
+			["M4", "pursed heart", {"mouth_heart": 0.052}],
+			["M5", "buck teeth", {"mouth_buck": 0.042}],
+			[
+				"M6",
+				"lipstick (rose + dark)",
+				{"mouth_lips": 0.024, "mouth_thickness": 0.016, "mouth_width": 0.17},
+			],
+		],
+	],
+	[
+		"EXTRAS",
+		[
+			["X1", "freckles", {"freckles": 0.011, "cheek_pos": Vector2(0.29, 0.73)}],
+			["X2", "beauty mark", {"beauty_mark": 0.014, "beauty_pos": Vector2(0.16, 0.76)}],
+			["X3", "monocle ring", {"monocle": 0.024}],
+			["X4", "wedge down", {"pupil_wedge_dir": -90.0}],
+			[
+				"X5a",
+				"moustache bar",
+				{
+					"moustache": 1,
+					"moustache_size": Vector2(0.13, 0.045),
+					"moustache_height": 0.775,
+					"mouth_height": 0.845,
+				},
+			],
+			[
+				"X5b",
+				"moustache chevron",
+				{
+					"moustache": 2,
+					"moustache_size": Vector2(0.14, 0.04),
+					"moustache_height": 0.775,
+					"mouth_height": 0.845,
+				},
+			],
+			["X6", "chin patch", {"beard": Vector2(0.05, 0.04), "beard_height": 0.9}],
+			["X7", "crow's feet (dropped)", {"eye_crease": 0.016}],
+		],
+	],
+	[
+		"COMBOS",
+		[
+			[
+				"C1",
+				"matron",
+				[
+					STRAIGHT,
+					B1_BROW,
+					{
+						"eye_lash": 0.036,
+						"mouth_lips": 0.024,
+						"mouth_thickness": 0.016,
+						"mouth_width": 0.16,
+						"nose_kind": 0,
+						"nose_size": Vector2(0.075, 0.075),
+						"nose_height": 0.66,
+						"nose_button": 0.038,
+						"cheek_radius": 0.07,
+						"cheek_pos": Vector2(0.3, 0.72),
+					},
+				],
+			],
+			[
+				"C2",
+				"colonel",
+				[
+					STRAIGHT,
+					B6_BROW,
+					{
+						"moustache": 1,
+						"moustache_size": Vector2(0.15, 0.05),
+						"moustache_height": 0.78,
+						"mouth_height": 0.855,
+						"mouth_width": 0.16,
+						"nose_kind": 7,
+						"nose_size": Vector2(0.08, 0.1),
+						"nose_height": 0.63,
+						"eye_bag": 0.02,
+						"white_radius": 0.13,
+						"pupil_radius": 0.09,
+					},
+				],
+			],
+			[
+				"C3",
+				"clerk",
+				[
+					B4_BROW,
+					{
+						"eye_ring": 0.02,
+						"white_radius": 0.1,
+						"white_aspect": 1.0,
+						"pupil_radius": 0.05,
+						"pupil_wedge": 0.0,
+						"pupil_offset": Vector2.ZERO,
+						"eye_spacing": 0.2,
+						"nose_kind": 8,
+						"nose_size": Vector2(0.05, 0.15),
+						"nose_height": 0.61,
+						"mouth_width": 0.2,
+						"mouth_curve": 0.02,
+					},
+				],
+			],
+			[
+				"C4",
+				"dandy",
+				[
+					STRAIGHT,
+					B1_BROW,
+					{
+						"brow_asym": 8.0,
+						"monocle": 0.024,
+						"mouth_skew": 0.3,
+						"mouth_curve": 0.22,
+						"mouth_width": 0.17,
+						"nose_kind": 6,
+						"nose_size": Vector2(0.07, 0.09),
+						"nose_height": 0.64,
+					},
+				],
+			],
+			[
+				"C5",
+				"aunt",
+				[
+					STRAIGHT,
+					{
+						"white_aspect": 0.67,
+						"white_radius": 0.16,
+						"eye_height": 0.52,
+						"brow_angle": 6.0,
+						"brow_corner": 0.5,
+						"brow_thickness": 0.08,
+						"freckles": 0.011,
+						"cheek_pos": Vector2(0.29, 0.73),
+						"nose_kind": 1,
+						"nose_size": Vector2(0.15, 0.055),
+						"nose_height": 0.68,
+						"mouth_ring": 0.045,
+						"mouth_thickness": 0.028,
+						"mouth_height": 0.82,
+					},
+				],
+			],
+			[
+				"C6",
+				"young apprentice",
+				[
+					STRAIGHT,
+					B4_BROW,
+					{
+						"white_aspect": 1.43,
+						"white_radius": 0.13,
+						"freckles": 0.011,
+						"cheek_pos": Vector2(0.29, 0.75),
+						"nose_kind": 0,
+						"nose_size": Vector2(0.07, 0.07),
+						"nose_height": 0.66,
+						"mouth_buck": 0.042,
+						"mouth_width": 0.18,
+					},
+				],
+			],
+		],
+	],
+]
+const CAT_CELL := 300
 const CAST_ZOOM_CELL := 420
 const PAPER_CELL := 420
 # J1 on the reference sheet, measured (px): disc centre and diameter
@@ -156,6 +490,10 @@ func _run() -> void:
 	var styles := {}
 	for p: String in PRESETS:
 		styles[p] = load(STYLE_DIR + p + ".tres") as FaceStyle
+	if OS.get_cmdline_user_args().has("catalogue"):
+		await _sheet_catalogue()
+		quit(0)
+		return
 	if OS.get_cmdline_user_args().has("happy"):
 		await _sheet_happy()
 		quit(0)
@@ -269,6 +607,62 @@ func _sheet_happy() -> void:
 	var text := "J1 at game size (25 px head, 4x), same columns"
 	board.add_child(_label(text, Vector2(0, rows_h), size.x))
 	await _save(board, size, "happy_options.png")
+
+
+## The catalogue of proposed pieces: one row per CATALOGUE group, J1 first, then each
+## candidate on J1 (its dials over paper_j1's idle); the combos at game size (25 px, 4x).
+func _sheet_catalogue() -> void:
+	var cell := CAT_CELL
+	var cols := 1
+	for row: Array in CATALOGUE:
+		cols = maxi(cols, 1 + (row[1] as Array).size())
+	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
+	var up := small * UPSCALE
+	var row_h := LABEL_H + cell + LABEL_H
+	var rows_h := row_h * CATALOGUE.size()
+	var combos: Array = CATALOGUE[CATALOGUE.size() - 1][1]
+	var size := Vector2i(cell * cols, rows_h + LABEL_H + up + 8)
+	var board := _board(size)
+	var j1 := load(STYLE_DIR + "paper_j1.tres") as FaceStyle
+	for r in CATALOGUE.size():
+		var row: Array = CATALOGUE[r]
+		var y := r * row_h
+		board.add_child(_label(String(row[0]), Vector2(0, y), size.x))
+		var items: Array = [["J1", "base", {}]] + (row[1] as Array)
+		for c in items.size():
+			var item: Array = items[c]
+			var pos := Vector2(c * cell, y + LABEL_H)
+			var face := _face(j1, _cat_dials(item[2]), cell)
+			face.position = pos
+			board.add_child(face)
+			var text := "%s  %s" % [item[0], item[1]]
+			board.add_child(_label(text, pos + Vector2(0, cell), cell))
+	var tiny_board := _board(Vector2i(small * combos.size(), small))
+	for c in combos.size():
+		var tiny := _face(j1, _cat_dials(combos[c][2]), GAME_HEAD_PX * PAD)
+		tiny.position = Vector2(c * small + 1, 1)
+		tiny_board.add_child(tiny)
+	var img := await _render(tiny_board, Vector2i(small * combos.size(), small))
+	for c in combos.size():
+		var one := img.get_region(Rect2i(c * small, 0, small, small))
+		one.resize(up, up, Image.INTERPOLATE_NEAREST)
+		var tr := TextureRect.new()
+		tr.texture = ImageTexture.create_from_image(one)
+		tr.position = Vector2((c + 1) * cell + (cell - up) * 0.5, rows_h + LABEL_H + 4)
+		board.add_child(tr)
+	var text := "the combos at game size (25 px head, 4x), under their columns"
+	board.add_child(_label(text, Vector2(0, rows_h), size.x))
+	await _save(board, size, "catalogue.png")
+
+
+## A catalogue cell's dials: one Dictionary, or an Array of them merged in order.
+func _cat_dials(spec: Variant) -> Dictionary:
+	if spec is Dictionary:
+		return spec
+	var out := {}
+	for part: Dictionary in spec:
+		out.merge(part, true)
+	return out
 
 
 ## The dials for one happy_options.png cell: {} for the idle (mode -1), else the happy state
