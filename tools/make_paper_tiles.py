@@ -29,11 +29,14 @@ EDGE = 3.0
 # how it is made to tile: "fade" (cross-fade) or "mirror" (2 x 2 mirrored: straight folds
 # would break at a cross-fade, mirrored they run on), extra crop past the gutter glow
 TILES = [
-    ("world_crumple", (0, 0), 0.18, 5.0, "fade", 0),
-    ("world_kraft", (1, 0), 0.12, 4.0, "fade", 0),
-    ("world_folded", (0, 1), 0.25, 6.0, "mirror", 14),
-    ("world_coated", (1, 1), 0.15, 6.0, "fade", 0),
+    ("world_crumple", (0, 0), 0.18, 5.0, "fade", 0, 2.0),
+    ("world_kraft", (1, 0), 0.12, 4.0, "fade", 0, 5.0),
+    ("world_folded", (0, 1), 0.25, 6.0, "mirror", 14, 3.0),
+    ("world_coated", (1, 1), 0.15, 6.0, "fade", 0, 6.0),
 ]
+# the last field: how much of the paper's fine tooth is smoothed away (px per 1024, in
+# the relief and, at half, in the colour). On a bin or a door seen from the gameplay
+# camera the tooth reads as felt, so the coated and kraft papers keep only their shapes.
 HP_SIGMA = 36.0
 TOOTH_BLUR = 2.0
 FADE = 0.22  # the seam cross-fade, fraction of the tile from each edge
@@ -87,11 +90,11 @@ def make_tile(a: np.ndarray) -> np.ndarray:
     return a * w + shifted * (1 - w)
 
 
-def normal_map(rgb: np.ndarray, strength: float) -> np.ndarray:
+def normal_map(rgb: np.ndarray, strength: float, tooth: float = TOOTH_BLUR) -> np.ndarray:
     h = rgb @ np.array([0.299, 0.587, 0.114])
     h = h - ndimage.gaussian_filter(h, HP_SIGMA * rgb.shape[0] / 1024.0, mode="wrap")
     # the paper's fine tooth off: from a room away it only sparkles
-    h = ndimage.gaussian_filter(h, TOOTH_BLUR * rgb.shape[0] / 1024.0, mode="wrap")
+    h = ndimage.gaussian_filter(h, tooth * rgb.shape[0] / 1024.0, mode="wrap")
     # slope per 1/1024 of the tile, so the relief is the same at any output size
     k = rgb.shape[0] / 1024.0
     dx = ndimage.sobel(h, axis=1, mode="wrap") / 8.0 * k
@@ -138,13 +141,16 @@ def main() -> None:
     img = np.asarray(Image.open(sheet).convert("RGB")).astype(np.float64) / 255.0
     gut = gutters(img)
     print("gutters", gut)
-    for name, (col, row), frac, strength, mode, extra in TILES:
+    for name, (col, row), frac, strength, mode, extra, tooth in TILES:
         a = even_light(crop(img, col, row, extra, gut), frac)
         a = mirror_tile(a) if mode == "mirror" else make_tile(a)
         im = Image.fromarray((a * 255).round().astype(np.uint8)).resize((SIZE, SIZE), Image.LANCZOS)
-        im.save(OUT / f"{name}_albedo.jpg", quality=92)
         a = np.asarray(im).astype(np.float64) / 255.0
-        n = normal_map(a, strength)
+        n = normal_map(a, strength, tooth)
+        soft = tooth * 0.5 * SIZE / 1024.0
+        a = np.dstack([ndimage.gaussian_filter(a[..., c], soft, mode="wrap") for c in range(3)])
+        im = Image.fromarray((np.clip(a, 0, 1) * 255).round().astype(np.uint8))
+        im.save(OUT / f"{name}_albedo.jpg", quality=92)
         Image.fromarray((n * 255).round().astype(np.uint8)).save(OUT / f"{name}_normal.jpg", quality=92)
         # a 2 x 2 repeat, to check the seams by eye
         rep = np.tile(np.asarray(im), (2, 2, 1))

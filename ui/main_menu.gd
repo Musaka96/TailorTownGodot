@@ -79,6 +79,8 @@ func _build_backdrop() -> void:
 		director.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(shop)
 	move_child(shop, 0)
+	# the same paper world as in play (main.gd attaches it there)
+	PaperWorld.attach(shop)
 
 
 ## The shop's name on a walnut fascia, hung on chains from the top of the screen.

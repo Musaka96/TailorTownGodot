@@ -61,6 +61,19 @@ func _run() -> void:
 			var v := a.trim_prefix("sun=").split(",")
 			var sun := _main.find_child("Sun", true, false) as DirectionalLight3D
 			sun.rotation_degrees = Vector3(-float(v[0]), float(v[1]), 0.0)
+	if args.has("outline"):
+		# a fat selection outline on the worktable: it must not throw a shadow
+		var mat := ShaderMaterial.new()
+		mat.shader = load("res://assets/shaders/interact_outline.gdshader")
+		mat.set_shader_parameter("thickness", 60.0)
+		var table := _main.find_child("Worktable", true, false)
+		for mi: MeshInstance3D in table.find_children("*", "MeshInstance3D", true, false):
+			mi.material_overlay = mat
+		_view(true)
+		await _frames(10)
+		_save("outline_check.png")
+		quit(0)
+		return
 	if args.has("street_wall"):
 		# inside, facing the street wall: its inner face never gets the sun
 		_cam.fov = 50.0

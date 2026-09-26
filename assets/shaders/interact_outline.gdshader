@@ -23,5 +23,10 @@ void vertex() {
 }
 
 void fragment() {
+	// the grown hull is for the eye only: no shadow of its own (shadows_disabled only
+	// stops it receiving them)
+	if (IN_SHADOW_PASS) {
+		discard;
+	}
 	ALBEDO = outline_color.rgb;
 }

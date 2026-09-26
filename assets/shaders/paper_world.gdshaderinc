@@ -20,13 +20,18 @@ uniform float paper_up_calm = 0.0;
 // read on a wall the sun never reaches (lit relief only shows in direct light)
 uniform float paper_shade = 0.0;
 const vec2 PAPER_SHADE_DIR = vec2(-0.6, -0.8);
+const float PAPER_SHADE_BLUR = 2.5;
 
 // One projection: the paper at q (face units), its colour and its lit normal (view space).
 vec3 paper_world_plane(vec3 base, vec2 q, float s, vec3 n, vec3 pos, out vec3 nrm) {
 	vec3 col = paper_surface(base, q, 1.0, paper_grain_amount, s);
 	vec2 grad;
 	col = paper_mache(col, q + 7.3 * s, 1.0, grad);
-	col *= 1.0 + paper_shade * clamp(dot(grad, PAPER_SHADE_DIR), -1.0, 1.0);
+	// only the big creases are baked: the scan's slope read PAPER_SHADE_BLUR mips softer, so
+	// the paper's fine tooth never prints into the colour (it read as felt on small things)
+	vec2 sn = texture(scan_normal_tex, q * scan_scale, PAPER_SHADE_BLUR).rg * 2.0 - 1.0;
+	vec2 coarse = normal_strength * vec2(-sn.x, sn.y) / sqrt(max(1.0 - dot(sn, sn), 0.04));
+	col *= 1.0 + paper_shade * clamp(dot(coarse, PAPER_SHADE_DIR), -1.0, 1.0);
 	nrm = paper_normal(n, pos, paper_slope(q, grad), paper_texel(q));
 	return col;
 }
