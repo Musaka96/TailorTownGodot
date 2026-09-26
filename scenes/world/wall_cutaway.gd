@@ -209,7 +209,7 @@ func _material_for(src: BaseMaterial3D) -> ShaderMaterial:
 	mat.set_shader_parameter("normal_on", src.normal_enabled and tex_normal != null)
 	if tex_normal != null:
 		mat.set_shader_parameter("normal_tex", tex_normal)
-	mat.set_shader_parameter("normal_strength", src.normal_scale)
+	mat.set_shader_parameter("normal_map_strength", src.normal_scale)
 	# Roughness lives in G either way: ORM's packed map, or a plain roughness map.
 	var tex_rough := src.get_texture(BaseMaterial3D.TEXTURE_ORM)
 	if tex_rough == null:

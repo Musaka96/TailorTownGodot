@@ -19,6 +19,8 @@ func _ready() -> void:
 	# Cosmetic interior recolour (data/shop_looks/); F4 cycles it in debug builds.
 	if ShopLookApplier.has_shop(self):
 		ShopLookApplier.attach(self)
+	# The world in the characters' paper (swaps materials at runtime; F8 compares in debug).
+	PaperWorld.attach(self)
 	# A little dust in the light of the sunlit shop windows.
 	DustMotes.attach_all(self)
 	# An apprentice stays in until the lesson is done (customers still come and go).

@@ -1,44 +1,17 @@
 extends SceneTree
 
-## LOOK TEST: the characters' paper on the world (assets/shaders/paper_world.gdshader).
-## Boots the real shop (main.tscn), stands the player by the sewing machine in the sun,
-## then renders the same corner with the world's materials as they are and swapped for
-## paper. NOT headless:
+## The world in paper (scenes/world/PaperWorld, the owner's pick "G"), before and after.
+## Boots the real shop (main.tscn, which attaches PaperWorld), stands the player by the
+## sewing machine in the sun, and renders the same corner with PaperWorld off (a) and on
+## (g), close up and from the gameplay camera. NOT headless:
 ##   godot --path . --script res://tools/shot_paper_world.gd -- [scout]
 ## scout: print where the stations stand and render an overview, nothing else.
 ## Writes to IMPORT/paper_world/ (git-ignored).
 
 const OUT_DIR := "res://IMPORT/paper_world"
 const SIZE := Vector2i(1600, 900)
-const PAPER_SHADER := "res://assets/shaders/paper_world.gdshader"
 const ROLL_SCENE := "res://entities/items/material_roll.tscn"
-# shaders that are already the characters' paper, left alone
-const KEEP_SHADERS := ["skin_face", "paper_skin", "face_element", "outline"]
-
-# the variants: label, flatten (mip bias), tile (face units per metre), grain, rolls to
-# paper, scan normal strength (the characters' PaperSurface has 1.0), papers by material
-const VARIANTS := [
-	["A  as it is", -1.0, 0.0, 0.0, false, 1.0, false],
-	["E  one paper everywhere (the pick)", 2.5, 1.25, 0.14, true, 2.0, false],
-	["G  as E, four papers by material", 2.5, 1.25, 0.14, true, 2.0, true],
-]
-# G's papers (tools/make_paper_tiles.py): which material names take which paper, first
-# match wins, the rest are coated card. Per paper: texture, scan tiles per face unit (at
-# tile 1.25 a scan tile is 0.8 m / scan_scale), scan normal strength, scan light and dark.
-const FAMILIES := [
-	["folded", ["metal", "gold", "steel", "iron", "brass", "machine", "chrome"]],
-	["kraft", ["wood", "walnut", "oak", "pine", "trunk", "post", "floor", "parquet"]],
-	["crumple", ["wall", "wainscot", "interior", "stone", "brick", "cobble", "roof", "grass",
-		"soil", "dirt", "rug", "drape", "curtain", "awning", "cloth", "velvet", "linen",
-		"trim", "cap", "shutter", "foliage", "clover", "straw", "roll_end"]],
-]
-const PAPERS := {
-	"crumple": ["world_crumple", 0.8, 1.0, 0.35],
-	"kraft": ["world_kraft", 1.0, 0.7, 0.2],
-	"folded": ["world_folded", 2.5, 1.0, 0.4],
-	"coated": ["world_coated", 1.0, 1.2, 0.2],
-}
-
+# the sunny corner
 const SUN_ROT := Vector3(-36.0, 25.0, 0.0)
 const PLAYER_POS := Vector3(-2.55, 0.0, -3.85)
 const PLAYER_YAW := 0.35
@@ -56,9 +29,6 @@ const ROLLS := [
 var _main: Node
 var _cam: Camera3D
 var _player: Node3D
-var _shader: Shader
-var _meshes: Array = []  # [MeshInstance3D, surface, original material]
-var _cache := {}
 
 
 func _initialize() -> void:
@@ -78,7 +48,6 @@ func _run() -> void:
 			ui.newspaper.close()
 		ui.visible = false
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
-	_shader = load(PAPER_SHADER) as Shader
 	_player = _main.find_child("Player", true, false) as Node3D
 	if args.has("scout"):
 		await _scout()
@@ -86,107 +55,65 @@ func _run() -> void:
 		return
 	await _stage()
 	await _frames(40)
-	if OS.get_cmdline_user_args().has("occluders"):
-		var sun := _main.find_child("Sun", true, false) as DirectionalLight3D
-		var to_sun := sun.global_basis.z.normalized()
-		print("SUNDIR ", to_sun)
-		for g: GeometryInstance3D in root.find_children("*", "GeometryInstance3D", true, false):
-			if g.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
-				print("SHONLY %s vis=%s" % [g.get_path(), g.is_visible_in_tree()])
-		for pt in [Vector3(-3, 0.05, -3.2), Vector3(-5.8, 1.2, -3.0)]:
-			for g: GeometryInstance3D in root.find_children("*", "GeometryInstance3D", true, false):
-				if not g.is_visible_in_tree() or g.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
-					continue
-				var box: AABB = g.global_transform * g.get_aabb()
-				if box.intersects_segment(pt + to_sun * 0.3, pt + to_sun * 300.0):
-					print("OCC %s from %s box=%s" % [g.get_path(), pt, box])
-		quit(0)
-		return
-	if OS.get_cmdline_user_args().has("mats"):
-		_collect()
+	var pw := _main.get_node_or_null("PaperWorld")
+	if args.has("probe"):
+		await _frames(30)
 		var seen := {}
-		for e: Array in _meshes:
-			var mi: MeshInstance3D = e[0]
-			var p := mi.global_position
-			if p.x > 0.5 or p.z > -1.0:
+		for mi: MeshInstance3D in _main.find_children("*", "MeshInstance3D", true, false):
+			if mi.mesh == null:
 				continue
-			var m := mi.get_active_material(e[1])
-			var key := "%s | %s" % [mi.name, m.resource_name if m else "-"]
-			if not seen.has(key):
-				seen[key] = true
-				print("MAT %s | %s | %s | %s" % [key, m.get_class() if m else "-", m.resource_path.get_file() if m else "", mi.get_path()])
+			for s in mi.mesh.get_surface_count():
+				var m := mi.get_active_material(s)
+				if m == null:
+					continue
+				var sh := ""
+				if m is ShaderMaterial and (m as ShaderMaterial).shader != null:
+					sh = (m as ShaderMaterial).shader.resource_path.get_file()
+				if sh == "paper_world.gdshader":
+					continue
+				var tr := ""
+				if m is BaseMaterial3D:
+					tr = str((m as BaseMaterial3D).transparency)
+				var k := "%s %s '%s' tr=%s" % [m.get_class(), sh, m.resource_name, tr]
+				seen[k] = (
+					seen.get(k, "")
+					if seen.has(k)
+					else String(mi.get_path()).replace("/root/Main/", "")
+				)
+		for k in seen:
+			print("LEFT ", k, " @ ", seen[k])
 		quit(0)
 		return
-	if OS.get_cmdline_user_args().has("over"):
-		_cam.fov = 60.0
-		_cam.look_at_from_position(Vector3(-1, 13, 3), Vector3(-2, 0, -3), Vector3.UP)
-		await _frames(8)
-		_save("over.png")
-		quit(0)
-		return
-	if OS.get_cmdline_user_args().has("bisect"):
-		_view(true)
-		await _frames(6)
-		var base := _lum()
-		print("BASE ", base)
-		var shop := _main.find_child("ShopRoom", true, false)
-		var cands: Array = shop.get_children()
-		var kit := _main.find_child("tailor_shop_v7", true, false)
-		if kit != null:
-			cands.append_array(kit.get_children())
-		cands.append_array(_main.get_children())
-		for c in cands:
-			if not (c is Node3D) or not (c as Node3D).visible:
-				continue
-			(c as Node3D).visible = false
-			await _frames(4)
-			var l := _lum()
-			(c as Node3D).visible = true
-			if absf(l - base) > 0.01:
-				print("BIS %s d=%.3f" % [c.get_path(), l - base])
-		quit(0)
-		return
-	if OS.get_cmdline_user_args().has("sweep"):
-		var sun := _main.find_child("Sun", true, false) as DirectionalLight3D
-		_view(true)
-		for r in [Vector3(-38, -55, 0), Vector3(-42, 70, 0), Vector3(-55, 30, 0), Vector3(-60, 120, 0), Vector3(-45, 160, 0), Vector3(-70, 0, 0)]:
-			sun.rotation_degrees = r
-			await _frames(6)
-			_save("sweep_%d_%d.png" % [int(-r.x), int(r.y)])
-		quit(0)
-		return
-	if OS.get_cmdline_user_args().has("noshadow"):
-		(_main.find_child("Sun", true, false) as DirectionalLight3D).shadow_enabled = false
-		_view(true)
-		await _frames(8)
-		_save("debug_noshadow.png")
-		(_main.find_child("Sun", true, false) as DirectionalLight3D).light_energy = 0.0
-		await _frames(8)
-		_save("debug_nosun.png")
-		quit(0)
-		return
-	for l: DirectionalLight3D in root.find_children("*", "DirectionalLight3D", true, false):
-		print("LIGHT %s vis=%s e=%s sh=%s rot=%s" % [l.get_path(), l.is_visible_in_tree(), l.light_energy, l.shadow_enabled, l.global_rotation_degrees])
-	for r in root.find_children("*Roof*", "", true, false):
-		if r is Node3D:
-			print("ROOF %s vis=%s" % [r.get_path(), (r as Node3D).is_visible_in_tree()])
-	_collect()
-	for v in VARIANTS.size():
-		_apply(v)
-		var tag := String(VARIANTS[v][0]).substr(0, 1).to_lower()
+	for v: Array in [["a", false], ["g", true]]:
+		if pw != null:
+			pw.call("set_enabled", v[1])
+		await _frames(30)  # the sweep reaches every mesh
 		for close in [true, false]:
 			_view(close)
 			await _frames(8)
-			_save("%s_%s.png" % ["close" if close else "game", tag])
+			_save("%s_%s.png" % ["close" if close else "game", v[0]])
 	quit(0)
 
 
 func _scout() -> void:
-	for n in ["SewingMachine", "Worktable", "Shelf", "Bookshelf", "ClothingRack", "Mirror",
-			"Phone", "TrashCan", "Player", "Sun", "DirectionalLight3D"]:
+	for n in [
+		"SewingMachine",
+		"Worktable",
+		"Shelf",
+		"Bookshelf",
+		"ClothingRack",
+		"Mirror",
+		"Phone",
+		"TrashCan",
+		"Player",
+		"Sun",
+		"DirectionalLight3D"
+	]:
 		var node := _main.find_child(n, true, false) as Node3D
 		if node != null:
-			print("SCOUT %s pos=%s rot=%s" % [n, node.global_position, node.global_rotation_degrees])
+			print(
+				"SCOUT %s pos=%s rot=%s" % [n, node.global_position, node.global_rotation_degrees]
+			)
 	_cam = Camera3D.new()
 	_main.add_child(_cam)
 	_cam.look_at_from_position(Vector3(0, 16, 6), Vector3(0, 0, 0), Vector3.UP)
@@ -196,6 +123,7 @@ func _scout() -> void:
 
 
 # --- staging -------------------------------------------------------------------------------
+
 
 ## The back-left corner: bookshelf, sewing machine, bin; the player by the machine turned
 ## toward the camera; a few bolts leaning and lying about; the sun low from the front right
@@ -250,148 +178,14 @@ func _view(close: bool) -> void:
 		_cam.look_at_from_position(PLAYER_POS + Vector3(0, 6.271, 4.393) * 0.85, at, Vector3.UP)
 
 
-# --- materials -----------------------------------------------------------------------------
-
-## Every opaque surface outside the characters, with the material it shows now.
-func _collect() -> void:
-	_meshes.clear()
-	for mi: MeshInstance3D in _main.find_children("*", "MeshInstance3D", true, false):
-		if _in_character(mi) or mi.mesh == null or not mi.is_visible_in_tree():
-			continue
-		for s in mi.mesh.get_surface_count():
-			_meshes.append([mi, s, mi.get_surface_override_material(s), mi.material_override])
-
-
-func _in_character(n: Node) -> bool:
-	while n != null:
-		var sc: Script = n.get_script()
-		if sc != null and sc.resource_path.contains("character_rig"):
-			return true
-		n = n.get_parent()
-	return false
-
-
-func _apply(v: int) -> void:
-	var spec: Array = VARIANTS[v]
-	for e: Array in _meshes:
-		var mi: MeshInstance3D = e[0]
-		var s: int = e[1]
-		mi.material_override = e[3]
-		mi.set_surface_override_material(s, e[2])
-		if spec[1] < 0.0:
-			continue
-		var src := mi.get_active_material(s)
-		var paper := _paper_for(src, spec, v)
-		if paper != null:
-			if mi.material_override != null:
-				mi.material_override = null
-			mi.set_surface_override_material(s, paper)
-
-
-func _paper_for(src: Material, spec: Array, v: int) -> ShaderMaterial:
-	if src == null:
-		return null
-	var key := "%d:%d" % [src.get_instance_id(), v]
-	if _cache.has(key):
-		return _cache[key]
-	var out: ShaderMaterial = null
-	var col := Color(-1, 0, 0)
-	var tex: Texture2D = null
-	var uv_scale := Vector3.ONE
-	var uv_off := Vector3.ZERO
-	var vcol := false
-	var family_key := src.resource_name.to_lower()
-	if src is BaseMaterial3D:
-		var b := src as BaseMaterial3D
-		if b.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
-			pass
-		else:
-			col = b.albedo_color
-			tex = b.albedo_texture
-			uv_scale = b.uv1_scale
-			uv_off = b.uv1_offset
-			vcol = b.vertex_color_use_as_albedo
-	elif src is ShaderMaterial:
-		var sm := src as ShaderMaterial
-		var path := sm.shader.resource_path if sm.shader != null else ""
-		var keep := false
-		for k in KEEP_SHADERS:
-			keep = keep or path.contains(k)
-		var cloth := path.contains("cloth") or path.contains("roll_end")
-		family_key += " " + path.get_file()
-		if not keep and (not cloth or spec[4]):
-			for p in ["cloth_color", "albedo_color", "albedo", "fill_color", "base_color", "color"]:
-				var c: Variant = sm.get_shader_parameter(p)
-				if c is Color:
-					col = c
-					break
-			for p in ["albedo_texture", "texture_albedo", "albedo_tex"]:
-				var t: Variant = sm.get_shader_parameter(p)
-				if t is Texture2D:
-					tex = t
-					break
-			var tl: Variant = sm.get_shader_parameter("albedo_tiling")
-			if tl is Vector2:
-				uv_scale = Vector3(tl.x, tl.y, 1.0)
-	if col.r >= 0.0:
-		out = ShaderMaterial.new()
-		out.shader = _shader
-		out.set_shader_parameter("albedo_color", col)
-		if tex != null:
-			out.set_shader_parameter("albedo_tex", tex)
-		out.set_shader_parameter("uv1_scale", uv_scale)
-		out.set_shader_parameter("uv1_offset", uv_off)
-		out.set_shader_parameter("use_vertex_color", vcol)
-		out.set_shader_parameter("flatten", spec[1])
-		out.set_shader_parameter("tile", spec[2])
-		out.set_shader_parameter("grain", spec[3])
-		out.set_shader_parameter("seed", float(_cache.size() % 7))
-		_paper_look().apply_to(out)
-		out.set_shader_parameter("normal_strength", spec[5])
-		if spec[6]:
-			var paper: Array = PAPERS[_family(family_key)]
-			var dir := "res://assets/textures/paper/"
-			out.set_shader_parameter("scan_albedo_tex", load(dir + paper[0] + "_albedo.jpg"))
-			out.set_shader_parameter("scan_normal_tex", load(dir + paper[0] + "_normal.jpg"))
-			out.set_shader_parameter("scan_scale", paper[1])
-			out.set_shader_parameter("normal_strength", paper[2])
-			out.set_shader_parameter("scan_albedo", paper[3])
-	_cache[key] = out
-	return out
-
-
-func _family(key: String) -> String:
-	for f: Array in FAMILIES:
-		for word: String in f[1]:
-			if key.contains(word):
-				return f[0]
-	return "coated"
-
-
-func _paper_look() -> Resource:
-	return load("res://data/paper_surfaces/paper_mache.tres")
-
-
 # --- output --------------------------------------------------------------------------------
+
 
 func _save(file: String) -> void:
 	var img := root.get_viewport().get_texture().get_image()
 	var path := ProjectSettings.globalize_path("%s/%s" % [OUT_DIR, file])
 	img.save_png(path)
 	print("SHOT ", path)
-
-
-## Mean luminance of a floor patch in front of the player (the close view).
-func _lum() -> float:
-	var img := root.get_viewport().get_texture().get_image()
-	var sz := img.get_size()
-	var t := 0.0
-	var n := 0
-	for y in range(int(sz.y * 0.70), int(sz.y * 0.80), 4):
-		for x in range(int(sz.x * 0.40), int(sz.x * 0.50), 4):
-			t += img.get_pixel(x, y).get_luminance()
-			n += 1
-	return t / n
 
 
 func _frames(n: int) -> void:

@@ -17,11 +17,21 @@ shader_type spatial;
 // so a converted wall looks identical to its imported one until the fade comes down.
 render_mode blend_mix, depth_prepass_alpha, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
+// Paper (PaperWorld, scenes/world/paper_world.gd): with `paper_on` the solid wall is drawn
+// in the world's paper (paper_world.gdshaderinc) instead of the glTF material, its texture
+// softened by `paper_flatten`; the fade, the haze and the cut section stay as they are.
+#include "res://assets/shaders/face_sdf.gdshaderinc"
+#include "res://assets/shaders/paper_mache.gdshaderinc"
+#include "res://assets/shaders/paper_world.gdshaderinc"
+
+uniform bool paper_on = false;
+uniform float paper_flatten = 2.5;
+
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform sampler2D albedo_tex : source_color, hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform bool normal_on = false;
-uniform float normal_strength : hint_range(0.0, 4.0) = 1.0;
+uniform float normal_map_strength : hint_range(0.0, 4.0) = 1.0;
 uniform sampler2D rough_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform bool rough_tex_on = false;
 uniform float roughness : hint_range(0.0, 1.0) = 1.0;
@@ -57,6 +67,7 @@ uniform float dip_radius : hint_range(0.2, 8.0) = 1.8;
 uniform float back_depth_bias = 0.0007;
 
 varying vec3 world_pos;
+varying vec3 world_nrm;
 
 
 float hash21(vec2 p) {
@@ -80,6 +91,7 @@ float vnoise(vec2 p) {
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_nrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 
@@ -96,14 +108,24 @@ void fragment() {
 	float a = 1.0 - smoothstep(0.0, 1.0, t);
 
 	vec2 uv = UV * uv1_scale.xy + uv1_offset.xy;
-	if (FRONT_FACING) {
+	if (FRONT_FACING && paper_on) {
+		vec3 base = albedo.rgb * texture(albedo_tex, uv, paper_flatten).rgb;
+		vec3 nrm;
+		base = paper_world(base, world_pos, world_nrm, NORMAL, VERTEX, nrm);
+		NORMAL = nrm;
+		ALBEDO = mix(base, haze_color.rgb, (1.0 - a) * haze);
+		ROUGHNESS = 1.0;
+		METALLIC = 0.0;
+		SPECULAR = 0.0;
+		DEPTH = FRAGCOORD.z;
+	} else if (FRONT_FACING) {
 		vec3 base = albedo.rgb * texture(albedo_tex, uv).rgb;
 		ALBEDO = mix(base, haze_color.rgb, (1.0 - a) * haze);
 		ROUGHNESS = rough_tex_on ? texture(rough_tex, uv).g * roughness : roughness;
 		METALLIC = metallic;
 		if (normal_on) {
 			NORMAL_MAP = texture(normal_tex, uv).rgb;
-			NORMAL_MAP_DEPTH = normal_strength;
+			NORMAL_MAP_DEPTH = normal_map_strength;
 		}
 		DEPTH = FRAGCOORD.z;
 	} else {
