@@ -235,6 +235,206 @@ brow_z = -0.06
 nose_z = 0.01
 mouth_z = 0.02332350057882391
 
+[sub_resource type="Resource" id="Resource_baldg2bl"]
+script = ExtResource("1_m55k8")
+face_z = 0.42100000000000004
+head_face_z = {
+9: 0.42100000000000004
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_baldg2br"]
+script = ExtResource("1_m55k8")
+face_z = 0.42100000000000004
+head_face_z = {
+10: 0.42100000000000004
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_baldg2tl"]
+script = ExtResource("1_m55k8")
+face_z = 0.42100000000000004
+head_face_z = {
+11: 0.42100000000000004
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_baldg2tr"]
+script = ExtResource("1_m55k8")
+face_z = 0.42100000000000004
+head_face_z = {
+12: 0.42100000000000004
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_headg2bl"]
+script = ExtResource("1_m55k8")
+face_z = 0.424
+head_face_z = {
+13: 0.424
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_headg2br"]
+script = ExtResource("1_m55k8")
+face_z = 0.429
+head_face_z = {
+14: 0.429
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_headg2tl"]
+script = ExtResource("1_m55k8")
+face_z = 0.439
+head_face_z = {
+15: 0.439
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
+[sub_resource type="Resource" id="Resource_headg2tr"]
+script = ExtResource("1_m55k8")
+face_z = 0.439
+head_face_z = {
+16: 0.439
+}
+eye_y = 0.02000000000000001
+eye_gap = 0.29
+eye_px = 0.0007
+brow_y = 0.186
+brow_gap = 0.258
+brow_px = 0.00045
+brow_curve = -0.7000000000000002
+nose_y = -0.10599999999999998
+nose_px = 0.0017
+nose_x = -0.0004806241989099
+nose_curve = -0.7000000000000002
+mouth_y = -0.25
+mouth_px = 0.0021
+mouth_curve = -0.25
+eye_z = -0.02045138596011295
+brow_z = -0.06
+nose_z = 0.01
+mouth_z = 0.02332350057882391
+
 [resource]
 script = ExtResource("2_ldd3y")
 layouts = {
@@ -246,7 +446,15 @@ layouts = {
 5: SubResource("Resource_ke65b"),
 6: SubResource("Resource_kxv7y"),
 7: SubResource("Resource_h4j3r"),
-8: SubResource("Resource_ck3yj")
+8: SubResource("Resource_ck3yj"),
+9: SubResource("Resource_baldg2bl"),
+10: SubResource("Resource_baldg2br"),
+11: SubResource("Resource_baldg2tl"),
+12: SubResource("Resource_baldg2tr"),
+13: SubResource("Resource_headg2bl"),
+14: SubResource("Resource_headg2br"),
+15: SubResource("Resource_headg2tl"),
+16: SubResource("Resource_headg2tr")
 }
 disabled = {
 0: true

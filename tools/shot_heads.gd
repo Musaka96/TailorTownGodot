@@ -13,6 +13,10 @@ extends SceneTree
 ## --neck: each of --indices in three outfits (the suit, then every street outfit), with
 ## a close-up of the neck in the collar front and side, saved as
 ## report/heads_neck/neck_<tag><index>_<outfit>_<front|side>.png.
+## --out=<folder> saves there instead of IMPORT/CHARREWORK/report/heads (res:// or relative).
+## --paper: the procedural paper faces (CharacterRig.procedural_faces, FaceStyle paper_j1).
+## --portrait: also a portrait of each combo in shot_face_head.gd's framing (camera level with
+## the face at 2.2 m, fov 35), engine_<tag>NN_<name>_portrait.png, for a lineup sheet.
 
 const RIG_SCENE := "res://entities/character/character_rig.tscn"
 const SUIT := "res://data/materials/navy_worsted_solid.tres"
@@ -33,6 +37,9 @@ var _frame := 0
 var _tag := ""
 var _neck := false
 var _outfits: Array[String] = []  # per rig in --neck mode: "suit" or a street outfit index
+var _out := OUT_DIR
+var _paper := false
+var _portrait := false
 
 
 func _initialize() -> void:
@@ -45,6 +52,17 @@ func _initialize() -> void:
 			wanted = arg.trim_prefix("--indices=")
 		elif arg == "--neck":
 			_neck = true
+		elif arg.begins_with("--out="):
+			_out = arg.trim_prefix("--out=")
+			if not _out.begins_with("res://"):
+				_out = "res://" + _out
+		elif arg == "--paper":
+			_paper = true
+		elif arg == "--portrait":
+			_portrait = true
+	if _paper:
+		var rig_script: Variant = load("res://entities/character/character_rig.gd")
+		rig_script.procedural_faces = true
 	# stand in the calm idle (arms down) like the other character sheets
 	CharacterAnimations.calm_idle = true
 	var count: int = Wardrobe.head_count()
@@ -97,6 +115,11 @@ func _dress() -> void:
 			rig.call("wear_street", Wardrobe.library().street_outfit(int(_outfits[k])))
 		rig.call("set_face_look", "brown", "", 0, 0)
 		rig.call("reset_expression")
+		if _paper:
+			rig.set("face_style", load("res://data/face_styles/paper_j1.tres"))
+			var blink := rig.get("_blink") as Timer
+			if blink != null:
+				blink.stop()
 		print("  combo %d: %s" % [_indices[k], _names[k]])
 
 
@@ -125,6 +148,12 @@ func _plan() -> void:
 		var name := "%02d_%s" % [_indices[k], _names[k]]
 		_shots.append([name + "_front", k, head + Vector3(0.0, 0.05, 2.3), head, 35.0])
 		_shots.append([name + "_side", k, head + Vector3(2.3, 0.05, 0.0), head, 35.0])
+	if _portrait:
+		var head_y := FaceProfiles.load_or_default().layout_for(0).head_y
+		for k in _rigs.size():
+			var x := _rigs[k].position.x
+			var name := "%02d_%s_portrait" % [_indices[k], _names[k]]
+			_shots.append([name, k, Vector3(x, head_y, 2.2), Vector3(x, head_y, 0.4), 35.0])
 
 
 func _head_position(rig: Node3D) -> Vector3:
@@ -152,8 +181,8 @@ func _on_frame() -> void:
 		_cam.fov = float(shot[4])
 		_cam.look_at_from_position(shot[2], shot[3], Vector3.UP)
 	elif _frame == SETTLE + 5:
-		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
-		var path := "%s/engine_%s%s.png" % [OUT_DIR, _tag, _shots[_shot][0]]
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out))
+		var path := "%s/engine_%s%s.png" % [_out, _tag, _shots[_shot][0]]
 		if _neck:
 			var dir := OUT_DIR.get_base_dir() + "/heads_neck"
 			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))

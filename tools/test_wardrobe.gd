@@ -7,6 +7,19 @@ extends SceneTree
 ## slot is cleared and re-attached).
 ##   godot --headless --path . --script res://tools/test_wardrobe.gd
 
+## Head indices 1-8 as saves and data/face_profiles.tres know them: a wardrobe rebuild must
+## keep every one on its glb (tools/build_wardrobe.gd appends new parts after them).
+const STABLE_HEADS := [
+	"res://assets/characters/parts/tripo_bald_bl_m.glb",
+	"res://assets/characters/parts/tripo_bald_br_m.glb",
+	"res://assets/characters/parts/tripo_bald_tl_m.glb",
+	"res://assets/characters/parts/tripo_bald_tr_m.glb",
+	"res://assets/characters/parts/tripo_head_bl_m.glb",
+	"res://assets/characters/parts/tripo_head_br_m.glb",
+	"res://assets/characters/parts/tripo_head_tl_m.glb",
+	"res://assets/characters/parts/tripo_head_tr_m.glb",
+]
+
 var _failures: Array[String] = []
 
 
@@ -30,6 +43,8 @@ func _run() -> void:
 	_check(part != null and part.model != null, "hair(0) resolves to a WardrobePart model")
 	_check(not Wardrobe.library().skin_colors.is_empty(), "library has a skin palette")
 	_check(not Wardrobe.library().hair_colors.is_empty(), "library has a hair-colour palette")
+
+	_check_stable_heads()
 
 	# Force a hair reparent (index 1 clamps to the only entry but still swaps).
 	rig.set_hair(1)
@@ -132,6 +147,18 @@ func _run() -> void:
 	_check(Wardrobe.style_ready(jacket, 0) and Wardrobe.style_ready(jacket, 1), "SB/DB are")
 
 	_finish()
+
+
+## Heads 1-8 (and their hairs) still point at the same glbs.
+func _check_stable_heads() -> void:
+	for k in STABLE_HEADS.size():
+		var i := k + 1
+		var head: WardrobePart = Wardrobe.head(i)
+		var hair: WardrobePart = Wardrobe.hair(i)
+		var path: String = STABLE_HEADS[k]
+		var ok := head != null and head.model != null and head.model.resource_path == path
+		ok = ok and hair != null and hair.model != null and hair.model.resource_path == path
+		_check(ok, "head %d is %s" % [i, path.get_file()])
 
 
 ## A regular's street outfit is remembered with their look (and survives a save) and

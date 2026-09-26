@@ -9,6 +9,11 @@ extends SceneTree
 ## its own hair (only the skin/hair COLOURS vary). Gender comes from
 ## the filename ("_f"/"female" -> FEMALE, "_m"/"male" -> MALE, else ANY). Adding a look
 ## is just: drop a Rig_Medium head+hair .glb into assets/characters/parts/ and rerun.
+## Head indices are STABLE: saves (Clientele regulars) and data/face_profiles.tres key heads
+## by index, so the combos already in the wardrobe keep their order (read from the .tres
+## being replaced, matched by glb file) and new glbs are appended after them, sorted by
+## name among themselves. A combo whose glb is gone is dropped with a warning, and every
+## head after it moves down one index.
 ##   godot --headless --path . --script res://tools/build_wardrobe.gd
 
 const OUT_PATH := "res://data/wardrobe/default_wardrobe.tres"
@@ -57,14 +62,19 @@ func _scan_parts(lib: WardrobeLibrary) -> void:
 		return
 	var files := dir.get_files()
 	files.sort()
+	var combos: Array[String] = []
 	for f in files:
 		if f.get_extension().to_lower() != "glb":
 			continue
+		if f.begins_with(GLASSES_PREFIX):
+			var gps := load(PARTS_DIR + "/" + f) as PackedScene
+			if gps != null:
+				_add_glasses(lib, gps, f)
+			continue
+		combos.append(f)
+	for f in _stable_order(combos):
 		var ps := load(PARTS_DIR + "/" + f) as PackedScene
 		if ps == null:
-			continue
-		if f.begins_with(GLASSES_PREFIX):
-			_add_glasses(lib, ps, f)
 			continue
 		var pair := _detect_head_hair(ps)
 		if pair.is_empty():
@@ -76,6 +86,76 @@ func _scan_parts(lib: WardrobeLibrary) -> void:
 		lib.heads.append(WardrobePart.make(label + " head", ps, {"head": pair["head"]}, g))
 		lib.hairs.append(WardrobePart.make(label + " hair", ps, {"hair": pair["hair"]}, g))
 		print("  + ", f, "  head=", pair["head"], " hair=", pair["hair"], " gender=", g)
+
+
+## The combo glbs in wardrobe order: those the current wardrobe already lists, in its order,
+## then the new ones by name. Warns about listed combos whose glb is gone.
+func _stable_order(found: Array[String]) -> Array[String]:
+	var before := _listed_combos()
+	var out: Array[String] = []
+	for i in before.size():
+		var f := before[i]
+		if f in found:
+			out.append(f)
+		else:
+			print(
+				(
+					(
+						"build_wardrobe: WARNING: %s (head %d) is gone; every head after it"
+						+ " moves down one index"
+					)
+					% [f, i + 1]
+				)
+			)
+	var fresh: Array[String] = []
+	for f in found:
+		if not f in out:
+			fresh.append(f)
+	fresh.sort()
+	if not fresh.is_empty():
+		print("build_wardrobe: new combos appended from head %d: %s" % [out.size() + 1, fresh])
+	out.append_array(fresh)
+	return out
+
+
+## The parts-folder combo glbs of the wardrobe .tres on disk, in its heads order (head 1
+## on; head 0 is the base model from make_default()). Read as text, so a vanished glb does
+## not stop it.
+func _listed_combos() -> Array[String]:
+	var out: Array[String] = []
+	var file := FileAccess.open(OUT_PATH, FileAccess.READ)
+	if file == null:
+		return out
+	var text := file.get_as_text()
+	var names := {}  # sub-resource id -> display_name
+	var id := ""
+	for line in text.split("\n"):
+		if line.begins_with("[sub_resource"):
+			var at := line.find('id="')
+			id = line.substr(at + 4, line.find('"', at + 4) - at - 4) if at >= 0 else ""
+		elif line.begins_with("[") and not line.begins_with("[sub_resource"):
+			id = ""
+		elif id != "" and line.begins_with("display_name = "):
+			names[id] = line.trim_prefix("display_name = ").trim_prefix('"').trim_suffix('"')
+	var heads_line := ""
+	for line in text.split("\n"):
+		if line.begins_with("heads = "):
+			heads_line = line
+			break
+	var rx := RegEx.create_from_string('SubResource\\("([^"]+)"\\)')
+	for m in rx.search_all(heads_line):
+		var label := String(names.get(m.get_string(1), ""))
+		if label.ends_with(" head"):
+			var f := label.trim_suffix(" head") + ".glb"
+			if FileAccess.file_exists(PARTS_DIR + "/" + f) or _was_part(text, f):
+				out.append(f)
+	return out
+
+
+## True when the .tres referenced `f` in the parts folder (a combo, even if its glb is gone
+## now), so the base model's head (no parts glb) is not taken for one.
+func _was_part(text: String, f: String) -> bool:
+	return text.contains('path="%s/%s"' % [PARTS_DIR, f])
 
 
 ## A glasses part keyed by its style (glasses_wire.glb -> "wire"), with a lenses role
