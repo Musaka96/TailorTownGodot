@@ -72,6 +72,8 @@ const PAPERS := {
 ## How much calmer the paper is on surfaces facing up (floors, paving, table tops): the
 ## gameplay camera looks down on them from far, and at full strength they read as grain.
 const UP_CALM := 0.7
+## The paper's creases baked into its colour, so a wall in shade still shows them.
+const SHADE := 1.5
 ## Window glass: see-through and shadowless, so the sun comes in (glass_clear.gdshader).
 const GLASS_SHADER := preload("res://assets/shaders/glass_clear.gdshader")
 const GLASS_OPACITY := 0.22
@@ -404,6 +406,7 @@ func _apply_paper(mat: ShaderMaterial, family: String) -> void:
 	mat.set_shader_parameter("paper_tile", TILE)
 	mat.set_shader_parameter("paper_grain_amount", GRAIN)
 	mat.set_shader_parameter("paper_up_calm", UP_CALM)
+	mat.set_shader_parameter("paper_shade", SHADE)
 
 
 func _tex(file: String) -> Texture2D:

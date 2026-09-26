@@ -61,6 +61,16 @@ func _run() -> void:
 			var v := a.trim_prefix("sun=").split(",")
 			var sun := _main.find_child("Sun", true, false) as DirectionalLight3D
 			sun.rotation_degrees = Vector3(-float(v[0]), float(v[1]), 0.0)
+	if args.has("street_wall"):
+		# inside, facing the street wall: its inner face never gets the sun
+		_cam.fov = 50.0
+		_cam.look_at_from_position(Vector3(-1.0, 2.2, 1.0), Vector3(-2.5, 1.2, 6.0), Vector3.UP)
+		for v: Array in [["g", true], ["a", false]]:
+			pw.call("set_enabled", v[1])
+			await _frames(30)
+			_save("street_wall_%s.png" % v[0])
+		quit(0)
+		return
 	if args.has("front"):
 		# the street front from the gameplay camera, the player just outside the door
 		var door := _main.find_child("DoorOutside", true, false) as Node3D
