@@ -29,6 +29,14 @@ forward offset the game gives each face), and its long edges are cut first so it
 Variant sets go elsewhere with --out-dir (e.g. .dev/glasses_variants/v85) and --no-sheet;
 tools/shot_glasses_variants.gd renders them on the cast in the engine.
 
+Seams: the owner marks where a temple comes off (a closed seam loop round each arm, near the
+hinge, in the .blend). Each glasses shell is split into regions at its seam edges; the
+seam-bounded region holding the bridge (the vertex nearest the cell's centre line) is the
+front, every other seam-bounded region a temple. The frames carry that as vertex colour
+COLOR_0.r: 1 on a temple vertex (the seam loop's own vertices included), 0 on rims and
+bridge; GlassesFit drops the triangles whose three corners are all temple (a pince-nez).
+A style with no seam exports no colour and the game falls back to its hinge-plane test.
+
 The game places them per head with a forward offset from the face profile; this prints
 the shaved skull's face depth at the height the glasses sit, which the offset is
 measured from. A fit sheet shows every style on the shaved skull and on --own.
@@ -133,10 +141,83 @@ def _cells(ns):
     return skulls
 
 
-def _split_lenses(mesh):
-    """(frames, lenses or None): lenses are flat, front-facing (-y) regions (faces joined
-    across edges bending under 12 deg) that fill most of their bounding box and are wide
-    and tall enough to be a pane, not a rim's flat front ring or a bridge bar."""
+def _temple_marks(k):
+    """Per vertex of th._arrays(k["glasses"]) (same order): 1.0 on the temple side of the
+    owner's seams, 0.0 on the front; None when this style has no seam at all."""
+    marks, loops, notes = [], 0, []
+    for g in k["glasses"]:
+        bm = bmesh.new()
+        bm.from_mesh(g["obj"].data)
+        bm.verts.index_update()
+        seams = {e for e in bm.edges if e.seam}
+        loops += _components(seams)
+        region, regions = {}, []
+        for f in bm.faces:
+            if f in region:
+                continue
+            stack, faces = [f], []
+            region[f] = len(regions)
+            while stack:
+                g = stack.pop()
+                faces.append(g)
+                for e in g.edges:
+                    if e in seams:
+                        continue
+                    for h in e.link_faces:
+                        if h not in region:
+                            region[h] = len(regions)
+                            stack.append(h)
+            regions.append(faces)
+        cut = [i for i, fs in enumerate(regions) if any(e in seams for g in fs for e in g.edges)]
+        mark = [0.0] * len(bm.verts)
+        if cut:
+            bridge = min(bm.verts, key=lambda v: abs(v.co.x - k["c"].x))
+            front = next((i for i in cut if any(region[f] == i for f in bridge.link_faces)), None)
+            if front is None:  # the bridge vertex sits in no cut region: keep the biggest
+                front = max(cut, key=lambda i: len(regions[i]))
+            for i in cut:
+                vs = {v for g in regions[i] for v in g.verts}
+                ys = [v.co.y for v in vs]
+                xs = [v.co.x - k["c"].x for v in vs]
+                notes.append("%s %d faces x %+.3f..%+.3f y %.3f..%.3f" % (
+                    "front" if i == front else "TEMPLE", len(regions[i]), min(xs), max(xs), min(ys), max(ys)))
+                if i != front:
+                    for v in vs:
+                        mark[v.index] = 1.0
+        marks += mark
+        bm.free()
+    if not loops:
+        log("  %-9s no seams: the game falls back to its hinge-plane test" % k["name"])
+        return None
+    log("  %-9s %d seam loop(s), %d temple vertices; regions (x from the cell centre, .blend"
+        " metres): %s" % (k["name"], loops, int(sum(marks)), " | ".join(notes)))
+    return marks
+
+
+def _components(edges):
+    """How many connected pieces (seam loops) the edge set makes."""
+    seen, n = set(), 0
+    for e in edges:
+        if e in seen:
+            continue
+        n += 1
+        stack = [e]
+        seen.add(e)
+        while stack:
+            x = stack.pop()
+            for v in x.verts:
+                for f in v.link_edges:
+                    if f in edges and f not in seen:
+                        seen.add(f)
+                        stack.append(f)
+    return n
+
+
+def _split_lenses(mesh, marks=None):
+    """(frames, lenses or None, the frames' marks or None): lenses are flat, front-facing
+    (-y) regions (faces joined across edges bending under 12 deg) that fill most of their
+    bounding box and are wide and tall enough to be a pane, not a rim's flat front ring or
+    a bridge bar. `marks` (per vertex of mesh) follow the frames' vertices."""
     verts, faces = mesh
     bm = bmesh.new()
     vs = [bm.verts.new(v) for v in verts]
@@ -184,7 +265,10 @@ def _split_lenses(mesh):
         remap = {o: n for n, o in enumerate(used)}
         return [verts[i] for i in used], [tuple(remap[i] for i in f) for f in fs]
 
-    return compact(frame_faces), (compact(lens_faces) if lens_faces else None)
+    frame_marks = None
+    if marks is not None:
+        frame_marks = [marks[i] for i in sorted({i for f in frame_faces for i in f})]
+    return compact(frame_faces), (compact(lens_faces) if lens_faces else None), frame_marks
 
 
 def _face_depth(skull, head, z):
@@ -228,12 +312,18 @@ def _front_report(name, pts, hinge, old):
     return new
 
 
-def _cut_temples(mesh, hinge):
+def _cut_temples(mesh, hinge, marks=None):
     """Tripo's temples are straight tubes with vertices only at their ends; before one can
-    bend, its long edges (behind the hinge) are halved until none is over TEMPLE_EDGE."""
+    bend, its long edges (behind the hinge) are halved until none is over TEMPLE_EDGE.
+    Returns (mesh, marks): a new vertex is temple only when every vertex it was made
+    between is (the float layer interpolates; anything under 1 is front)."""
     verts, faces = mesh
     bm = bmesh.new()
+    layer = bm.verts.layers.float.new("temple")
     vs = [bm.verts.new(v) for v in verts]
+    if marks is not None:
+        for v, m in zip(vs, marks):
+            v[layer] = m
     for f in faces:
         try:
             bm.faces.new([vs[i] for i in f])
@@ -247,11 +337,12 @@ def _cut_temples(mesh, hinge):
         bmesh.ops.subdivide_edges(bm, edges=long, cuts=1, use_grid_fill=True)
     bm.verts.index_update()
     out = ([v.co.copy() for v in bm.verts], [tuple(v.index for v in f.verts) for f in bm.faces])
+    out_marks = None if marks is None else [1.0 if v[layer] > 0.999 else 0.0 for v in bm.verts]
     bm.free()
-    return out
+    return out, out_marks
 
 
-def _scale_front(name, mesh, bc, w, h, heads):
+def _scale_front(name, mesh, bc, w, h, heads, marks=None):
     """Scale the front (every vertex in front of the hinge plane) by w in x and h in z about
     the bridge centre, depth kept. Each temple (the vertices behind the hinge on one side)
     is re-seated: its segment old hinge -> old tip is mapped onto new hinge -> the same
@@ -260,11 +351,11 @@ def _scale_front(name, mesh, bc, w, h, heads):
     The re-seated temples are then pushed out to clear every head in `heads`, a list of
     (label, mesh, offset): offset takes a glasses point into that head's frame (the game
     moves the glasses forward onto each face). Logs the boxes and how many temple vertices
-    end up inside each head. Returns the mesh (the temples' long edges cut first, see
+    end up inside each head. Returns (mesh, marks) (the temples' long edges cut first, see
     _cut_temples)."""
     hinge = _hinge_y(mesh[0])
     n0 = len(mesh[1])
-    mesh = _cut_temples(mesh, hinge)
+    mesh, marks = _cut_temples(mesh, hinge, marks)
     pts = mesh[0]
     log("  %-9s temples cut to %.2f m edges: %d -> %d faces" % (name, TEMPLE_EDGE, n0, len(mesh[1])))
     old = (_box([v for v in pts if v.y < hinge]), _box([v for v in pts if v.y < hinge and v.x > 0.0]))
@@ -309,7 +400,7 @@ def _scale_front(name, mesh, bc, w, h, heads):
         after = _inside(m, [out[i] + off for i, v in enumerate(pts) if v.y >= hinge])
         log("  %-9s temple verts inside %-16s %3d (deepest %.3f) as modelled, %3d (deepest %.3f)"
             " after" % (name, label + ":", before[0], before[1], after[0], after[1]))
-    return out, mesh[1]
+    return (out, mesh[1]), marks
 
 
 def _tree(mesh):
@@ -401,6 +492,7 @@ def main(argv):
         glasses = th._arrays([g["obj"] for g in k["glasses"]])
         m, s = th._fit(skull[0], bh, bcen)
         placed = th._moved(glasses, m)
+        marks = _temple_marks(k)
         pts = placed[0]
         bridge = [v for v in pts if abs(v.x) < 0.02]
         bc = sum(bridge, Vector()) / len(bridge) if bridge else Vector()
@@ -409,11 +501,11 @@ def main(argv):
             heads = [(ns.bald.stem, bald, Vector())]
             for label, m in extra:  # the game moves the glasses forward by the face difference
                 heads.append((label, m, Vector((0.0, -(_face_depth(m, head, bc.z) - _face_depth(bald, head, bc.z)), 0.0))))
-            placed = _scale_front(k["name"], placed, bc, w, h, heads)
+            placed, marks = _scale_front(k["name"], placed, bc, w, h, heads, marks)
             pts = placed[0]
         else:
             _front_report(k["name"], pts, _hinge_y(pts), None)
-        frames, lenses = _split_lenses(placed)
+        frames, lenses, frame_marks = _split_lenses(placed, marks)
         tips = [max((v for v in pts if v.x * side > 0), key=lambda v: v.y) for side in (1, -1)]
         eye_z = bc.z
         depth = _face_depth(bald, head, eye_z)
@@ -427,15 +519,21 @@ def main(argv):
                 "", eye_z, depth, front, front - depth, ns.own.stem, own_depth, own_depth - depth))
         log("  %-9s frames %d faces%s" % ("", len(frames[1]),
                                            (", lenses %d faces" % len(lenses[1])) if lenses else ", no lens geometry"))
+        if frame_marks is not None:
+            temple = [v for v, t in zip(frames[0], frame_marks) if t > 0.5]
+            log("  %-9s temple marker on %d of %d frame vertices (y %.3f..%.3f; hinge plane %.3f)" % (
+                "", len(temple), len(frames[0]), min(v.y for v in temple), max(v.y for v in temple),
+                _hinge_y(frames[0])))
         styles[k["name"]] = {"frames": frames, "lenses": lenses, "depth": depth,
-                             "own_shift": own_depth - depth}
+                             "own_shift": own_depth - depth, "marks": frame_marks}
     log("\n== export -> %s" % ns.out_dir)
     ok = True
     for name, st in styles.items():
         parts = {"frames": st["frames"]}
         if st["lenses"]:
             parts["lenses"] = st["lenses"]
-        ok = th._export_parts(ns, ns.out_dir / ("glasses_%s.glb" % name), parts) and ok
+        colours = {"frames": st["marks"]} if st["marks"] is not None else None
+        ok = th._export_parts(ns, ns.out_dir / ("glasses_%s.glb" % name), parts, colours) and ok
     if not ns.no_sheet:
         _sheet(ns, styles, bald, own)
     (ns.report_dir / "summary.txt").write_text("\n".join(th._LOG) + "\n", encoding="utf-8")

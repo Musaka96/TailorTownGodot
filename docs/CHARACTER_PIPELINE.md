@@ -83,7 +83,13 @@ game glasses are no longer sprites: `WardrobeLibrary.glasses` lists the styles, 
 mounts the frames as plain meshes on a head-bone attachment (placed from the part's bind
 pose, pushed forward by `face_z_for(head) - 0.421`), frame colour from
 `CharacterRig.GLASSES_COLORS` rides on the customer look (`glasses_color`). Old look values
-map: round -> wire, sun -> black square.
+map: round -> wire, sun -> black square. Seams (owner, 2026-09-26): a closed seam loop round
+each temple in `glasses.blend` marks where the arm comes off; the export splits each shell at
+its seams (the region holding the bridge is the front) and writes vertex colour `COLOR_0.r`
+= 1 on the temple side (seam vertices included), and `GlassesFit._drop_temples()` drops a
+triangle only when all three corners are marked, so a pince-nez ends on the seam line
+(`tools/shot_glasses_seams.gd`); round, wire and halfmoon have seams, square has none and
+keeps the hinge-plane cut.
 
 Heads: `tools/blender/tripo_heads.py` turns `IMPORT/CHARREWORK/heads.blend` (a shaved
 skull with ears + a grid of hair-over-skull heads) into `assets/characters/parts/

@@ -381,9 +381,12 @@ def _export(ns, name, parts):
                          {k: v for k, v in parts.items() if k in ("head", "Hair")})
 
 
-def _export_parts(ns, path, parts):
+def _export_parts(ns, path, parts, colours=None):
     """Write `parts` (mesh name -> (verts, faces) in rig space) to a glb on Rig_Medium,
-    every mesh bound 100% to bone `head`, then re-read it and check it."""
+    every mesh bound 100% to bone `head`, then re-read it and check it. `colours` (mesh
+    name -> one float per vertex) rides as vertex colour COLOR_0 (r = the value, g = b = 0,
+    a = 1): tripo_glasses.py's temple marker."""
+    colours = colours or {}
     bpy.ops.wm.read_factory_settings(use_empty=True)
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(ns.rig))
@@ -395,6 +398,14 @@ def _export_parts(ns, path, parts):
         me = bpy.data.meshes.new(role)
         me.from_pydata([tuple(v) for v in verts], [], faces)
         me.validate()
+        if role in colours:
+            if len(me.vertices) != len(colours[role]):
+                log("  WARNING: %s lost vertices in validate(); its colour is skipped" % role)
+            else:
+                attr = me.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
+                attr.data.foreach_set("color", [c for t in colours[role] for c in (t, 0.0, 0.0, 1.0)])
+                me.color_attributes.active_color = attr
+                me.color_attributes.render_color_index = 0
         ob = bpy.data.objects.new(role, me)
         bpy.context.scene.collection.objects.link(ob)
         for p in me.polygons:
@@ -417,7 +428,8 @@ def _export_parts(ns, path, parts):
     bpy.ops.export_scene.gltf(
         filepath=str(path), export_format="GLB", use_selection=False, export_yup=True,
         export_apply=False, export_skins=True, export_animations=False,
-        export_materials="EXPORT", export_cameras=False, export_lights=False)
+        export_materials="EXPORT", export_cameras=False, export_lights=False,
+        export_vertex_color="ACTIVE" if colours else "MATERIAL")
     g = tc._glb_json(path)
     nodes = g["nodes"]
     roots = [nodes[r].get("name") for r in g["scenes"][0]["nodes"]]
@@ -428,6 +440,9 @@ def _export_parts(ns, path, parts):
                                for p in g["meshes"][n["mesh"]]["primitives"])
             for n in nodes if "mesh" in n}
     ok = roots == ["Rig_Medium"] and len(joints) == 22 and meshes == sorted(parts) and skinned
+    for n in nodes:  # every coloured mesh must carry COLOR_0 on each primitive
+        if "mesh" in n and n.get("name") in colours:
+            ok = ok and all("COLOR_0" in p["attributes"] for p in g["meshes"][n["mesh"]]["primitives"])
     log("  %s %-26s %s, %d KB" % (
         "ok  " if ok else "FAIL", path.name,
         ", ".join("%s %d tris" % (k, tris.get(k, 0)) for k in sorted(parts)),
