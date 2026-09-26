@@ -18,13 +18,13 @@ from PIL import Image
 from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parent.parent
-SHEET = ROOT / "IMPORT/paper_world/src/paper_sheet_gpt.jpg"
+SHEET = ROOT / "IMPORT/papers.jpeg"  # the owner's 4096 px sheet
 OUT = ROOT / "assets/textures/paper"
-SIZE = 1024
-# the green gutters' centre and how far their glow reaches (px in the 2000 px sheet)
-GUTTER = 1000
-GLOW = 26
-EDGE = 6
+SIZE = 2048  # the build caps textures at 2048
+# how far the green gutters' glow reaches past the solid green, and the sheet's own edge
+# (px per 1000 px of sheet); the gutters themselves are found in the image
+GLOW = 13.0
+EDGE = 3.0
 # name, quadrant (col, row), light evening blur (fraction of the tile), normal strength,
 # how it is made to tile: "fade" (cross-fade) or "mirror" (2 x 2 mirrored: straight folds
 # would break at a cross-fade, mirrored they run on), extra crop past the gutter glow
@@ -39,12 +39,25 @@ TOOTH_BLUR = 2.0
 FADE = 0.22  # the seam cross-fade, fraction of the tile from each edge
 
 
-def crop(img: np.ndarray, col: int, row: int, extra: int) -> np.ndarray:
+def gutters(img: np.ndarray) -> tuple:
+    """The solid green gutters: (first, last) column, (first, last) row."""
+    g = (img[..., 1] > 0.8) & (img[..., 0] < 0.47) & (img[..., 2] < 0.47)
+    cols = np.nonzero(g.mean(0) > 0.5)[0]
+    rows = np.nonzero(g.mean(1) > 0.5)[0]
+    return (cols[0], cols[-1]), (rows[0], rows[-1])
+
+
+def crop(img: np.ndarray, col: int, row: int, extra: int, gut: tuple) -> np.ndarray:
     n = img.shape[0]
-    x0 = EDGE if col == 0 else GUTTER + GLOW
-    x1 = GUTTER - GLOW if col == 0 else n - EDGE
-    y0 = EDGE if row == 0 else GUTTER + GLOW
-    y1 = GUTTER - GLOW if row == 0 else n - EDGE
+    k = n / 1000.0
+    glow = round(GLOW * k)
+    edge = round(EDGE * k)
+    extra = round(extra * k / 2.0)
+    (c0, c1), (r0, r1) = gut
+    x0 = edge if col == 0 else c1 + glow
+    x1 = c0 - glow if col == 0 else n - edge
+    y0 = edge if row == 0 else r1 + glow
+    y1 = r0 - glow if row == 0 else n - edge
     x0, y0, x1, y1 = x0 + extra, y0 + extra, x1 - extra, y1 - extra
     s = min(x1 - x0, y1 - y0)
     return img[y0 : y0 + s, x0 : x0 + s]
@@ -78,9 +91,11 @@ def normal_map(rgb: np.ndarray, strength: float) -> np.ndarray:
     h = rgb @ np.array([0.299, 0.587, 0.114])
     h = h - ndimage.gaussian_filter(h, HP_SIGMA * rgb.shape[0] / 1024.0, mode="wrap")
     # the paper's fine tooth off: from a room away it only sparkles
-    h = ndimage.gaussian_filter(h, TOOTH_BLUR, mode="wrap")
-    dx = ndimage.sobel(h, axis=1, mode="wrap") / 8.0
-    dy = ndimage.sobel(h, axis=0, mode="wrap") / 8.0
+    h = ndimage.gaussian_filter(h, TOOTH_BLUR * rgb.shape[0] / 1024.0, mode="wrap")
+    # slope per 1/1024 of the tile, so the relief is the same at any output size
+    k = rgb.shape[0] / 1024.0
+    dx = ndimage.sobel(h, axis=1, mode="wrap") / 8.0 * k
+    dy = ndimage.sobel(h, axis=0, mode="wrap") / 8.0 * k
     # OpenGL: green points up the image, so a height rising down the image tilts it up
     n = np.dstack([-dx * strength * 255.0 / 32.0, dy * strength * 255.0 / 32.0, np.ones_like(h)])
     n /= np.linalg.norm(n, axis=2, keepdims=True)
@@ -90,8 +105,10 @@ def normal_map(rgb: np.ndarray, strength: float) -> np.ndarray:
 def main() -> None:
     sheet = Path(sys.argv[1]) if len(sys.argv) > 1 else SHEET
     img = np.asarray(Image.open(sheet).convert("RGB")).astype(np.float64) / 255.0
+    gut = gutters(img)
+    print("gutters", gut)
     for name, (col, row), frac, strength, mode, extra in TILES:
-        a = even_light(crop(img, col, row, extra), frac)
+        a = even_light(crop(img, col, row, extra, gut), frac)
         a = mirror_tile(a) if mode == "mirror" else make_tile(a)
         im = Image.fromarray((a * 255).round().astype(np.uint8)).resize((SIZE, SIZE), Image.LANCZOS)
         im.save(OUT / f"{name}_albedo.jpg", quality=92)
