@@ -1,0 +1,108 @@
+"""Slice the owner's 2 x 2 paper sheet (GPT Image, green gutters) into four tiling world
+papers for assets/shaders/paper_world.gdshader, each an albedo plus an OpenGL normal map.
+
+    python tools/make_paper_tiles.py [sheet.jpg]
+
+Per quadrant: crop inside the gutter glow, even out the light (divide by a wide blur, so a
+lit-from-one-side band does not repeat across a wall), make it tile (cross-fade with its
+half-offset copy, which is continuous across the wrap), resize to SIZE. The normal comes
+from the luminance as a height, high-passed at HP_SIGMA px, slope x STRENGTH (the same
+recipe as the mache_gpt and piece_paper normals). Writes assets/textures/paper/world_*.
+"""
+
+import sys
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+
+ROOT = Path(__file__).resolve().parent.parent
+SHEET = ROOT / "IMPORT/paper_world/src/paper_sheet_gpt.jpg"
+OUT = ROOT / "assets/textures/paper"
+SIZE = 1024
+# the green gutters' centre and how far their glow reaches (px in the 2000 px sheet)
+GUTTER = 1000
+GLOW = 26
+EDGE = 6
+# name, quadrant (col, row), light evening blur (fraction of the tile), normal strength,
+# how it is made to tile: "fade" (cross-fade) or "mirror" (2 x 2 mirrored: straight folds
+# would break at a cross-fade, mirrored they run on), extra crop past the gutter glow
+TILES = [
+    ("world_crumple", (0, 0), 0.18, 5.0, "fade", 0),
+    ("world_kraft", (1, 0), 0.12, 4.0, "fade", 0),
+    ("world_folded", (0, 1), 0.25, 6.0, "mirror", 14),
+    ("world_coated", (1, 1), 0.15, 6.0, "fade", 0),
+]
+HP_SIGMA = 36.0
+TOOTH_BLUR = 2.0
+FADE = 0.22  # the seam cross-fade, fraction of the tile from each edge
+
+
+def crop(img: np.ndarray, col: int, row: int, extra: int) -> np.ndarray:
+    n = img.shape[0]
+    x0 = EDGE if col == 0 else GUTTER + GLOW
+    x1 = GUTTER - GLOW if col == 0 else n - EDGE
+    y0 = EDGE if row == 0 else GUTTER + GLOW
+    y1 = GUTTER - GLOW if row == 0 else n - EDGE
+    x0, y0, x1, y1 = x0 + extra, y0 + extra, x1 - extra, y1 - extra
+    s = min(x1 - x0, y1 - y0)
+    return img[y0 : y0 + s, x0 : x0 + s]
+
+
+def mirror_tile(a: np.ndarray) -> np.ndarray:
+    top = np.concatenate([a, a[:, ::-1]], axis=1)
+    return np.concatenate([top, top[::-1]], axis=0)
+
+
+def even_light(rgb: np.ndarray, frac: float) -> np.ndarray:
+    lum = rgb @ np.array([0.299, 0.587, 0.114])
+    sigma = frac * rgb.shape[0]
+    low = ndimage.gaussian_filter(lum, sigma, mode="wrap")
+    return np.clip(rgb * (lum.mean() / np.maximum(low, 1e-3))[..., None], 0.0, 1.0)
+
+
+def make_tile(a: np.ndarray) -> np.ndarray:
+    n = a.shape[0]
+    shifted = np.roll(a, (n // 2, n // 2), axis=(0, 1))
+    t = np.minimum(np.arange(n), np.arange(n)[::-1]) / (FADE * n)
+    w1 = np.clip(t, 0.0, 1.0)
+    w1 = w1 * w1 * (3 - 2 * w1)
+    w = np.outer(w1, w1)
+    if a.ndim == 3:
+        w = w[..., None]
+    return a * w + shifted * (1 - w)
+
+
+def normal_map(rgb: np.ndarray, strength: float) -> np.ndarray:
+    h = rgb @ np.array([0.299, 0.587, 0.114])
+    h = h - ndimage.gaussian_filter(h, HP_SIGMA * rgb.shape[0] / 1024.0, mode="wrap")
+    # the paper's fine tooth off: from a room away it only sparkles
+    h = ndimage.gaussian_filter(h, TOOTH_BLUR, mode="wrap")
+    dx = ndimage.sobel(h, axis=1, mode="wrap") / 8.0
+    dy = ndimage.sobel(h, axis=0, mode="wrap") / 8.0
+    # OpenGL: green points up the image, so a height rising down the image tilts it up
+    n = np.dstack([-dx * strength * 255.0 / 32.0, dy * strength * 255.0 / 32.0, np.ones_like(h)])
+    n /= np.linalg.norm(n, axis=2, keepdims=True)
+    return n * 0.5 + 0.5
+
+
+def main() -> None:
+    sheet = Path(sys.argv[1]) if len(sys.argv) > 1 else SHEET
+    img = np.asarray(Image.open(sheet).convert("RGB")).astype(np.float64) / 255.0
+    for name, (col, row), frac, strength, mode, extra in TILES:
+        a = even_light(crop(img, col, row, extra), frac)
+        a = mirror_tile(a) if mode == "mirror" else make_tile(a)
+        im = Image.fromarray((a * 255).round().astype(np.uint8)).resize((SIZE, SIZE), Image.LANCZOS)
+        im.save(OUT / f"{name}_albedo.jpg", quality=92)
+        a = np.asarray(im).astype(np.float64) / 255.0
+        n = normal_map(a, strength)
+        Image.fromarray((n * 255).round().astype(np.uint8)).save(OUT / f"{name}_normal.jpg", quality=92)
+        # a 2 x 2 repeat, to check the seams by eye
+        rep = np.tile(np.asarray(im), (2, 2, 1))
+        Image.fromarray(rep).resize((1024, 1024)).save(ROOT / f"IMPORT/paper_world/src/{name}_repeat.png")
+        print(name, "ok")
+
+
+if __name__ == "__main__":
+    main()

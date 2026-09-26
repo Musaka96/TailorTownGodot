@@ -16,15 +16,28 @@ const ROLL_SCENE := "res://entities/items/material_roll.tscn"
 const KEEP_SHADERS := ["skin_face", "paper_skin", "face_element", "outline"]
 
 # the variants: label, flatten (mip bias), tile (face units per metre), grain, rolls to
-# paper, scan normal strength (the characters' PaperSurface has 1.0)
+# paper, scan normal strength (the characters' PaperSurface has 1.0), papers by material
 const VARIANTS := [
-	["A  as it is", -1.0, 0.0, 0.0, false, 1.0],
-	["B  paper, textures kept", 0.0, 5.0, 0.1, false, 1.0],
-	["C  paper, textures softened, bolts paper too", 2.5, 5.0, 0.1, true, 1.0],
-	["D  as C, paper 2x bigger", 2.5, 2.5, 0.12, true, 1.5],
-	["E  as C, paper 4x bigger", 2.5, 1.25, 0.14, true, 2.0],
-	["F  as C, paper 8x bigger, deep creases (for the game camera)", 2.5, 0.6, 0.18, true, 3.0],
+	["A  as it is", -1.0, 0.0, 0.0, false, 1.0, false],
+	["E  one paper everywhere (the pick)", 2.5, 1.25, 0.14, true, 2.0, false],
+	["G  as E, four papers by material", 2.5, 1.25, 0.14, true, 2.0, true],
 ]
+# G's papers (tools/make_paper_tiles.py): which material names take which paper, first
+# match wins, the rest are coated card. Per paper: texture, scan tiles per face unit (at
+# tile 1.25 a scan tile is 0.8 m / scan_scale), scan normal strength, scan light and dark.
+const FAMILIES := [
+	["folded", ["metal", "gold", "steel", "iron", "brass", "machine", "chrome"]],
+	["kraft", ["wood", "walnut", "oak", "pine", "trunk", "post", "floor", "parquet"]],
+	["crumple", ["wall", "wainscot", "interior", "stone", "brick", "cobble", "roof", "grass",
+		"soil", "dirt", "rug", "drape", "curtain", "awning", "cloth", "velvet", "linen",
+		"trim", "cap", "shutter", "foliage", "clover", "straw", "roll_end"]],
+]
+const PAPERS := {
+	"crumple": ["world_crumple", 0.8, 1.0, 0.35],
+	"kraft": ["world_kraft", 1.0, 0.7, 0.2],
+	"folded": ["world_folded", 2.5, 1.0, 0.4],
+	"coated": ["world_coated", 1.0, 1.2, 0.2],
+}
 
 const SUN_ROT := Vector3(-36.0, 25.0, 0.0)
 const PLAYER_POS := Vector3(-2.55, 0.0, -3.85)
@@ -87,6 +100,21 @@ func _run() -> void:
 				var box: AABB = g.global_transform * g.get_aabb()
 				if box.intersects_segment(pt + to_sun * 0.3, pt + to_sun * 300.0):
 					print("OCC %s from %s box=%s" % [g.get_path(), pt, box])
+		quit(0)
+		return
+	if OS.get_cmdline_user_args().has("mats"):
+		_collect()
+		var seen := {}
+		for e: Array in _meshes:
+			var mi: MeshInstance3D = e[0]
+			var p := mi.global_position
+			if p.x > 0.5 or p.z > -1.0:
+				continue
+			var m := mi.get_active_material(e[1])
+			var key := "%s | %s" % [mi.name, m.resource_name if m else "-"]
+			if not seen.has(key):
+				seen[key] = true
+				print("MAT %s | %s | %s | %s" % [key, m.get_class() if m else "-", m.resource_path.get_file() if m else "", mi.get_path()])
 		quit(0)
 		return
 	if OS.get_cmdline_user_args().has("over"):
@@ -272,6 +300,7 @@ func _paper_for(src: Material, spec: Array, v: int) -> ShaderMaterial:
 	var uv_scale := Vector3.ONE
 	var uv_off := Vector3.ZERO
 	var vcol := false
+	var family_key := src.resource_name.to_lower()
 	if src is BaseMaterial3D:
 		var b := src as BaseMaterial3D
 		if b.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
@@ -289,6 +318,7 @@ func _paper_for(src: Material, spec: Array, v: int) -> ShaderMaterial:
 		for k in KEEP_SHADERS:
 			keep = keep or path.contains(k)
 		var cloth := path.contains("cloth") or path.contains("roll_end")
+		family_key += " " + path.get_file()
 		if not keep and (not cloth or spec[4]):
 			for p in ["cloth_color", "albedo_color", "albedo", "fill_color", "base_color", "color"]:
 				var c: Variant = sm.get_shader_parameter(p)
@@ -318,8 +348,24 @@ func _paper_for(src: Material, spec: Array, v: int) -> ShaderMaterial:
 		out.set_shader_parameter("seed", float(_cache.size() % 7))
 		_paper_look().apply_to(out)
 		out.set_shader_parameter("normal_strength", spec[5])
+		if spec[6]:
+			var paper: Array = PAPERS[_family(family_key)]
+			var dir := "res://assets/textures/paper/"
+			out.set_shader_parameter("scan_albedo_tex", load(dir + paper[0] + "_albedo.jpg"))
+			out.set_shader_parameter("scan_normal_tex", load(dir + paper[0] + "_normal.jpg"))
+			out.set_shader_parameter("scan_scale", paper[1])
+			out.set_shader_parameter("normal_strength", paper[2])
+			out.set_shader_parameter("scan_albedo", paper[3])
 	_cache[key] = out
 	return out
+
+
+func _family(key: String) -> String:
+	for f: Array in FAMILIES:
+		for word: String in f[1]:
+			if key.contains(word):
+				return f[0]
+	return "coated"
 
 
 func _paper_look() -> Resource:
