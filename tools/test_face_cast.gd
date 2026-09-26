@@ -3,14 +3,23 @@ extends SceneTree
 ## Headless test of the cut-paper cast (FaceCast): every cast surname has a preset file;
 ## a name always gets the same face; a named cast member walks in wearing their own face,
 ## hair colour and glasses, the glasses scaled across to their eye spacing; the player is
-## J1; a regular's face survives a Clientele save and restore; and a look saved before
-## faces were remembered (no face_style) still dresses, with the face the name picks.
+## J1; a regular's face survives a Clientele save and restore; a look saved before faces
+## were remembered (no face_style) still dresses, with the face the name picks; the six
+## looks from the approved pieces are in the pool; and every woman (the cast women whatever
+## body the dice gave them, a female passer-by) wears the feminine kit, lashes and lipstick,
+## while a man keeps the plain face.
 ##   godot --headless --path . --script res://tools/test_face_cast.gd
 ## Exit code is non-zero on any failed assertion.
 
 const CAST_SCRIPT := "res://data/scripts/face_cast.gd"
 const PREF_SCRIPT := "res://data/scripts/customer_preference.gd"
 const STYLE_DIR := "res://data/face_styles/"
+const MALE := 1
+const FEMALE := 2
+const NEW_LOOKS := [
+	"paper_colonel", "paper_dandy", "paper_sprite", "paper_owl", "paper_sage", "paper_glint"
+]
+const CAST_WOMEN := ["Ms. Portobello", "Miss Hartley", "Mrs. Applegarth", "Lady Ashcombe"]
 
 var _failures: Array[String] = []
 var _manager: Node
@@ -35,6 +44,8 @@ func _run() -> void:
 		ui.newspaper.close()
 	_manager = get_first_node_in_group("customer_manager")
 	_player_is_j1()
+	_new_looks()
+	_feminine_kit()
 	_cast_walk_in()
 	await _pince_nez()
 	_round_trip()
@@ -67,10 +78,13 @@ func _registry() -> void:
 		spread[a] = true
 	_check(stable, "preset_for is the same every call and always a customer preset")
 	_check(spread.size() >= 5, "the names spread over the presets (%d used)" % spread.size())
-	# Pinned: a change here means every regular in every save changes face.
+	var fresh := spread.keys().filter(func(k: String) -> bool: return k in NEW_LOOKS)
+	_check(not fresh.is_empty(), "names pick the new looks too %s" % str(fresh))
+	# Pinned: a change here means every regular saved without a face_style changes face (the
+	# six new looks re-hashed most names on 2026-09-27; Mr. Ellison happened to keep his).
 	_check(
 		_cast.preset_for("Mr. Ellison") == "paper_noble",
-		"preset_for hashes the same way it always has"
+		"preset_for hashes the same way it always has (%s)" % _cast.preset_for("Mr. Ellison")
 	)
 	_check(
 		(_cast.style("no_such_face") as Resource).resource_path == STYLE_DIR + "paper_j1.tres",
@@ -87,6 +101,75 @@ func _player_is_j1() -> void:
 	)
 
 
+## The six looks from the approved pieces have files and are in the customer pool, and a
+## woman drawing the colonel or the sage loses the moustache and the chin patch.
+func _new_looks() -> void:
+	for preset: String in NEW_LOOKS:
+		_check(
+			(
+				ResourceLoader.exists(STYLE_DIR + preset + ".tres")
+				and preset in _cast.CUSTOMER_PRESETS
+			),
+			"%s exists and is in the pool" % preset
+		)
+	var colonel: FaceStyle = _cast.style("paper_colonel", FEMALE)
+	var sage: FaceStyle = _cast.style("paper_sage", FEMALE)
+	_check(
+		(_cast.style("paper_colonel") as FaceStyle).moustache == 1 and colonel.moustache == 0,
+		"the colonel's moustache is a man's only"
+	)
+	_check(sage.beard == Vector2.ZERO, "and so is the sage's chin patch")
+
+
+## Every cast woman walks in with lashes and lipstick on her own preset, even a collector
+## whose body the dice made a man's (_wear_cast settles it); a female passer-by gets the kit;
+## Mr. Dimmock and a male passer-by keep the plain dark mouth and no lashes.
+func _feminine_kit() -> void:
+	for nm: String in CAST_WOMEN:
+		var cust := _spawn_with(_pref_cls.random_pref(RandomNumberGenerator.new(), nm))
+		var face: FaceStyle = cust.get_node("Rig").get("face_style")
+		_check(
+			int(cust.gender) == FEMALE and _kit_on(face),
+			"%s wears lashes and lipstick (%s)" % [nm, _cast.preset_of(face)]
+		)
+		_check(_cast.preset_of(face) == _cast.cast_of(nm)["preset"], "%s keeps her own face" % nm)
+		cust.free()
+		var coll: Node = _manager.call("_spawn", Vector3.ZERO, false)
+		coll.gender = MALE
+		_manager.call("_wear_cast", coll, nm)
+		var cface: FaceStyle = coll.get_node("Rig").get("face_style")
+		_check(
+			int(coll.gender) == FEMALE and _kit_on(cface),
+			"%s as a collector on a dice body is still a woman" % nm
+		)
+		coll.free()
+	var dim := _spawn_with(_pref_cls.random_pref(RandomNumberGenerator.new(), "Mr. Dimmock"))
+	var dface: FaceStyle = dim.get_node("Rig").get("face_style")
+	_check(not _kit_on(dface) and dface.eye_lash == 0.0, "Mr. Dimmock has no lashes or lipstick")
+	dim.free()
+	var seen := {}
+	for i in 40:
+		var rng: RandomNumberGenerator = _manager.get("_rng")
+		rng.seed = 700 + i
+		var cust: Node = _manager.call("_spawn", Vector3.ZERO, false)
+		var face: FaceStyle = cust.get_node("Rig").get("face_style")
+		var ok := _kit_on(face) == (int(cust.gender) == FEMALE)
+		seen[int(cust.gender)] = bool(seen.get(int(cust.gender), true)) and ok
+		cust.free()
+	_check(
+		seen.get(FEMALE, false) and seen.get(MALE, false),
+		"passers-by: the women wear the kit, the men do not %s" % seen
+	)
+
+
+func _kit_on(face: FaceStyle) -> bool:
+	return (
+		face != null
+		and face.eye_lash >= _cast.LASH - 1e-4
+		and face.mouth_color.is_equal_approx(_cast.LIPSTICK)
+	)
+
+
 ## A walk-in named "Ms. Portobello" wears her face, her auburn hair and tortoise wire
 ## glasses, fitted to her close-set eyes: the rims centred across on them, hanging
 ## GlassesFit.GLASSES_HANG below them on the nose, never stretched; rims shrunk below
@@ -97,10 +180,7 @@ func _cast_walk_in() -> void:
 	var rig: Node = cust.get_node("Rig")
 	var face: Resource = rig.get("face_style")
 	_check(cust.face_style == "paper_portobello", "a cast walk-in gets their preset")
-	_check(
-		face != null and face.resource_path == STYLE_DIR + "paper_portobello.tres",
-		"and the rig wears it"
-	)
+	_check(_cast.preset_of(face) == "paper_portobello", "and the rig wears it")
 	_check(cust.hair_color.is_equal_approx(Color("5e2618")), "with the cast hair colour")
 	_check(cust.glasses == "wire" and cust.glasses_color == "tortoise", "and the cast glasses")
 	var meshes: Array = rig.get("_glasses_meshes")

@@ -27,6 +27,9 @@ uniform vec4 paper_dark : source_color = vec4(0.235, 0.145, 0.082, 1.0);
 uniform vec4 paper_brow : source_color = vec4(0.471, 0.29, 0.173, 1.0);
 uniform vec4 paper_cream : source_color = vec4(0.937, 0.863, 0.745, 1.0);
 uniform vec4 paper_rose : source_color = vec4(0.827, 0.518, 0.392, 1.0);
+// the mouth's paper (FaceStyle.mouth_color): the dark paper unless a face wears lipstick
+// (the feminine kit, FaceCast); open, a lipstick mouth keeps a dark inside
+uniform vec4 paper_mouth : source_color = vec4(0.235, 0.145, 0.082, 1.0);
 uniform vec2 paper_shadow_offset = vec2(-0.004, 0.006);
 uniform float paper_shadow_alpha = 0.22;
 uniform float paper_shadow_soft = 0.008;
@@ -616,6 +619,31 @@ float piece_lash(vec2 e, vec2 r, float thick) {
 		float a = radians(k == 0 ? 14.0 : 38.0);
 		vec2 base = rr * vec2(cos(a), -sin(a));
 		vec2 n = normalize(vec2(cos(a) / rr.x, -sin(a) / rr.y));
+		vec2 dir = normalize(n + vec2(0.6, 0.0));
+		d = fs_smin(d, piece_tick(e, base, dir, 1.0 * thick, 0.8 * thick), 0.006);
+	}
+	return d;
+}
+
+// The lash strip on a lid (E6 once the lid comes down: a heavy-lid idle, a blink): the
+// same dark strip and two ticks, riding the lid's lower edge (lid_edge) over the outer half
+// of the eye instead of the white's outline, which the lid hides. e in the eye's frame
+// (+x = outward, y down), r the eye outline.
+float piece_lid_lash(vec2 e, vec2 r, vec2 edge, float margin, float thick) {
+	float rx = r.x + margin;
+	float b = edge.y / (rx * rx);
+	// the edge y = edge.x - b x^2, lifted so the strip lies mostly on the lid
+	float y0 = edge.x - 0.3 * thick;
+	float xa = 0.12 * rx;
+	float xb = rx - 0.3 * thick;
+	vec2 A = vec2(xa, y0 - b * xa * xa);
+	vec2 C = vec2(xb, y0 - b * xb * xb);
+	vec2 B = vec2(0.5 * (xa + xb), A.y - b * xa * (xb - xa));
+	float d = fs_sd_bezier(e, A, B, C).x - 0.5 * thick;
+	for (int k = 0; k < 2; k++) {
+		float x = (k == 0 ? 0.92 : 0.7) * xb;
+		vec2 base = vec2(x, y0 - b * x * x);
+		vec2 n = normalize(vec2(-2.0 * b * x, -1.0));
 		vec2 dir = normalize(n + vec2(0.6, 0.0));
 		d = fs_smin(d, piece_tick(e, base, dir, 1.0 * thick, 0.8 * thick), 0.006);
 	}

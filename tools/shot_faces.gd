@@ -31,6 +31,9 @@ extends SceneTree
 ##                      group (eyes, brows, noses, mouths, extras, combos), J1 itself first in
 ##                      every row; the combos again at game size (25 px, 4x). With `catalogue`
 ##                      after `--`, only this sheet.
+##   new_looks.png      the looks built from the approved pieces (guide section 9) in the
+##                      states, then at game size (25 px, 4x), as cast.png. With `new_looks`
+##                      after `--`, only this sheet.
 
 const OUT_DIR := "res://IMPORT/faces_proc"
 const STYLE_DIR := "res://data/face_styles/"
@@ -86,6 +89,15 @@ const CAST := [
 	["Mr. Bellamy", "paper_bellamy"],
 	["Miss Hartley", "paper_hartley"],
 	["Dr. Vance", "paper_vance"],
+]
+# new_looks.png: the looks from the approved pieces (guide section 9): label, preset
+const NEW_LOOKS := [
+	["the colonel", "paper_colonel"],
+	["the dandy", "paper_dandy"],
+	["the sprite", "paper_sprite"],
+	["the owl", "paper_owl"],
+	["the sage", "paper_sage"],
+	["the glint", "paper_glint"],
 ]
 # cast_zoom.png: label, preset, centre (face units from the disc centre, y down)
 const CAST_ZOOMS := [
@@ -180,7 +192,7 @@ const CATALOGUE := [
 			],
 			["E6", "lash strip", {"eye_lash": 0.036}],
 			["E7", "eye bag strip", {"eye_bag": 0.02}],
-			["E8", "glint speck (banned now)", {"pupil_glint": 0.02}],
+			["E8", "glint speck", {"pupil_glint": 0.02}],
 		],
 	],
 	[
@@ -313,7 +325,7 @@ const CATALOGUE := [
 				},
 			],
 			["X6", "chin patch", {"beard": Vector2(0.05, 0.04), "beard_height": 0.9}],
-			["X7", "crow's feet (dropped)", {"eye_crease": 0.016}],
+			["X7", "crow's feet", {"eye_crease": 0.016}],
 		],
 	],
 	[
@@ -494,12 +506,16 @@ func _run() -> void:
 		await _sheet_catalogue()
 		quit(0)
 		return
+	if OS.get_cmdline_user_args().has("new_looks"):
+		await _sheet_cast(NEW_LOOKS, "new_looks.png")
+		quit(0)
+		return
 	if OS.get_cmdline_user_args().has("happy"):
 		await _sheet_happy()
 		quit(0)
 		return
 	if OS.get_cmdline_user_args().has("cast"):
-		await _sheet_cast()
+		await _sheet_cast(CAST, "cast.png")
 		await _sheet_cast_zoom()
 		quit(0)
 		return
@@ -530,16 +546,17 @@ func _cast_preset(key: String) -> String:
 	return key
 
 
-## The cast in the states (rows = characters), then every idle at game size (25 px, 4x).
-func _sheet_cast() -> void:
+## `cast` ([label, preset] rows, CAST or NEW_LOOKS) in the states, then every idle at game
+## size (25 px, 4x), saved as `file`.
+func _sheet_cast(cast: Array, file: String) -> void:
 	var small := int(ceil(GAME_HEAD_PX * PAD)) + 3
 	var up := small * UPSCALE
-	var rows_h := (CELL + LABEL_H) * CAST.size()
+	var rows_h := (CELL + LABEL_H) * cast.size()
 	var size := Vector2i(CELL * REF_STATES.size(), rows_h + up + 2 * LABEL_H)
 	var board := _board(size)
-	var tiny_board := _board(Vector2i(small * CAST.size(), small))
-	for r in CAST.size():
-		var who: Array = CAST[r]
+	var tiny_board := _board(Vector2i(small * cast.size(), small))
+	for r in cast.size():
+		var who: Array = cast[r]
 		var key := _cast_preset(who[1])
 		var style := load(STYLE_DIR + key + ".tres") as FaceStyle
 		for c in REF_STATES.size():
@@ -552,20 +569,20 @@ func _sheet_cast() -> void:
 		var tiny := _face(style, {}, GAME_HEAD_PX * PAD)
 		tiny.position = Vector2(r * small + 1, 1)
 		tiny_board.add_child(tiny)
-		var x := float(r * size.x) / CAST.size()
+		var x := float(r * size.x) / cast.size()
 		var y := rows_h + LABEL_H + up
-		board.add_child(_label(String(who[0]), Vector2(x, y), float(size.x) / CAST.size()))
-	var img := await _render(tiny_board, Vector2i(small * CAST.size(), small))
-	for r in CAST.size():
+		board.add_child(_label(String(who[0]), Vector2(x, y), float(size.x) / cast.size()))
+	var img := await _render(tiny_board, Vector2i(small * cast.size(), small))
+	for r in cast.size():
 		var one := img.get_region(Rect2i(r * small, 0, small, small))
 		one.resize(up, up, Image.INTERPOLATE_NEAREST)
 		var tr := TextureRect.new()
 		tr.texture = ImageTexture.create_from_image(one)
-		var cx := (r + 0.5) * size.x / CAST.size()
+		var cx := (r + 0.5) * size.x / cast.size()
 		tr.position = Vector2(cx - up * 0.5, rows_h + LABEL_H)
 		board.add_child(tr)
 	board.add_child(_label("game size (25 px head, 4x)", Vector2(0, rows_h), size.x))
-	await _save(board, size, "cast.png")
+	await _save(board, size, file)
 
 
 ## The happy eye modes: HAPPY_ROWS (rows) idle and happy in each HappyEye mode (columns),

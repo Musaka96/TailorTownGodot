@@ -31,7 +31,8 @@ extends SceneTree
 ##                        and after the unstretched disc fit (2026-09-26)
 ## With `j1` after `--`, only j1_heads.png; with `noble`, only noble_head.png; with `lid`,
 ## only lid_fix.png; with `cast`, only cast_heads.png (`vance_whites` swaps in paper_vance_whites);
-## with `dimmock`, only dimmock_fix.png; with `head0`, only head0_fix.png.
+## with `dimmock`, only dimmock_fix.png; with `head0`, only head0_fix.png (`head0 <preset>
+## ...` only those presets, after only, into head0_<first preset>.png).
 ## With `presets` after `--`: the old per-preset shots, head_<preset>[_<state>].png (only
 ## the named presets when any are given).
 ## The outfit goes on one frame after the rig enters the tree (its mesh slots fill in
@@ -179,7 +180,7 @@ func _run() -> void:
 	elif not args.is_empty() and args[0] == "dimmock":
 		await _sheet_dimmock()
 	elif not args.is_empty() and args[0] == "head0":
-		await _sheet_head0_fix()
+		await _sheet_head0_fix(args.slice(1))
 	elif not args.is_empty() and args[0] == "cast":
 		await _sheet_cast_heads(args.has("vance_whites"))
 	else:
@@ -422,14 +423,15 @@ func _sheet_lid_fix() -> void:
 ## Every preset on the Base head and on head 2, before and after the unstretched disc fit
 ## (columns: Base face rect, then before / after per head). Before = the old shader with the
 ## old disc (DISC_SCALE x face_scale rect widths, heights stretched to the rect aspect).
-func _sheet_head0_fix() -> void:
-	var presets := []
-	for f in DirAccess.get_files_at(STYLE_DIR):
-		if f.ends_with(".tres"):
-			presets.append(f.trim_suffix(".tres"))
-	presets.sort()
+func _sheet_head0_fix(only: Array) -> void:
+	var presets := only.duplicate()
+	if presets.is_empty():
+		for f in DirAccess.get_files_at(STYLE_DIR):
+			if f.ends_with(".tres"):
+				presets.append(f.trim_suffix(".tres"))
+		presets.sort()
 	var before: Shader = null
-	if FileAccess.file_exists(BEFORE_H0_SHADER):
+	if only.is_empty() and FileAccess.file_exists(BEFORE_H0_SHADER):
 		before = load(BEFORE_H0_SHADER) as Shader
 	var cells := []
 	for h in H0_HEADS.size():
@@ -456,7 +458,8 @@ func _sheet_head0_fix() -> void:
 				cells.append([await _grab(), 0, r, "%s rect" % name])
 				mat.set_shader_parameter("debug_uv", false)
 			cells.append([await _grab(), 2 + h * 2, r, "%s after" % name])
-	await _save_grid(cells, 1 + H0_HEADS.size() * 2, presets.size(), "head0_fix.png")
+	var file := "head0_fix.png" if only.is_empty() else "head0_%s.png" % only[0]
+	await _save_grid(cells, 1 + H0_HEADS.size() * 2, presets.size(), file)
 
 
 ## Portrait framing, or LID_ZOOM times closer on the eye at LID_EYE (same camera position).

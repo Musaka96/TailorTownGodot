@@ -32,7 +32,8 @@ Rejected on the way, kept out on purpose: sprite faces, Godot decals, procedural
 ## 1. Medium
 
 - Every feature is a **flat piece of coloured paper** laid on the skin. There are no drawn lines,
-  no outlines, no highlights, no gradients, no shading inside a piece.
+  no outlines, no highlights, no gradients, no shading inside a piece. (E8's glint, section 9,
+  is not a highlight: it is a speck of cream paper cut and laid on the pupil like any piece.)
 - A piece has a **crisp, hand-cut edge**: short straight scissor facets and the odd small nick,
   never a perfect curve, and no two edges alike. The exception is an edge that is one real
   straight snip: it is cut clean, with no jag and no nick. Today that is the pupil wedge's two
@@ -134,6 +135,7 @@ portrait, the fitting screen and any close-up. That is intended.
 | Cream        | `#efdcbe` | eye whites, teeth                |
 | Rose         | `#d38464` | nose, cheeks, tongue             |
 | Skin         | per head  | lids (the skin itself)           |
+| Lipstick     | `#a8464a` | a woman's mouth (the feminine kit, section 9) |
 
 Measured on the J1 disc (2026-09-25; the old cream `#fff4e2` and rose `#d98c7e` were brighter and
 pinker than the reference). No other colours. Eye colour does not tint anything in this style; iris colour is retired.
@@ -187,7 +189,8 @@ preset lands the same on every head. Disc and ellipse sizes below are **radii**,
   mouth is open past 0.6. No pinched corners, no bands that thin to nothing.
 - **Cheeks**: optional rose discs 0.06–0.10 fw, outside-below the eyes, on the skin under the
   whites.
-- **Moustaches, whisker marks, sparkles, tears**: not in this style.
+- **Whisker marks, tears**: not in this style. Moustaches, freckles, the glint speck and the
+  other pieces the owner approved from the catalogue are in section 9; nothing else from it.
 
 ## 4. The idle face
 
@@ -200,7 +203,7 @@ brows at rest, mouth the faint smile. Identity comes from §5, never from an exp
 
 Eye white present or not, eye size, aspect, spacing and height; pupil size and wedge on/off;
 brow length, thickness, angle, arch and height within the ranges above; nose kind and size;
-mouth width; cheeks on/off; the heavy-lid idle. Nothing else. Colours, the paper treatment, the
+mouth width; cheeks on/off; the heavy-lid idle; the approved pieces of section 9. Nothing else. Colours, the paper treatment, the
 stroke thickness ranges and the expression shapes are shared and fixed.
 
 ## 6. Expressions (shared states, applied on any face)
@@ -253,7 +256,7 @@ owner wants them bigger. The 25 px head stays clean with all of them.
 ## 7. Checking an asset
 
 A new preset or a generated reference is accepted only if: every feature is a paper piece with no
-lines; only the five papers are used; sizes sit inside the §3 ranges; the idle matches §4; the
+lines; only the five papers are used (plus the lipstick, which only the feminine kit lays); sizes sit inside the §3 ranges; the idle matches §4; the
 25 px render in `IMPORT/faces_proc/sheet_scale.png` still reads as a face.
 
 ## 8. The cast
@@ -284,7 +287,8 @@ frames come in black, tortoise, gold and silver only, so no bright fashion frame
 In the game `data/scripts/face_cast.gd` (`FaceCast`) hands these out (live since 2026-09-27):
 the player is J1, a customer named after a cast member (by surname, the "same face" names
 included; Lady Ashcombe and Lord Tewkesbury wear the noble's) gets that face with its hair
-colour and glasses, anyone else one of the seven cast faces picked by their name.
+colour and glasses, anyone else one of the customer faces (the seven cast faces and the six
+section 9 looks) picked by their name; every woman wears the feminine kit (section 9).
 
 The owner's brow angles were written with the other sign ("−10°, down at the outer ends"); here a
 positive angle lifts the inner end, so Pettigrew's +10 and Hartley's +18 are the same slants.
@@ -295,3 +299,72 @@ Mrs. Applegarth a white bun; Ms. Portobello a sharp bob; Mr. Zanetti a slicked q
 Mr. Bellamy long and swept back, or a greying widow's peak; Miss Hartley soft and overdone with
 a stray curl; Mr. Rossi and Mr. Penrose a floppy fringe; Dr. Vance short with a hard side
 parting.
+
+## 9. Approved piece vocabulary (owner, 2026-09-27)
+
+The owner reviewed the catalogue (`IMPORT/faces_proc/catalogue.png`, `tools/shot_faces.gd --
+catalogue`) and approved the pieces below. A preset may use these and the §3 base pieces,
+nothing else. Values are face units (§3); a range marked *wider* goes past §3 for that piece
+only, and `.dev/make_face_styles.gd` (`RANGES`, `_check()`) flags anything outside.
+
+| Id | Piece | FaceStyle fields | Range |
+|----|-------|------------------|-------|
+| E1 | tall oval whites | `white_aspect`, `white_radius` | aspect 1.3–1.43 (*wider*, §3 stops at 1.4), radius 0.12–0.14 |
+| E2 | wide low whites | `white_aspect`, `white_radius`, `eye_height` | aspect 0.67–0.8 (*wider*, §3 starts at 0.75), radius 0.15–0.17, eye 0.50–0.53 |
+| E5 | keen oval pupils | `pupil_radius`, `pupil_aspect`, `pupil_wedge` 0 | radius 0.05–0.06, aspect 1.6–1.8, no wedge |
+| E6 | lash strip | `eye_lash` | 0.03–0.04 (the kit's 0.036). On a lid that has come down (a heavy-lid idle, a blink) the lash rides the lid's lower edge instead of the white's (`piece_lid_lash`) |
+| E7 | eye-bag strip | `eye_bag` | 0.015–0.025 |
+| E8 | glint speck (was banned; approved) | `pupil_glint` | 0.015–0.025, cream, one per pupil, up and to the viewer's left |
+| B1 | thin long arched brows | `brow_thickness`, `brow_length`, `brow_arch`, `brow_corner` 1 | thickness 0.05 (*wider*, §3 starts at 0.065), length 0.27 and arch 0.4 (*wider*), height 0.22–0.24 (0.2 hid under tripo fringes) |
+| B6 | straight low heavy brows | `brow_thickness`, `brow_length`, angle 0, arch 0, `brow_corner` 0.3 | thickness 0.12 (*wider*, §3 stops at 0.105), length 0.26, height 0.30 |
+| N2 | hook nose | `nose_kind` HOOK | half size 0.08–0.085 × 0.10–0.11, centre 0.62–0.63 |
+| N3 | wide flat oval nose | `nose_kind` OVAL, wide `nose_size` | half size 0.15 × 0.055–0.06, centre 0.68 |
+| N5 | drop nose, point down | `nose_kind` TEARDROP_DOWN | half size 0.07–0.075 × 0.09–0.10, centre 0.65–0.66 |
+| M2 | wide flat line mouth | `mouth_width`, `mouth_curve` | width 0.25 (*wider*, §3 stops at 0.22), curve 0.02 (*wider*, below the §4 faint smile) |
+| M3 | smirk | `mouth_skew` (+ `mouth_curve`, `mouth_width`) | skew 0.15–0.3, curve 0.2–0.22, width 0.17 |
+| X1 | freckles | `freckles` (brow paper, round `cheek_pos`) | 0.01–0.012 |
+| X2 | beauty mark | `beauty_mark`, `beauty_pos` | 0.012–0.016, beside a mouth corner (0.16, 0.76) |
+| X4 | wedge down | `pupil_wedge_dir` −90 | on any wedge pupil |
+| X5 | moustache: bar and chevron | `moustache` 1 / 2, `moustache_size`, `moustache_height` | half-width 0.13–0.15 × 0.04–0.05, at 0.775; the mouth drops to 0.845–0.855 under it |
+| X6 | chin patch | `beard`, `beard_height` | 0.05 × 0.04 at 0.9–0.925 |
+| X7 | crow's feet (was dropped; approved) | `eye_crease` | 0.014–0.018 |
+
+**In the shader, off, not for use:** E3 half-disc whites (`white_flat`), E4 ring whites
+(`eye_ring`), X3 monocle (`monocle`), B2 short thick block, B3 comma (`brow_comma`), B4 high
+tiny stubs, B5 unibrow (`brow_join`), N1 button (`nose_button`), N4 long strip (`nose_kind`
+LONG), N6 nostrils (`nose_nostrils`), M1 small o ring (`mouth_ring`), M4 pursed heart
+(`mouth_heart`), M5 buck teeth (`mouth_buck`), M6 lip shape (`mouth_lips`). They stay in the
+shader for the catalogue sheet; no preset sets them.
+
+**The feminine kit.** The owner: "definitely the E6 eyelashes for girls" and lipstick for the
+lips. Every woman's face (`Customer.gender` FEMALE; the cast women Portobello, Hartley,
+Applegarth and Lady Ashcombe are FEMALE in `FaceCast.BY_NAME` whatever body the dice gave a
+collector) gets, on top of whatever preset she wears: E6 at 0.036 (`FaceCast.LASH`) and the
+mouth in lipstick `#a8464a` (`FaceStyle.mouth_color`, `FaceCast.LIPSTICK`; default the dark
+paper, so no man changes). Open, a lipstick mouth is a lipstick rim 0.7 × its thickness round
+a dark inside (teeth and tongue sit in the dark). The kit also takes off X5 and X6, so a woman
+who draws the colonel or the sage wears the rest of the look. `FaceCast.style(preset, gender)`
+hands out a cached copy (`resource_name` "<preset>+feminine", `FaceCast.preset_of()`), used by
+`Customer.apply_look()` and `CustomerPortrait`; `FaceCast.feminine_kit` switches it off for
+review sheets. Compared on `IMPORT/faces_proc/feminine.png` (`tools/shot_review.gd --
+feminine`: the cast women and three female passers-by, before and after, portrait and
+dialogue, blink and talking).
+
+**The new looks** (2026-09-27, `.dev/make_face_styles.gd`, in `FaceCast.CUSTOMER_PRESETS`):
+each is the cast base (J1 with the straight gaze) with pieces from this vocabulary only, one
+idle each. `tools/shot_faces.gd -- new_looks` draws `IMPORT/faces_proc/new_looks.png`
+(states and 25 px), `tools/shot_face_head.gd -- head0 <presets>` draws them on the Base head
+and head 2 (`head0_paper_colonel.png`).
+
+| Preset | Pieces | Key dials |
+|--------|--------|-----------|
+| `paper_colonel` | B6, N2, X5 bar, E7 | whites 0.13 round, wedge pupils 0.085; hook 0.08 × 0.10 at 0.62; bar 0.14 × 0.045 at 0.775, mouth 0.16 at 0.85; bags 0.02 |
+| `paper_dandy` | B1, E5, M3, X2 | whites 0.14 round, keen pupils 0.05 × 1.8; small teardrop nose up; smirk 0.3 on a 0.17 mouth; beauty mark 0.014 by the right corner |
+| `paper_sprite` | E1, X1, N5 | tall whites 0.13 × 1.43 set low at 0.52, wedge pupils 0.09; medium brows at 0.21; freckles 0.011; drop nose 0.07 × 0.09; small mouth 0.12 |
+| `paper_owl` | E2, B6, N3, M2 | wide low whites 0.16 × 0.67 at 0.52, wedge pupils 0.09; heavy brows; wide oval nose 0.15 × 0.06; flat mouth 0.25, curve 0.02 |
+| `paper_sage` | X7, E7, B1, X6, N5 | whites 0.14 round, wedge pupils 0.09; crow's feet 0.016, bags 0.02; drop nose; mouth 0.15; chin patch 0.05 × 0.04 at 0.925 |
+| `paper_glint` | E8, E5, B1, M3 light | whites 0.145 × 1.05, keen pupils 0.055 × 1.8 with a 0.02 glint; small disc nose; light smirk 0.15 on a 0.17 mouth |
+
+Adding them to the pool re-hashed `FaceCast.preset_for()`: a name keeps the same face every run,
+but a regular saved before faces were remembered (no `face_style` in the look) may now wear a
+different one; every look saved since the cast went live stores its face.

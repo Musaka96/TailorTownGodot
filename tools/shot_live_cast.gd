@@ -169,7 +169,12 @@ func _portrait(cust: Node, look: Dictionary) -> Image:
 
 
 func _face_name(face: Resource) -> String:
-	return face.resource_path.get_file().get_basename() if face != null else "none"
+	if face == null:
+		return "none"
+	# the feminine kit's copies have no path, only a name ("paper_hartley+feminine")
+	if face.resource_path == "":
+		return face.resource_name
+	return face.resource_path.get_file().get_basename()
 
 
 func _frames(n: int) -> void:

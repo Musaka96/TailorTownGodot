@@ -147,7 +147,8 @@ func offer_greeting() -> void:
 
 ## Set skin colour, head mesh, and optionally eye colour + glasses (called by the
 ## manager on spawn). Empty eye_color / glasses keep the rig defaults. The face is
-## `face_style`'s (empty = the rig's default).
+## `face_style`'s (empty = the rig's default), with the feminine kit when `gender` is FEMALE
+## (FaceCast.style()), so set the gender first.
 func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 	skin_color = skin
 	head_index = head
@@ -160,7 +161,7 @@ func apply_look(skin: Color, eyes := "", glasses_kind := "", head := 0) -> void:
 	_rig.set("glasses_color", glasses_color)
 	_rig.set_face_look(eyes, glasses_kind)
 	if face_style != "":
-		_rig.set("face_style", FaceCast.style(face_style))
+		_rig.set("face_style", FaceCast.style(face_style, gender))
 	_rig.set("shoes", shoes)
 
 

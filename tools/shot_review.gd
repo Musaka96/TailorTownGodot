@@ -14,6 +14,11 @@ extends SceneTree
 ##                            in a 6x4 grid, then the same 24 as head close-ups
 ##   review_expressions.png  player, Mr. Dimmock, Mr. Pettigrew, Miss Hartley x the 7
 ##                            shared face states, on their real dressed heads
+##   feminine.png            the feminine kit (FaceCast.style() for a woman: lashes and
+##                            lipstick): the cast women and three female passers-by, before
+##                            (FaceCast.feminine_kit off) and after, head close-up and
+##                            dialogue portrait, then the kit on a blink and talking
+## After `--`: `feminine` or `pedestrians` renders only that sheet.
 
 const PLAYER_SCENE := "res://scenes/player/player.tscn"
 const CUSTOMER_SCENE := "res://entities/customer/customer.tscn"
@@ -81,6 +86,13 @@ const EXPR_ROW_LABEL_W := 150
 const EXPR_LABEL_H := 26
 const EXPR_SETTLE_FRAMES := 18  # > PROC_EXPR_TIME (0.18s) worth of frames
 
+# --- sheet 4: the feminine kit --------------------------------------------------
+const FEM_CAST := ["Ms. Portobello", "Miss Hartley", "Mrs. Applegarth", "Lady Ashcombe"]
+const FEM_PASSERS := 3
+const FEM_CELL := 280
+const FEM_LABEL_H := 30
+const FEM_STATES := ["blink_half", "talking"]
+
 var _vp: SubViewport
 var _world: Node3D
 var _cam: Camera3D
@@ -115,9 +127,16 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	await _sheet_cast()
-	await _sheet_pedestrians()
-	await _sheet_expressions()
+	var args := OS.get_cmdline_user_args()
+	if args.has("feminine"):
+		await _sheet_feminine()
+	elif args.has("pedestrians"):
+		await _sheet_pedestrians()
+	else:
+		await _sheet_cast()
+		await _sheet_pedestrians()
+		await _sheet_expressions()
+		await _sheet_feminine()
 	quit(0)
 
 
@@ -320,11 +339,12 @@ func _sheet_pedestrians() -> void:
 			var col := idx % PED_COLS
 			var row := int(idx / PED_COLS)
 			var label := (
-				"seed %d #%d: %s\n%s, street %d/%d, head %d"
+				"seed %d #%d: %s%s\n%s, street %d/%d, head %d"
 				% [
 					int(sd),
 					k + 1,
 					cust.face_style,
+					" (F)" if int(cust.gender) == 2 else "",
 					str(cust.glasses) if has_glasses else "no glasses",
 					int(cust.street_index),
 					int(cust.street_color),
@@ -467,6 +487,76 @@ func _sheet_expressions() -> void:
 	var size := Vector2i(width, int(y + FOOTER_H))
 	var footer := "states via CharacterRig._proc_expression() / FaceStyle.expression(); idle = rest"
 	await _save_sheet(cells, size, "review_expressions.png", footer)
+
+
+# --- Sheet 4: the feminine kit ----------------------------------------------------
+
+
+## FEM_CAST and the first FEM_PASSERS women among fresh passers-by (one _dress per seed from
+## PED_SEED_BASE), each dressed twice through the real path from the same seed: the kit off,
+## then on. Rows: close-up and dialogue before, close-up and dialogue after, then the kit in
+## FEM_STATES (close-ups).
+func _sheet_feminine() -> void:
+	var manager: Node = load(MANAGER_SCRIPT).new()
+	var pref_cls: GDScript = load(PREF_SCRIPT)
+	var rng: RandomNumberGenerator = manager.get("_rng")
+	# [label, seed, name ("" = a passer-by)]
+	var who := []
+	for nm: String in FEM_CAST:
+		who.append([nm, SEED_CAST + CAST_NAMES.find(nm), nm])
+	var probe: Node3D = (load(CUSTOMER_SCENE) as PackedScene).instantiate()
+	_world.add_child(probe)
+	probe.set_physics_process(false)
+	var sd := PED_SEED_BASE
+	while who.size() < FEM_CAST.size() + FEM_PASSERS and sd < PED_SEED_BASE + 500:
+		rng.seed = sd
+		manager.call("_dress", probe)
+		if int(probe.gender) == 2:
+			who.append(["passer-by, seed %d" % sd, sd, ""])
+		sd += 1
+	probe.queue_free()
+	var rows := ["before", "before, dialogue", "after", "after, dialogue"] + FEM_STATES
+	var cells := []
+	var row_h := FEM_CELL + FEM_LABEL_H
+	for c in who.size():
+		var x := float(c * FEM_CELL)
+		_label_at(cells, str(who[c][0]), Vector2(x, 0), FEM_CELL, 14)
+		for kit in [false, true]:
+			FaceCast.feminine_kit = kit
+			var cust: Node3D = (load(CUSTOMER_SCENE) as PackedScene).instantiate()
+			_world.add_child(cust)
+			cust.set_physics_process(false)
+			rng.seed = int(who[c][1])
+			if str(who[c][2]) != "":
+				cust.preference = pref_cls.random_pref(rng, str(who[c][2]))
+			manager.call("_dress", cust)
+			await _frames(3)
+			var rig: Node = cust.get_node("Rig")
+			var r0 := 2 if kit else 0
+			var face := FaceCast.preset_of(rig.get("face_style"))
+			var y := FEM_LABEL_H + r0 * row_h
+			_img_at(cells, await _close_up(rig, FEM_CELL), Vector2(x, y))
+			_label_at(cells, "%s: %s" % [rows[r0], face], Vector2(x, y + FEM_CELL), FEM_CELL, 11)
+			y += row_h
+			var dlg := await _dialogue_portrait(cust, {})
+			_img_at(cells, dlg, Vector2(x + (FEM_CELL - dlg.get_width()) * 0.5, y))
+			_label_at(cells, rows[r0 + 1], Vector2(x, y + FEM_CELL), FEM_CELL, 11)
+			for s in FEM_STATES.size() if kit else 0:
+				rig.call("_proc_expression", FEM_STATES[s])
+				await _frames(EXPR_SETTLE_FRAMES)
+				y = FEM_LABEL_H + (4 + s) * row_h
+				_img_at(cells, await _close_up(rig, FEM_CELL), Vector2(x, y))
+				_label_at(cells, FEM_STATES[s], Vector2(x, y + FEM_CELL), FEM_CELL, 11)
+			cust.queue_free()
+			await _frames(2)
+	FaceCast.feminine_kit = true
+	manager.free()
+	var size := Vector2i(FEM_CELL * who.size(), int(FEM_LABEL_H + rows.size() * row_h + FOOTER_H))
+	var footer := (
+		"lash %.3f, lipstick #%s (FaceCast.LASH / LIPSTICK); cast seeds as review_cast.png"
+		% [FaceCast.LASH, FaceCast.LIPSTICK.to_html(false)]
+	)
+	await _save_sheet(cells, size, "feminine.png", footer)
 
 
 # --- Shared render helpers -------------------------------------------------------

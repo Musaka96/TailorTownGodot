@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_ka8sd"]
+
+[resource]
+script = ExtResource("1_ka8sd")
+eye_spacing = 0.226
+white_radius = 0.14
+white_aspect = 1.0
+pupil_radius = 0.09
+pupil_wedge = 0.8
+brow_spacing = 0.255
+brow_height = 0.23
+brow_length = 0.27
+brow_thickness = 0.05
+brow_arch = 0.4
+brow_corner = 1.0
+nose_kind = 9
+nose_size = Vector2(0.07, 0.09)
+nose_height = 0.65
+mouth_width = 0.15
+mouth_thickness = 0.03
+eye_bag = 0.02
+eye_crease = 0.016
+beard = Vector2(0.05, 0.04)
+beard_height = 0.925

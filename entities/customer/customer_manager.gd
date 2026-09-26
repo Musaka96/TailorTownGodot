@@ -266,7 +266,11 @@ func _on_order_due(order: SuitOrder) -> void:
 	cust.collect_order = order
 	var known: Dictionary = Clientele.look(order.customer_name) if Clientele != null else {}
 	if known.is_empty():
-		# Head and hair are one combo (same index), so the hair gives back the head too.
+		# Head and hair are one combo (same index), so the hair gives back the head too. The
+		# title says the body the order was taken on (the dice in _dress knew no name).
+		var titled := CustomerPreference.title_gender(order.customer_name)
+		if titled != Enums.Gender.ANY:
+			cust.gender = titled as Enums.Gender
 		cust.face_style = FaceCast.preset_for(order.customer_name)
 		cust.apply_look(order.skin, "", "", order.hair_index)
 		cust.set_hair(order.hair_index)  # match the customer who ordered
@@ -460,11 +464,14 @@ func _dress(cust: Customer) -> void:
 
 
 ## A cast member (FaceCast.BY_NAME) always wears their own face, hair colour and glasses,
-## whatever the dice or an older save gave them. Anyone else is left as they are.
+## whatever the dice or an older save gave them, and the cast women are always women (the
+## feminine kit follows the gender). Anyone else is left as they are.
 func _wear_cast(cust: Customer, nm: String) -> void:
 	var cast := FaceCast.cast_of(nm)
 	if cast.is_empty():
 		return
+	if int(cast["gender"]) != Enums.Gender.ANY:
+		cust.gender = int(cast["gender"]) as Enums.Gender
 	cust.face_style = cast["preset"]
 	var glasses := Wardrobe.glasses_style(cast["glasses"])
 	if glasses != "":

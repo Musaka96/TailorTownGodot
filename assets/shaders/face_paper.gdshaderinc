@@ -312,11 +312,14 @@ vec3 face_paper(
 			vec3 cut = vec3(6.283 * r, 2.0 * r, 35.0 + fi);
 			col = fp_cut_piece(col, d, ds, paper_cream.rgb, p, sh, cut, px, lift, sheet);
 		}
-		if (eye_lash > 1e-3) {
-			float d = piece_lash(eo, outline, eye_lash);
-			float ds = piece_lash(eos, outline, eye_lash);
-			vec3 cut = vec3(0.3, eye_lash, 37.0 + fi);
-			col = fp_cut_piece(col, d, ds, paper_dark.rgb, p, sh, cut, px, lift, sheet);
+		// (it reaches past the outline, where the lid does not cover it, so it fades out as
+		// the lid comes down and the lid's own lash takes over, below)
+		float wo = 1.0 - smoothstep(0.1, 0.25, lid);
+		if (eye_lash > 1e-3 && wo > 0.0) {
+			float d = piece_lash(eo, outline, eye_lash) + paper_cut(p, 0.3, eye_lash, 37.0 + fi);
+			float ds = piece_lash(eos, outline, eye_lash) + paper_cut(sh, 0.3, eye_lash, 37.0 + fi);
+			col = mix(col, paper_piece(col, d, ds, paper_dark.rgb, p, 37.0 + fi, px), wo);
+			fp_layer(d, px, wo, lift, sheet);
 		}
 		if (has_lid) {
 			// the lid is the skin itself, a layer up: its fill is the skin under the face at p
@@ -350,6 +353,18 @@ vec3 face_paper(
 				vec3 lidded = col;
 				col = mix(lidded, paper_piece(lidded, dk, dks, paper_dark.rgb, p, 9.0 + fi, px), shut);
 				fp_layer(dk, px, shut, lift, sheet);
+			}
+			// E6 on a lid that has come down (a heavy-lid idle, a blink): the lash rides the
+			// lid's edge, fading in as the lid covers the white's own lash
+			float wl = eye_lash > 1e-3 ? (1.0 - wo) * (1.0 - calm) : 0.0;
+			if (wl > 0.0) {
+				float t = eye_lash;
+				float d = piece_lid_lash(eo, outline, edge, lm, t);
+				float ds = piece_lid_lash(eos, outline, edge, lm, t);
+				d += paper_cut(p, 0.3, t, 38.0 + fi);
+				ds += paper_cut(sh, 0.3, t, 38.0 + fi);
+				col = mix(col, paper_piece(col, d, ds, paper_dark.rgb, p, 38.0 + fi, px), wl);
+				fp_layer(d, px, wl, lift, sheet);
 			}
 		}
 		// X3 the monocle: a dark ring round the viewer's left eye, over the lid
@@ -506,10 +521,21 @@ vec3 face_paper(
 		}
 		dm += paper_cut(p, per_m, sz_m, 14.0);
 		dms += paper_cut(sh, per_m, sz_m, 14.0);
-		col = paper_piece(col, dm, dms, paper_dark.rgb, p, 14.0, px);
+		col = paper_piece(col, dm, dms, paper_mouth.rgb, p, 14.0, px);
 		fp_layer(dm, px, 1.0, lift, sheet);
+		// lipstick (paper_mouth not the dark paper): open, the mouth is a lipstick rim round a
+		// dark inside, a second piece `lip` inside the first; teeth and tongue sit in the dark
+		bool lipstick = distance(paper_mouth.rgb, paper_dark.rgb) > 0.02;
+		float lip = lipstick ? 0.7 * mt : 0.0;
+		if (lipstick && op > 0.01) {
+			float k = smoothstep(0.0, 0.12, op);
+			float di = d_open + lip + paper_cut(p, per_m, sz_m, 17.0);
+			float dis = d_open_s + lip + paper_cut(sh, per_m, sz_m, 17.0);
+			col = mix(col, paper_piece(col, di, dis, paper_dark.rgb, p, 17.0, px), k);
+			fp_layer(di, px, k, lift, sheet);
+		}
 		if (op > 0.01) {
-			float inset = 0.35 * mt;
+			float inset = 0.35 * mt + lip;
 			if (mouth_teeth > 0.01) {
 				float band = max(0.36 * depth, 0.9 * mt) * clamp(mouth_teeth, 0.0, 1.0);
 				float dt = piece_teeth(pm, mc, y0, band, d_open, inset);

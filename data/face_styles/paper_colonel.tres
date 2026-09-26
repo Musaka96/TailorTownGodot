@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_ath6f"]
+
+[resource]
+script = ExtResource("1_ath6f")
+eye_spacing = 0.226
+white_radius = 0.13
+white_aspect = 1.0
+pupil_radius = 0.085
+pupil_wedge = 0.8
+brow_spacing = 0.255
+brow_height = 0.3
+brow_length = 0.26
+brow_thickness = 0.12
+brow_arch = 0.0
+brow_corner = 0.3
+nose_kind = 7
+nose_size = Vector2(0.08, 0.1)
+nose_height = 0.62
+mouth_height = 0.85
+mouth_width = 0.16
+mouth_thickness = 0.03
+mouth_curve = 0.15
+eye_bag = 0.02
+moustache = 1
+moustache_size = Vector2(0.14, 0.045)
+moustache_height = 0.775

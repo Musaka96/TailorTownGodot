@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_67ajt"]
+
+[resource]
+script = ExtResource("1_67ajt")
+eye_spacing = 0.226
+white_radius = 0.14
+white_aspect = 1.0
+pupil_radius = 0.05
+pupil_aspect = 1.8
+brow_spacing = 0.255
+brow_height = 0.23
+brow_length = 0.27
+brow_thickness = 0.05
+brow_arch = 0.4
+brow_corner = 1.0
+nose_kind = 2
+nose_size = Vector2(0.065, 0.09)
+nose_height = 0.645
+mouth_width = 0.17
+mouth_thickness = 0.03
+mouth_curve = 0.22
+mouth_skew = 0.3
+beauty_mark = 0.014
+beauty_pos = Vector2(0.16, 0.76)

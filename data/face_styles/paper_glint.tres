@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="FaceStyle" format=3]
+
+[ext_resource type="Script" path="res://data/scripts/face_style.gd" id="1_igvay"]
+
+[resource]
+script = ExtResource("1_igvay")
+eye_spacing = 0.226
+white_radius = 0.145
+white_aspect = 1.05
+pupil_radius = 0.055
+pupil_aspect = 1.8
+brow_spacing = 0.255
+brow_height = 0.23
+brow_length = 0.27
+brow_thickness = 0.05
+brow_arch = 0.4
+brow_corner = 1.0
+nose_size = Vector2(0.065, 0.065)
+nose_height = 0.655
+mouth_height = 0.796
+mouth_width = 0.17
+mouth_thickness = 0.03
+pupil_glint = 0.02
+mouth_skew = 0.15
