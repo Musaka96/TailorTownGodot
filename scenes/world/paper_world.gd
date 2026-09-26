@@ -33,15 +33,14 @@ const FAMILIES := [
 	["folded", ["metal", "gold", "steel", "iron", "brass", "machine", "chrome"]],
 	["kraft", ["wood", "walnut", "oak", "pine", "trunk", "post", "floor", "parquet"]],
 	[
+		"cardboard",
+		["wall", "wainscot", "interior", "brick", "roof", "cap", "chimney", "dormer", "cutaway"],
+	],
+	[
 		"crumple",
 		[
-			"wall",
-			"wainscot",
-			"interior",
 			"stone",
-			"brick",
 			"cobble",
-			"roof",
 			"grass",
 			"soil",
 			"dirt",
@@ -53,14 +52,12 @@ const FAMILIES := [
 			"velvet",
 			"linen",
 			"trim",
-			"cap",
 			"shutter",
 			"foliage",
 			"clover",
 			"straw",
 			"roll_end",
-			"cutaway"
-		]
+		],
 	],
 ]
 ## Per paper (tools/make_paper_tiles.py): texture, scan tiles per face unit (a tile is
@@ -70,7 +67,14 @@ const PAPERS := {
 	"kraft": ["world_kraft", 1.0, 0.7, 0.2],
 	"folded": ["world_folded", 2.5, 1.0, 0.4],
 	"coated": ["world_coated", 1.0, 1.2, 0.2],
+	"cardboard": ["world_cardboard", 1.0, 1.0, 0.5],
 }
+## How much calmer the paper is on surfaces facing up (floors, paving, table tops): the
+## gameplay camera looks down on them from far, and at full strength they read as grain.
+const UP_CALM := 0.7
+## Window glass: see-through and shadowless, so the sun comes in (glass_clear.gdshader).
+const GLASS_SHADER := preload("res://assets/shaders/glass_clear.gdshader")
+const GLASS_OPACITY := 0.22
 ## Shaders it knows how to read (their colour, texture, pattern); others stay as they are.
 const KNOWN_SHADERS := ["animal_crossing_style", "cloth", "roll_end"]
 ## Meshes swept per frame.
@@ -82,7 +86,9 @@ var _root: Node
 var _meshes: Array[MeshInstance3D] = []
 var _fresh: Array[MeshInstance3D] = []
 var _cursor := 0
-var _skip_roots: Array[Node] = []
+var _roofs: Array[Node] = []  # the roofs RoofManager fades
+var _lenient := {}  # source materials from a roof: papered even while alpha (mid-fade)
+var _glass := {}  # the clear glass materials this made
 var _papers := {}  # source material id -> paper ShaderMaterial (or null: leave it)
 var _source := {}  # paper ShaderMaterial -> its source Material
 var _originals := {}  # MeshInstance3D -> {"override": Material, s: Material, ...} before paper
@@ -109,7 +115,7 @@ func _ready() -> void:
 		if sc != null and sc.resource_path.ends_with("roof_manager.gd"):
 			var roof: Variant = rm.get("_roof")
 			if roof is Node:
-				_skip_roots.append(roof)
+				_roofs.append(roof)
 	for n in _root.find_children("*", "MeshInstance3D", true, false):
 		_meshes.append(n as MeshInstance3D)
 	get_tree().node_added.connect(_on_node_added)
@@ -184,9 +190,10 @@ func set_enabled(on: bool) -> void:
 func _paper_mesh(mi: MeshInstance3D) -> void:
 	if mi.mesh == null or _skipped(mi):
 		return
+	var roof := _under_roof(mi)
 	var over := mi.material_override
 	if over != null:
-		var p := _paper_or_sync(over)
+		var p := _paper_or_sync(over, roof)
 		if p != null and p != over:
 			_remember(mi, "override", over)
 			mi.material_override = p
@@ -195,7 +202,7 @@ func _paper_mesh(mi: MeshInstance3D) -> void:
 		var src := mi.get_active_material(s)
 		if src == null:
 			continue
-		var p := _paper_or_sync(src)
+		var p := _paper_or_sync(src, roof)
 		if p != null and p != src:
 			_remember(mi, s, mi.get_surface_override_material(s))
 			mi.set_surface_override_material(s, p)
@@ -207,13 +214,20 @@ func _remember(mi: MeshInstance3D, key: Variant, mat: Material) -> void:
 	_originals[mi] = rec
 
 
-## Characters, and the roof RoofManager fades, keep their own materials. An item a
-## character carries does not count as the character.
+## A mesh of a roof RoofManager fades: its materials go alpha while it fades (the paper
+## stays on; the fade itself is the instance transparency, which any material follows).
+func _under_roof(mi: Node) -> bool:
+	for r in _roofs:
+		if is_instance_valid(r) and (r == mi or r.is_ancestor_of(mi)):
+			return true
+	return false
+
+
+## Characters keep their own materials. An item a character carries does not count as
+## the character.
 func _skipped(mi: Node) -> bool:
 	var n := mi
 	while n != null and n != _root:
-		if n in _skip_roots:
-			return true
 		var sc: Script = n.get_script()
 		if sc != null:
 			var path := sc.resource_path
@@ -227,7 +241,9 @@ func _skipped(mi: Node) -> bool:
 
 ## The paper for `src`: itself when it already is one (after taking any change its source
 ## made in place), null when it is to be left alone.
-func _paper_or_sync(src: Material) -> Material:
+func _paper_or_sync(src: Material, roof := false) -> Material:
+	if _glass.has(src):
+		return null
 	if _source.has(src):
 		_sync(src as ShaderMaterial)
 		return src
@@ -236,9 +252,11 @@ func _paper_or_sync(src: Material) -> Material:
 		return null
 	var id := src.get_instance_id()
 	if not _papers.has(id):
+		if roof:
+			_lenient[src] = true
 		var p := _build(src)
 		_papers[id] = p
-		if p != null:
+		if p != null and p.shader == SHADER:
 			_source[p] = src
 	return _papers[id]
 
@@ -251,7 +269,7 @@ func _paper_cutaway(mat: ShaderMaterial) -> void:
 	if _cutaways.has(mat):
 		return
 	_cutaways[mat] = true
-	_apply_paper(mat, "crumple")
+	_apply_paper(mat, "cardboard")
 	mat.set_shader_parameter("paper_flatten", FLATTEN)
 	mat.set_shader_parameter("paper_on", true)
 
@@ -264,7 +282,7 @@ func _paper_cutaway(mat: ShaderMaterial) -> void:
 func _read(src: Material) -> Dictionary:
 	if src is BaseMaterial3D:
 		var b := src as BaseMaterial3D
-		if b.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+		if b.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED and not _lenient.has(src):
 			return {}
 		if b.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
 			return {}
@@ -319,6 +337,8 @@ func _read(src: Material) -> Dictionary:
 
 
 func _build(src: Material) -> ShaderMaterial:
+	if src is BaseMaterial3D and src.resource_name.to_lower().contains("glass"):
+		return _clear_glass(src as BaseMaterial3D)
 	var r := _read(src)
 	if r.is_empty():
 		return null
@@ -328,6 +348,16 @@ func _build(src: Material) -> ShaderMaterial:
 	mat.set_shader_parameter("flatten", FLATTEN)
 	mat.set_shader_parameter("paper_seed", float(_source.size() % 7))
 	_apply_paper(mat, _family(r["key"]))
+	return mat
+
+
+func _clear_glass(src: BaseMaterial3D) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = GLASS_SHADER
+	var c := src.albedo_color.lerp(Color.WHITE, 0.4)
+	mat.set_shader_parameter("tint", Color(c.r, c.g, c.b))
+	mat.set_shader_parameter("opacity", GLASS_OPACITY)
+	_glass[mat] = true
 	return mat
 
 
@@ -373,6 +403,7 @@ func _apply_paper(mat: ShaderMaterial, family: String) -> void:
 	mat.set_shader_parameter("scan_albedo", p[3])
 	mat.set_shader_parameter("paper_tile", TILE)
 	mat.set_shader_parameter("paper_grain_amount", GRAIN)
+	mat.set_shader_parameter("paper_up_calm", UP_CALM)
 
 
 func _tex(file: String) -> Texture2D:

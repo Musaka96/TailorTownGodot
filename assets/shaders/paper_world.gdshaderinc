@@ -13,6 +13,9 @@ uniform float paper_grain_amount = 0.14;
 uniform float paper_seed = 0.0;
 // how hard the three projections part at an edge (higher = crisper seam, less smear)
 uniform float paper_blend_sharp = 6.0;
+// how much calmer the paper is on up-facing surfaces (0 = as everywhere, 1 = plain): the
+// gameplay camera sees floors from far and at full strength they read as grain
+uniform float paper_up_calm = 0.0;
 
 // One projection: the paper at q (face units), its colour and its lit normal (view space).
 vec3 paper_world_plane(vec3 base, vec2 q, float s, vec3 n, vec3 pos, out vec3 nrm) {
@@ -34,6 +37,9 @@ vec3 paper_world(vec3 base, vec3 wpos, vec3 wnrm, vec3 n, vec3 pos, out vec3 nrm
 	vec3 nz;
 	vec3 cx = paper_world_plane(base, p.zy, paper_seed, n, pos, nx);
 	vec3 cy = paper_world_plane(base, p.xz, paper_seed + 1.0, n, pos, ny);
+	float calm = paper_up_calm * step(0.0, wnrm.y);
+	cy = mix(cy, base, calm);
+	ny = normalize(mix(ny, n, calm));
 	vec3 cz = paper_world_plane(base, p.xy, paper_seed + 2.0, n, pos, nz);
 	nrm = normalize(nx * w.x + ny * w.y + nz * w.z);
 	return cx * w.x + cy * w.y + cz * w.z;

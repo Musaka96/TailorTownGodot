@@ -56,6 +56,28 @@ func _run() -> void:
 	await _stage()
 	await _frames(40)
 	var pw := _main.get_node_or_null("PaperWorld")
+	for a in args:
+		if a.begins_with("sun="):
+			var v := a.trim_prefix("sun=").split(",")
+			var sun := _main.find_child("Sun", true, false) as DirectionalLight3D
+			sun.rotation_degrees = Vector3(-float(v[0]), float(v[1]), 0.0)
+	if args.has("front"):
+		# the street front from the gameplay camera, the player just outside the door
+		var door := _main.find_child("DoorOutside", true, false) as Node3D
+		var at := door.global_position + Vector3(0, 0, 1.5)
+		_player.global_position = at
+		await _frames(60)  # the roof fades back in
+		_cam.fov = 60.0
+		_cam.look_at_from_position(
+			at + Vector3(0, 6.0, 7.5), at + Vector3(0, 2.2, -2.0), Vector3.UP
+		)
+		await _frames(8)
+		_save("front_g.png")
+		pw.call("set_enabled", false)
+		await _frames(8)
+		_save("front_a.png")
+		quit(0)
+		return
 	if args.has("probe"):
 		await _frames(30)
 		var seen := {}
@@ -141,7 +163,7 @@ func _stage() -> void:
 		sun.shadow_enabled = true
 	# the neighbours' houses stand in the way of a low sun: they stop casting for the test
 	var town := _main.find_child("Town", true, false)
-	if town != null:
+	if town != null and not OS.get_cmdline_user_args().has("townshadow"):
 		for g: GeometryInstance3D in town.find_children("*", "GeometryInstance3D", true, false):
 			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_player.set_physics_process(false)

@@ -37,7 +37,10 @@ void vertex() {
 
 void fragment() {
 	vec2 uv = UV * uv1_scale.xy + uv1_offset.xy;
-	vec3 base = albedo_color.rgb * texture(albedo_tex, uv, flatten).rgb;
+	// floors keep their painted pattern (parquet, paving slabs): the softening eases off on
+	// surfaces facing up, as the paper does (paper_up_calm)
+	float up = paper_up_calm * clamp(w_nrm.y, 0.0, 1.0);
+	vec3 base = albedo_color.rgb * texture(albedo_tex, uv, flatten * (1.0 - up)).rgb;
 	if (use_vertex_color) {
 		base *= COLOR.rgb;
 	}

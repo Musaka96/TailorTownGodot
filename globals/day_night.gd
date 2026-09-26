@@ -21,8 +21,11 @@ const SUN_MID := Color(1.0, 0.97, 0.90)
 const SUN_GOLDEN := Color(1.0, 0.87, 0.70)
 const ELEV_LOW := 38.0  # degrees above horizon at the open/close
 const ELEV_HIGH := 56.0  # degrees at midday (angled, not overhead)
-const YAW_START := -55.0
-const YAW_END := 55.0
+# East of south all day: the sun always rakes the rooms' left (west) walls, so their paper
+# shows (at -55..55 the morning sun sat behind them and they went flat); both the left and
+# the back walls face it all day
+const YAW_START := 35.0
+const YAW_END := 65.0
 
 ## Current in-game hour (24h), read by the clock.
 var hour := DEFAULT_START_HOUR

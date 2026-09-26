@@ -102,6 +102,37 @@ def normal_map(rgb: np.ndarray, strength: float) -> np.ndarray:
     return n * 0.5 + 0.5
 
 
+# Cardboard for the walls and the roof (not on the owner's sheet): the ambientCG
+# Cardboard002 scan's mottling, the flutes of the corrugation showing through the liner
+# (FLUTES per tile, a faint stripe in the colour and a clear ripple in the relief) and the
+# crumpled sheet's creases, much softer, so it looks handled.
+CARDBOARD_SCAN = ROOT / "assets/textures/paper/cardboard002_albedo.jpg"
+FLUTES = 28
+FLUTE_TONE = 0.05
+FLUTE_RELIEF = 0.6
+CARDBOARD_CREASE = 0.35
+
+
+def make_cardboard(crumple: np.ndarray) -> None:
+    scan = Image.open(CARDBOARD_SCAN).convert("RGB").resize((SIZE, SIZE), Image.LANCZOS)
+    a = even_light(np.asarray(scan).astype(np.float64) / 255.0, 0.2)
+    x = np.arange(SIZE) / SIZE
+    flute = 0.5 + 0.5 * np.cos(2.0 * np.pi * FLUTES * x)
+    flute = np.tile(flute, (SIZE, 1))
+    a = np.clip(a * (1.0 - FLUTE_TONE * flute)[..., None], 0.0, 1.0)
+    im = Image.fromarray((a * 255).round().astype(np.uint8))
+    im.save(OUT / "world_cardboard_albedo.jpg", quality=92)
+    # the relief: flutes plus the crumple's high-passed light, as one height
+    lum = crumple @ np.array([0.299, 0.587, 0.114])
+    lum = lum - ndimage.gaussian_filter(lum, HP_SIGMA * SIZE / 1024.0, mode="wrap")
+    h = FLUTE_RELIEF * 0.08 * flute + CARDBOARD_CREASE * lum
+    n = normal_map(np.dstack([h, h, h]) + 0.5, 5.0)
+    Image.fromarray((n * 255).round().astype(np.uint8)).save(OUT / "world_cardboard_normal.jpg", quality=92)
+    rep = np.tile(np.asarray(im), (2, 2, 1))
+    Image.fromarray(rep).resize((1024, 1024)).save(ROOT / "IMPORT/paper_world/src/world_cardboard_repeat.png")
+    print("world_cardboard ok")
+
+
 def main() -> None:
     sheet = Path(sys.argv[1]) if len(sys.argv) > 1 else SHEET
     img = np.asarray(Image.open(sheet).convert("RGB")).astype(np.float64) / 255.0
@@ -119,6 +150,9 @@ def main() -> None:
         rep = np.tile(np.asarray(im), (2, 2, 1))
         Image.fromarray(rep).resize((1024, 1024)).save(ROOT / f"IMPORT/paper_world/src/{name}_repeat.png")
         print(name, "ok")
+        if name == "world_crumple":
+            crumple = a
+    make_cardboard(crumple)
 
 
 if __name__ == "__main__":
