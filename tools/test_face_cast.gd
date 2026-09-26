@@ -87,7 +87,8 @@ func _player_is_j1() -> void:
 
 
 ## A walk-in named "Ms. Portobello" wears her face, her auburn hair and tortoise wire
-## glasses, fitted to her close-set eyes: the rims centred on them, never stretched.
+## glasses, fitted to her close-set eyes: the rims centred across on them, hanging
+## GlassesFit.GLASSES_HANG below them on the nose, never stretched.
 func _cast_walk_in() -> void:
 	var pref: Resource = _pref_cls.random_pref(RandomNumberGenerator.new(), "Ms. Portobello")
 	var cust := _spawn_with(pref)
@@ -111,9 +112,11 @@ func _cast_walk_in() -> void:
 		var lens := GlassesFit.measure(mi.mesh, bind)
 		var eye := GlassesFit.eye_point(face as FaceStyle, rig.get("_face_frame"))
 		if not lens.is_empty():
-			off = (lens.c as Vector2) - eye
+			off = (lens.c as Vector2) - eye + Vector2(0.0, GlassesFit.GLASSES_HANG)
 	_check(stretch < 1e-4, "the glasses are not stretched across (%.4f)" % stretch)
-	_check(off.length() < 0.005, "the lens centre sits on the eye (off by %s m)" % off)
+	_check(
+		off.length() < 0.005, "the lens centre hangs GLASSES_HANG below the eye (off by %s m)" % off
+	)
 	cust.free()
 
 

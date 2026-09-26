@@ -17,5 +17,5 @@ brow_arch = 0.0
 nose_kind = 3
 nose_size = Vector2(0.08, 0.2)
 nose_height = 0.588
-mouth_height = 0.849
+mouth_height = 0.858
 mouth_width = 0.217

@@ -2,18 +2,24 @@ class_name GlassesFit
 extends RefCounted
 
 ## Fits a pair of glasses (a Wardrobe glasses part's mesh) to a cut-paper face, the way
-## an optician would rather than by stretching the frame: each rim moves rigidly onto its
-## eye (x and y), so a round lens stays round and its centre sits on the eye centre; a rim
-## only grows (uniformly) when the eye's white would spill past it, and only shrinks when
-## the eyes are too close for the rims to fit; the bridge stretches or shrinks between the
-## rims; each temple is re-seated from its new hinge to its old tip, a shear along the arm
-## (as tools/blender/tripo_glasses.py --front-scale does), so the arm still ends behind the
-## ear where the part was modelled.
+## an optician would rather than by stretching the frame: each rim moves rigidly across
+## onto its eye, so a round lens stays round and its centre sits over the eye centre, and
+## hangs GLASSES_HANG below it, resting on the nose as the frames did before the fit (owner,
+## 2026-09-26: centred on the eyes they looked pinned on); a rim only grows (uniformly) when
+## the eye's white would spill past it, and only shrinks when the eyes are too close for the
+## rims to fit; the bridge stretches or shrinks between the rims; each temple rides its
+## hinge and turns about it, rigidly, so its ear end points back where the part was
+## modelled (a shear kinked the arm behind the rim), turning in no further than keeps the
+## arm's widest point off the head.
 ##
 ## Everything is measured in head-bone space (x across, y up, z forward): the part's rims
 ## from its own mesh (measure()), the eyes from the FaceStyle and the head's FaceFrame, as
 ## skin_face.gdshader lays the face out (eye_point()).
 
+## How far the lens centre hangs below the eye centre, metres. The frames as modelled (the
+## placement before the fit) hung 0.044 (square), 0.052 (wire, round) and 0.038
+## (half-moon) below J1's eye line; one value for every frame, the owner's dial.
+const GLASSES_HANG := 0.045
 ## Rim clearance kept round an eye white (or a dot eye's pupil), metres.
 const WHITE_MARGIN := 0.012
 ## A rim grows at most this much over the part's own size.
@@ -39,9 +45,10 @@ static func fit(src: Mesh, bind: Transform3D, style: FaceStyle, frame: FaceFrame
 		return src
 	var eye := eye_point(style, frame)
 	var grow := rim_grow(lens, eye.x, eye_radius(style, frame))
-	var key := "%d|%s|%.4f|%.4f|%.4f" % [src.get_instance_id(), bind, eye.x, eye.y, grow]
+	var at := Vector2(eye.x, eye.y - GLASSES_HANG)  # where the lens centre goes
+	var key := "%d|%s|%.4f|%.4f|%.4f" % [src.get_instance_id(), bind, at.x, at.y, grow]
 	if not _fit_cache.has(key):
-		_fit_cache[key] = _build(src, bind, lens, eye, grow)
+		_fit_cache[key] = _build(src, bind, lens, at, grow)
 	return _fit_cache[key]
 
 
@@ -78,8 +85,8 @@ static func rim_grow(lens: Dictionary, eye_x: float, eye_r: float) -> float:
 
 ## The part's +x rim in head-bone space, cached per mesh: {c: lens centre (x, y), r: its
 ## inner reach (centre to the rim's innermost x), x_in: that innermost x, hinge: the plane
-## (z) between the front and the temples, and per side (1, -1) the temple's tip z and its
-## hinge-end centre}. {} when the mesh has no front.
+## (z) between the front and the temples, and per side (1, -1) its temple (_temple())}.
+## {} when the mesh has no front.
 static func measure(src: Mesh, bind: Transform3D) -> Dictionary:
 	var key := "%d|%s" % [src.get_instance_id(), bind]
 	if _lens_cache.has(key):
@@ -107,7 +114,7 @@ static func _measure_front(pts: PackedVector3Array) -> Dictionary:
 		zmax = maxf(zmax, p.z)
 	var rim_back := INF
 	for p in pts:
-		if absf(p.x) < 0.6 * xmax:
+		if absf(p.x) < 0.5 * xmax:  # the rims, never a temple (the square's hook inward)
 			rim_back = minf(rim_back, p.z)
 	var hinge := rim_back - 0.5 * (zmax - rim_back)
 	var front := PackedVector3Array()
@@ -131,7 +138,7 @@ static func _measure_front(pts: PackedVector3Array) -> Dictionary:
 		if p.y < bridge_low - 0.005:
 			x_in = minf(x_in, p.x)
 	var r := maxf(cx - x_in, 0.02)
-	var cy := yb + (ytop - yb) * 0.5 if ytop - yb >= 1.5 * r else yb + r
+	var cy := yb + (ytop - yb) * 0.5 if ytop - yb >= 1.2 * r else yb + r  # square: 1.33 r
 	return {"c": Vector2(cx, cy), "r": r, "x_in": cx - r, "hinge": hinge}
 
 
@@ -146,33 +153,46 @@ static func _mean_x(front: PackedVector3Array, below: float) -> float:
 
 
 ## One temple (behind the hinge plane on `side`): {tip: its furthest-back z, near: the
-## centre of its first tenth behind the hinge}, or {} when the side has none.
+## centre of its first tenth behind the hinge, end: the centre of its last tenth (the ear
+## end), wide: its widest point (over the side of the head)}, or {} when the side has none.
 static func _temple(pts: PackedVector3Array, hinge: float, side: float) -> Dictionary:
 	var tip := INF
+	var wide := Vector3.ZERO
 	for p in pts:
 		if p.z <= hinge and p.x * side > 0.0:
 			tip = minf(tip, p.z)
+			if absf(p.x) > absf(wide.x):
+				wide = p
 	if tip == INF:
 		return {}
+	var tenth := 0.1 * (hinge - tip)
 	var near := Vector3.ZERO
-	var n := 0
+	var end := Vector3.ZERO
+	var n := Vector2.ZERO
 	for p in pts:
-		if p.z <= hinge and p.x * side > 0.0 and p.z > hinge - 0.1 * (hinge - tip):
-			near += p
-			n += 1
-	return {"tip": tip, "near": near / maxf(n, 1)}
+		if p.z <= hinge and p.x * side > 0.0:
+			if p.z > hinge - tenth:
+				near += p
+				n.x += 1
+			elif p.z < tip + tenth:
+				end += p
+				n.y += 1
+	return {"tip": tip, "near": near / maxf(n.x, 1), "end": end / maxf(n.y, 1), "wide": wide}
 
 
 static func _build(
 	src: Mesh, bind: Transform3D, lens: Dictionary, eye: Vector2, grow: float
 ) -> ArrayMesh:
 	var inv := bind.affine_inverse()
+	var arms := {}
+	for side: float in [1.0, -1.0]:
+		arms[side] = temple_move(lens, eye, grow, side)
 	var out := ArrayMesh.new()
 	for s in src.get_surface_count():
 		var arrays := src.surface_get_arrays(s)
 		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		for i in verts.size():
-			verts[i] = inv * _move(bind * verts[i], lens, eye, grow)
+			verts[i] = inv * _move(bind * verts[i], lens, eye, grow, arms)
 		arrays[Mesh.ARRAY_VERTEX] = verts
 		var flags: int = src.surface_get_format(s) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
 		out.add_surface_from_arrays(src.surface_get_primitive_type(s), arrays, [], {}, flags)
@@ -180,20 +200,48 @@ static func _build(
 	return out
 
 
+## One temple's rigid move (head space) for a fit that puts the lens centre at `eye`: it
+## rides its hinge (the front's move of the temple's near end), then turns about the moved
+## hinge so its ear end points back where it was modelled: a yaw, then the small pitch that
+## matches the end's height. The yaw turns in no further than keeps the temple's widest
+## point at its modelled x (further in, the arm would cut into the head); the ear end then
+## sits a touch wider. Identity for a side with no temple.
+static func temple_move(lens: Dictionary, eye: Vector2, grow: float, side: float) -> Transform3D:
+	var temple: Dictionary = lens.get(side, {})
+	if temple.is_empty():
+		return Transform3D.IDENTITY
+	var near: Vector3 = temple.near
+	var hinge := _front(near, lens, eye, grow)
+	var v: Vector3 = temple.end - near  # the arm as it rides the hinge
+	var u: Vector3 = temple.end - hinge  # where its end should be
+	# the yaw in the side's mirrored frame (x outward): > 0 swings the arm's end inward
+	var yaw := atan2(u.x * side, u.z) - atan2(v.x * side, v.z)
+	var w: Vector3 = temple.wide - near
+	var reach := Vector2(w.x * side, w.z).length()
+	var k: float = (temple.wide.x - hinge.x) * side
+	if reach > 1e-4 and absf(k) <= reach:
+		var a := atan2(w.z, w.x * side)
+		var off := acos(k / reach)
+		yaw = minf(yaw, a - off if absf(a - off) < absf(a + off) else a + off)
+	var turn := Basis(Vector3.UP, yaw * side)
+	var arm := turn * v
+	var target := Vector3(arm.x, u.y, arm.z)
+	var axis := arm.cross(target)
+	if axis.length() > 1e-6:
+		turn = Basis(axis.normalized(), arm.angle_to(target)) * turn
+	return Transform3D(turn, hinge) * Transform3D(Basis.IDENTITY, -near)
+
+
 ## One head-space point, fitted. Front: a rim point maps rigidly (scaled by `grow`) from
-## the lens centre to the eye; a bridge point (inside the rims) scales across to the new
-## inner edge and follows the rims up or down. Temple: moved by its hinge's move, fading
-## to nothing at the tip.
-static func _move(p: Vector3, lens: Dictionary, eye: Vector2, grow: float) -> Vector3:
+## the lens centre to `eye`; a bridge point (inside the rims) scales across to the new
+## inner edge and follows the rims up or down. Temple: its side's rigid move (`arms`,
+## temple_move()).
+static func _move(
+	p: Vector3, lens: Dictionary, eye: Vector2, grow: float, arms: Dictionary
+) -> Vector3:
 	if p.z <= lens.hinge:
-		var side := 1.0 if p.x > 0.0 else -1.0
-		var temple: Dictionary = lens.get(side, {})
-		if temple.is_empty():
-			return p
-		var near: Vector3 = temple.near
-		var span := maxf(lens.hinge - temple.tip, 1e-4)
-		var t := clampf((lens.hinge - p.z) / span, 0.0, 1.0)
-		return p + (_front(near, lens, eye, grow) - near) * (1.0 - t)
+		var arm: Transform3D = arms[1.0 if p.x > 0.0 else -1.0]
+		return arm * p
 	return _front(p, lens, eye, grow)
 
 
